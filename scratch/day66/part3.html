@@ -1,0 +1,182 @@
+<section id="part-3" class="part"><h2>3 · Real-world problem and solution for each topic</h2>
+<article id="topic-01-problem" class="topic-card">
+<h3>Brightloaf Retail Flash-Sale Cascade: Unhandled Cloud SQL PSC Disconnection, Poison Pill Deadlock in Fulfillment Consumer, and Orphaned Infrastructure Billing Leak · field case</h3>
+
+<p><strong>Situation and impact:</strong> On Black Friday at 14:00 UTC, Brightloaf launched a flash promotion featuring a 40% discount on artisan bakery subscriptions across North America. Traffic instantly surged from a baseline of 400 QPS to 8,000 QPS. Within 90 seconds of promotion launch, three compounding catastrophic failures struck the integrated production stack:</p>
+<ol>
+<li><strong>Unhandled Cloud SQL Failover &amp; Socket Exhaustion:</strong> An underlying hardware degradation in GCP zone <code>us-central1-a</code> triggered an automated Cloud SQL Regional HA failover to standby zone <code>us-central1-f</code>. During the 120-second DNS and routing convergence window, TCP connections to the Private Service Connect endpoint (<code>10.128.0.50:5432</code>) were severed. Because the Cloud Run <code>order-service</code> only had a superficial liveness probe (<code>/healthz</code>) returning 200 OK and lacked an application-level circuit breaker, incoming checkout requests blocked indefinitely on database connection acquisition. Within 45 seconds, all 100 container worker threads across 80 autoscaled Cloud Run instances were paralyzed waiting for database sockets. The Global ALB reached its 60-second backend timeout on 24,000 customer checkout requests, returning <code>HTTP 504 Gateway Timeout</code> and stranding $168,000 in checkout transactions.</li>
+<li><strong>Poison Pill Deadlock &amp; Head-of-Line Blocking:</strong> A third-party mobile checkout client running an outdated SDK published an order containing a malformed, non-UTF8 binary character in the customer delivery instructions with <code>ordering_key = "cust_98412"</code>. The <code>order-service</code> committed the order and dispatched it to Pub/Sub topic <code>orders.v1</code>. When the background <code>fulfillment-service</code> worker pulled the message, the Python JSON parser raised an unhandled <code>UnicodeDecodeError</code>. Because the pull subscription (<code>orders.v1.fulfillment-sub</code>) had been provisioned without a Dead-Letter Topic, the worker crashed without acknowledging the message. Pub/Sub immediately redelivered the poison message. Because message ordering was strictly enabled on the subscription, Pub/Sub halted delivery of all subsequent messages sharing that ordering key partition. Over the next two hours, 8,200 valid customer orders queued behind the poison pill in the same partition were completely frozen, resulting in $42,000 in cancelled orders and customer service concessions.</li>
+<li><strong>Emergency Staging Proliferation &amp; Orphaned Billing Leak:</strong> During the incident response, an on-call engineer deployed an emergency staging replica to reproduce the database failure. The engineer provisioned 3 Regional HA Cloud SQL instances (<code>db-custom-16-64</code>), 10 static external IPv4 addresses, and 4 Cloud Run services. After resolving the immediate production issue, the engineer manually deleted the Cloud Run services via the GCP Console but omitted the Cloud SQL instances, PSC endpoints, and reserved static IPs. Over the subsequent 28 days, these orphaned stateful and networking resources ran completely undetected, accumulating $14,200 in unbudgeted cloud infrastructure charges before being flagged by an executive FinOps audit.</li>
+</ol>
+
+<p><strong>Constraints:</strong></p>
+<ul>
+<li>Zero exposure of database credentials or internal VPC IP ranges to the public internet; all database access must remain strictly private via PSC.</li>
+<li>Strict preservation of ACID relational transaction integrity; customer checkout records must never be committed without corresponding outbox dispatch events.</li>
+<li>Fulfillment message ingestion must enforce strictly zero head-of-line blocking on customer message partitions while preserving in-order delivery for valid orders.</li>
+<li>Infrastructure teardown must be fully automated, deterministic, and enforce strict reverse-dependency ordering to eliminate orphaned resource billing leaks.</li>
+<li>All diagnostic tests and validation suites must execute within synthetic, budget-capped lab environments without requiring production downtime.</li>
+</ul>
+
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li><strong>Cloud Trace Latency Breakdown:</strong> SREs queried Cloud Trace for checkout transactions during the 14:00–14:15 UTC window filtering on <code>http.status_code=504</code>. Flamegraphs revealed that the root span stalled for 59,992ms. Child spans showed:
+<pre><code>[0ms]     alb-edge-ingress [HTTP POST /v1/orders]
+[2ms]       cloudrun-gfe-proxy [Admitted - OIDC token valid]
+[4ms]         order-service-handler [Container active]
+[6ms]           hikari-pool.getConnection() [STALLED 59,986ms]
+[60,000ms]  ALB Client Timeout: 504 GATEWAY TIMEOUT</code></pre>
+Inspecting socket telemetry confirmed that TCP connections to PSC endpoint <code>10.128.0.50:5432</code> were timing out after 10,000ms. Because the application lacked a circuit breaker, each thread retried 6 times sequentially until the 60-second GFE timeout severed the client connection. Because the container exposed only <code>/healthz</code> (which checked CPU/memory but not database reachability), Cloud Run reported the instance as 100% healthy, and the ALB continued pouring incoming user traffic into the frozen instances.</li>
+<li><strong>Cloud Logging Structured Query on Fulfillment Worker:</strong> SREs executed a structured log query to isolate the stalled fulfillment pipeline:
+<pre><code>resource.type="cloud_run_revision"
+AND jsonPayload.service="fulfillment-service"
+AND severity&gt;=ERROR</code></pre>
+The query returned 14,200 identical error entries within 45 minutes:
+<pre><code>UnicodeDecodeError: 'utf-8' codec can't decode byte 0x8a in position 42
+Traceback (most recent call last):
+  File "/app/fulfillment_consumer.py", line 84, in process_message
+    payload = json.loads(message.data.decode('utf-8'))
+Delivery Attempt Count: 1,842 | Ordering Key: cust_98412</code></pre>
+Reviewing subscription configuration revealed that <code>deadLetterPolicy</code> was <code>null</code>. Pub/Sub had redelivered the identical corrupt payload 1,842 times. Because ordering keys guarantee strict FIFO processing, the broker blocked the entire partition, stalling all subsequent orders for that hash.</li>
+<li><strong>Cloud Asset Inventory &amp; FinOps Audit:</strong> SREs audited the project resource hierarchy using Cloud Asset Inventory to identify the source of the billing anomaly:
+<pre><code>gcloud asset search-all-resources \
+  --scope="projects/brightloaf-staging" \
+  --asset-types="sqladmin.googleapis.com/Instance,compute.googleapis.com/Address" \
+  --format="table(name,assetType,state,createTime)"</code></pre>
+The scan revealed 3 Regional HA Cloud SQL instances in state <code>RUNNING</code> created 28 days prior, alongside 10 reserved external IPv4 addresses in state <code>RESERVED</code> (unattached to any forwarding rule or VM), incurring $14,200 in continuous idle reservation and compute charges.</li>
+</ol>
+
+<p><strong>Root cause:</strong> Three interrelated architectural vulnerabilities:</p>
+<ol>
+<li><strong>Absence of Decoupled Readiness Checking and Circuit Breaking:</strong> Conflating liveness and readiness into a naive <code>/healthz</code> probe prevented the ALB from detecting database connectivity loss. Without an application-level circuit breaker to fail fast (sub-5ms) with <code>HTTP 503</code> and <code>Retry-After</code> headers, connection pools exhausted container worker threads and triggered 60-second ALB gateway timeouts.</li>
+<li><strong>Omission of Pub/Sub Dead-Letter Topic on Ordered Subscription:</strong> Provisioning an ordered Pub/Sub subscription without a <code>deadLetterPolicy</code> (bounded to <code>maxDeliveryAttempts = 5</code>) caused an unhandled deserialization exception to permanently stall the customer ordering partition, inducing catastrophic head-of-line blocking across the fulfillment queue.</li>
+<li><strong>Lack of Automated Reverse-Dependency Teardown Governance:</strong> Ad-hoc manual infrastructure deletion removed stateless compute runtimes while leaving expensive stateful datastores and static IP reservations active, directly violating the LIFO resource lifecycle discipline.</li>
+</ol>
+
+<p><strong>Defensible remediation:</strong></p>
+<ol>
+<li><strong>Implement Decoupled Readiness Probes &amp; Fast Circuit Breaking:</strong>
+Expose decoupled <code>/healthz</code> and <code>/readyz</code> endpoints in the Cloud Run application. Configure <code>/readyz</code> to validate database pool reachability with a 1,000ms timeout:
+<pre><code>@app.route("/readyz", methods=["GET"])
+def readiness_probe():
+    try:
+        # Validate connection pool health with 1s timeout
+        with db_engine.connect() as conn:
+            conn.execute(text("SELECT 1;"))
+        return jsonify({"status": "READY", "pool": "CONNECTED"}), 200
+    except Exception as e:
+        logger.warning(f"Readiness check failed: {str(e)}")
+        return jsonify({"status": "NOT_READY", "error": "DB_UNREACHABLE"}), 503
+</code></pre>
+Wrap database calls in an application-level circuit breaker: after 3 consecutive connection timeouts, trip to <code>OPEN</code> state for 30 seconds, immediately returning <code>HTTP 503 Service Unavailable</code> with <code>Retry-After: 30</code> headers in under 3ms, preventing socket exhaustion. Configure Cloud Run startup and liveness probes to inspect <code>/readyz</code> and <code>/healthz</code> respectively.</li>
+<li><strong>Deploy Pub/Sub Dead-Letter Topic &amp; Auto-Quarantine:</strong>
+Create a dedicated Dead-Letter Topic (<code>orders.v1.dlq</code>) and audit subscription. Update the primary fulfillment subscription with a dead-letter policy enforcing <code>maxDeliveryAttempts = 5</code>:
+<pre><code># Create Dead-Letter Topic
+gcloud pubsub topics create orders.v1.dlq
+
+# Attach Dead-Letter Policy with 5-attempt threshold
+gcloud pubsub subscriptions update orders.v1.fulfillment-sub \
+  --dead-letter-topic=orders.v1.dlq \
+  --max-delivery-attempts=5
+
+# Grant Pub/Sub service agent permission to publish to DLQ and forward ACKs
+PUBSUB_SERVICE_ACCOUNT="service-$(gcloud projects describe $(gcloud config get-value project) --format='value(projectNumber)')@gcp-sa-pubsub.iam.gserviceaccount.com"
+gcloud pubsub topics add-iam-policy-binding orders.v1.dlq \
+  --member="serviceAccount:${PUBSUB_SERVICE_ACCOUNT}" \
+  --role="roles/pubsub.publisher"
+gcloud pubsub subscriptions add-iam-policy-binding orders.v1.fulfillment-sub \
+  --member="serviceAccount:${PUBSUB_SERVICE_ACCOUNT}" \
+  --role="roles/pubsub.subscriber"
+</code></pre>
+Configure a Cloud Monitoring metric alert triggering on <code>pubsub.googleapis.com/subscription/dead_letter_message_count &gt; 0</code> to page on-call SREs whenever a poison message is quarantined.</li>
+<li><strong>Establish Automated Reverse-Dependency Teardown &amp; FinOps Linter:</strong>
+Codify the 5-phase LIFO teardown sequence into an automated, idempotent bash/Python script. Ensure that stateful databases (Phase 4) and static IPs (Phase 5) are explicitly purged when environments are decommissioned. Integrate a scheduled Cloud Function executing a daily Cloud Asset Inventory scan that alerts on any unattached static IP addresses (state: <code>RESERVED</code>) or unmonitored test databases.</li>
+</ol>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d66-p1-title d66-p1-desc" viewBox="0 0 960 360" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d66-p1-title">Incident 66.1: Cloud SQL PSC Partition, Poison Pill Consumer Deadlock &amp; Orphaned Billing Leaks</title>
+<desc id="d66-p1-desc">Incident diagram showing failed path with unhandled PSC partition causing 60-second GFE timeouts, poison pill payload stalling the Pub/Sub ordering partition for 2 hours, and incomplete teardown leaking $14,200, contrasted with corrected path featuring decoupled readyz probe with fast circuit breaking, automated DLT quarantine after 5 attempts, and deterministic LIFO reverse-dependency cleanup.</desc>
+<defs>
+<marker id="d66-p1-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d66-p1-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Trigger Node -->
+<rect x="25" y="45" width="180" height="95" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="35" y="65" fill="#c7d2fe" font-size="11" font-weight="700">Trigger: Flash Sale Surge</text>
+<text x="35" y="81" fill="#cbd5e1" font-size="9.5">8,000 QPS across North America</text>
+<text x="35" y="96" fill="#cbd5e1" font-size="9.5">Cloud SQL HA Zone Failover</text>
+<text x="35" y="111" fill="#94a3b8" font-size="9">Corrupt order payload injected</text>
+<text x="35" y="125" fill="#cbd5e1" font-size="8.5">Emergency staging spun up</text>
+
+<!-- FAILED PATH (Upper Lane) -->
+<rect x="245" y="45" width="220" height="95" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="255" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: PSC Disconnect</text>
+<text x="255" y="81" fill="#cbd5e1" font-size="9">No /readyz probe; /healthz=200</text>
+<text x="255" y="95" fill="#cbd5e1" font-size="9">No app circuit breaker</text>
+<text x="255" y="109" fill="#cbd5e1" font-size="9">Threads block 60s in acquire()</text>
+<text x="255" y="125" fill="#f43f5e" font-size="8.5">&rarr; 24,000 ALB 504 timeouts ($168k)</text>
+
+<rect x="505" y="45" width="210" height="95" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="515" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: Poison Pill Blockade</text>
+<text x="515" y="81" fill="#cbd5e1" font-size="9">Malformed payload + ordering_key</text>
+<text x="515" y="95" fill="#cbd5e1" font-size="9">No Dead-Letter Topic configured</text>
+<text x="515" y="109" fill="#cbd5e1" font-size="9">Consumer crashes &amp; NACKs 1,842x</text>
+<text x="515" y="125" fill="#f43f5e" font-size="8.5">&rarr; HoL blocking stalls 8,200 orders</text>
+
+<rect x="755" y="45" width="180" height="95" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="765" y="65" fill="#f43f5e" font-size="11" font-weight="700">FAILED: Billing Leak</text>
+<text x="765" y="81" fill="#fca5a5" font-size="9.5">Staging Cloud Run deleted</text>
+<text x="765" y="96" fill="#fca5a5" font-size="9.5">Cloud SQL HA instances left</text>
+<text x="765" y="111" fill="#fca5a5" font-size="9.5">10 static IPs idle in RESERVED</text>
+<text x="765" y="126" fill="#f43f5e" font-size="9">&rarr; $14,200 surprise bill</text>
+
+<!-- Failed Path Connectors -->
+<path d="M 205 92 L 245 92" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d66-p1-mf)"/>
+<path d="M 465 92 L 505 92" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d66-p1-mf)"/>
+<path d="M 715 92 L 755 92" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d66-p1-mf)"/>
+
+<!-- CORRECTED PATH (Lower Lane) -->
+<rect x="245" y="210" width="220" height="95" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="255" y="230" fill="#86efac" font-size="11" font-weight="700">CORRECTED: /readyz &amp; Breaker</text>
+<text x="255" y="246" fill="#cbd5e1" font-size="9">/readyz trips 503 in 1,000ms</text>
+<text x="255" y="260" fill="#cbd5e1" font-size="9">ALB sheds traffic immediately</text>
+<text x="255" y="274" fill="#cbd5e1" font-size="9">Circuit breaker returns fast 503</text>
+<text x="255" y="290" fill="#22c55e" font-size="8.5">&#10003; Zero hanging socket timeouts</text>
+
+<rect x="505" y="210" width="210" height="95" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="515" y="230" fill="#86efac" font-size="11" font-weight="700">CORRECTED: DLT Quarantine</text>
+<text x="505" y="246" fill="#cbd5e1" font-size="9">&nbsp;&bull; maxDeliveryAttempts = 5</text>
+<text x="505" y="260" fill="#cbd5e1" font-size="9">&nbsp;&bull; Auto-routes to orders.v1.dlq</text>
+<text x="505" y="274" fill="#cbd5e1" font-size="9">&nbsp;&bull; Partition unblocked in &lt;10s</text>
+<text x="505" y="290" fill="#22c55e" font-size="8.5">&nbsp;&#10003; Alert fires; valid orders flow</text>
+
+<rect x="755" y="210" width="180" height="95" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="765" y="230" fill="#4ade80" font-size="11" font-weight="700">CORRECTED: LIFO Teardown</text>
+<text x="765" y="246" fill="#86efac" font-size="9.5">Automated 5-phase script</text>
+<text x="765" y="261" fill="#86efac" font-size="9.5">Deletes Cloud SQL &amp; PSC</text>
+<text x="765" y="276" fill="#86efac" font-size="9.5">Releases all static IPs</text>
+<text x="765" y="291" fill="#22c55e" font-size="9">&#10003; $0 orphaned billing leaks</text>
+
+<!-- Corrected Path Connectors -->
+<path d="M 115 140 L 115 257 L 245 257" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d66-p1-mc)"/>
+<path d="M 465 257 L 505 257" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d66-p1-mc)"/>
+<path d="M 715 257 L 755 257" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d66-p1-mc)"/>
+
+<!-- Verify Boundary Probe Point -->
+<circle cx="245" cy="257" r="7" fill="#f59e0b" stroke="#ffffff" stroke-width="2"/>
+<text x="205" y="325" fill="#f59e0b" font-size="10" font-weight="700">VERIFY BOUNDARY</text>
+</svg>
+<figcaption>Figure 66.2: Incident 66.1 Root Cause &amp; Remediation Topology. <strong>Supplied facts:</strong> During an 8,000 QPS flash sale, a Cloud SQL Regional HA failover severed Private Service Connect routes for 120 seconds. Because Cloud Run lacked a decoupled readiness probe (<code>/readyz</code>) and client circuit breaker, 24,000 requests hung on database acquisition until reaching the 60-second GFE gateway timeout, resulting in $168,000 in lost checkouts. Concurrently, a poison pill message with an active ordering key caused an unhandled <code>UnicodeDecodeError</code> in the fulfillment consumer; because no Dead-Letter Topic was configured, infinite retries induced head-of-line blocking that stalled 8,200 valid customer orders for two hours ($42,000 in cancellations). Finally, an emergency staging environment was partially torn down by deleting only Cloud Run, leaving Cloud SQL HA instances and 10 static IPs running unmonitored for 28 days and accumulating $14,200 in billing leaks. <strong>Architectural inference:</strong> In distributed cloud systems, coupling container liveness to runtime health without readiness circuit breaking transforms transient datastore failovers into complete front-end socket paralysis; enabling message ordering on Pub/Sub without an automated Dead-Letter Topic bound creates an unbreakable single point of queue failure; and deleting cloud resources without strict reverse-dependency automation guarantees silent, high-cost infrastructure leakage. <strong>Expected post-fix behavior:</strong> Decoupled <code>/readyz</code> probes fail within 1,000ms to immediately purge failing backends from the ALB while an application circuit breaker returns fast <code>HTTP 503</code> (sub-3ms) with <code>Retry-After: 30</code>; Pub/Sub dead-letter policies quarantine poison pills to <code>orders.v1.dlq</code> after exactly 5 attempts to restore ordering partition flow in under 10 seconds; and an automated 5-phase LIFO teardown pipeline deterministically cleans up all stateful and networking resources, achieving zero orphaned billing leaks.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> The remediation was validated through an automated chaos engineering suite executed in staging. First, a simulated Cloud SQL PSC network partition was triggered. Within 450ms, the <code>/readyz</code> probe returned HTTP 503, the Global ALB detached the failing backend, and the application circuit breaker returned fast 503s with a mean latency of 2.4ms, eliminating 100% of client gateway timeouts. Second, a corrupt non-UTF8 payload with an active ordering key was dispatched to Pub/Sub. The fulfillment consumer NACKed the message; Pub/Sub incremented the delivery attempt counter to 5, automatically quarantined the payload to <code>orders.v1.dlq</code>, and unblocked the customer partition in 6.8 seconds, enabling 50 subsequent valid orders to process without delay. Third, the automated reverse-dependency cleanup script was executed against the staging project; Cloud Asset Inventory verified that all 28 provisioned resources (including Cloud SQL instances, PSC rules, and static IPs) were completely purged with zero lingering billing artifacts.</p>
+
+<p><strong>Residual Risk:</strong> While dead-letter queues prevent head-of-line blocking, quarantined poison messages will silently expire after 7 days if on-call teams fail to triage the dead-letter subscription backlog. To mitigate this, a PagerDuty alert bound to <code>dead_letter_message_count &gt; 0</code> is mandatory. Furthermore, in high-throughput environments (>10,000 QPS), rapid circuit-breaker tripping may shed large volumes of user requests; implementing an edge queueing layer or asynchronous fallback order buffer in Cloud Storage can provide graceful degradation during prolonged database outages.</p>
+</article>
+</section>

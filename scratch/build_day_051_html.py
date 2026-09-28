@@ -1,0 +1,1145 @@
+#!/usr/bin/env python3
+"""Build script for Day 51 page override."""
+import re
+from pathlib import Path
+
+SITE = Path(__file__).resolve().parents[1]
+
+# Extract existing jump-to-day dropdown from current day-051-page.html
+existing = (SITE / "content" / "day-051-page.html").read_text(encoding="utf-8")
+select_match = re.search(r'(<select id="day-jump"[^>]*>.*?</select>)', existing, re.DOTALL)
+if not select_match:
+    raise ValueError("Could not extract select id=day-jump from day-051-page.html")
+day_jump_html = select_match.group(1)
+
+html_content = f"""<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 51: Peering, Shared VPC, PSC and NAT · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-050.html" aria-label="Previous day">← Day 50</a>
+<a href="day-052.html" aria-label="Next day">Day 52 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+{day_jump_html}
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="51" data-prev="day-050.html" data-next="day-052.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 51 of 180</div>
+<section class="hero">
+<div class="pills"><span class="pill">DAY 51</span><span class="pill">3–4 hours</span><span class="pill">production practice</span><span class="pill">Networking &amp; Isolation</span></div>
+<h1>Day 51 — Peering, Shared VPC, PSC and NAT</h1>
+<p class="lead"><strong>Outcome:</strong> Trace one private-service path and one outbound NAT path, including return routing, translation state and ephemeral-port demand across enterprise multi-project landing zones.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-050.html">Day 50</a>; bring their exit artifacts.</p></div>
+<div class="callout success"><strong>Exit artifact</strong><p>A PSC/PSA/peering comparison matrix and a NAT exhaustion hypothesis with measurable monitoring signals (day-051-nat-exhaustion.md).</p></div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>Private services access (PSA) vs Private Service Connect (PSC)</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>VPC Network Peering (non-transitive, no overlapping ranges)</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+<div class="toc-topic"><span>Shared VPC (host and service projects, landing zone baseline)</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+<div class="toc-topic"><span>Cloud NAT (Private NAT, gateway endpoints, no inbound)</span><a href="#topic-04-overview">overview</a> · <a href="#topic-04-technical">discussion</a> · <a href="#topic-04-problem">problem</a> · <a href="#topic-04-lab">lab</a></div>
+</aside>
+
+<!-- ================= PART 1 ================= -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Private services access (PSA) vs Private Service Connect (PSC endpoints, PSC service attachments, PSC interfaces)</h3>
+<p>Enterprise connectivity to managed services in Google Cloud has evolved from monolithic VPC peering models to granular, software-defined endpoint mappings. Private Services Access (PSA) relies on direct VPC Network Peering between a customer VPC and a Google-managed service producer tenant VPC (hosting Cloud SQL, AlloyDB, or Memorystore). PSA requires reserving an entire allocated, contiguous RFC 1918 CIDR block, consumes global peering table limits (maximum 25 peerings per VPC), forbids any address overlap, and imposes non-transitive routing constraints that prevent hybrid transit without BGP custom route propagation. Conversely, Private Service Connect (PSC) abstracts producer services behind consumer-allocated /32 private IP endpoints within existing application subnets, connecting to producer Service Attachments backed by Internal Load Balancers and dedicated PSC NAT subnets (purpose: <code>PRIVATE_SERVICE_CONNECT</code>). PSC eliminates VPC peering entirely, supports completely identical RFC 1918 CIDRs across consumer and producer networks without collision risk, allows consumers to enforce granular local VPC firewall policies directly against the endpoint IP, and offers PSC interfaces for direct multi-network VM NIC attachment.</p>
+<p>When an enterprise deploys Cloud SQL via Private Services Access against an on-premises connected VPC, an IP range collision with an existing warehouse subnet aborts the peering establishment and blackholes database connectivity. E-commerce checkout microservices crash with connection refused errors, halting order processing and resulting in $120,000 in lost hourly revenue during peak trade.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>VPC Network Peering (non-transitive, no overlapping ranges)</h3>
+<p>VPC Network Peering interconnects two distinct Virtual Private Cloud networks across projects or Google Cloud organizations, providing high-bandwidth, line-rate internal IPv4 and IPv6 communication directly over Google's Andromeda SDN without intermediate proxy gateways or VPN encapsulation overhead. However, Google Cloud VPC Peering enforces a strict non-transitive routing rule: if network A is peered with network B, and network B is peered with network C, workloads in network A cannot communicate with network C across network B. Any attempt to route transit packets through an intermediate peered VPC results in silent packet drops at the hypervisor. Furthermore, VPC Peering mandates complete IP uniqueness: any overlapping subnet CIDR or conflicting static route completely blocks peering creation or suspends route exchange. Sharing static and dynamic hybrid routes (learned from on-premises Cloud Interconnect or Cloud VPN BGP sessions) across a peering connection requires explicitly configuring the custom route exchange flags (<code>--export-custom-routes</code> and <code>--import-custom-routes</code>) on both sides of the peering relationship.</p>
+<p>When network engineers route traffic between two spoke VPCs through a central hub VPC using standard VPC peering, Andromeda silently drops all inter-spoke packets at the hypervisor boundary due to the non-transitive peering rule. Financial reconciliation pipelines fail to pull warehouse ledger events, delaying daily regulatory reporting and exposing the company to statutory audit fines.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Shared VPC (host and service projects, the enterprise landing zone baseline)</h3>
+<p>Shared VPC is Google Cloud's foundational landing zone architecture for separating centralized network governance from decentralized workload execution. Under this model, an organization designates a centralized Host Project administered by central Network Operations (NetOps), which retains exclusive ownership of the VPC network, subnets, secondary IP ranges, Cloud Routers, Cloud Interconnects, Cloud NAT gateways, and hierarchical firewall policies. Workload engineering teams manage separate Service Projects, deploying Compute Engine instances, GKE clusters, and Cloud Run services that attach their virtual network interfaces directly into host project subnets. Security boundaries are maintained via granular subnet-level IAM delegation, binding the <code>roles/compute.networkUser</code> role strictly on individual subnet resources to specific service accounts—including the Compute Engine default service account, the GKE service agent, and the Google APIs service agent—preventing service project developers from attaching instances to unauthorized network tiers or altering global routing policies.</p>
+<p>When a DevOps team attempts to spin up a private GKE cluster in a Shared VPC service project without host subnet IAM delegation, node pool creation fails with HTTP 403 Forbidden because the GKE service agent lacks the compute.networkUser role on the host subnetwork. A zero-day security patch deployment is delayed by eight hours while engineering teams debate broad project-level permissions, leaving payment processing endpoints vulnerable.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-04-overview" class="topic-card">
+<h3>Cloud NAT (Private NAT, gateway endpoints; no inbound)</h3>
+<p>Cloud NAT is a fully managed, software-defined network address translation service implemented directly in Google's Andromeda SDN hypervisor, delivering line-rate egress capacity without deploying choke-point proxy virtual machines or appliances. Cloud NAT provides strictly outbound-only connectivity: it performs stateful Source NAT (SNAT) for egress connections initiated by private Compute Engine instances or GKE nodes, automatically allowing stateful inbound response packets while completely blocking unsolicited inbound connections from the external network. Public Cloud NAT provisions external egress to the public internet, whereas Private Cloud NAT translates overlapping RFC 1918 addresses between internal VPC networks and hybrid interconnect spokes. Cloud NAT manages port allocation using either static port allocation (defaulting to 64 ports per VM) or dynamic port allocation, which dynamically scales socket assignments from a configured minimum to a maximum per VM. Ephemeral port exhaustion occurs when concurrent outbound connections exceed allocated ports, causing dropped SYN packets, connection resets, and measurable surges in dropped sent packet metrics.</p>
+<p>When hundreds of containerized microservices scale on a GKE cluster behind a Cloud NAT gateway with static 64-port allocation, surging concurrent outbound HTTPS API calls trigger severe port exhaustion and drop outbound SYN packets. Third-party payment authorization calls time out with socket errors, causing 42% of customer checkouts to fail and triggering customer support escalations.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Step-by-step lab →</a></p>
+</article>
+
+</section>
+
+<!-- ================= PART 2 ================= -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<!-- Part 2 Architecture SVG: Enterprise Connectivity Fabric -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d51-arch-title d51-arch-desc" viewBox="0 0 1000 530" width="100%" height="auto" style="background:#0a0f1d;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d51-arch-title">Enterprise Connectivity Fabric: Shared VPC, VPC Peering, Private Service Connect, and Cloud NAT</title>
+<desc id="d51-arch-desc">Comprehensive architecture diagram illustrating a Shared VPC Host Project governing subnets consumed by Service Projects, connected to external SaaS via Private Service Connect endpoints, managed databases via Private Services Access, and public SaaS via Cloud NAT, with an explicit non-transitive peering boundary.</desc>
+<defs>
+<marker id="d51-psc-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d51-nat-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#a855f7"/>
+</marker>
+<marker id="d51-psa-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d51-block-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+</defs>
+
+<!-- Outer Canvas Boundary -->
+<rect x="15" y="15" width="970" height="500" rx="8" fill="#0d1424" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="40" fill="#f8fafc" font-size="15" font-weight="700">Enterprise Multi-Project Connectivity Fabric &amp; Isolation Architecture</text>
+<text x="35" y="58" fill="#94a3b8" font-size="11">Shared VPC Host/Service Segregation · PSC 1:1 NAT Mapping · Non-Transitive Peering Boundary · Cloud NAT Port Scaling</text>
+
+<!-- Host Project Container -->
+<rect x="30" y="75" width="630" height="425" rx="6" fill="#090d16" stroke="#38bdf8" stroke-width="1.8"/>
+<text x="45" y="98" fill="#38bdf8" font-size="13" font-weight="700">Shared VPC Host Project: prod-net-hub-01 (Central NetOps Ownership)</text>
+<text x="45" y="113" fill="#64748b" font-size="10">Controls Global VPC Network, Subnets, Cloud Routers, NAT Gateways, and Hierarchical Firewall Policies</text>
+
+<!-- Subnet 1: prod-app-us-east4 -->
+<rect x="45" y="125" width="280" height="165" rx="5" fill="#131c31" stroke="#334155" stroke-width="1.2"/>
+<text x="55" y="145" fill="#e2e8f0" font-size="11" font-weight="700">Subnet: prod-app-us-east4 (10.10.1.0/24)</text>
+<text x="55" y="159" fill="#94a3b8" font-size="9.5">Delegated via compute.networkUser IAM</text>
+
+<!-- Service Project A inside Subnet 1 -->
+<rect x="55" y="170" width="260" height="110" rx="4" fill="#1e293b" stroke="#3b82f6" stroke-width="1"/>
+<text x="65" y="190" fill="#60a5fa" font-size="10.5" font-weight="700">Service Project A (Payments &amp; Apps)</text>
+<text x="65" y="206" fill="#cbd5e1" font-size="9.5">• GKE Node vNIC: 10.10.1.15 (Host Subnet)</text>
+<text x="65" y="222" fill="#cbd5e1" font-size="9.5">• GKE Pod CIDR: 10.20.0.0/16 (Alias IP)</text>
+<rect x="65" y="232" width="240" height="38" rx="3" fill="#064e3b" stroke="#22c55e" stroke-width="1"/>
+<text x="75" y="248" fill="#86efac" font-size="9.5" font-weight="700">PSC Consumer Endpoint: 10.10.1.50/32</text>
+<text x="75" y="262" fill="#d1fae5" font-size="8.5">Forwarding Rule → Producer Service Attachment</text>
+
+<!-- Subnet 2: prod-analytics-us-east4 -->
+<rect x="45" y="300" width="280" height="135" rx="5" fill="#131c31" stroke="#334155" stroke-width="1.2"/>
+<text x="55" y="320" fill="#e2e8f0" font-size="11" font-weight="700">Subnet: prod-data-us-east4 (10.10.2.0/24)</text>
+<text x="55" y="334" fill="#94a3b8" font-size="9.5">Delegated to Analytics DevOps Team</text>
+
+<!-- Service Project B inside Subnet 2 -->
+<rect x="55" y="345" width="260" height="80" rx="4" fill="#1e293b" stroke="#3b82f6" stroke-width="1"/>
+<text x="65" y="365" fill="#60a5fa" font-size="10.5" font-weight="700">Service Project B (Analytics Workers)</text>
+<text x="65" y="382" fill="#cbd5e1" font-size="9.5">• Compute VM NIC: 10.10.2.20</text>
+<text x="65" y="398" fill="#cbd5e1" font-size="9.5">• Outbound Egress to Public APIs via NAT</text>
+<text x="65" y="414" fill="#94a3b8" font-size="8.5">No External Public IPv4 Address on Guest OS</text>
+
+<!-- Cloud NAT Component in Host Project -->
+<rect x="345" y="125" width="300" height="150" rx="5" fill="#20112b" stroke="#a855f7" stroke-width="1.5"/>
+<text x="358" y="148" fill="#d8b4fe" font-size="11.5" font-weight="700">Cloud NAT (Andromeda SDN Engine)</text>
+<text x="358" y="165" fill="#cbd5e1" font-size="9.5">• Gateway: nat-gw-us-east4 (Regional)</text>
+<text x="358" y="181" fill="#cbd5e1" font-size="9.5">• Static IPs: 34.120.10.1, 34.120.10.2 (2 Public IPs)</text>
+<text x="358" y="197" fill="#cbd5e1" font-size="9.5">• Dynamic Port Allocation: min 64, max 1024 / VM</text>
+<text x="358" y="213" fill="#cbd5e1" font-size="9.5">• Usable Sockets Pool: 2 * 64,512 = 129,024 Ports</text>
+<text x="358" y="229" fill="#f43f5e" font-size="9">• Dropped SYN Alert: nat/dropped_sent_packets_count</text>
+<text x="358" y="245" fill="#a855f7" font-size="8.5">Strictly Outbound SNAT (No Inbound Connection Allowed)</text>
+
+<!-- PSA Peered Range in Host Project -->
+<rect x="345" y="285" width="300" height="100" rx="5" fill="#112238" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="358" y="308" fill="#38bdf8" font-size="11.5" font-weight="700">Private Services Access (PSA) Peering</text>
+<text x="358" y="325" fill="#cbd5e1" font-size="9.5">• Allocated Range: 10.99.0.0/16 (Global Range)</text>
+<text x="358" y="341" fill="#cbd5e1" font-size="9.5">• Service: servicenetworking.googleapis.com</text>
+<text x="358" y="357" fill="#cbd5e1" font-size="9.5">• Peering Limit: Max 25 peers · Non-Transitive</text>
+<text x="358" y="373" fill="#f43f5e" font-size="8.5">Any CIDR overlap aborts peering connection</text>
+
+<!-- Non-Transitive Peering Warning Box -->
+<rect x="45" y="445" width="600" height="45" rx="4" fill="#2d1217" stroke="#f43f5e" stroke-width="1"/>
+<text x="55" y="463" fill="#fca5a5" font-size="10" font-weight="700">NON-TRANSITIVE PEERING RULE: Spoke A &lt;-- Peering --&gt; Hub &lt;-- Peering --&gt; Spoke B</text>
+<text x="55" y="479" fill="#fecdd3" font-size="9">Andromeda drops packets across 2 hops. Transit requires Network Connectivity Center (NCC) or proxy NVA.</text>
+
+<!-- Right Side Components -->
+<!-- Producer 1: Third-Party / SaaS PSC Service Attachment -->
+<rect x="710" y="75" width="260" height="135" rx="6" fill="#091e13" stroke="#22c55e" stroke-width="1.5"/>
+<text x="722" y="98" fill="#4ade80" font-size="12" font-weight="700">Producer VPC (Billing SaaS / AlloyDB)</text>
+<text x="722" y="115" fill="#cbd5e1" font-size="9.5">• Service Attachment: billing-svc-att</text>
+<text x="722" y="131" fill="#cbd5e1" font-size="9.5">• Producer Subnet: 10.10.1.0/24 (IDENTICAL CIDR!)</text>
+<text x="722" y="147" fill="#86efac" font-size="9.5">• NAT Subnet: 100.64.0.0/24 (purpose=PSC)</text>
+<text x="722" y="163" fill="#cbd5e1" font-size="9.5">• Target: Internal TCP/UDP Load Balancer</text>
+<text x="722" y="179" fill="#4ade80" font-size="8.5">Zero Peering Quota · PROXY Protocol v2 Preserves Client IP</text>
+
+<!-- Producer 2: Google Managed Cloud SQL (PSA Peering) -->
+<rect x="710" y="225" width="260" height="110" rx="6" fill="#101c33" stroke="#38bdf8" stroke-width="1.5"/>
+<text x="722" y="248" fill="#38bdf8" font-size="12" font-weight="700">Google Cloud SQL Tenant VPC (PSA)</text>
+<text x="722" y="265" fill="#cbd5e1" font-size="9.5">• Peered Subnet: 10.99.0.0/24</text>
+<text x="722" y="281" fill="#cbd5e1" font-size="9.5">• Cloud SQL Primary Instance: 10.99.0.5</text>
+<text x="722" y="297" fill="#cbd5e1" font-size="9.5">• Requires Strict Non-Overlapping CIDR</text>
+<text x="722" y="313" fill="#94a3b8" font-size="8.5">Non-transitive without BGP custom route export</text>
+
+<!-- Public Internet & SaaS Destination -->
+<rect x="710" y="350" width="260" height="95" rx="6" fill="#20112b" stroke="#a855f7" stroke-width="1.5"/>
+<text x="722" y="373" fill="#e879f9" font-size="12" font-weight="700">Public Internet &amp; SaaS Endpoints</text>
+<text x="722" y="390" fill="#cbd5e1" font-size="9.5">• Destination: Stripe, Twilio, SendGrid</text>
+<text x="722" y="406" fill="#cbd5e1" font-size="9.5">• Egress Traffic: Port 443 / Public IPv4</text>
+<text x="722" y="422" fill="#d8b4fe" font-size="8.5">Translated SNAT 5-tuple: (34.120.10.1:48212 → Dest)</text>
+
+<!-- Peered Spoke Network (Non-Transitive Test Spoke) -->
+<rect x="710" y="455" width="260" height="55" rx="5" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="722" y="473" fill="#fca5a5" font-size="10.5" font-weight="700">Peered Partner VPC (partner-finance-vpc)</text>
+<text x="722" y="488" fill="#fecdd3" font-size="9">• Peered with prod-net-hub-01 (10.30.0.0/16)</text>
+<text x="722" y="501" fill="#f43f5e" font-size="8">BLOCKED: Cannot reach Cloud SQL or Producer VPC</text>
+
+<!-- Flow Paths -->
+<!-- PSC Path (Green) -->
+<path d="M 305 250 L 685 250 L 685 140 L 710 140" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d51-psc-arr)"/>
+<text x="480" y="243" fill="#86efac" font-size="9.5" font-weight="700">PSC 1:1 NAT Mapping (10.10.1.50 → Svc Attachment)</text>
+
+<!-- Cloud NAT Path (Purple) -->
+<path d="M 315 390 L 335 390 L 335 220 L 345 220" fill="none" stroke="#a855f7" stroke-width="2"/>
+<path d="M 645 200 L 675 200 L 675 390 L 710 390" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#d51-nat-arr)"/>
+<text x="500" y="193" fill="#d8b4fe" font-size="9.5" font-weight="700">SNAT Outbound Egress</text>
+
+<!-- PSA Peering Path (Cyan) -->
+<path d="M 315 210 L 330 210 L 330 330 L 345 330" fill="none" stroke="#38bdf8" stroke-width="1.8"/>
+<path d="M 645 330 L 675 330 L 675 280 L 710 280" fill="none" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#d51-psa-arr)"/>
+<text x="495" y="323" fill="#7dd3fc" font-size="9.5">PSA Peered Route</text>
+
+<!-- Non-Transitive Blocked Path (Dashed Rose) -->
+<path d="M 710 475 L 675 475 L 675 300 L 705 300" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d51-block-arr)"/>
+<text x="682" y="380" fill="#f43f5e" font-size="9" font-weight="700" transform="rotate(-90 682 380)">TRANSIT BLOCKED</text>
+
+</svg>
+<figcaption>Figure 51.1: Enterprise Multi-Project Connectivity Fabric illustrating Shared VPC host and service project separation, Private Service Connect software-defined endpoint mapping to producer service attachments with overlapping CIDRs, Private Services Access peering to managed databases, Cloud NAT distributed port scaling, and non-transitive peering boundaries.</figcaption>
+</figure>
+
+<!-- Topic 01 Technical -->
+<article id="topic-01-technical" class="topic-card">
+<h3>Private services access (PSA) vs Private Service Connect (PSC endpoints, PSC service attachments, PSC interfaces)</h3>
+<p>Connecting enterprise Virtual Private Cloud (VPC) environments to managed databases and private software-as-a-service (SaaS) platforms requires choosing between two fundamentally distinct architectural patterns: <strong>Private Services Access (PSA)</strong> and <strong>Private Service Connect (PSC)</strong>. While both mechanisms eliminate public internet traversal by providing private internal IP routing, their underlying data-plane mechanics, scalability profiles, and IP governance models differ dramatically.</p>
+
+<h4>Private Services Access (PSA) Mechanics and Structural Constraints</h4>
+<p>Private Services Access is built on top of Google Cloud VPC Network Peering. When an organization enables PSA for services such as Cloud SQL, AlloyDB, or Memorystore, Google creates a tenant VPC network in a Google-owned project to host the database instances. The customer network team must allocate a dedicated, contiguous RFC 1918 CIDR block (typically a <code>/16</code> or <code>/24</code> range) with purpose <code>VPC_PEERING</code> in the host VPC and invoke the Service Networking API to establish a peering connection:</p>
+
+<pre><code># Step 1: Reserve contiguous internal IP range for PSA in Host VPC
+gcloud compute addresses create google-managed-services-range \
+  --global \
+  --purpose=VPC_PEERING \
+  --prefix-length=16 \
+  --network=prod-shared-vpc
+
+# Step 2: Establish peering connection to Service Networking API
+gcloud services vpc-peerings connect \
+  --service=servicenetworking.googleapis.com \
+  --ranges=google-managed-services-range \
+  --network=prod-shared-vpc</code></pre>
+
+<p>While operationally familiar, PSA imposes severe enterprise design limitations:</p>
+<ul>
+<li><strong>CIDR Overlap &amp; Exhaustion:</strong> The allocated range is permanently bound to the peering configuration. If an enterprise connects to on-premises data centers via Cloud Interconnect or VPN, any CIDR collision between the PSA allocation and an on-premises subnet breaks route exchange and drops connectivity.</li>
+<li><strong>Global Peering Quotas:</strong> Each VPC network has a hard limit on the total number of VPC peering relationships (maximum 25 peers) and maximum active route table entries. In massive landing zones with dozens of managed services, PSA rapidly exhausts peering quotas.</li>
+<li><strong>Non-Transitive Routing Constraints:</strong> Because VPC Peering is non-transitive, on-premises clients connected to the host VPC over Cloud VPN cannot reach Cloud SQL instances in the tenant VPC unless Cloud Router custom route advertisements (<code>--export-custom-routes</code>) are explicitly configured on the peering link.</li>
+<li><strong>Broad Security Blast Radius:</strong> Because an entire <code>/16</code> block is peered, consumer firewall rules must permit traffic to broad subnet ranges rather than discrete, microsegmented service instances.</li>
+</ul>
+
+<h4>Private Service Connect (PSC): Decoupled Software-Defined Architecture</h4>
+<p>Private Service Connect completely eliminates VPC peering by leveraging Google's Andromeda SDN hypervisor to perform 1:1 Destination NAT (DNAT) and Source NAT (SNAT). In the PSC architecture, consumer VPCs and producer VPCs remain completely independent routing domains. Route tables are never exchanged, and neither side learns the other's internal network topology.</p>
+
+<p>PSC provides three primary architectural deployment patterns:</p>
+<ul>
+<li><strong>PSC Endpoints (Consumer Forwarding Rules):</strong> The consumer allocates a single <code>/32</code> IP address from an existing consumer subnet and creates a forwarding rule targeting a published service attachment or a Google APIs bundle (such as <code>all-apis</code> or <code>vpc-sc</code>). Client applications connect directly to this local <code>/32</code> IP address. Andromeda transparently encapsulates and forwards packets across Google's private network directly to the producer. Because the endpoint lives directly in the consumer subnet, standard VPC firewall policies apply directly to the endpoint IP, and the endpoint is fully reachable from on-premises over Cloud Interconnect without custom BGP route injection.</li>
+<li><strong>PSC Service Attachments (Producer Publishing):</strong> A service producer publishes an internal service by deploying an Internal TCP/UDP Load Balancer (ILB) and associating it with a Service Attachment. The producer provisions one or more dedicated NAT subnets with purpose <code>PRIVATE_SERVICE_CONNECT</code>. Andromeda translates incoming consumer request packets to an IP drawn from this NAT subnet before delivering them to the producer backend VMs. Crucially, the consumer and producer networks can utilize identical, overlapping RFC 1918 CIDRs (e.g., both utilizing <code>10.0.0.0/16</code>) with zero conflict. Service Attachments support connection acceptance lists (whitelisting consumer projects) and PROXY Protocol v2 to preserve the original consumer client IP and connection ID.</li>
+<li><strong>PSC Interfaces:</strong> A PSC interface allows a Compute Engine virtual machine to attach a network interface (NIC) directly to a producer or consumer VPC. This enables multi-tenant virtual appliance insertion, centralized security inspection firewalls, and SaaS telemetry collectors without complex multi-NIC routing tables.</li>
+</ul>
+
+<div class="table-wrap">
+<table>
+<caption>Table 51.1: Comprehensive Architectural Comparison: Private Services Access (PSA) vs Private Service Connect (PSC)</caption>
+<thead>
+<tr>
+<th scope="col">Architectural Dimension</th>
+<th scope="col">Private Services Access (PSA)</th>
+<th scope="col">Private Service Connect (PSC Endpoints &amp; Attachments)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Underlying Transport Mechanism</strong></td>
+<td>VPC Network Peering (Andromeda route table injection)</td>
+<td>Software-defined 1:1 NAT mapping (Andromeda SDN proxy-less NAT)</td>
+</tr>
+<tr>
+<td><strong>IP Address Allocation Model</strong></td>
+<td>Dedicated contiguous <code>/16</code> or <code>/24</code> RFC 1918 block reserved globally</td>
+<td>Single <code>/32</code> private IP allocated directly inside consumer's existing subnet</td>
+</tr>
+<tr>
+<td><strong>Overlapping CIDR Support</strong></td>
+<td>Strictly prohibited; any subnet collision causes peering failure</td>
+<td>Fully supported; consumer and producer can use identical RFC 1918 CIDRs</td>
+</tr>
+<tr>
+<td><strong>Hybrid / On-Premises Transitivity</strong></td>
+<td>Non-transitive; on-prem hosts cannot access PSA without BGP custom route export</td>
+<td>Fully transitive; accessible across Cloud VPN, Interconnect, and peered VPCs</td>
+</tr>
+<tr>
+<td><strong>Scalability &amp; Peering Quotas</strong></td>
+<td>Consumes global peering quota (max 25 peers per VPC) and route quota</td>
+<td>Unlimited endpoints; scales independently without consuming peering or route quota</td>
+</tr>
+<tr>
+<td><strong>Client Identity Preservation</strong></td>
+<td>Preserves native client RFC 1918 source IP across peering boundary</td>
+<td>Requires PROXY Protocol v2 on Producer Internal Load Balancer to capture source IP</td>
+</tr>
+<tr>
+<td><strong>Consumer Firewall Policy Scope</strong></td>
+<td>Egress rules must permit entire <code>/16</code> producer range (broad exposure)</td>
+<td>Egress rules target specific <code>/32</code> endpoint IP (strict microsegmentation)</td>
+</tr>
+<tr>
+<td><strong>Administrative Decoupling</strong></td>
+<td>Shared fate; routing table errors in tenant or host impact peering stability</td>
+<td>Complete isolation; producer and consumer operate fully independent control planes</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An enterprise fintech platform must connect 40 independent merchant VPCs to a central payment authorization service. All merchant VPCs were provisioned using standard RFC 1918 ranges (<code>10.0.0.0/16</code>), resulting in complete CIDR collisions across tenants. Expected: Reject VPC Peering and PSA due to overlapping CIDR prohibitions; deploy a PSC Service Attachment behind an Internal Load Balancer with dedicated NAT subnets (<code>100.64.0.0/24</code>). Merchants connect via PSC endpoints using local <code>/32</code> IPs with zero re-IPing required.</p>
+</div>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-016">Topic 016 source section</a> in this site. Official reference: <a href="https://docs.cloud.google.com/vpc/docs/private-service-connect" rel="noopener noreferrer">Private Service Connect Documentation</a>.</p>
+</div>
+</article>
+
+<!-- Topic 02 Technical -->
+<article id="topic-02-technical" class="topic-card">
+<h3>VPC Network Peering (non-transitive, no overlapping ranges)</h3>
+<p>Google Cloud VPC Network Peering interconnects two Virtual Private Cloud networks so that workloads in either network can communicate using internal RFC 1918 IP addresses. Unlike on-premises networks that rely on physical gateway routers, VPN tunnels, or encryption overlays, VPC Peering is programmed directly into the physical host hypervisors by Google's Andromeda SDN. Traffic traverses Google's global fiber backbone at line rate with zero latency penalty and zero bandwidth choke-points.</p>
+
+<h4>The Non-Transitive Peering Boundary</h4>
+<p>The single most critical operational constraint in VPC Peering is <strong>non-transitivity</strong>. In Google Cloud, peering relationships are strictly point-to-point between two adjacent VPCs. If Network A is peered with Network B, and Network B is peered with Network C:</p>
+<ul>
+<li>Instances in Network A can communicate directly with instances in Network B.</li>
+<li>Instances in Network B can communicate directly with instances in Network C.</li>
+<li><strong>Instances in Network A CANNOT communicate with Network C through Network B.</strong></li>
+</ul>
+<p>When an instance in Network A transmits a packet addressed to an IP in Network C, the host hypervisor consults Network A's routing table. Because Network A's route table contains only routes for Network A and its direct peer Network B, no route exists for Network C. Andromeda immediately drops the packet at the source virtual NIC. Network B cannot act as a transit router or NAT bridge between peers unless specialized intermediary routing mechanisms (such as Network Connectivity Center or third-party Network Virtual Appliance proxies) are explicitly provisioned.</p>
+
+<h4>Overlapping Subnet Prohibition and Control-Plane Enforcement</h4>
+<p>Google Cloud enforces strict IP uniqueness across peered networks. Peering cannot be established if any primary subnet range, secondary subnet range (such as GKE Pod or Service ranges), or statically advertised custom route in VPC A overlaps with any subnet range in VPC B. For example, if VPC A contains subnet <code>10.10.0.0/20</code> and VPC B attempts to peer with subnet <code>10.10.8.0/22</code>, the Google Cloud control plane aborts peering creation with an <code>OVERLAPPING_SUBNET_RANGE</code> error.</p>
+<p>This protection is continuous: if VPC A and VPC B are actively peered, the control plane will block any administrator in either project from creating a new subnet whose CIDR conflicts with any existing subnet or route in the peer VPC.</p>
+
+<h4>Custom Route Exchange Mechanics</h4>
+<p>By default, VPC Peering exchanges only standard subnet routes. If VPC A is connected to an on-premises data center via Cloud Interconnect or Cloud VPN, the dynamic BGP routes learned by Cloud Router in VPC A are <em>not</em> propagated to VPC B. To share static routes and dynamic on-premises routes across peers, network administrators must configure custom route propagation flags on both sides of the peering link:</p>
+
+<pre><code># On VPC A: Export custom static and on-premises BGP routes to VPC B
+gcloud compute networks peerings update peer-to-vpc-b \
+  --network=vpc-a \
+  --export-custom-routes
+
+# On VPC B: Import custom static and on-premises BGP routes from VPC A
+gcloud compute networks peerings update peer-to-vpc-a \
+  --network=vpc-b \
+  --import-custom-routes</code></pre>
+
+<p>Furthermore, if peer networks must exchange subnet routes with public IP addresses (such as privately utilized non-RFC 1918 public IP blocks), the <code>--export-subnet-routes-with-public-ip</code> and <code>--import-subnet-routes-with-public-ip</code> flags must be explicitly applied.</p>
+
+<div class="table-wrap">
+<table>
+<caption>Table 51.2: Enterprise Interconnect Architectures: VPC Network Peering vs Shared VPC</caption>
+<thead>
+<tr>
+<th scope="col">Architectural Dimension</th>
+<th scope="col">VPC Network Peering</th>
+<th scope="col">Shared VPC (Enterprise Landing Zone)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Structural Model</strong></td>
+<td>Decentralized peer-to-peer interconnection between independent VPCs</td>
+<td>Centralized single VPC network shared across multiple projects</td>
+</tr>
+<tr>
+<td><strong>Routing Table Governance</strong></td>
+<td>Separate routing table per VPC; subnet routes exchanged dynamically</td>
+<td>Single global routing table centrally administered in Host Project</td>
+</tr>
+<tr>
+<td><strong>IP Address Administration</strong></td>
+<td>Disjoint IP spaces managed by independent teams; overlap blocks peering</td>
+<td>Centrally allocated IP plan; impossible for service projects to introduce overlapping subnets</td>
+</tr>
+<tr>
+<td><strong>IAM &amp; Administrative Boundary</strong></td>
+<td>Administrative boundary at the VPC network level (<code>compute.networkAdmin</code> per VPC)</td>
+<td>Fine-grained subnet-level delegation (<code>compute.networkUser</code> on specific subnets)</td>
+</tr>
+<tr>
+<td><strong>Scaling &amp; Resource Limits</strong></td>
+<td>Capped by VPC peering quotas (max 25 peers) and maximum route table entries</td>
+<td>Governed by project and VPC resource quotas (up to 1,000 service projects per host)</td>
+</tr>
+<tr>
+<td><strong>Cross-Project Resource Sharing</strong></td>
+<td>Cannot share internal load balancers or Cloud NATs across peers</td>
+<td>Workloads in all service projects share centralized Cloud NAT, Cloud Routers, and Interconnects</td>
+</tr>
+<tr>
+<td><strong>Transitive Routing</strong></td>
+<td>Strictly non-transitive; cannot route through an intermediate peer</td>
+<td>Fully transitive within the VPC; any subnet can reach any other subnet unless blocked by firewalls</td>
+</tr>
+<tr>
+<td><strong>Blast Radius of Network Changes</strong></td>
+<td>Low; network misconfigurations in one peer rarely affect routing in another peer</td>
+<td>High; route or firewall errors in host project impact all attached service projects</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An enterprise architecture team designs a hub-and-spoke topology where 15 business unit spoke VPCs peer with a central inspection hub VPC. Developers in Spoke 1 attempt to replicate database transactions to Spoke 2 across the hub VPC. Expected: Packets are dropped at the Spoke 1 virtual NIC due to non-transitive peering constraints. Remediation: Establish direct spoke-to-spoke peering (subject to N*(N-1)/2 scaling limits), migrate to Private Service Connect, or interconnect spokes via Network Connectivity Center (NCC) VPC spokes.</p>
+</div>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-016">Topic 016 source section</a> in this site. Official reference: <a href="https://docs.cloud.google.com/vpc/docs/vpc-peering" rel="noopener noreferrer">VPC Network Peering Overview</a>.</p>
+</div>
+</article>
+
+<!-- Topic 03 Technical -->
+<article id="topic-03-technical" class="topic-card">
+<h3>Shared VPC (host and service projects, the enterprise landing zone baseline)</h3>
+<p>Shared VPC is Google Cloud's foundational multi-project networking architecture recommended by the Google Cloud Architecture Framework. It establishes a centralized landing zone baseline that enforces strict separation of concerns between enterprise network administration and decentralized application development.</p>
+
+<h4>Host and Service Project Governance</h4>
+<p>Shared VPC divides projects into two distinct architectural roles:</p>
+<ul>
+<li><strong>Host Project:</strong> Owned and governed exclusively by central Network Operations (NetOps) and Security teams. The host project contains the primary VPC network, all regional subnets, secondary IP alias ranges (allocated for GKE Pods and Services), Cloud Routers, Cloud Interconnect attachments, Cloud VPN gateways, Cloud NAT instances, and hierarchical firewall policies. Central administrators hold the <code>roles/compute.networkAdmin</code> role in the host project.</li>
+<li><strong>Service Projects:</strong> Owned by autonomous application, data engineering, and product development teams (such as Payments, Billing, Analytics). Service projects are formally attached to the host project. Developers deploy compute workloads—including Compute Engine virtual machines, GKE clusters, Cloud Run jobs, and Dataproc clusters—into their respective service projects. Developers hold <code>roles/compute.admin</code> or <code>roles/container.admin</code> inside their service project, but possess zero administrative rights to alter routes, create subnets, or modify firewall rules in the host project.</li>
+</ul>
+
+<h4>Subnet-Level IAM Delegation Mechanics</h4>
+<p>A frequent enterprise security vulnerability is granting service project teams network administration permissions at the host project level. In production landing zones, NetOps implements <strong>least-privilege subnet-level IAM delegation</strong>. Instead of granting permissions across the entire host project, NetOps grants the <code>roles/compute.networkUser</code> role strictly on the specific regional subnet allocated to that workload team:</p>
+
+<pre><code># 1. Enable Shared VPC on the Host Project (Central NetOps)
+gcloud compute shared-vpc enable prod-net-hub-01
+
+# 2. Associate Service Project with the Host Project
+gcloud compute shared-vpc associated-projects add prod-payments-svc-01 \
+  --host-project=prod-net-hub-01
+
+# 3. Grant subnet-level networkUser to the Service Project Compute Default Service Account
+gcloud compute networks subnets add-iam-policy-binding prod-app-us-east4 \
+  --project=prod-net-hub-01 \
+  --region=us-east4 \
+  --member="serviceAccount:123456789012-compute@developer.gserviceaccount.com" \
+  --role="roles/compute.networkUser"
+
+# 4. Grant subnet-level networkUser to the GKE Service Agent for private cluster management
+gcloud compute networks subnets add-iam-policy-binding prod-app-us-east4 \
+  --project=prod-net-hub-01 \
+  --region=us-east4 \
+  --member="serviceAccount:service-123456789012@container-engine-robot.iam.gserviceaccount.com" \
+  --role="roles/compute.networkUser"
+
+# 5. Grant hostServiceAgentUser role at the Host Project level for GKE cross-project firewall management
+gcloud projects add-iam-policy-binding prod-net-hub-01 \
+  --member="serviceAccount:service-123456789012@container-engine-robot.iam.gserviceaccount.com" \
+  --role="roles/container.hostServiceAgentUser"</code></pre>
+
+<p>When deploying resources, workloads in service projects reference host network assets using fully qualified resource URIs:</p>
+<pre><code>gcloud compute instances create payment-worker-01 \
+  --project=prod-payments-svc-01 \
+  --zone=us-east4-a \
+  --subnet=projects/prod-net-hub-01/regions/us-east4/subnetworks/prod-app-us-east4 \
+  --no-address</code></pre>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An enterprise security audit discovers that application developers in the retail checkout team can deploy Compute Engine VMs into the high-security PCI-DSS database subnet. Expected: Identify that <code>roles/compute.networkUser</code> was granted at the host project level; revoke the project-wide binding and bind <code>roles/compute.networkUser</code> exclusively to the <code>retail-frontend-us-east4</code> subnet resource.</p>
+</div>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-016">Topic 016 source section</a> in this site. Official reference: <a href="https://docs.cloud.google.com/vpc/docs/shared-vpc" rel="noopener noreferrer">Shared VPC Overview</a>.</p>
+</div>
+</article>
+
+<!-- Topic 04 Technical -->
+<article id="topic-04-technical" class="topic-card">
+<h3>Cloud NAT (Private NAT, gateway endpoints; no inbound)</h3>
+<p>Google Cloud NAT provides high-performance, distributed, outbound-only Network Address Translation without deploying, scaling, or managing virtual proxy appliances. Implemented directly in Google's Andromeda SDN hypervisor, Cloud NAT translates packets at line rate at the virtual NIC of each instance, eliminating intermediary gateway VM choke-points.</p>
+
+<h4>The Outbound-Only Egress Security Model</h4>
+<p>Cloud NAT is strictly <strong>outbound-only</strong>: it enables instances that lack external public IP addresses to initiate outbound TCP and UDP connections to the public internet or external networks. Crucially, Cloud NAT completely forbids unsolicited inbound connections from external networks. An external attacker cannot scan, probe, or initiate a connection to an internal private VM through a Cloud NAT gateway. Inbound packets are accepted if and only if they match an established, stateful connection in Andromeda's translation connection tracking table.</p>
+
+<h4>Public NAT vs Private NAT</h4>
+<ul>
+<li><strong>Public Cloud NAT:</strong> Translates internal RFC 1918 private IPv4 addresses to Google-owned public IPv4 addresses (either automatically allocated by Google or statically reserved by the customer) for egress to the public internet.</li>
+<li><strong>Private Cloud NAT:</strong> Translates internal private IPv4 addresses to an alternate non-overlapping private IPv4 subnet. Private NAT solves overlapping IP conflicts when two enterprise networks merge or when connecting an on-premises data center with conflicting RFC 1918 subnets over Cloud Interconnect or Network Connectivity Center.</li>
+<li><strong>Cloud NAT Gateway Endpoints:</strong> Integrates Cloud NAT directly with Private Service Connect endpoints, enabling centralized security inspection and egress logging.</li>
+</ul>
+
+<h4>Port Allocation Mechanics &amp; Mathematical Sizing</h4>
+<p>Each external public IPv4 address assigned to a Cloud NAT gateway provides exactly <strong>64,512 usable source ports</strong> (ports 1024 through 65535, reserving well-known system ports 0-1023). Andromeda tracks connections using a 5-tuple: <code>(Source IP, Source Port, Destination IP, Destination Port, Protocol)</code>.</p>
+
+<p>Cloud NAT supports two port allocation modes:</p>
+<ul>
+<li><strong>Static Port Allocation:</strong> Cloud NAT pre-allocates a fixed number of source ports per VM (default: 64 ports per VM). Under static allocation, one public IP can support up to:
+<pre><code>Maximum Supported VMs = 64,512 / Min Ports Per VM = 64,512 / 64 = 1,008 VMs</code></pre>
+However, if an application instance attempts to open 65 concurrent outbound connections to distinct destinations, the 65th connection will be dropped immediately with a TCP RST or connection timeout because the instance's static port quota is exhausted.</li>
+<li><strong>Dynamic Port Allocation:</strong> Automatically scales the allocated ports per VM between a configured <code>min-ports-per-vm</code> (e.g., 64) and <code>max-ports-per-vm</code> (e.g., 1024) in step sizes of 32 ports based on real-time socket demand. This prevents port waste while accommodating bursty microservices.</li>
+</ul>
+
+<h4>NAT Port Exhaustion Failure Analysis &amp; Sizing Formula</h4>
+<p>When port demand exceeds the available port pool on a Cloud NAT gateway, Andromeda cannot perform SNAT translation and drops outbound SYN packets. Symptoms include:</p>
+<ul>
+<li>Client-side connection timeouts (e.g., <code>i/o timeout</code>, <code>connect: connection refused</code>).</li>
+<li>Cloud Monitoring metric spikes in <code>compute.googleapis.com/nat/dropped_sent_packets_count</code> with drop reason <code>OUT_OF_RESOURCES</code>.</li>
+<li>High utilization reported in <code>nat/allocated_ports</code> and <code>nat/open_connections</code>.</li>
+</ul>
+
+<p>To calculate the required number of public IP addresses for a Cloud NAT gateway, architects apply the mathematical sizing formula:</p>
+<pre><code>Total Required Ports = (Number of VMs) * (Peak Concurrent Outbound Connections per VM) * (1 + Safety Margin)
+Required Public IPs = ceil( Total Required Ports / 64,512 )</code></pre>
+
+<p>Remediation options for port exhaustion include:</p>
+<ol>
+<li>Adding additional static external IP addresses to the Cloud NAT gateway (up to 50 IPs per gateway).</li>
+<li>Enabling Dynamic Port Allocation with an increased <code>max-ports-per-vm</code> ceiling.</li>
+<li>Reducing TCP idle timeouts (e.g., lowering <code>tcp-transitory-idle-timeout</code> from 30s to 15s to recycle closed sockets faster).</li>
+<li>Enabling HTTP connection keep-alive pooling in application code to reuse established TCP sessions.</li>
+</ol>
+
+<div class="table-wrap">
+<table>
+<caption>Table 51.3: Outbound Egress Architectures: Public Cloud NAT vs Private Cloud NAT vs Proxy NVA</caption>
+<thead>
+<tr>
+<th scope="col">Architectural Dimension</th>
+<th scope="col">Public Cloud NAT</th>
+<th scope="col">Private Cloud NAT</th>
+<th scope="col">Proxy Network Virtual Appliance (NVA)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Translation Direction</strong></td>
+<td>Outbound SNAT from RFC 1918 internal IPs to Public IPv4</td>
+<td>Outbound SNAT between overlapping RFC 1918 internal subnets</td>
+<td>Bidirectional L4/L7 forward proxy (Squid, Envoy, Fortinet)</td>
+</tr>
+<tr>
+<td><strong>Underlying Data-Plane Engine</strong></td>
+<td>Distributed Andromeda SDN kernel translation (zero VM instances)</td>
+<td>Distributed Andromeda SDN kernel translation (zero VM instances)</td>
+<td>Compute Engine VMs running proxy software in Managed Instance Groups</td>
+</tr>
+<tr>
+<td><strong>Throughput &amp; Bottlenecks</strong></td>
+<td>Line rate (100+ Gbps per VM); zero bottleneck or latency penalty</td>
+<td>Line rate (100+ Gbps per VM); zero bottleneck or latency penalty</td>
+<td>Capped by VM vCPU count, NIC bandwidth, and proxy thread concurrency</td>
+</tr>
+<tr>
+<td><strong>Inbound Connection Support</strong></td>
+<td>Strictly prohibited; no unsolicited inbound connections allowed</td>
+<td>Strictly prohibited; egress translation only between private ranges</td>
+<td>Supported; can be configured as reverse proxy or ingress NAT</td>
+</tr>
+<tr>
+<td><strong>Port Allocation &amp; Capacity</strong></td>
+<td>64 to 65,536 ports per VM; static or dynamic allocation</td>
+<td>Subnet-based private IP pool translation with dynamic allocation</td>
+<td>OS ephemeral socket pool per proxy VM (managed via keep-alive)</td>
+</tr>
+<tr>
+<td><strong>Layer 7 Inspection (FQDN / URL)</strong></td>
+<td>Not supported (L4 TCP/UDP port and IP translation only)</td>
+<td>Not supported (L4 TCP/UDP port and IP translation only)</td>
+<td>Fully supported (TLS inspection, URL categorization, FQDN egress whitelisting)</td>
+</tr>
+<tr>
+<td><strong>Operational Overhead</strong></td>
+<td>Zero; fully managed Google serverless infrastructure</td>
+<td>Zero; fully managed Google serverless infrastructure</td>
+<td>High; patch management, auto-scaling tuning, license costs, and failure domains</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: A fleet of 100 GKE worker nodes each generates up to 500 concurrent outbound API requests during flash sale events. The Cloud NAT is configured with 1 public IP and static 64 ports per VM. Expected: Calculate port demand: 100 VMs * 500 connections = 50,000 concurrent sockets needed. While 50,000 fits within 64,512, the static 64-port ceiling drops all connections above 64 per VM (436 dropped connections per VM). Remediation: Enable dynamic port allocation with <code>min-ports=64</code>, <code>max-ports=1024</code>, and reserve 2 static IPs to ensure 129,024 available ports.</p>
+</div>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-016">Topic 016 source section</a> in this site. Official reference: <a href="https://docs.cloud.google.com/nat/docs/overview" rel="noopener noreferrer">Cloud NAT Overview</a>.</p>
+</div>
+</article>
+
+</section>
+
+<!-- ================= PART 3 ================= -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+
+<!-- Incident 1 -->
+<article id="topic-01-problem" class="topic-card">
+<h3>PSA Subnet CIDR Exhaustion and Overlap Conflict · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's e-commerce engineering team launched a new regional payment service in <code>us-east4</code>. The database team attempted to provision a managed Cloud SQL Postgres instance using Private Services Access (PSA). However, the provisioning pipeline failed with <code>ERROR: (gcloud.sql.instances.create) Failed to allocate IP address from peering range google-managed-services: allocated range 10.99.0.0/24 exhausted</code>. When an engineer attempted to extend the PSA peering range to <code>10.50.0.0/16</code>, the command aborted because that range conflicted with an existing on-premises logistics warehouse subnet connected over Dedicated Interconnect. Database provisioning stalled, halting the deployment of the new checkout microservice and costing $120,000 in lost hourly revenue during peak promotional trade.</p>
+
+<p><strong>Constraints:</strong> Cannot modify or renumber existing on-premises IP subnets; cannot expose Cloud SQL over public IPs with authorized networks; and must provide private, low-latency connectivity to the database.</p>
+
+<p><strong>Diagnosis and solution:</strong> The outage was caused by Private Services Access requiring large, contiguous, non-overlapping RFC 1918 CIDR blocks managed across global VPC peering tables. The architectural resolution was migrating the database access strategy to <strong>Private Service Connect (PSC) for Cloud SQL</strong>. The team enabled PSC on the Cloud SQL instance, which published a PSC service attachment. In the consumer application VPC, the team allocated a single <code>/32</code> IP address (<code>10.10.1.60</code>) inside the existing application subnet and established a PSC forwarding rule. The microservice communicated with Cloud SQL over this local <code>/32</code> IP address, completely eliminating peering table limits and IP space conflicts.</p>
+
+<!-- Incident 1 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d51-i1-title d51-i1-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d51-i1-title">Incident 1: PSA CIDR Overlap Conflict vs PSC Endpoint Resolution</title>
+<desc id="d51-i1-desc">Incident diagram showing failed path where PSA peering failed due to CIDR overlap with on-prem subnets, followed by corrected path using a Private Service Connect single IP endpoint.</desc>
+<defs>
+<marker id="d51-i1-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d51-i1-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Background Cards -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Private Services Access (PSA) Peering Collision</text>
+
+<!-- Failed Nodes -->
+<rect x="40" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Consumer App Subnet</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">10.10.1.0/24 (Client VM)</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">PSA Peered Range: 10.50.0.0/16</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Collision with On-Premises Range</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Cloud SQL Tenant VPC</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Peering Rejected: OVERLAP_ERROR</text>
+
+<path d="M 260 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d51-i1-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d51-i1-f)"/>
+
+<!-- Corrected Card -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Private Service Connect (PSC) Endpoint Architecture</text>
+
+<!-- Corrected Nodes -->
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Consumer App Subnet</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Allocated PSC IP: 10.10.1.60/32</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Andromeda SDN 1:1 NAT Mapping</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Zero CIDR Peering / Decoupled</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Cloud SQL Instance</text>
+<text x="730" y="221" fill="#86efac" font-size="10">PSC Service Attachment Enabled</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d51-i1-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d51-i1-c)"/>
+
+<!-- Verification Boundary Highlight -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Andromeda SDN NAT</text>
+</svg>
+<figcaption>Figure 51.2: Incident 1 Root Cause and Remediation. <strong>Supplied facts:</strong> PSA peering failed to allocate subnets due to overlapping CIDRs with on-premises data centers. <strong>Architectural inference:</strong> PSA requires non-overlapping contiguous address blocks across global routing tables; PSC operates via software-defined 1:1 NAT using local /32 endpoint IPs. <strong>Expected post-fix behavior:</strong> Workloads establish private TLS connections to 10.10.1.60 with 0ms peering provisioning delay and zero CIDR conflicts.</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> PSC endpoints require configuring DNS zones (Cloud DNS private zone for <code>p.cloudsql.goog</code>) to point application connection strings to the PSC IP. If internal DNS resolution fails, applications cannot connect.</p>
+</article>
+
+<!-- Incident 2 -->
+<article id="topic-02-problem" class="topic-card">
+<h3>Non-Transitive Peering Blackhole in Hub-and-Spoke Deployment · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf implemented a transit hub architecture where a central <code>hub-vpc</code> peered with <code>finance-spoke-vpc</code> and <code>warehouse-spoke-vpc</code>. An enterprise resource planning (ERP) batch run running in <code>finance-spoke-vpc</code> attempted to query an inventory replication server in <code>warehouse-spoke-vpc</code>. All TCP handshakes timed out with 100% packet loss. Network engineers confirmed firewall rules were set to allow all traffic between <code>10.1.0.0/16</code> and <code>10.2.0.0/16</code>, yet packets never reached the warehouse interface.</p>
+
+<p><strong>Constraints:</strong> Must avoid building and operating fragile virtual router firewall appliances; must maintain centralized egress logging; and cannot merge finance and warehouse networks into a single VPC.</p>
+
+<p><strong>Diagnosis and solution:</strong> The incident was caused by the non-transitive nature of Google Cloud VPC Peering. While <code>finance-spoke-vpc</code> can communicate with <code>hub-vpc</code>, and <code>hub-vpc</code> can communicate with <code>warehouse-spoke-vpc</code>, Andromeda's flow table strictly forbids routing packets across more than one peering hop. Packets from finance addressed to warehouse were dropped at the ingress of the hub network hypervisor. The architecture was remediated by establishing a direct VPC Peering connection between <code>finance-spoke-vpc</code> and <code>warehouse-spoke-vpc</code>, or integrating both spokes as VPC spokes into <strong>Network Connectivity Center (NCC)</strong>. Traffic flowed directly at line rate without transit drop.</p>
+
+<!-- Incident 2 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d51-i2-title d51-i2-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d51-i2-title">Incident 2: Non-Transitive Peering Drop vs Direct Mesh Peering</title>
+<desc id="d51-i2-desc">Diagram showing failed path attempting transit routing through a hub VPC across two peering hops, followed by corrected path establishing direct peering between spokes.</desc>
+<defs>
+<marker id="d51-i2-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d51-i2-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Transit Peering Hop Dropped by Andromeda Hypervisor</text>
+
+<!-- Nodes -->
+<rect x="40" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Finance Spoke VPC</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">CIDR: 10.1.0.0/16</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Central Hub VPC (Peered)</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Non-Transitive Rule: Packets Dropped</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Warehouse Spoke VPC</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">CIDR: 10.2.0.0/16 (Unreachable)</text>
+
+<path d="M 260 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d51-i2-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d51-i2-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Direct Spoke-to-Spoke Peering Connection</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Finance Spoke VPC</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Route to 10.2.0.0/16 Active</text>
+
+<rect x="700" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="710" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Warehouse Spoke VPC</text>
+<text x="710" y="221" fill="#86efac" font-size="10">Route to 10.1.0.0/16 Active</text>
+
+<path d="M 280 212 L 700 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d51-i2-c)"/>
+<text x="420" y="205" fill="#86efac" font-size="11" font-weight="700">Direct VPC Peering (Line Rate)</text>
+
+<!-- Verify Boundary -->
+<rect x="410" y="190" width="180" height="35" rx="4" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="415" y="182" fill="#fbbf24" font-size="9" font-weight="600">VERIFY BOUNDARY: 1-Hop Peering</text>
+</svg>
+<figcaption>Figure 51.3: Incident 2 Root Cause and Remediation. <strong>Supplied facts:</strong> Spoke-to-spoke packets traversing a peered hub VPC were dropped with 100% loss. <strong>Architectural inference:</strong> VPC peering is strictly non-transitive at the SDN hypervisor layer; transit hops cannot be bridged via peering. <strong>Expected post-fix behavior:</strong> Direct peering establishes explicit 1-hop routes between spokes, achieving sub-millisecond inter-spoke latency.</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Mesh peering scales as <code>N*(N-1)/2</code>. For more than 15-20 spokes, peering limits are exceeded. For large numbers of VPCs, migrate to Network Connectivity Center (NCC) or Private Service Connect.</p>
+</article>
+
+<!-- Incident 3 -->
+<article id="topic-03-problem" class="topic-card">
+<h3>Shared VPC Subnet Permission Failure During GKE Provisioning · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's payments engineering team attempted to deploy a private regional GKE cluster in service project <code>prod-payments-app-01</code> using subnets in host project <code>prod-net-hub-01</code>. The Terraform pipeline failed during node pool creation with <code>Googleapi: Error 403: Required 'compute.subnetworks.use' permission for 'projects/prod-net-hub-01/regions/us-east4/subnetworks/payments-gke-nodes'</code>. Cluster creation rolled back, blocking a critical security hotfix release for 12 hours.</p>
+
+<p><strong>Constraints:</strong> Service project developers must not receive broad Project Owner or Editor rights in the Host Project; network access must strictly adhere to the principle of least privilege.</p>
+
+<p><strong>Diagnosis and solution:</strong> The GKE service agent in the service project (<code>service-[SERVICE_PROJECT_NUMBER]@container-engine-robot.iam.gserviceaccount.com</code>) lacked IAM delegation on the host project subnet. GKE requires the <code>roles/compute.networkUser</code> role on the primary node subnet AND the secondary IP ranges used for Pods and Services. Furthermore, the Google APIs service agent (<code>[SERVICE_PROJECT_NUMBER]@cloudservices.gserviceaccount.com</code>) required <code>roles/compute.networkUser</code>. Once the host project network administrator bound <code>roles/compute.networkUser</code> to both service agents at the specific subnetwork resource level, the GKE cluster provisioned successfully.</p>
+
+<!-- Incident 3 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d51-i3-title d51-i3-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d51-i3-title">Incident 3: Shared VPC Subnet IAM Permission Failure vs Explicit Subnet Delegation</title>
+<desc id="d51-i3-desc">Diagram showing failed path where GKE node pool provisioning failed due to missing compute.networkUser role on host subnets, followed by corrected path binding granular subnet IAM permissions.</desc>
+<defs>
+<marker id="d51-i3-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d51-i3-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Missing compute.networkUser on Host Subnet</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Service Project: Payments</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">GKE Robot: service-987654@...</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">IAM Policy Evaluation</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Missing 'compute.subnetworks.use'</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Host Project Subnet</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Provisioning Denied: HTTP 403</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d51-i3-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d51-i3-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Subnet-Level IAM Binding for GKE &amp; Cloud Services Agents</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Service Project: Payments</text>
+<text x="50" y="221" fill="#86efac" font-size="10">GKE Service Agents Authenticated</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Host Subnet IAM Policy</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">roles/compute.networkUser Granted</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Host Project Subnet</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Nodes + Pod Aliases Created</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d51-i3-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d51-i3-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Subnet IAM Delegation</text>
+</svg>
+<figcaption>Figure 51.4: Incident 3 Root Cause and Remediation. <strong>Supplied facts:</strong> GKE node creation in a Shared VPC service project failed with 403 Forbidden. <strong>Architectural inference:</strong> GKE node and pod allocation requires explicit compute.networkUser IAM permissions bound to both the GKE service agent and the Google APIs service agent on the specific host subnet. <strong>Expected post-fix behavior:</strong> Node pool instances join the cluster, acquire host subnet IPs, and launch pods without privilege escalation.</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Granting <code>roles/compute.networkUser</code> at the host project level instead of the subnet level grants the service project team access to attach workloads to ANY subnet in the host VPC, violating network isolation.</p>
+</article>
+
+<!-- Incident 4 -->
+<article id="topic-04-problem" class="topic-card">
+<h3>Cloud NAT Ephemeral Port Exhaustion Dropping Egress Connections · field case</h3>
+<p><strong>Situation and impact:</strong> During a Cyber Monday sales spike, Brightloaf's order payment verification daemon running on 50 GKE worker nodes experienced a 42% failure rate. Payment requests to third-party card processors timed out with <code>connect: connection refused</code> and <code>i/o timeout</code>. Cloud Monitoring alerts showed a spike in <code>compute.googleapis.com/nat/dropped_sent_packets_count</code> with reason <code>OUT_OF_RESOURCES</code>. Over $180,000 in customer checkouts failed over a 45-minute window.</p>
+
+<p><strong>Constraints:</strong> Workload nodes must remain completely private without external IP addresses; third-party payment gateways whitelist our outbound IP addresses, requiring static external NAT IPs.</p>
+
+<p><strong>Diagnosis and solution:</strong> The Cloud NAT gateway was configured with a single static public IP and default static port allocation (64 ports per VM). The 50 GKE nodes (which run hundreds of containerized microservices) initiated over 300 concurrent external HTTPS sessions per node, rapidly exhausting the fixed 64-port ceiling. Once the 64 ports were allocated, Andromeda dropped all subsequent outbound SYN packets. The issue was resolved by:
+1. Reserving and binding a second static public IP to the Cloud NAT gateway.
+2. Converting the port allocation policy from static to <strong>Dynamic Port Allocation</strong>, setting <code>min-ports-per-vm=64</code> and <code>max-ports-per-vm=1024</code>.
+3. Enabling TCP connection pooling in the microservice HTTP client. Sockets were recycled efficiently and dropped packet metrics dropped to zero immediately.</p>
+
+<!-- Incident 4 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d51-i4-title d51-i4-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d51-i4-title">Incident 4: Cloud NAT Port Exhaustion vs Dynamic Port Scaling</title>
+<desc id="d51-i4-desc">Diagram showing failed path where static 64-port allocation caused dropped outbound packets under heavy load, followed by corrected path configuring dynamic port allocation and dual static IPs.</desc>
+<defs>
+<marker id="d51-i4-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d51-i4-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Fixed 64-Port Allocation Limit Hit Under Heavy Microservice Load</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">GKE Node (300 Conns)</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">Internal IP: 10.10.1.15</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Cloud NAT (1 Static IP)</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Exhausted 64 Ports → Drops SYNs</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Payment Processor API</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">I/O Timeout: Packets Lost</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d51-i4-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d51-i4-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Dynamic Port Allocation (64–1024) + Dual Static Public IPs</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">GKE Node (300 Conns)</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Dynamic Socket Allocation</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Cloud NAT (2 Public IPs)</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Dynamic Scaling up to 1024 Ports</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Payment Processor API</text>
+<text x="730" y="221" fill="#86efac" font-size="10">TCP Handshakes Pass (200 OK)</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d51-i4-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d51-i4-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Dynamic Port Pool</text>
+</svg>
+<figcaption>Figure 51.5: Incident 4 Root Cause and Remediation. <strong>Supplied facts:</strong> High microservice checkout traffic caused dropped outbound packets with <code>OUT_OF_RESOURCES</code>. <strong>Architectural inference:</strong> Static port allocation capped instances at 64 ports; microservices required hundreds of concurrent sockets. <strong>Expected post-fix behavior:</strong> Dynamic port scaling automatically expands port capacity to 1024 ports per node while dual external IPs double the total available port pool to 129,024.</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> If external API endpoints take a long time to respond, TCP TIME_WAIT states can linger for 120 seconds. Configure <code>tcp-transitory-idle-timeout</code> and enable HTTP keep-alives in application code to reuse existing connections.</p>
+</article>
+
+</section>
+
+<!-- ================= PART 4 ================= -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<!-- Lab 1 -->
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Trace and Deploy a Private Service Connect (PSC) Endpoint</h3>
+<p><strong>Goal:</strong> Configure an internal IP reservation, create a PSC endpoint pointing to a Google API bundle, and verify DNS and connectivity without peering.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 50 exit artifacts.</p>
+<ol>
+<li><strong>Reserve an internal IP for PSC:</strong> In your VPC, allocate a single <code>/32</code> address with purpose <code>PRIVATE_SERVICE_CONNECT</code>:
+<pre><code>gcloud compute addresses create psc-google-apis-ip \\
+  --global \\
+  --purpose=PRIVATE_SERVICE_CONNECT \\
+  --addresses=10.10.1.200 \\
+  --network=prod-shared-vpc</code></pre>
+</li>
+<li><strong>Create the PSC Global Forwarding Rule:</strong> Create the forwarding rule targeting Google APIs bundle:
+<pre><code>gcloud compute forwarding-rules create psc-google-apis-endpoint \\
+  --global \\
+  --network=prod-shared-vpc \\
+  --address=psc-google-apis-ip \\
+  --target-google-apis-bundle=all-apis</code></pre>
+</li>
+<li><strong>Configure Cloud DNS Private Zone:</strong> Route Google API hostnames to the PSC endpoint IP:
+<pre><code>gcloud dns managed-zones create psc-apis-zone \\
+  --dns-name="googleapis.com." \\
+  --description="Private Service Connect Google APIs Zone" \\
+  --visibility=private \\
+  --networks=prod-shared-vpc
+
+gcloud dns record-sets create "*.googleapis.com." \\
+  --zone=psc-apis-zone \\
+  --type=A \\
+  --ttl=300 \\
+  --rrdatas=10.10.1.200</code></pre>
+</li>
+<li><strong>Validate Packet Path and Routing:</strong> From a private VM, verify that requests resolve to the local PSC IP and reach Cloud Storage:
+<pre><code>curl -sv https://storage.googleapis.com/generate_204</code></pre>
+<p>Observe that the connection terminates against <code>10.10.1.200:443</code> over internal Andromeda forwarding without public IP transit.</p>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The DNS lookup for <code>storage.googleapis.com</code> returns <code>10.10.1.200</code>. HTTPS requests return HTTP 204 No Content. Zero routes or peerings are added to the routing table.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If curl fails with SSL certificate validation errors, ensure you contacted <code>storage.googleapis.com</code> rather than accessing the IP directly, as PSC preserves TLS SNI negotiation.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete the forwarding rule, address, and Cloud DNS zone after verification to avoid incurring ongoing forwarding rule hourly charges.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-51-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<!-- Lab 2 -->
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Establish and Test VPC Network Peering Route Exchange</h3>
+<p><strong>Goal:</strong> Configure VPC Network Peering between two isolated networks and verify custom route propagation and non-transitive isolation.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 50 exit artifacts.</p>
+<ol>
+<li><strong>Create two test VPCs with distinct non-overlapping subnets:</strong>
+<pre><code>gcloud compute networks create vpc-alpha --subnet-mode=custom
+gcloud compute networks create vpc-beta --subnet-mode=custom
+
+gcloud compute networks subnets create sub-alpha \\
+  --network=vpc-alpha \\
+  --region=us-central1 \\
+  --range=10.180.1.0/24
+
+gcloud compute networks subnets create sub-beta \\
+  --network=vpc-beta \\
+  --region=us-central1 \\
+  --range=10.180.2.0/24</code></pre>
+</li>
+<li><strong>Initiate Peering in Both Directions:</strong> Peering requires mutual agreement between networks:
+<pre><code>gcloud compute networks peerings create peer-alpha-to-beta \\
+  --network=vpc-alpha \\
+  --peer-network=vpc-beta \\
+  --auto-create-routes
+
+gcloud compute networks peerings create peer-beta-to-alpha \\
+  --network=vpc-beta \\
+  --peer-network=vpc-alpha \\
+  --auto-create-routes</code></pre>
+</li>
+<li><strong>Verify Peering Status:</strong> Inspect peering state to ensure both report <code>ACTIVE</code>:
+<pre><code>gcloud compute networks peerings list --network=vpc-alpha</code></pre>
+</li>
+<li><strong>Enable Custom Route Propagation:</strong> Update peering flags to allow custom static and BGP routes:
+<pre><code>gcloud compute networks peerings update peer-alpha-to-beta \\
+  --network=vpc-alpha \\
+  --export-custom-routes
+
+gcloud compute networks peerings update peer-beta-to-alpha \\
+  --network=vpc-beta \\
+  --import-custom-routes</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Both peering connections transition to state <code>ACTIVE</code>. The effective routes in <code>vpc-alpha</code> show automatically injected subnet routes pointing to <code>10.180.2.0/24</code> with next hop <code>peer-alpha-to-beta</code>.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If peering remains in state <code>INACTIVE</code>, verify that the second peering command was executed in the peer network. Peering is asymmetric until accepted by both sides.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete peering configurations and test VPC networks immediately following test completion.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-51-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<!-- Lab 3 -->
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Configure Shared VPC and Subnet-Level IAM Delegation</h3>
+<p><strong>Goal:</strong> Enable Shared VPC on a host project and delegate subnet consumption permissions to a service project service account.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 50 exit artifacts.</p>
+<ol>
+<li><strong>Enable Shared VPC on Host Project:</strong>
+<pre><code>gcloud compute shared-vpc enable prod-net-hub-01</code></pre>
+</li>
+<li><strong>Associate Service Project:</strong>
+<pre><code>gcloud compute shared-vpc associated-projects add prod-workload-svc-01 \\
+  --host-project=prod-net-hub-01</code></pre>
+</li>
+<li><strong>Delegate Granular Subnet IAM Permission:</strong> Grant <code>roles/compute.networkUser</code> strictly on the workload subnet:
+<pre><code>gcloud compute networks subnets add-iam-policy-binding prod-app-us-east4 \\
+  --project=prod-net-hub-01 \\
+  --region=us-east4 \\
+  --member="serviceAccount:workload-deployer@prod-workload-svc-01.iam.gserviceaccount.com" \\
+  --role="roles/compute.networkUser"</code></pre>
+</li>
+<li><strong>Deploy VM in Service Project Attached to Host Subnet:</strong>
+<pre><code>gcloud compute instances create svc-worker-01 \\
+  --project=prod-workload-svc-01 \\
+  --zone=us-east4-a \\
+  --machine-type=e2-micro \\
+  --subnet=projects/prod-net-hub-01/regions/us-east4/subnetworks/prod-app-us-east4 \\
+  --no-address</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The VM deploys successfully in the service project. Its primary internal IP is drawn from the host project subnet range (<code>10.10.1.0/24</code>). The service project team has no ability to alter firewall rules or routes.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If VM creation fails with permission denied on <code>compute.subnetworks.use</code>, ensure the Compute Engine service agent in the service project also has <code>roles/compute.networkUser</code> on the subnet.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete the test instance in the service project to stop VM compute charges.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-51-topic-03"> I completed and checked this topic exercise</label>
+</article>
+
+<!-- Lab 4 -->
+<article id="topic-04-lab" class="topic-card lab">
+<h3>Exercise 4: Deploy Cloud NAT with Dynamic Port Allocation and Monitor Drop Counters</h3>
+<p><strong>Goal:</strong> Deploy a Cloud Router and Cloud NAT with dynamic port allocation, then query Cloud Monitoring metrics for port utilization.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 50 exit artifacts.</p>
+<ol>
+<li><strong>Reserve Static External IP Addresses for NAT:</strong>
+<pre><code>gcloud compute addresses create nat-ip-east4-01 \\
+  --region=us-east4
+
+gcloud compute addresses create nat-ip-east4-02 \\
+  --region=us-east4</code></pre>
+</li>
+<li><strong>Create Cloud Router:</strong>
+<pre><code>gcloud compute routers create router-nat-east4 \\
+  --network=prod-shared-vpc \\
+  --region=us-east4</code></pre>
+</li>
+<li><strong>Create Cloud NAT with Dynamic Port Allocation:</strong> Configure min ports to 64 and max ports to 1024:
+<pre><code>gcloud compute routers nats create nat-gw-east4 \\
+  --router=router-nat-east4 \\
+  --region=us-east4 \\
+  --nat-custom-subnet-ip-ranges=prod-app-us-east4 \\
+  --nat-external-ip-pool=nat-ip-east4-01,nat-ip-east4-02 \\
+  --enable-dynamic-port-allocation \\
+  --min-ports-per-vm=64 \\
+  --max-ports-per-vm=1024 \\
+  --enable-logging</code></pre>
+</li>
+<li><strong>Simulate Egress and Query Monitoring Signals:</strong> From an internal VM, verify outbound connectivity:
+<pre><code>curl -s https://ifconfig.me</code></pre>
+<p>Verify that the returned public IP matches one of your reserved static NAT addresses. Query Cloud NAT dropped packet metrics:</p>
+<pre><code>gcloud monitoring time-series read \\
+  'metric.type="compute.googleapis.com/nat/dropped_sent_packets_count"' \\
+  --interval-start-time=$(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:%SZ) \\
+  --interval-end-time=$(date -u +%Y-%m-%dT%H:%M:%SZ)</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Outbound curl returns the Cloud NAT static IP. Dropped packet count remains 0. Dynamic port allocation accommodates bursts without port exhaustion.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If outbound connections fail with connection timeouts, ensure a default internet route (<code>0.0.0.0/0</code> with next hop default internet gateway) exists in the VPC network.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete the Cloud NAT gateway, Cloud Router, and release the static external IPs to prevent idle IP charges.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-51-topic-04"> I completed and checked this topic exercise</label>
+</article>
+
+</section>
+
+<!-- ================= COMPLETION ================= -->
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>Assemble your notes and architecture decisions into a markdown file named <code>day-051-nat-exhaustion.md</code>. Document the PSC endpoint configuration, Shared VPC host/service project boundaries, and your Cloud NAT port exhaustion hypothesis with specific Cloud Monitoring query metrics.</p>
+<label class="check"><input type="checkbox" data-progress="read-51"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-51"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-050.html">← Day 50<small>Firewall policy and private API access</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-052.html">Day 52 →<small>DNS, hybrid transit and network diagnosis</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>
+"""
+
+target_path = SITE / "content" / "day-051-page.html"
+target_path.write_text(html_content, encoding="utf-8")
+print(f"Successfully wrote {target_path} ({len(html_content)} bytes)")

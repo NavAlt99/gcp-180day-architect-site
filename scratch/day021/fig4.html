@@ -1,0 +1,105 @@
+
+<figure class="diagram-figure" id="fig-21-4">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig21-4-title fig21-4-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig21-4-title">Incident 21.2: Flat Folder Permission Leakage vs. Segregated Lifecycle Hierarchy</title>
+      <desc id="fig21-4-desc">Incident flow illustrating how a flat folder containing both production and development projects leaked editor permissions into production, leading to an accidental database drop, and how environment-first folder segregation corrected the defect.</desc>
+      <defs>
+        <linearGradient id="p21-f4-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p21-f4-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p21-f4-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p21-f4-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 21.4: Incident Flow · Flat Folder Permission Leakage vs. Environment Segregation</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Additive IAM Union Trap · Flat Folder Over-Privilege · Environment Sibling Separation</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: Onboarding</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">Junior dev granted:</text>
+      <text x="42" y="146" fill="#f59e0b" font-family="monospace" font-size="9">roles/editor on folder</text>
+      <text x="42" y="164" fill="#f59e0b" font-family="monospace" font-size="9">/Order-Fulfillment</text>
+      <text x="42" y="186" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Folder holds both</text>
+      <text x="42" y="204" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">dev and prod projects!</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Additive IAM Grants Accidental Prod Write]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Dev group assigned roles/editor on /Order-Fulfillment</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Additive IAM propagates Editor role to ALL child projects</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. Dev executes local staging test script: DROP TABLE</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: Script connects to production DB; tables dropped!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. Morning bakery dispatch halted; loyalty data corrupted</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">DB row-lock stopped duplicate order re-execution.</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Environment Sibling Segregation]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Top-level folders segregated: /Production and /Non-Prod</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Devs granted Editor strictly on /Non-Prod folder branch</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Production folder locked to automated SRE service principals</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Test scripts targeting prod fail with 403 Forbidden</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. Zero chance of permission leakage across lifecycle boundaries</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Production integrity and single fulfillment invariant preserved.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p21-f4-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p21-f4-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed State Inspection:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">$ gcloud asset search-all-iam</text>
+        <text x="25" y="90" fill="#fca5a5" font-family="monospace" font-size="9">devs: roles/editor on prod!</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">Inherited from shared folder</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected State Inspection:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">$ gcloud projects get-iam-policy prod</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">devs: NONE (Zero access)</text>
+        <text x="25" y="206" fill="#86efac" font-family="monospace" font-size="9">$ test_dev_access.sh</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">HTTP 403: PERMISSION_DENIED</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">Production protected 100%</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">DB rollback restored data</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Single fulfillment invariant held</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p21-f3-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p21-f3-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Never mix development and production projects inside the same parent folder.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Always employ an Environment-First top-level folder hierarchy to prevent additive IAM permissions from compromising production.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 21.4: Incident Flow · Flat Folder Permission Leakage vs. Environment Segregation.</strong>
+    Traces how an unsegregated folder structure allowed developer editor permissions to inherit into production, causing a catastrophic database deletion, and how environment-first separation corrected the defect.
+    <br><strong>Supplied facts:</strong> IAM permissions are additive; assigning roles/editor at a parent folder grants write privileges across all child projects.
+    <br><strong>Architectural inference:</strong> Placing staging and production in a single folder makes accidental cross-environment destruction inevitable during routine testing.
+    <br><strong>Expected post-fix behavior:</strong> Folders are structured strictly by environment stage (/Production, /Non-Production), with developer write grants bounded exclusively to non-production leaf nodes.
+  </figcaption>
+</figure>

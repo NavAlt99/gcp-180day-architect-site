@@ -1,0 +1,92 @@
+        <figure class="architecture-diagram" id="fig-29-6">
+          <svg viewBox="0 0 980 460" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-29-6-title fig-29-6-desc">
+            <title id="fig-29-6-title">Figure 29.6: Incident 29.3 - Rate Quota Throttling vs. Allocation Quota Misdiagnosis</title>
+            <desc id="fig-29-6-desc">Diagram showing the failed path of misdiagnosing API rate throttling as allocation quota exhaustion during peak order ingestion versus the corrected path of in-memory secret caching and idempotent order deduplication.</desc>
+            <defs>
+              <linearGradient id="bg-grad-29-6" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#090d16"/>
+                <stop offset="100%" stop-color="#121526"/>
+              </linearGradient>
+              <marker id="arrow-rose-29-6" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow-green-29-6" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Background Canvas -->
+            <rect width="980" height="460" rx="12" fill="url(#bg-grad-29-6)" stroke="#1e293b" stroke-width="1.5"/>
+
+            <!-- Banner Header -->
+            <text x="30" y="36" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Incident 29.3: Order Intake Velocity Bottleneck &amp; Quota Misdiagnosis</text>
+            <text x="30" y="56" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">API rate limits misdiagnosed as allocation shortage vs. in-memory caching &amp; duplicate order defense</text>
+
+            <!-- Column 1: Client Ingestion Burst -->
+            <rect x="30" y="80" width="160" height="40" rx="6" fill="#1e243d" stroke="#38bdf8" stroke-width="1.5"/>
+            <text x="110" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Retail Order Burst</text>
+            <line x1="110" y1="120" x2="110" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Column 2: Order Gateway Pods -->
+            <rect x="270" y="80" width="180" height="40" rx="6" fill="#1e243d" stroke="#f59e0b" stroke-width="1.5"/>
+            <text x="360" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Order Ingestion Pods</text>
+            <line x1="360" y1="120" x2="360" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Column 3: Secret Manager API -->
+            <rect x="530" y="80" width="180" height="40" rx="6" fill="#1e243d" stroke="#ef4444" stroke-width="1.5"/>
+            <text x="620" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Secret Manager API</text>
+            <line x1="620" y1="120" x2="620" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Column 4: Bakery Line Fulfillment -->
+            <rect x="790" y="80" width="160" height="40" rx="6" fill="#1e243d" stroke="#22c55e" stroke-width="1.5"/>
+            <text x="870" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Bakery Dispatch</text>
+            <line x1="870" y1="120" x2="870" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- FAILED PATH (TOP HALF) -->
+            <!-- Step 1: Bursty traffic arrives -->
+            <line x1="110" y1="145" x2="354" y2="145" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan-29-1)"/>
+            <text x="235" y="137" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">1. Morning rush: 6,000 req/sec</text>
+
+            <!-- Step 2: Uncached secret lookup per request -->
+            <line x1="360" y1="170" x2="614" y2="170" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow-rose-29-6)"/>
+            <text x="485" y="162" fill="#f87171" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[FAILED PATH: Uncached secret call on every HTTP order]</text>
+
+            <!-- Step 3: Rate quota drops -->
+            <rect x="540" y="180" width="160" height="38" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="620" y="196" fill="#fca5a5" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">RATE QUOTA EXHAUSTED</text>
+            <text x="620" y="210" fill="#f87171" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">HTTP 429 Too Many Requests</text>
+
+            <!-- Step 4: Misdiagnosis -->
+            <line x1="620" y1="225" x2="366" y2="225" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#arrow-rose-29-6)"/>
+            <text x="490" y="220" fill="#fca5a5" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">Return 429 &rarr; Engineers file GCE vCPU quota ticket!</text>
+
+            <!-- Divider -->
+            <line x1="30" y1="260" x2="950" y2="260" stroke="#334155" stroke-width="1.5" stroke-dasharray="2 2"/>
+
+            <!-- CORRECTED PATH (BOTTOM HALF) -->
+            <!-- Step 5: Traffic arrives with memory cache -->
+            <line x1="110" y1="290" x2="354" y2="290" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-green-29-6)"/>
+            <text x="235" y="282" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">5. Re-run traffic with client retries</text>
+
+            <!-- Step 6: In-memory cache hit -->
+            <rect x="280" y="305" width="160" height="42" rx="4" fill="#052e16" stroke="#22c55e" stroke-width="1"/>
+            <text x="360" y="321" fill="#4ade80" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">IN-MEMORY TOKEN CACHE</text>
+            <text x="360" y="337" fill="#86efac" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">Secret API called 1x / hour</text>
+
+            <!-- Step 7: Zero calls to Secret Manager API -->
+            <line x1="360" y1="360" x2="614" y2="360" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-29-6)"/>
+            <text x="485" y="352" fill="#4ade80" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[CORRECTED PATH: Rate quota consumption: &lt;1%]</text>
+
+            <!-- Step 8: Order forwarded to dispatch with Invariant Check -->
+            <line x1="360" y1="395" x2="864" y2="395" stroke="#22c55e" stroke-width="2.5" marker-end="url(#arrow-green-29-6)"/>
+            <text x="612" y="388" fill="#4ade80" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[CORRECTED PATH: Duplicate Invariant Protected: &le; 1 physical fulfillment]</text>
+
+            <rect x="790" y="405" width="160" height="32" rx="4" fill="#052e16" stroke="#22c55e" stroke-width="1"/>
+            <text x="870" y="424" fill="#86efac" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">DISPATCH SUCCESS: 100%</text>
+          </svg>
+          <figcaption>Figure 29.6: Incident 29.3 - Rate Quota Throttling vs. Allocation Quota Misdiagnosis.
+            <br><strong>Supplied facts:</strong> High morning order volume triggered <code>HTTP 429</code> errors. Operations misdiagnosed the failure as a Compute Engine vCPU allocation shortage and spent 40 minutes waiting for a quota increase.
+            <br><strong>Architectural inference:</strong> The failure occurred at the Secret Manager API velocity boundary (Rate Quota) because workers fetched DB credentials per request instead of caching them. Compute allocation quota was unaffected.
+            <br><strong>Expected post-fix behavior:</strong> Workers cache secrets in memory with a 1-hour TTL, reducing rate consumption by 99.9%, while the order gateway enforces deduplication locks to uphold the duplicate fulfillment invariant (&le; 1 physical fulfillment per unique order ID) across client retries.
+          </figcaption>
+        </figure>

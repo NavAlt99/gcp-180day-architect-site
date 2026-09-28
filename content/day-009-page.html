@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 9: VM and container isolation · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.topic-card table{width:100%;border-collapse:collapse;margin:18px 0;display:block;overflow-x:auto}.topic-card caption{text-align:left;color:var(--rose);font-weight:800;margin-bottom:8px}.topic-card th,.topic-card td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top;min-width:150px}.topic-card th{color:var(--cyan);background:rgba(56,189,248,.06)}.diagram-figure{margin:20px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-x:auto}.diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}.diagram-figure figcaption{color:var(--muted);font-size:12px;margin-top:10px}.diagram-scroll-hint{display:none;color:var(--muted);font-size:11px}#part-2 article>p:last-child{border-left:3px solid var(--cyan);padding:11px 14px;background:rgba(56,189,248,.06);margin-top:18px}.lab h4{color:var(--cyan);margin:20px 0 8px}@media(max-width:720px){.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+</style>
+<script defer src="../assets/site.js">
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span>
+</a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-008.html" aria-label="Previous day">← Day 8</a>
+<a href="day-010.html" aria-label="Next day">Day 10 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html" selected>Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<main id="main" class="container day" data-day="9" data-prev="day-008.html" data-next="day-010.html" data-index="../index.html">
+<div class="crumb">
+<a href="../index.html">Roadmap index</a> / <a href="../index.html#block-foundations">Foundations</a> / Day 9 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 9</span>
+<span class="pill">2–3 hours</span>
+<span class="pill">tabletop / design</span>
+<span class="pill">Topics 003</span>
+</div>
+<h1>Day 9 — VM and container isolation</h1>
+<p class="lead">
+<strong>Outcome:</strong> Inspect a local container&#x27;s namespaces, cgroup limits and user identity; compare its isolation boundary with a VM diagram.</p>
+<div>
+<strong>Entry prerequisites:</strong> <p>
+<a href="day-008.html">Day 8</a>; bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>An isolation worksheet distinguishing resource enforcement from security isolation.</p>
+</div>
+<p class="small">Source curriculum and linked documentation checked 2026-09-27. A tabletop result is a design exercise, not a production test.</p>
+</section>
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Hypervisors and virtual machines</span>
+<a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Container isolation: namespaces, cgroups, seccomp and capabilities</span>
+<a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a>
+</div>
+</aside>
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>Hypervisors and virtual machines</h3>
+<p>A hypervisor multiplexes physical CPU, memory, storage, and networking while presenting virtualized hardware interfaces to isolated guest systems. Each virtual machine executes its own independent guest operating-system kernel and userspace environment. A Type 1 bare-metal hypervisor executes directly on physical server hardware, whereas a Type 2 hosted hypervisor runs as software on top of a host operating system.</p>
+<p><strong>Why today and where it sits:</strong> Day 9 establishes fundamental compute isolation models before introducing container images and orchestration on Day 10 and cloud service boundaries on Day 11. Hypervisors sit directly between physical infrastructure and guest operating systems, establishing hardware abstraction and hard kernel boundaries between multi-tenant workloads.</p>
+<p><strong>Problem preview:</strong> A Brightloaf tax adapter packaged inside a container crashes during startup because it requires a custom kernel cryptographic module absent from the shared container host kernel. Checkout processing for taxable jurisdictions halts completely, blocking order completion during peak morning retail traffic.</p>
+<p>
+<a href="#topic-01-technical">Technical discussion</a> · <a href="#topic-01-problem">Real-world problem</a> · <a href="#topic-01-lab">Exercise</a>
+</p>
+</article>
+<article id="topic-02-overview" class="topic-card">
+<h3>Container isolation: namespaces, cgroups, seccomp and capabilities</h3>
+<p>A Linux container is a process isolation arrangement constructed from host kernel controls rather than hardware virtualization. Linux namespaces isolate what processes can observe (process trees, network interfaces, mount tables, IPC, hostnames, and user mappings), cgroups v2 enforce CPU and memory resource accounting and limits, seccomp filters permissible system calls, and POSIX capabilities decompose traditional superuser powers into granular authorizations. All container processes execute directly on the shared host Linux kernel.</p>
+<p><strong>Why today and where it sits:</strong> Day 9 translates Day 8 process and memory signals into multi-tenant container architecture, laying the groundwork for Kubernetes Pods on Day 10. Container isolation operates entirely within the host kernel, partitioning visibility and enforcing quotas without creating a distinct guest kernel security perimeter.</p>
+<p><strong>Problem preview:</strong> A background fulfillment worker process exits abruptly with exit code 137 while the host VM dashboard displays abundant available memory. Asynchronous packing slip generation ceases, causing pending orders to back up in queues and breach delivery service-level targets.</p>
+<p>
+<a href="#topic-02-technical">Technical discussion</a> · <a href="#topic-02-problem">Real-world problem</a> · <a href="#topic-02-lab">Exercise</a>
+</p>
+</article>
+</section>
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+<article id="topic-01-technical" class="topic-card">
+<h3>Hypervisors and virtual machines</h3>
+<p>Virtualization enables multiple independent guest operating systems to share physical host CPU, memory, block storage, and networking interfaces while preserving strict operational separation. Hypervisors schedule virtual CPUs (vCPUs) as scheduled execution contexts on physical cores and map guest physical address space to host physical pages via hardware-assisted Second Level Address Translation (such as Intel EPT or AMD NPT). A Type 1 hypervisor (such as KVM on bare Linux or VMware ESXi) runs with direct control over the hardware, whereas a Type 2 hypervisor (such as VirtualBox) executes within a standard host operating system's process scheduler.</p>
+<p>Each virtual machine boots and runs its own guest operating-system kernel. Because the guest kernel handles internal system calls, process scheduling, virtual memory management, and file systems, a kernel panic or module crash inside one guest VM does not destabilize neighboring virtual machines or the underlying hypervisor host. In cloud platforms like Google Cloud Compute Engine, the provider manages the physical server fleet, chassis-level security, hardware maintenance, and hypervisor scheduling, while the customer owns the guest operating system, kernel patch level, security hardening, firewall configuration, and application userspace.</p>
+<table><caption>Runtime boundary and ownership map</caption><thead><tr><th>Path layer</th><th>Primary owner</th><th>Control or observation</th><th>Important limit</th></tr></thead><tbody>
+<tr><td>Physical host</td><td>Infrastructure operator</td><td>CPU, RAM, storage controller, physical NIC health</td><td>Shared physical capacity and bus bandwidth constrain all guests.</td></tr>
+<tr><td>Hypervisor / virtual hardware</td><td>Platform provider</td><td>vCPU scheduling, memory translation (EPT/NPT), virtio devices</td><td>Enforces hardware abstraction but cannot inspect guest application health.</td></tr>
+<tr><td>Guest kernel</td><td>VM OS owner</td><td>Device drivers, kernel modules, virtual memory paging, process scheduling</td><td>Consumes virtual hardware; kernel crashes crash only this guest.</td></tr>
+<tr><td>Container runtime</td><td>Workload orchestrator</td><td>Namespace flags, cgroup limits, seccomp filters, capabilities</td><td>Shares the host kernel; cannot load independent kernel modules.</td></tr>
+</tbody></table>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day9-boundary-title day9-boundary-desc" viewBox="0 0 940 390">
+<title id="day9-boundary-title">Virtual machine and container isolation boundaries</title>
+<desc id="day9-boundary-desc">Two parallel stacks compare a virtual machine with its own guest kernel against two containers that share one host kernel. Outlines mark isolation scopes.</desc>
+<defs>
+<marker id="day9-boundary-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="35" width="430" height="315" rx="12" stroke="#f43f5e" stroke-dasharray="8 5"/>
+<rect x="490" y="35" width="430" height="315" rx="12" stroke="#38bdf8" stroke-dasharray="8 5"/>
+<rect x="55" y="70" width="360" height="60" rx="8" stroke="#38bdf8"/>
+<rect x="55" y="155" width="360" height="60" rx="8" stroke="#f97316"/>
+<rect x="55" y="240" width="360" height="60" rx="8" stroke="#34d399"/>
+<rect x="525" y="70" width="165" height="60" rx="8" stroke="#38bdf8"/>
+<rect x="720" y="70" width="165" height="60" rx="8" stroke="#38bdf8"/>
+<rect x="525" y="155" width="360" height="60" rx="8" stroke="#f97316"/>
+<rect x="525" y="240" width="360" height="60" rx="8" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="13" font-weight="600" text-anchor="middle">
+<text x="235" y="58">VIRTUAL MACHINE BOUNDARY</text>
+<text x="235" y="97">Order API process + userspace</text>
+<text x="235" y="182">Independent Guest Kernel</text>
+<text x="235" y="199" fill="#a9b7cb" font-size="11">guest loads own kernel modules &amp; drivers</text>
+<text x="235" y="267">Virtual Hardware &amp; Hypervisor</text>
+<text x="235" y="284" fill="#a9b7cb" font-size="11">EPT memory translation &amp; vCPU scheduling</text>
+<text x="705" y="58">CONTAINER PROCESS BOUNDARIES</text>
+<text x="607" y="97">Order API</text>
+<text x="802" y="97">Worker</text>
+<text x="705" y="182">Shared Host Linux Kernel</text>
+<text x="705" y="199" fill="#a9b7cb" font-size="11">namespaces · cgroups v2 · seccomp · capabilities</text>
+<text x="705" y="267">Physical Server Hardware</text>
+<text x="705" y="284" fill="#a9b7cb" font-size="11">bare metal CPU, RAM, storage, network</text>
+</g>
+<g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day9-boundary-arrow)">
+<path d="M235 130 L235 151"/>
+<path d="M235 215 L235 236"/>
+<path d="M607 130 L650 151"/>
+<path d="M802 130 L760 151"/>
+<path d="M705 215 L705 236"/>
+</g>
+</svg>
+<figcaption>Figure 9.1: Architectural comparison of virtualization versus containerization boundaries. A VM encapsulates an independent guest operating system kernel over hypervisor-managed virtual hardware, whereas containers partition host kernel visibility and resources across processes executing directly on the shared host kernel.</figcaption>
+</figure>
+<p><strong>Further study:</strong> <a href="https://docs.cloud.google.com/compute/docs/instances#introduction">Google Compute Engine, Virtual machine instances: Introduction</a> defines Compute Engine VMs and their virtualized resources. No video timestamp is included because no timestamped segment was verified.</p>
+</article>
+<article id="topic-02-technical" class="topic-card">
+<h3>Container isolation: namespaces, cgroups, seccomp and capabilities</h3>
+<p>Linux containers achieve process isolation by combining four distinct kernel mechanisms rather than emulating virtual hardware. Namespaces partition kernel resource visibility: a PID namespace isolates the process table so container PID 1 maps to an unprivileged process ID on the host; network namespaces provide independent network interfaces, routing tables, and firewall rules; mount namespaces isolate filesystem hierarchies; and IPC, UTS, and user namespaces isolate inter-process communication primitives, hostnames, and UID/GID identity mappings respectively.</p>
+<p>Resource accounting and quota enforcement are handled by cgroups v2 through a unified hierarchical tree. Controllers such as <code>cpu.max</code> specify CFS execution quotas and periods, while <code>memory.max</code> sets a hard ceiling on resident and anonymous memory allocation. When container memory consumption breaches <code>memory.max</code>, the kernel memory controller triggers an out-of-memory termination inside the cgroup (incrementing <code>oom_kill</code> in <code>memory.events</code>) even when host free RAM remains abundant. Concurrently, seccomp-BPF filters restrict system call execution at kernel entry, and POSIX capabilities decompose traditional superuser power into granular privileges, preventing containerized processes from performing raw network interception or loading unvetted kernel modules.</p>
+<table><caption>Container control and boundary map</caption><thead><tr><th>Mechanism</th><th>Question answered</th><th>Example evidence</th><th>Does not prove</th></tr></thead><tbody>
+<tr><td>Namespaces (PID, net, mnt, ipc, uts, user)</td><td>What visibility does the process have?</td><td><code>/proc/$PID/ns/*</code> inode links</td><td>Does not limit CPU, RAM, or I/O throughput.</td></tr>
+<tr><td>cgroups v2 (cpu, memory, io)</td><td>How much resource can the group consume?</td><td><code>/sys/fs/cgroup/...</code>, <code>memory.events</code>, <code>cpu.stat</code></td><td>Does not provide syscall filtering or separate kernel address space.</td></tr>
+<tr><td>Seccomp-BPF filter</td><td>Which system calls may the process execute?</td><td><code>Seccomp</code> in <code>/proc/$PID/status</code>, audit logs</td><td>Does not isolate filesystem hierarchies or network routes.</td></tr>
+<tr><td>POSIX Capabilities</td><td>Which privileged kernel operations are authorized?</td><td><code>CapEff</code> and <code>CapBnd</code> in <code>/proc/$PID/status</code></td><td>Does not prevent denial-of-service via allowed system calls.</td></tr>
+</tbody></table>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day9-layers-title day9-layers-desc" viewBox="0 0 940 330">
+<title id="day9-layers-title">Linux kernel container isolation layers and syscall evaluation</title>
+<desc id="day9-layers-desc">A containerized process request flows sequentially through Linux namespaces, cgroups v2 resource accounting, seccomp system call filtering, and POSIX capability checks before executing in the shared host kernel.</desc>
+<defs>
+<marker id="day9-layers-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="160" height="230" rx="10" stroke="#38bdf8"/>
+<rect x="210" y="30" width="160" height="230" rx="10" stroke="#f97316"/>
+<rect x="400" y="30" width="160" height="230" rx="10" stroke="#f43f5e"/>
+<rect x="590" y="30" width="160" height="230" rx="10" stroke="#eab308"/>
+<rect x="780" y="30" width="140" height="230" rx="10" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="13" font-weight="700" text-anchor="middle">
+<text x="100" y="60">Container Process</text>
+<text x="290" y="60">1. Namespaces</text>
+<text x="480" y="60">2. cgroups v2</text>
+<text x="670" y="60">3. Seccomp &amp; Caps</text>
+<text x="850" y="60">Host Kernel</text>
+</g>
+<g fill="#a9b7cb" font-size="11" text-anchor="middle">
+<text x="100" y="90">Order API / Worker</text>
+<text x="100" y="115" fill="#fce7f3">Userspace Process</text>
+<text x="100" y="140">UID 0 (Container Root)</text>
+<text x="100" y="165">or unprivileged UID</text>
+<text x="100" y="200" fill="#38bdf8">Issues System Call</text>
+<text x="100" y="225">(open, clone, socket)</text>
+
+<text x="290" y="90" fill="#fce7f3">Visibility Filter</text>
+<text x="290" y="115">PID: Virtual process tree</text>
+<text x="290" y="140">NET: veth &amp; private routes</text>
+<text x="290" y="165">MNT: pivot_root tree</text>
+<text x="290" y="190">IPC · UTS · USER</text>
+<text x="290" y="225" fill="#34d399">✓ Scoped View</text>
+
+<text x="480" y="90" fill="#fce7f3">Resource Limits</text>
+<text x="480" y="115">cpu.max (CFS quota)</text>
+<text x="480" y="140">memory.max (limit)</text>
+<text x="480" y="165">io.max · PSI accounting</text>
+<text x="480" y="200" fill="#f43f5e">Breach: OOM Kill</text>
+<text x="480" y="225" fill="#34d399">✓ Within Budget</text>
+
+<text x="670" y="90" fill="#fce7f3">Privilege Gating</text>
+<text x="670" y="115">Seccomp: BPF filter</text>
+<text x="670" y="140">Blocks dangerous calls</text>
+<text x="670" y="165">CapEff: Bound bits</text>
+<text x="670" y="200" fill="#f43f5e">Denied: EPERM / SIGSYS</text>
+<text x="670" y="225" fill="#34d399">✓ Authorized</text>
+
+<text x="850" y="90" fill="#fce7f3">Execution</text>
+<text x="850" y="120">Shared Kernel Space</text>
+<text x="850" y="150">Ring 0 Privilege</text>
+<text x="850" y="180">Hardware I/O</text>
+<text x="850" y="225" fill="#34d399">CPU / RAM / Disk</text>
+</g>
+<g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day9-layers-arrow)">
+<path d="M180 145 L206 145"/>
+<path d="M370 145 L396 145"/>
+<path d="M560 145 L586 145"/>
+<path d="M750 145 L776 145"/>
+</g>
+<text x="470" y="295" fill="#a9b7cb" font-size="12" text-anchor="middle">Every container action traverses all four kernel control gates; none provides a separate kernel.</text>
+</svg>
+<figcaption>Figure 9.2: Conceptual system call flow through the four Linux kernel container isolation layers. Namespaces partition what the process sees; cgroups v2 throttle and cap what it consumes; seccomp filters which system calls may enter kernel space; and capabilities restrict privileged kernel operations.</figcaption>
+</figure>
+<p><strong>Further study:</strong> <a href="https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION">Linux namespaces(7), Description</a>; <a href="https://docs.kernel.org/admin-guide/cgroup-v2.html#memory">Linux kernel cgroup v2, Memory</a>; <a href="https://docs.kernel.org/userspace-api/seccomp_filter.html#introduction">Linux kernel seccomp filter, Introduction</a>; and <a href="https://man7.org/linux/man-pages/man7/capabilities.7.html#DESCRIPTION">Linux capabilities(7), Description</a>. These section links were opened and verified. No video timestamp is claimed.</p>
+</article>
+</section>
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+<article id="topic-01-problem" class="topic-card">
+<h3>Incident exercise · The missing guest kernel</h3>
+<p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf's regional tax calculation adapter is packaged as a standard container image and deployed to the Kubernetes checkout cluster. Upon deployment, the adapter pod enters a crash-loop state. Container logs reveal failure during startup when attempting to load a proprietary cryptographic kernel module (<code>tax_crypto_accel.ko</code>) required by a newly integrated tax jurisdiction. Checkout operations for that regional jurisdiction stall completely, threatening substantial revenue loss during peak shopping hours.</p>
+<p><strong>Constraints and evidence:</strong> The deployment must be remediated within a 45-minute change window; cluster node operating systems are centrally managed with an immutable host kernel; granting <code>privileged: true</code> to the container or installing unvetted kernel modules on multi-tenant worker nodes is explicitly prohibited by organizational security policy; and rollback procedures must remain intact.</p>
+<p><strong>Evidence and root cause:</strong> Container startup logs show <code>insmod: ERROR: could not insert module tax_crypto_accel.ko: Operation not permitted</code>. Host examination shows <code>uname -r</code> differs from the module's target kernel ABI, and the container runtime's default capability profile drops <code>CAP_SYS_MODULE</code>. The root cause is an architectural placement error: the tax adapter depends directly on custom kernel-space code and hardware acceleration drivers, but containerization packages only userspace file trees. Containers execute against the shared host kernel and cannot provide an independent guest kernel boundary.</p>
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li>Inspect container logs and entrypoint script to isolate the failing instruction (the <code>insmod</code> invocation).</li>
+<li>Query host kernel release and installed module table to confirm absence of the required kernel module.</li>
+<li>Inspect the container security context to verify that <code>CAP_SYS_MODULE</code> is omitted and seccomp filters block raw kernel module loading.</li>
+<li>Evaluate vendor documentation to determine whether a pure userspace calculation library exists as a drop-in replacement.</li>
+<li>Confirm platform governance rules prohibiting host kernel modifications on shared multi-tenant cluster nodes.</li>
+</ol>
+<p><strong>Defensible solution:</strong> Re-architect the workload placement by provisioning a dedicated Compute Engine virtual machine running a vendor-certified guest Linux distribution that natively compiles and supports <code>tax_crypto_accel.ko</code> under explicit guest patch ownership. Expose the tax calculation service to the Brightloaf checkout application over a private internal Application Load Balancer endpoint via TLS. This maintains full host node security on the container cluster while granting the tax adapter its required dedicated guest kernel.</p>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day9-vm-incident-title day9-vm-incident-desc" viewBox="0 0 940 300">
+<title id="day9-vm-incident-title">Tax adapter placement failure and corrected VM path</title>
+<desc id="day9-vm-incident-desc">The failed dashed path attempts to run a kernel module inside a shared-kernel container, failing at module insertion. The corrected solid path runs the adapter inside a dedicated VM with its own guest kernel, verified by synthetic requests and an unchanged host.</desc>
+<defs>
+<marker id="day9-vm-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day9-vm-fail-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="105" width="150" height="85" rx="8" stroke="#38bdf8"/>
+<rect x="225" y="30" width="230" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="225" y="180" width="230" height="85" rx="8" stroke="#34d399"/>
+<rect x="510" y="30" width="210" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="510" y="180" width="210" height="85" rx="8" stroke="#34d399"/>
+<rect x="770" y="105" width="150" height="85" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">
+<text x="95" y="138">Tax Request</text>
+<text x="95" y="158" fill="#a9b7cb">Synthetic Checkout</text>
+
+<text x="340" y="58">[FAILED PATH: Container]</text>
+<text x="340" y="78" fill="#f43f5e">Shares immutable host kernel</text>
+<text x="340" y="98" fill="#a9b7cb">No guest kernel layer</text>
+
+<text x="340" y="208">[CORRECTED: Dedicated VM]</text>
+<text x="340" y="228" fill="#34d399">Independent guest kernel</text>
+<text x="340" y="248" fill="#a9b7cb">Vendor-supported image</text>
+
+<text x="615" y="58">EXACT FAILURE POINT</text>
+<text x="615" y="78" fill="#f43f5e">insmod: Operation not permitted</text>
+<text x="615" y="98" fill="#a9b7cb">CAP_SYS_MODULE dropped</text>
+
+<text x="615" y="208">CORRECTED CONTROL</text>
+<text x="615" y="228" fill="#34d399">Module loads in guest kernel</text>
+<text x="615" y="248" fill="#a9b7cb">Tax calculation succeeds</text>
+
+<text x="845" y="135">VERIFICATION</text>
+<text x="845" y="155" fill="#34d399">HTTP 200 Tax Response</text>
+<text x="845" y="175" fill="#a9b7cb">Host nodes unchanged</text>
+</g>
+<g fill="none" stroke-width="2">
+<path d="M170 130 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day9-vm-fail-arrow)"/>
+<path d="M455 72 L506 72" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day9-vm-fail-arrow)"/>
+<path d="M170 165 L220 210" stroke="#38bdf8" marker-end="url(#day9-vm-arrow)"/>
+<path d="M455 222 L506 222" stroke="#38bdf8" marker-end="url(#day9-vm-arrow)"/>
+<path d="M720 222 L766 165" stroke="#38bdf8" marker-end="url(#day9-vm-arrow)"/>
+</g>
+<text x="470" y="285" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed line (--&gt;) = failed container placement · Solid line (—&gt;) = corrected VM path and verification</text>
+</svg>
+<figcaption>Figure 9.3: Supplied facts: The tax calculation adapter requires a specialized kernel module, and container nodes run an immutable locked kernel. Architectural inference: Placing the workload into a dedicated VM with its own guest kernel resolves kernel-space dependencies without compromising shared container node security. Expected post-fix behavior: Synthetic tax requests return HTTP 200 while host nodes remain unmodified; this is an architectural scenario, not production telemetry.</figcaption>
+</figure>
+<p><strong>Verification and residual risk:</strong> Send synthetic tax evaluation payloads to the dedicated VM internal endpoint; verify HTTP 200 responses with exact calculated tax amounts; verify that multi-tenant Kubernetes cluster worker nodes remain uncompromised with zero custom kernel modules loaded; and test automated VM image patching workflows. Residual risks include increased compute operating costs relative to shared containers, longer scaling latency when VM instances autoscale, and the operational responsibility of managing OS kernel security patch cadences.</p>
+</article>
+<article id="topic-02-problem" class="topic-card">
+<h3>Incident exercise · Host memory looks healthy, worker exits</h3>
+<p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf's asynchronous fulfillment worker process abruptly exits with status code 137 (indicating termination by signal 9, SIGKILL) during a morning surge of order fulfillment events. Operations engineers inspect the host VM's cloud monitoring dashboard and observe that 70% of host RAM remains unallocated. Assuming the host has ample capacity, the team scales the underlying VM instance family, yet the fulfillment workers continue to terminate unexpectedly, stalling warehouse dispatch.</p>
+<p><strong>Constraints and evidence:</strong> Zero duplicate physical fulfillments (the strict business invariant requires that replaying an event must never cause duplicate item dispatch or packing); uncommitted queue messages must remain safe; responders must not disable cgroup memory isolation or grant <code>CAP_SYS_ADMIN</code> to containers; and testing must not exhaust shared host resources.</p>
+<p><strong>Evidence and root cause:</strong> Worker exit code 137 indicates kernel-initiated SIGKILL. Checking <code>/sys/fs/cgroup/.../memory.events</code> inside the worker container reveals <code>oom_kill 1</code> incrementing at the exact millisecond of process death, while <code>memory.current</code> matches the configured <code>memory.max</code> ceiling of 512 MiB. The root cause is boundary confusion: the fulfillment worker's cgroup memory limit was breached by an in-memory batch PDF generation library holding uncompressed invoice bitmaps in RAM. The host free memory metric was irrelevant because the kernel enforces limits at the individual cgroup boundary.</p>
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li>Capture the worker process termination timestamp and exit code (137) from orchestrator lifecycle events.</li>
+<li>Inspect <code>/proc/$PID/cgroup</code> to locate the cgroup v2 hierarchy path for the failing worker.</li>
+<li>Read <code>memory.current</code>, <code>memory.max</code>, and <code>memory.events</code> within the cgroup directory, verifying the <code>oom_kill</code> counter.</li>
+<li>Profile the worker's heap allocation during invoice rendering using a bounded local test fixture.</li>
+<li>Verify the order event queue and database deduplication log to confirm that no half-processed orders were falsely flagged as fulfilled.</li>
+</ol>
+<p><strong>Defensible solution:</strong> Right-size the fulfillment container's cgroup <code>memory.max</code> based on measured peak memory profiles with a 30% safety cushion (adjusting the allocation to 1024 MiB), while refactoring the PDF invoice generator to stream chunks directly to persistent object storage instead of buffering entire document trees in process heap memory.</p>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day9-memory-incident-title day9-memory-incident-desc" viewBox="0 0 940 310">
+<title id="day9-memory-incident-title">Fulfillment worker cgroup memory failure and streaming control fix</title>
+<desc id="day9-memory-incident-desc">The failed dashed path buffers PDF packing slips in worker heap until breaching cgroup memory.max, triggering OOM kill. The corrected solid path streams generation to storage and right-sizes cgroup memory.max, verified by zero OOM kills and deduplicated fulfillment.</desc>
+<defs>
+<marker id="day9-memory-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day9-memory-fail-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="150" height="85" rx="8" stroke="#38bdf8"/>
+<rect x="225" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="225" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="495" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="495" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="765" y="110" width="155" height="85" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">
+<text x="95" y="142">Order Queue</text>
+<text x="95" y="162" fill="#a9b7cb">Batch packing events</text>
+
+<text x="335" y="58">[FAILED: In-Memory Heap]</text>
+<text x="335" y="78" fill="#f43f5e">Buffers 640M in RAM heap</text>
+<text x="335" y="98" fill="#a9b7cb">Host shows 12G available</text>
+
+<text x="335" y="213">[CORRECTED: Stream + Limit]</text>
+<text x="335" y="233" fill="#34d399">Stream I/O + 1024M max</text>
+<text x="335" y="253" fill="#a9b7cb">Working set capped at 280M</text>
+
+<text x="605" y="58">EXACT FAILURE POINT</text>
+<text x="605" y="78" fill="#f43f5e">cgroup memory.max breached</text>
+<text x="605" y="98" fill="#f43f5e">SIGKILL 137 · oom_kill +1</text>
+
+<text x="605" y="213">CORRECTED CONTROL</text>
+<text x="605" y="233" fill="#34d399">Heap &lt; 50% of cgroup limit</text>
+<text x="605" y="253" fill="#a9b7cb">Zero kernel OOM kills</text>
+
+<text x="842" y="138">VERIFICATION</text>
+<text x="842" y="158" fill="#34d399">oom_kill == 0</text>
+<text x="842" y="178" fill="#a9b7cb">&le;1 fulfillment per order</text>
+</g>
+<g fill="none" stroke-width="2">
+<path d="M170 135 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day9-memory-fail-arrow)"/>
+<path d="M445 72 L490 72" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day9-memory-fail-arrow)"/>
+<path d="M170 170 L220 215" stroke="#38bdf8" marker-end="url(#day9-memory-arrow)"/>
+<path d="M445 227 L490 227" stroke="#38bdf8" marker-end="url(#day9-memory-arrow)"/>
+<path d="M715 227 L760 170" stroke="#38bdf8" marker-end="url(#day9-memory-arrow)"/>
+</g>
+<text x="470" y="295" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed line (--&gt;) = cgroup memory failure · Solid line (—&gt;) = streaming fix and idempotent fulfillment</text>
+</svg>
+<figcaption>Figure 9.4: Supplied facts: Worker terminates with exit code 137 despite 70% host free memory headroom. Architectural inference: The worker exceeded its isolated cgroup v2 memory.max boundary during in-memory buffering. Expected post-fix behavior: Streamed invoice generation and calibrated memory limits prevent OOM termination while queue deduplication preserves at-most-once fulfillment semantics.</figcaption>
+</figure>
+<p><strong>Verification and residual risk:</strong> Re-run a bounded synthetic batch of 100 fulfillment orders; confirm that memory usage stays under 350 MiB, <code>memory.events</code> shows zero <code>oom_kill</code> increments, and all orders transition from queued to dispatched; check the fulfillment idempotency ledger to prove that no order received multiple packing slips. Residual risks include unpredictable future order batch sizes if upstream batching parameters change, and noisy-neighbor memory pressure if overall node cgroups experience heavy swap or memory reclamation.</p>
+</article>
+</section>
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise A · Draw and challenge the kernel boundary</h3>
+<p><strong>Goal:</strong> Construct a comprehensive isolation architecture worksheet comparing VM and container kernel boundaries using a supplied multi-tier application fixture.</p>
+<p><strong>Expected Result:</strong> An isolation worksheet mapping physical host hardware, hypervisor abstraction layers, guest operating systems, and containerized process layers, accompanied by a justified placement decision for custom kernel dependencies.</p>
+<p><strong>Mode:</strong> Local/offline tabletop; no root privileges, hypervisor installation, or cloud account required.</p>
+<h4>Preflight</h4>
+<p>Open a text editor in your workspace and initialize a new text file named <code>day-009-isolation-worksheet.txt</code>. Confirm read access to system documentation or local editor.</p>
+<h4>Exact Execution</h4>
+<h4>Step 1 — Read and map the placement fixture</h4>
+<p>Examine the following multi-tier architecture scenario:</p>
+<pre><code class="language-text">Physical Host: 64-core x86_64 CPU, 256 GB RAM, Dual 25 GbE NICs, Linux KVM Type 1 Hypervisor
+├── VM A: Virtual Hardware -> Guest Kernel (Linux 6.6 LTS) -> Order API Process (Userspace)
+├── VM B: Virtual Hardware -> Guest Kernel (Linux 6.1 LTS) -> Analytics Database Engine
+└── Container C: Host Kernel -> Namespace/cgroup Boundary -> Order Worker Process (Userspace)
+</code></pre>
+<p>In your worksheet, diagram each layer from hardware to process. Explicitly mark the boundary separating VM A from VM B, and the boundary separating Container C from the physical host.</p>
+<h4>Step 2 — Inject a custom kernel dependency</h4>
+<p>Suppose the engineering team needs to introduce a specialized hardware cryptographic acceleration module (<code>tax_crypto_accel.ko</code>) that requires a specific kernel patch release not supported by the shared host kernel. Evaluate two placement options:</p>
+<pre><code class="language-text">Option 1: Deploy as a container on Container C's host cluster with privileged mode.
+Option 2: Deploy inside a dedicated Compute Engine VM running a verified compatible guest kernel.
+</code></pre>
+<p>Record your architectural evaluation. State why Option 1 fails security governance and does not provide an independent kernel, and why Option 2 correctly satisfies the kernel isolation boundary.</p>
+<h4>Step 3 — Distinguish hypervisor failure from guest application crash</h4>
+<p>Suppose VM A's Order API process crashes due to a null-pointer dereference in userspace, while VM B continues processing analytics without interruption. Add diagnostic verification criteria to your worksheet distinguishing a userspace application crash, a guest kernel panic, and a hypervisor failure.</p>
+<h4>Verification with expected output</h4>
+<p>Verify that your worksheet contains explicit structural labels: <code>VM: separate guest kernel and virtualized hardware</code>, <code>Container: shared host kernel and namespace/cgroup constraints</code>, and assigns clear operational ownership for OS kernel patching versus container runtime configuration.</p>
+<h4>Troubleshooting</h4>
+<p>If virtualization and container boundaries blur together, trace every system call to its servicing kernel. If assuming a VM is automatically invulnerable, add guest kernel patch overhead and hypervisor escape risks to your residual risk section.</p>
+<h4>Cleanup</h4>
+<p>Save <code>day-009-isolation-worksheet.txt</code> in your local learning directory. No background processes or billable cloud resources were created.</p>
+<h4>Artifact Acceptance</h4>
+<p>Accept the artifact when the worksheet articulates both isolation models, resource ownership boundaries, and cites specific criteria for when a workload requires a VM versus a container.</p>
+<p>
+<label class="check">
+<input type="checkbox" data-progress="lab-9-topic-01"> I completed and checked this topic exercise</label>
+</p>
+</article>
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise B · Read your process isolation facts</h3>
+<p><strong>Goal:</strong> Inspect live Linux process isolation primitives—namespaces, cgroups, seccomp filters, and capabilities—on a Linux system to verify runtime boundaries.</p>
+<p><strong>Expected Result:</strong> A timestamped diagnostic capture showing exact namespace inode links (<code>/proc/$PID/ns/*</code>), cgroup membership (<code>/proc/$PID/cgroup</code>), effective capabilities mask (<code>CapEff</code>), and seccomp filtering status (<code>Seccomp</code>), with each mapped to its architectural boundary.</p>
+<p><strong>Mode:</strong> Read-only local Linux shell; safe inspection commands only.</p>
+<h4>Preflight</h4>
+<p>Verify read access to process status files in a Linux terminal:</p>
+<pre><code class="language-sh">test -r /proc/self/status &amp;&amp; echo "procfs readable"
+</code></pre>
+<p>Expected output: <code>procfs readable</code>. Continue only when this check succeeds.</p>
+<h4>Exact Execution</h4>
+<h4>Step 1 — Capture PID and inspection timestamp</h4>
+<p>Record the shell process ID and current UTC timestamp to anchor the diagnostic baseline:</p>
+<pre><code class="language-sh">shell_pid=$$
+printf 'observed_at=%s\npid=%s\n' "$(date -u +%FT%TZ)" "$shell_pid"
+</code></pre>
+<h4>Step 2 — Read Linux namespace inode links</h4>
+<p>Inspect the symlinks in the process's namespace directory:</p>
+<pre><code class="language-sh">readlink "/proc/$shell_pid/ns/pid" "/proc/$shell_pid/ns/net" "/proc/$shell_pid/ns/mnt" "/proc/$shell_pid/ns/ipc" "/proc/$shell_pid/ns/uts" "/proc/$shell_pid/ns/user"
+</code></pre>
+<p>Expected output format: six symlink destinations such as <code>pid:[4026531836]</code>, <code>net:[4026531833]</code>, and <code>mnt:[4026531832]</code>. These inode numbers represent the kernel namespace instances attached to your process.</p>
+<h4>Step 3 — Inspect cgroup v2 controller membership</h4>
+<p>Read the process cgroup membership:</p>
+<pre><code class="language-sh">cat "/proc/$shell_pid/cgroup"
+</code></pre>
+<p>Expected output: on a system running cgroup v2, a line formatted as <code>0::/user.slice/...</code> showing the relative path in the unified cgroup hierarchy.</p>
+<h4>Step 4 — Inspect process capabilities and seccomp filtering</h4>
+<p>Extract effective capabilities and seccomp status from the process status file:</p>
+<pre><code class="language-sh">grep -E '^(CapEff|Seccomp):' "/proc/$shell_pid/status"
+</code></pre>
+<p>Expected output: a hexadecimal bitmask for <code>CapEff</code> (for an unprivileged user, <code>0000000000000000</code>) and a numeric mode for <code>Seccomp</code> (0 = disabled, 1 = strict, 2 = filter).</p>
+<h4>Step 5 — Classify observed facts into architectural categories</h4>
+<p>In your worksheet, record the captured output and categorize each line:</p>
+<ol>
+<li><strong>Namespace links:</strong> Represent visibility boundaries (which process table, network stack, and mount points this process can see).</li>
+<li><strong>cgroup path:</strong> Represents resource governance (which CPU and memory quotas govern this process).</li>
+<li><strong>CapEff mask:</strong> Represents authorization boundaries (which privileged kernel operations this process may invoke).</li>
+<li><strong>Seccomp mode:</strong> Represents system call filtering (whether an in-kernel BPF program validates system calls).</li>
+</ol>
+<h4>Verification with expected output</h4>
+<p>Expected output includes six valid namespace inode links, one cgroup hierarchy line, one <code>CapEff</code> hexadecimal string, and one <code>Seccomp</code> indicator. The worksheet must clearly state that these values represent local host process isolation and do not establish an independent kernel.</p>
+<h4>Troubleshooting</h4>
+<p>If <code>/proc</code> is unavailable or restricted in a hardened environment, record "not observed: procfs unavailable" and use the supplied execution output as a verified reference fixture. Never invent namespace or capability identifiers.</p>
+<h4>Cleanup</h4>
+<p>Clean up temporary shell variables:</p>
+<pre><code class="language-sh">unset shell_pid
+</code></pre>
+<p>No container, daemon, or cloud resource was created.</p>
+<h4>Artifact Acceptance</h4>
+<p>Accept the artifact when the worksheet contains the recorded command execution, actual timestamp, captured output, architectural classification of each primitive, and an explanation of why container root does not equal independent kernel isolation.</p>
+<p>
+<label class="check">
+<input type="checkbox" data-progress="lab-9-topic-02"> I completed and checked this topic exercise</label>
+</p>
+</article>
+</section>
+<section class="completion">
+<h2>Daily evidence</h2>
+<label class="check">
+<input type="checkbox" data-progress="read-9"> I read and reviewed the day</label>
+<label class="check">
+<input type="checkbox" data-progress="artifact-9"> I saved the exit artifact</label>
+</section>
+<nav class="pager" aria-label="Day pagination">
+<a href="day-008.html">← Day 8<small>CPU, memory and diagnostic signals</small>
+</a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small>
+</a>
+<a href="day-010.html">Day 10 →<small>Images, filesystems and orchestration</small>
+</a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

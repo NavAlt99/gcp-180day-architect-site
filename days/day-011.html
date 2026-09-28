@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 11: Cloud service models and responsibility · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.topic-card table{width:100%;border-collapse:collapse;margin:18px 0;display:block;overflow-x:auto}.topic-card caption{text-align:left;color:var(--rose);font-weight:800;margin-bottom:8px}.topic-card th,.topic-card td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top;min-width:150px}.topic-card th{color:var(--cyan);background:rgba(56,189,248,.06)}.diagram-figure{margin:20px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-x:auto}.diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}.diagram-figure figcaption{color:var(--muted);font-size:12px;margin-top:10px}.diagram-scroll-hint{display:none;color:var(--muted);font-size:11px}#part-2 article>p:last-child{border-left:3px solid var(--cyan);padding:11px 14px;background:rgba(56,189,248,.06);margin-top:18px}.lab h4{color:var(--cyan);margin:20px 0 8px}@media(max-width:720px){.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+</style>
+<script defer src="../assets/site.js">
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span>
+</a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-010.html" aria-label="Previous day">← Day 10</a>
+<a href="day-012.html" aria-label="Next day">Day 12 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html" selected>Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<main id="main" class="container day" data-day="11" data-prev="day-010.html" data-next="day-012.html" data-index="../index.html">
+<div class="crumb">
+<a href="../index.html">Roadmap index</a> / <a href="../index.html#block-foundations">Foundations</a> / Day 11 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 11</span>
+<span class="pill">2–3 hours</span>
+<span class="pill">local exercise</span>
+<span class="pill">Topics 004</span>
+</div>
+<h1>Day 11 — Cloud service models and responsibility</h1>
+<p class="lead">
+<strong>Outcome:</strong> Assign OS patching, application security and data recovery responsibilities for VM, managed-container and SaaS examples.</p>
+<div>
+<strong>Entry prerequisites:</strong> <p>
+<a href="day-010.html">Day 10</a>; bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A responsibility matrix with an owner for each task.</p>
+</div>
+<p class="small">Source curriculum and linked documentation checked 2026-09-27. A tabletop result is an architectural design exercise, not a live production test.</p>
+</section>
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>IaaS, PaaS, FaaS, SaaS, and where GCP services fall</span>
+<a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Shared responsibility model (what Google secures vs what you secure)</span>
+<a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a>
+</div>
+</aside>
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>IaaS, PaaS, FaaS, SaaS, and where GCP services fall</h3>
+<p>Cloud service delivery models represent a spectrum of abstraction and operational delegation between cloud tenants and cloud providers. Infrastructure as a Service (IaaS) provides virtualized compute, block storage, and software-defined networking where the customer manages the operating system, runtime, and applications (such as Google Compute Engine). Platform as a Service (PaaS) and Container as a Service (CaaS) abstract host operating systems, allowing developers to deploy container images or application code while Google manages provisioning, scaling, and runtime security (such as Cloud Run and App Engine). Function as a Service (FaaS) narrows the deployment boundary to ephemeral, event-triggered code snippets (such as Cloud Run functions), while Software as a Service (SaaS) provides turnkey managed business applications (such as Google Workspace and BigQuery managed analytics).</p>
+<p><strong>Why today and where it sits:</strong> Day 11 bridges local containerization from Days 9 and 10 with cloud resource architectures before exploring cloud regions and cost models on Day 12. Service models sit across the computing stack, determining which layers are operated by customer engineers and which are delegated to Google Cloud managed infrastructure.</p>
+<p><strong>Problem preview:</strong> A Brightloaf development team deploys a stateless order webhook as a cluster of manually managed Compute Engine virtual machines without automated OS patch pipelines, requiring weekend manual maintenance and failing during an OS package update. Customer order callbacks fail during the maintenance window, causing delayed transaction confirmations and increased operational engineering toil.</p>
+<p>
+<a href="#topic-01-technical">Technical discussion</a> · <a href="#topic-01-problem">Real-world problem</a> · <a href="#topic-01-lab">Exercise</a>
+</p>
+</article>
+<article id="topic-02-overview" class="topic-card">
+<h3>Shared responsibility model (what Google secures vs what you secure)</h3>
+<p>The shared responsibility model establishes the contractual boundary between what Google Cloud secures and what the tenant must secure. Google guarantees security <em>of</em> the cloud—encompassing physical datacenter perimeters, custom server silicon (Titan chips), hypervisor isolation, global fiber backbone encryption, and compliance certifications. The customer retains strict ownership of security <em>in</em> the cloud—including identity and access management (IAM) bindings, firewall rules, data classification, customer-managed encryption keys, network egress controls, and application source code integrity. In modern architecture, Google introduces Shared Fate, partnering with customers through opinionated landing zones, risk frameworks, and security blueprints, yet customer data and access policies always remain 100% customer-owned.</p>
+<p><strong>Why today and where it sits:</strong> Day 11 establishes non-negotiable governance principles before provisioning live cloud sandboxes on Day 18. Shared responsibility sits at the intersection of infrastructure operations, security architecture, and regulatory compliance, ensuring architects do not assume cloud provider automation replaces customer access governance.</p>
+<p><strong>Problem preview:</strong> After migrating the Order API from virtual machines to Cloud Run, engineers remove the VM operating system patching backlog but simultaneously close all IAM authorization and data retention review tickets under the assumption that a managed runtime handles all security controls. An unauthenticated service invocation endpoint inadvertently exposes sensitive order payment histories to the public internet, violating privacy compliance and exposing Brightloaf to severe regulatory penalties.</p>
+<p>
+<a href="#topic-02-technical">Technical discussion</a> · <a href="#topic-02-problem">Real-world problem</a> · <a href="#topic-02-lab">Exercise</a>
+</p>
+</article>
+</section>
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+<article id="topic-01-technical" class="topic-card">
+<h3>IaaS, PaaS, FaaS, SaaS, and where GCP services fall</h3>
+<p>Architectural evaluation begins by asking: what operational capabilities does the workload strictly require, and how much undifferentiated maintenance should the engineering organization retain? Under Infrastructure as a Service (IaaS), Compute Engine provides virtual machines where the tenant controls the guest operating system kernel version, local disk partitioning, system daemons, network interfaces, and runtime environments. This control is necessary for legacy workloads, custom kernel modules, or specific binary drivers, but demands significant ongoing operational overhead—including OS vulnerability patching, kernel updates, image baking, disk resizing, and high-availability configuration.</p>
+<p>Platform as a Service (PaaS) and serverless container runtimes like Cloud Run shift host management entirely to Google. The customer packages their application into an OCI container image and configures desired concurrency, memory limits, and environment variables. Google's control plane automatically provisions underlying worker nodes, routes requests, handles TLS certificates, scales container instances from zero to thousands based on incoming HTTP traffic, and applies host kernel security updates without customer intervention. Function as a Service (FaaS), represented in GCP by Cloud Run functions (formerly Cloud Functions), abstracts the container contract further: developers submit pure code snippets triggered by HTTP requests or Pub/Sub events. Software as a Service (SaaS), exemplified by Google Workspace, eliminates software installation and maintenance entirely, providing turnkey software accessed via APIs or browsers. The architect's responsibility is to select the highest level of abstraction that satisfies application constraints, minimizing toil while maintaining required controls.</p>
+<table><caption>Cloud service delivery model taxonomy and GCP service mapping</caption><thead><tr><th>Service model</th><th>Management boundary (Customer vs Google)</th><th>Primary GCP service examples</th><th>Architectural decision trigger</th></tr></thead><tbody>
+<tr><td>IaaS (Infrastructure as a Service)</td><td>Customer: OS, runtime, app, data, networking | Google: Physical hardware, hypervisor, facilities</td><td>Compute Engine, Persistent Disk, Cloud Interconnect</td><td>Requires custom OS kernel, legacy binary agents, or direct hardware/driver control.</td></tr>
+<tr><td>PaaS / CaaS (Platform / Container)</td><td>Customer: Application container, config, IAM, data | Google: Host OS, node scaling, runtime patch</td><td>Cloud Run, App Engine, Google Kubernetes Engine (Autopilot)</td><td>Standard web APIs, microservices, or event workers needing automated scaling without OS management.</td></tr>
+<tr><td>FaaS (Function as a Service)</td><td>Customer: Function source code, trigger binding, data | Google: Container lifecycle, invocation runtime</td><td>Cloud Run functions, Eventarc integrations</td><td>Short-lived, discrete event handlers (e.g. file upload processing, Pub/Sub webhook transform).</td></tr>
+<tr><td>SaaS (Software as a Service)</td><td>Customer: User accounts, access grants, business data | Google: Complete application, database, UI</td><td>Google Workspace, BigQuery (Serverless SaaS analytics tier)</td><td>Finished productivity or enterprise application requiring zero custom software maintenance.</td></tr>
+</tbody></table>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day11-models-title day11-models-desc" viewBox="0 0 940 330">
+<title id="day11-models-title">Cloud service model abstraction spectrum and operational division</title>
+<desc id="day11-models-desc">A four-column diagram comparing IaaS, PaaS, FaaS, and SaaS, showing which layers are customer-managed versus Google-managed across the compute stack.</desc>
+<defs>
+<marker id="day11-models-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="205" height="260" rx="10" stroke="#38bdf8"/>
+<rect x="250" y="30" width="205" height="260" rx="10" stroke="#f97316"/>
+<rect x="480" y="30" width="205" height="260" rx="10" stroke="#eab308"/>
+<rect x="710" y="30" width="210" height="260" rx="10" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="13" font-weight="700" text-anchor="middle">
+<text x="122" y="55">IaaS</text>
+<text x="352" y="55">PaaS / CaaS</text>
+<text x="582" y="55">FaaS</text>
+<text x="815" y="55">SaaS</text>
+</g>
+<g fill="#a9b7cb" font-size="11" text-anchor="middle">
+<text x="122" y="75" fill="#38bdf8">Compute Engine</text>
+<text x="352" y="75" fill="#f97316">Cloud Run</text>
+<text x="582" y="75" fill="#eab308">Cloud Run functions</text>
+<text x="815" y="75" fill="#34d399">Google Workspace</text>
+
+<!-- IaaS Stack -->
+<rect x="35" y="90" width="175" height="26" rx="4" fill="#38bdf8" fill-opacity="0.15" stroke="#38bdf8"/>
+<text x="122" y="107" fill="#fce7f3">Customer: Data &amp; IAM</text>
+<rect x="35" y="122" width="175" height="26" rx="4" fill="#38bdf8" fill-opacity="0.15" stroke="#38bdf8"/>
+<text x="122" y="139" fill="#fce7f3">Customer: App &amp; Runtime</text>
+<rect x="35" y="154" width="175" height="26" rx="4" fill="#38bdf8" fill-opacity="0.15" stroke="#38bdf8"/>
+<text x="122" y="171" fill="#fce7f3">Customer: Guest OS Patch</text>
+<rect x="35" y="186" width="175" height="42" rx="4" fill="#121526" stroke="#475569"/>
+<text x="122" y="203" fill="#a9b7cb">Google: Hypervisor</text>
+<text x="122" y="219" fill="#a9b7cb">Google: Physical Hardware</text>
+
+<!-- PaaS Stack -->
+<rect x="265" y="90" width="175" height="26" rx="4" fill="#f97316" fill-opacity="0.15" stroke="#f97316"/>
+<text x="352" y="107" fill="#fce7f3">Customer: Data &amp; IAM</text>
+<rect x="265" y="122" width="175" height="26" rx="4" fill="#f97316" fill-opacity="0.15" stroke="#f97316"/>
+<text x="352" y="139" fill="#fce7f3">Customer: App Container</text>
+<rect x="265" y="154" width="175" height="74" rx="4" fill="#121526" stroke="#475569"/>
+<text x="352" y="175" fill="#a9b7cb">Google: Runtime &amp; OS</text>
+<text x="352" y="195" fill="#a9b7cb">Google: Auto-Scaling</text>
+<text x="352" y="215" fill="#a9b7cb">Google: Physical Server</text>
+
+<!-- FaaS Stack -->
+<rect x="495" y="90" width="175" height="26" rx="4" fill="#eab308" fill-opacity="0.15" stroke="#eab308"/>
+<text x="582" y="107" fill="#fce7f3">Customer: Data &amp; IAM</text>
+<rect x="495" y="122" width="175" height="26" rx="4" fill="#eab308" fill-opacity="0.15" stroke="#eab308"/>
+<text x="582" y="139" fill="#fce7f3">Customer: Function Code</text>
+<rect x="495" y="154" width="175" height="74" rx="4" fill="#121526" stroke="#475569"/>
+<text x="582" y="175" fill="#a9b7cb">Google: Container Lifecycle</text>
+<text x="582" y="195" fill="#a9b7cb">Google: Event Dispatch</text>
+<text x="582" y="215" fill="#a9b7cb">Google: Physical Infra</text>
+
+<!-- SaaS Stack -->
+<rect x="725" y="90" width="180" height="26" rx="4" fill="#34d399" fill-opacity="0.15" stroke="#34d399"/>
+<text x="815" y="107" fill="#fce7f3">Customer: Users &amp; Data</text>
+<rect x="725" y="122" width="180" height="106" rx="4" fill="#121526" stroke="#475569"/>
+<text x="815" y="145" fill="#a9b7cb">Google: Application UI</text>
+<text x="815" y="165" fill="#a9b7cb">Google: Database &amp; Code</text>
+<text x="815" y="185" fill="#a9b7cb">Google: Patching &amp; Scaling</text>
+<text x="815" y="205" fill="#a9b7cb">Google: Physical Infra</text>
+</g>
+<text x="470" y="265" fill="#a9b7cb" font-size="11" text-anchor="middle">As abstraction shifts from IaaS to SaaS, Google assumes more operational layers, but Customer Data and IAM remain tenant-owned.</text>
+</svg>
+<figcaption>Figure 11.1: Cloud service model abstraction spectrum. Colored upper blocks depict customer-managed responsibilities; dark lower blocks depict Google-managed operational layers.</figcaption>
+</figure>
+<p><strong>Further study:</strong> <a href="https://cloud.google.com/learn/paas-vs-iaas-vs-saas">Google Cloud: What are IaaS, PaaS, and SaaS?</a>, <a href="https://docs.cloud.google.com/run/docs">Cloud Run documentation</a>, and <a href="https://docs.cloud.google.com/compute/docs">Compute Engine documentation</a>.</p>
+</article>
+<article id="topic-02-technical" class="topic-card">
+<h3>Shared responsibility model (what Google secures vs what you secure)</h3>
+<p>The shared responsibility model is not a marketing concept; it is an audit-enforced boundary defining operational, legal, and security liability. When an enterprise deploys workloads on Google Cloud, Google guarantees the security <em>of</em> the cloud. This includes physical security guards, biometric datacenter access, server hardware supply chain verification, custom Titan security microchips on physical motherboards, hypervisor hardening, automated encryption of data-at-rest with default keys, and default encryption of all inter-datacenter network traffic over Google's private fiber network.</p>
+<p>Conversely, the customer is exclusively responsible for security <em>in</em> the cloud. Regardless of whether a customer selects Compute Engine, Cloud Run, or BigQuery, Google does not own or configure customer IAM policies. If a tenant binds <code>allUsers</code> to a Cloud Storage bucket or grants <code>roles/editor</code> to an untrusted identity, Google's infrastructure enforces that policy as declared, exposing data without breach of the provider's boundary. Similarly, customer data classification, network perimeter egress rules, application vulnerability mitigation (such as SQL injection or SSRF), database backup schedules, and domain-specific business invariants (such as preventing duplicate order fulfillment) remain 100% customer obligations. Under Google's Shared Fate model, Google equips customers with Cloud Architecture Framework security blueprints, Security Command Center posture scanners, and policy-as-code guardrails, but the ultimate authority and operational burden of configuration resides with the tenant.</p>
+<table><caption>Shared responsibility security matrix across infrastructure layers</caption><thead><tr><th>Infrastructure / Security layer</th><th>IaaS (Compute Engine)</th><th>PaaS (Cloud Run)</th><th>SaaS (Google Workspace)</th><th>Customer audit responsibility</th></tr></thead><tbody>
+<tr><td>Physical facilities and server silicon</td><td>Google</td><td>Google</td><td>Google</td><td>Review SOC 2 / ISO 27001 reports; zero customer operational action.</td></tr>
+<tr><td>Hypervisor and virtualization host</td><td>Google</td><td>Google</td><td>Google</td><td>Provider-managed; hypercall isolation enforced by Google.</td></tr>
+<tr><td>Guest OS, kernel, and system daemons</td><td>Customer</td><td>Google</td><td>Google</td><td>Customer patches guest OS on VMs; Google patches container sandbox hosts.</td></tr>
+<tr><td>Network firewall and ingress routing</td><td>Customer</td><td>Customer</td><td>Customer</td><td>Customer configures VPC firewall rules, Cloud Armor WAF, and ingress filters.</td></tr>
+<tr><td>IAM access grants and identity tokens</td><td>Customer</td><td>Customer</td><td>Customer</td><td>Customer governs role bindings, service accounts, and session lifecycles.</td></tr>
+<tr><td>Customer data, retention, and logic</td><td>Customer</td><td>Customer</td><td>Customer</td><td>Customer owns encryption keys, data classification, and business invariants.</td></tr>
+</tbody></table>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day11-shared-title day11-shared-desc" viewBox="0 0 940 320">
+<title id="day11-shared-title">Google Cloud shared responsibility and shared fate security boundaries</title>
+<desc id="day11-shared-desc">A stacked architectural diagram showing the boundary between Google Cloud infrastructure security and Customer workload security across IaaS, PaaS, and SaaS environments.</desc>
+<defs>
+<marker id="day11-shared-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="900" height="110" rx="10" stroke="#f43f5e"/>
+<rect x="20" y="160" width="900" height="120" rx="10" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="13" font-weight="700">
+<text x="40" y="55" fill="#f43f5e">CUSTOMER RESPONSIBILITY (Security IN the Cloud — ALWAYS Tenant Owned)</text>
+<text x="40" y="185" fill="#38bdf8">GOOGLE RESPONSIBILITY (Security OF the Cloud — Provider Guaranteed)</text>
+</g>
+<g fill="#a9b7cb" font-size="11">
+<!-- Customer controls -->
+<rect x="40" y="70" width="190" height="55" rx="6" fill="#121526" stroke="#f43f5e"/>
+<text x="135" y="90" font-weight="700" fill="#fce7f3" text-anchor="middle">Data &amp; Encryption</text>
+<text x="135" y="108" text-anchor="middle">CMEK · Classification</text>
+
+<rect x="260" y="70" width="190" height="55" rx="6" fill="#121526" stroke="#f43f5e"/>
+<text x="355" y="90" font-weight="700" fill="#fce7f3" text-anchor="middle">Identity &amp; Access (IAM)</text>
+<text x="355" y="108" text-anchor="middle">Least Privilege · Service Accts</text>
+
+<rect x="480" y="70" width="190" height="55" rx="6" fill="#121526" stroke="#f43f5e"/>
+<text x="575" y="90" font-weight="700" fill="#fce7f3" text-anchor="middle">Application &amp; Logic</text>
+<text x="575" y="108" text-anchor="middle">Source Code · Invariants</text>
+
+<rect x="700" y="70" width="200" height="55" rx="6" fill="#121526" stroke="#f43f5e"/>
+<text x="800" y="90" font-weight="700" fill="#fce7f3" text-anchor="middle">Network Ingress &amp; Firewall</text>
+<text x="800" y="108" text-anchor="middle">VPC Rules · Cloud Armor</text>
+
+<!-- Google controls -->
+<rect x="40" y="200" width="200" height="60" rx="6" fill="#121526" stroke="#38bdf8"/>
+<text x="140" y="222" font-weight="700" fill="#fce7f3" text-anchor="middle">Physical Security</text>
+<text x="140" y="242" text-anchor="middle">Biometric access · Cameras</text>
+
+<rect x="270" y="200" width="200" height="60" rx="6" fill="#121526" stroke="#38bdf8"/>
+<text x="370" y="222" font-weight="700" fill="#fce7f3" text-anchor="middle">Hardware &amp; Silicon</text>
+<text x="370" y="242" text-anchor="middle">Titan chips · Verified boot</text>
+
+<rect x="500" y="200" width="200" height="60" rx="6" fill="#121526" stroke="#38bdf8"/>
+<text x="600" y="222" font-weight="700" fill="#fce7f3" text-anchor="middle">Virtualization / Hypervisor</text>
+<text x="600" y="242" text-anchor="middle">KVM isolation · CPU scheduler</text>
+
+<rect x="730" y="200" width="170" height="60" rx="6" fill="#121526" stroke="#38bdf8"/>
+<text x="815" y="222" font-weight="700" fill="#fce7f3" text-anchor="middle">Global Fiber Network</text>
+<text x="815" y="242" text-anchor="middle">Default inter-region WAN</text>
+</g>
+<text x="470" y="300" fill="#a9b7cb" font-size="11" text-anchor="middle">Shared Fate: Google provides security foundations, posture blueprints, and tools; the customer governs policies, keys, and access.</text>
+</svg>
+<figcaption>Figure 11.2: Google Cloud shared responsibility security boundary. Physical security, hardware verification, and virtualization isolation are guaranteed by Google; data governance, identity access, and application code are governed by the tenant.</figcaption>
+</figure>
+<p><strong>Further study:</strong> <a href="https://docs.cloud.google.com/architecture/framework/security/shared-responsibility-shared-fate#shared_responsibility">Google Cloud Architecture Framework: Shared responsibility and shared fate</a> and <a href="https://docs.cloud.google.com/architecture/framework/security">Security, privacy, and compliance principles</a>.</p>
+</article>
+</section>
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+<article id="topic-01-problem" class="topic-card">
+<h3>Incident exercise · The unpatched webhook cluster</h3>
+<p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf's third-party shipping carrier delivers asynchronous package tracking updates via an HTTP webhook callback. To handle these webhooks, an engineering team deployed three Compute Engine virtual machines behind a regional load balancer. The VMs were configured manually without automated OS patch pipelines or managed instance group templates. Over eighteen months, security auditors flagged multiple unpatched Linux kernel vulnerabilities (CVEs) on the guest OS. During a scheduled weekend manual patching operation, an engineer ran a kernel package update on the VMs; the update triggered a dependency conflict with the legacy Ruby runtime, causing the service to fail startup. All shipping carrier webhook delivery attempts failed with HTTP 502 Bad Gateway for 14 hours until the team rolled back the OS packages.</p>
+<p><strong>Constraints and evidence:</strong> Inbound shipping status updates must not be permanently lost; customer notifications must update within 15 minutes of carrier dispatch; the shipping webhook requires zero custom Linux kernel modules or host-level system agents; and the engineering organization must eliminate recurring guest OS maintenance toil.</p>
+<p><strong>Evidence and root cause:</strong> Reviewing server logs confirms that the webhook code is a single, stateless 150-line HTTP endpoint receiving JSON payloads and writing them to a Pub/Sub topic. Running the service on IaaS (Compute Engine) required the team to take on full responsibility for guest OS patching, security kernel upgrades, disk maintenance, and VM health checks. The root cause was an architectural service-model mismatch: an IaaS delivery model was chosen for a purely stateless, event-driven web application that naturally belonged on a managed serverless platform (PaaS/CaaS).</p>
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li>Inspect the webhook application architecture to verify runtime dependencies, verifying that no custom kernel modules or hardware drivers are required.</li>
+<li>Audit VM maintenance logs to determine total engineering hours spent on guest OS package updates, security patching, and server monitoring.</li>
+<li>Analyze incoming traffic patterns to observe that request volume fluctuates from zero requests at night to several hundred requests per second during morning dispatch windows.</li>
+<li>Evaluate containerization feasibility by packaging the webhook into a minimal container image.</li>
+<li>Compare operational responsibilities between Compute Engine (IaaS) and Cloud Run (PaaS).</li>
+</ol>
+<p><strong>Defensible solution:</strong> Re-platform the shipping webhook service from Compute Engine to Cloud Run (PaaS/CaaS). Package the application into an immutable container image and deploy it with Cloud Run autoscaling (scaling from 0 to 50 container instances). Google assumes full operational ownership of host VM provisioning, operating system security updates, container sandbox patching, and HTTP load balancing. Brightloaf retains ownership only of the application container image, Pub/Sub IAM publisher permissions, and incoming payload validation.</p>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day11-model-incident-title day11-model-incident-desc" viewBox="0 0 940 310">
+<title id="day11-model-incident-title">Service model selection mismatch and serverless PaaS remediation</title>
+<desc id="day11-model-incident-desc">The failed dashed path shows an unpatched VM webhook failing during manual OS updates. The corrected solid path shows serverless Cloud Run handling webhooks with zero guest OS maintenance.</desc>
+<defs>
+<marker id="day11-model-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day11-model-fail-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="150" height="85" rx="8" stroke="#38bdf8"/>
+<rect x="225" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="225" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="495" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="495" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="765" y="110" width="155" height="85" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">
+<text x="95" y="142">Carrier Webhook</text>
+<text x="95" y="162" fill="#a9b7cb">Status Update</text>
+
+<text x="335" y="58">[FAILED: IaaS Compute Engine]</text>
+<text x="335" y="78" fill="#f43f5e">Customer manages guest OS</text>
+<text x="335" y="98" fill="#a9b7cb">Manual apt-get maintenance</text>
+
+<text x="335" y="213">[CORRECTED: PaaS Cloud Run]</text>
+<text x="335" y="233" fill="#34d399">Google manages runtime &amp; OS</text>
+<text x="335" y="253" fill="#a9b7cb">Customer owns container code</text>
+
+<text x="605" y="58">EXACT FAILURE POINT</text>
+<text x="605" y="78" fill="#f43f5e">Kernel update breaks Ruby</text>
+<text x="605" y="98" fill="#f43f5e">HTTP 502 outage for 14h</text>
+
+<text x="605" y="213">CORRECTED CONTROL</text>
+<text x="605" y="233" fill="#34d399">Automated serverless scale</text>
+<text x="605" y="253" fill="#a9b7cb">Zero host patching toil</text>
+
+<text x="842" y="138">VERIFICATION</text>
+<text x="842" y="158" fill="#34d399">HTTP 200 OK</text>
+<text x="842" y="178" fill="#a9b7cb">Tracking status saved</text>
+</g>
+<g fill="none" stroke-width="2">
+<path d="M170 135 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day11-model-fail-arrow)"/>
+<path d="M445 72 L490 72" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day11-model-fail-arrow)"/>
+<path d="M170 170 L220 215" stroke="#38bdf8" marker-end="url(#day11-model-arrow)"/>
+<path d="M445 227 L490 227" stroke="#38bdf8" marker-end="url(#day11-model-arrow)"/>
+<path d="M715 227 L760 170" stroke="#38bdf8" marker-end="url(#day11-model-arrow)"/>
+</g>
+<text x="470" y="295" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed line (--&gt;) = manual IaaS patching failure · Solid line (—&gt;) = serverless PaaS managed scaling</text>
+</svg>
+<figcaption>Figure 11.3: Supplied facts: Deploying a stateless webhook on IaaS creates unnecessary OS maintenance toil that causes outages. Architectural inference: Choosing the correct service model (PaaS/Cloud Run) delegates host maintenance to Google while preserving application ownership. Expected post-fix behavior: Webhooks process with 99.99% availability and zero guest OS maintenance.</figcaption>
+</figure>
+<p><strong>Verification and residual risk:</strong> Send synthetic shipping status payloads to the new Cloud Run service; verify that HTTP 200 responses return in under 80 ms; inspect Cloud Monitoring to verify automatic scaling from 0 to 10 instances under load and back to 0 when idle; confirm that carrier delivery retries succeed without duplicate tracking records. Residual risks include cold start latency (typically 500 ms for container spin-up), which is mitigated by configuring a minimum instance count of 1 during business hours.</p>
+</article>
+<article id="topic-02-problem" class="topic-card">
+<h3>Incident exercise · The public serverless order leak</h3>
+<p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf migrated its internal Order Query API from a private VPC virtual machine into a Cloud Run service to take advantage of serverless scaling. During migration planning, team members celebrated that "Google manages all infrastructure security on Cloud Run." Operating under this flawed assumption, the team closed their quarterly IAM review tickets and removed the private VPC firewall rules. When developers noticed initial 403 Forbidden errors when connecting their frontend dashboard, an engineer added the IAM policy binding <code>allUsers</code> with the role <code>roles/run.invoker</code> to "fix authentication." Two weeks later, an external threat researcher notified Brightloaf that customer order history, postal addresses, and encrypted payment tokens were freely queryable over the public internet by anyone possessing an order UUID.</p>
+<p><strong>Constraints and evidence:</strong> Public internet access to order records must be terminated immediately; authorized internal microservices (such as Customer Support and Warehouse Dispatch) must maintain uninterrupted access; and the fix must demonstrate compliance with the shared responsibility model without rolling back the serverless deployment.</p>
+<p><strong>Evidence and root cause:</strong> Audit logs confirm that the Cloud Run service had ingress settings set to <code>all</code> (allowing direct public internet traffic) and an IAM binding granting <code>roles/run.invoker</code> to <code>allUsers</code>. The root cause is a fundamental misunderstanding of the shared responsibility model. While Google provides a secure, hardened container runtime sandbox, Google does not decide who is authorized to invoke customer endpoints. The customer alone owns IAM policies, access control bindings, and network ingress boundaries. Granting public invocation rights was an entirely customer-side authorization misconfiguration.</p>
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li>Query the Cloud Run service IAM policy using the Google Cloud CLI or Console to inspect member bindings for <code>roles/run.invoker</code>.</li>
+<li>Inspect service ingress networking settings to determine whether the service is exposed to the public internet or restricted to internal traffic.</li>
+<li>Analyze Cloud Audit Logs (Data Access logs) to determine whether unauthenticated external IP addresses queried customer order records.</li>
+<li>Review application authentication logic to confirm that the container application relied entirely on the platform layer for authentication.</li>
+<li>Establish the corrected security perimeter according to the shared responsibility matrix.</li>
+</ol>
+<p><strong>Defensible solution:</strong> Execute a three-part IAM and network remediation: first, immediately remove the <code>allUsers</code> binding from the Cloud Run service; second, bind <code>roles/run.invoker</code> exclusively to authorized Google Cloud Service Accounts (such as <code>sa-checkout@brightloaf.iam.gserviceaccount.com</code>), requiring all callers to supply valid Google-signed OIDC identity tokens; third, update Cloud Run ingress settings from <code>all</code> to <code>internal-and-cloud-load-balancing</code>, ensuring that all traffic must originate from within the authorized VPC or pass through an authenticated internal Application Load Balancer.</p>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day11-resp-incident-title day11-resp-incident-desc" viewBox="0 0 940 310">
+<title id="day11-resp-incident-title">Shared responsibility assumption breach and IAM access remediation</title>
+<desc id="day11-resp-incident-desc">The failed dashed path shows an unauthenticated internet caller accessing orders due to allUsers invoker binding. The corrected solid path enforces OIDC token authentication and internal ingress.</desc>
+<defs>
+<marker id="day11-resp-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day11-resp-fail-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="150" height="85" rx="8" stroke="#38bdf8"/>
+<rect x="225" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="225" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="495" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="495" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="765" y="110" width="155" height="85" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">
+<text x="95" y="142">Order Query</text>
+<text x="95" y="162" fill="#a9b7cb">GET /orders/{id}</text>
+
+<text x="335" y="58">[FAILED: Shared Responsibility]</text>
+<text x="335" y="78" fill="#f43f5e">allUsers -> roles/run.invoker</text>
+<text x="335" y="98" fill="#a9b7cb">Assumed Google secures IAM</text>
+
+<text x="335" y="213">[CORRECTED: Least Privilege]</text>
+<text x="335" y="233" fill="#34d399">Service Account + OIDC token</text>
+<text x="335" y="253" fill="#a9b7cb">Ingress: Internal + LB only</text>
+
+<text x="605" y="58">EXACT FAILURE POINT</text>
+<text x="605" y="78" fill="#f43f5e">Public Internet Data Leak</text>
+<text x="605" y="98" fill="#f43f5e">Unauthenticated read succeeds</text>
+
+<text x="605" y="213">CORRECTED CONTROL</text>
+<text x="605" y="233" fill="#34d399">Unauthenticated blocked (403)</text>
+<text x="605" y="253" fill="#a9b7cb">Valid OIDC token verified</text>
+
+<text x="842" y="138">VERIFICATION</text>
+<text x="842" y="158" fill="#34d399">Secure Access</text>
+<text x="842" y="178" fill="#a9b7cb">Zero unauthorized reads</text>
+</g>
+<g fill="none" stroke-width="2">
+<path d="M170 135 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day11-resp-fail-arrow)"/>
+<path d="M445 72 L490 72" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day11-resp-fail-arrow)"/>
+<path d="M170 170 L220 215" stroke="#38bdf8" marker-end="url(#day11-resp-arrow)"/>
+<path d="M445 227 L490 227" stroke="#38bdf8" marker-end="url(#day11-resp-arrow)"/>
+<path d="M715 227 L760 170" stroke="#38bdf8" marker-end="url(#day11-resp-arrow)"/>
+</g>
+<text x="470" y="295" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed line (--&gt;) = unauthenticated public data leak · Solid line (—&gt;) = authenticated OIDC service-to-service access</text>
+</svg>
+<figcaption>Figure 11.4: Supplied facts: Assuming managed platform handles authorization leads to dangerous public IAM exposure. Architectural inference: IAM access grants and network ingress boundaries remain 100% customer responsibility. Expected post-fix behavior: Unauthenticated calls return HTTP 403 while authenticated internal services access order data securely.</figcaption>
+</figure>
+<p><strong>Verification and residual risk:</strong> Send an unauthenticated HTTP GET request to the Cloud Run endpoint from an external network; verify that Google's edge gateway immediately rejects the request with HTTP 403 Forbidden; generate a signed Google Cloud OIDC token for the authorized service account and re-send the request, verifying an HTTP 200 response with order details; inspect Cloud Audit Logs to confirm zero unauthenticated requests penetrate the boundary. Residual risks include service account token leakage in client applications, which is mitigated by enforcing short-lived token lifetimes (1 hour maximum) and workload identity federation.</p>
+</article>
+</section>
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise A · Construct a multi-tier cloud service model decision matrix</h3>
+<p><strong>Goal:</strong> Formulate a comprehensive architectural decision matrix classifying four core Brightloaf workloads into their optimal cloud service delivery models (IaaS, PaaS, FaaS, SaaS) based on operational constraints and maintenance boundaries.</p>
+<p><strong>Expected Result:</strong> A structured markdown matrix mapping specific workload requirements to candidate Google Cloud services, detailing what customer engineers operate versus what Google operates, and justifying one rejected alternative per row.</p>
+<p><strong>Mode:</strong> Local architectural analysis; no cloud account or billable infrastructure required.</p>
+<h4>Preflight</h4>
+<p>Open a terminal and initialize your learning workspace directory:</p>
+<pre><code class="language-sh">mkdir -p ~/gcp-architect-learning/day-011-lab
+cd ~/gcp-architect-learning/day-011-lab
+</code></pre>
+<h4>Exact Execution</h4>
+<h4>Step 1 — Create the service model decision template</h4>
+<p>Initialize a markdown decision document named <code>day-011-service-models.md</code>:</p>
+<pre><code class="language-sh">cat &gt; day-011-service-models.md &lt;&lt;'EOF'
+# Brightloaf Cloud Service Model Decision Matrix
+
+| Workload Scenario | Technical Requirement | Selected Model | Target GCP Service | Customer Operates | Google Operates | Rejected Alternative &amp; Rationale |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Order Intake Webhook** | Stateless HTTP receiver; variable traffic (0 to 500 req/s); zero OS agent needs | PaaS / CaaS | Cloud Run | Container code, IAM policies, memory limits | Host OS, auto-scaling, load balancer, TLS | **Compute Engine (IaaS):** Rejected due to unnecessary OS patching toil and slow scaling. |
+| **Legacy Inventory Batch** | Proprietary license daemon requiring custom Linux kernel module &amp; static MAC | IaaS | Compute Engine | Guest OS, kernel modules, security patching, backup | Hypervisor, physical server, host networking | **Cloud Run (PaaS):** Rejected because container sandbox cannot load host kernel modules. |
+| **Receipt Image Thumbnailer** | Event-driven image resize triggered by Cloud Storage object creation | FaaS | Cloud Run functions | Python function code, trigger bindings, memory size | Container lifecycle, event dispatch, cold starts | **Compute Engine (IaaS):** Rejected because idle VMs waste money waiting for sporadic uploads. |
+| **Corporate Email &amp; Docs** | Turnkey business collaboration, calendar, and document storage | SaaS | Google Workspace | User accounts, 2FA enforcement, data governance | Application code, database, high availability, UI | **Self-hosted Mail on IaaS:** Rejected due to severe operational complexity and spam mitigation toil. |
+EOF
+</code></pre>
+<h4>Step 2 — Execute the matrix validation script</h4>
+<p>Run a Python validation script to confirm that all required service models and responsibility divisions are comprehensively addressed:</p>
+<pre><code class="language-sh">python3 - &lt;&lt;'PY'
+from pathlib import Path
+
+content = Path('day-011-service-models.md').read_text()
+required_models = ['IaaS', 'PaaS', 'FaaS', 'SaaS']
+required_services = ['Compute Engine', 'Cloud Run', 'Cloud Run functions', 'Google Workspace']
+
+print("Validating Brightloaf Service Model Decision Matrix:")
+all_passed = True
+for model in required_models:
+    present = model in content
+    print(f"  Model [{model}]: {'✓ Present' if present else '✗ Missing'}")
+    if not present: all_passed = False
+
+for svc in required_services:
+    present = svc in content
+    print(f"  Service [{svc}]: {'✓ Present' if present else '✗ Missing'}")
+    if not present: all_passed = False
+
+if all_passed:
+    print("\nSTATUS: PASS -> All cloud service delivery models comprehensively classified.")
+else:
+    print("\nSTATUS: FAIL -> Missing required service models.")
+PY
+</code></pre>
+<p>Expected output: All models and services report <code>✓ Present</code> and the script prints <code>STATUS: PASS</code>.</p>
+<h4>Step 3 — Evaluate a changed architectural constraint</h4>
+<p>Suppose the security team introduces a new corporate mandate: all application workloads must run an enterprise endpoint detection and response (EDR) daemon that requires root-level filesystem monitoring and custom kernel eBPF probes. Evaluate how this changes the Order Intake Webhook decision from Cloud Run (PaaS) to Compute Engine (IaaS) or GKE, recording the additional operational burdens incurred.</p>
+<h4>Verification with expected output</h4>
+<p>Verify that <code>day-011-service-models.md</code> contains all four completed rows, explicitly delineates the customer vs Google management boundary, and articulates a defensible rationale for each rejected alternative.</p>
+<h4>Troubleshooting</h4>
+<p>If a service boundary feels ambiguous (e.g. Cloud Run vs Cloud Run functions), verify the deployment contract: Cloud Run accepts any OCI container listening on <code>$PORT</code>; Cloud Run functions accepts an idiomatic programming language function signature handling an event or HTTP context.</p>
+<h4>Cleanup</h4>
+<p>Retain <code>day-011-service-models.md</code> in your local learning directory. No cloud resources or billable charges were incurred.</p>
+<h4>Artifact Acceptance</h4>
+<p>Accept the artifact when the worksheet articulates the four service models, maps each to concrete GCP services, identifies customer operational obligations, and explains how changed kernel requirements force a shift down the abstraction ladder.</p>
+<p>
+<label class="check">
+<input type="checkbox" data-progress="lab-11-topic-01"> I completed and checked this topic exercise</label>
+</p>
+</article>
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise B · Build a comprehensive shared responsibility and access governance matrix</h3>
+<p><strong>Goal:</strong> Construct a multi-layer security governance matrix detailing exact control ownership across Google Cloud and Brightloaf for IaaS, PaaS, and SaaS environments, and model a least-privilege IAM remediation.</p>
+<p><strong>Expected Result:</strong> An actionable security matrix assigning named owners (Google vs Customer) across physical, hypervisor, OS, network, IAM, and data layers, accompanied by a simulated IAM access audit script.</p>
+<p><strong>Mode:</strong> Local architectural analysis and Python policy verification; no cloud account required.</p>
+<h4>Preflight</h4>
+<p>Ensure you are in the <code>~/gcp-architect-learning/day-011-lab</code> directory.</p>
+<h4>Exact Execution</h4>
+<h4>Step 1 — Create the shared responsibility governance matrix</h4>
+<p>Append a detailed responsibility matrix to <code>day-011-service-models.md</code>:</p>
+<pre><code class="language-sh">cat &gt;&gt; day-011-service-models.md &lt;&lt;'EOF'
+
+## Shared Responsibility Security Matrix
+
+| Security &amp; Operational Layer | Compute Engine (IaaS) | Cloud Run (PaaS) | Google Workspace (SaaS) | Customer Audit &amp; Control Evidence |
+| :--- | :--- | :--- | :--- | :--- |
+| **Physical Facilities &amp; Hardware** | Google | Google | Google | Review annual SOC 2 Type II and ISO 27001 reports. |
+| **Virtualization &amp; Hypervisor** | Google | Google | Google | Verify hypercall isolation; tenant has zero host access. |
+| **Guest OS &amp; Security Patching** | **Customer** | Google | Google | IaaS: OS patch logs; PaaS/SaaS: Google-managed sandbox. |
+| **Network Perimeter &amp; Firewalls** | **Customer** | **Customer** | Google | VPC firewall rules, Cloud Armor WAF policies, Ingress filters. |
+| **IAM Access &amp; Authentication** | **Customer** | **Customer** | **Customer** | Service account key rotation, least-privilege bindings, MFA. |
+| **Customer Data &amp; Business Logic** | **Customer** | **Customer** | **Customer** | CMEK encryption, backup schedules, at-most-once fulfillment logic. |
+EOF
+</code></pre>
+<h4>Step 2 — Execute the IAM policy audit simulation</h4>
+<p>Run a Python script that parses simulated IAM policy declarations for a Cloud Run service and flags shared responsibility violations (such as public <code>allUsers</code> invoker grants):</p>
+<pre><code class="language-sh">python3 - &lt;&lt;'PY'
+simulated_iam_policy = {
+    "bindings": [
+        {
+            "role": "roles/run.invoker",
+            "members": [
+                "allUsers"  # Security violation!
+            ]
+        },
+        {
+            "role": "roles/run.viewer",
+            "members": [
+                "group:auditors@brightloaf.com"
+            ]
+        }
+    ]
+}
+
+print("=== AUDITING CLOUD RUN IAM POLICY (SHARED RESPONSIBILITY CHECK) ===")
+violations = []
+for binding in simulated_iam_policy["bindings"]:
+    role = binding["role"]
+    for member in binding["members"]:
+        if member in ["allUsers", "allAuthenticatedUsers"]:
+            violations.append(f"CRITICAL: Public access granted to [{role}] via [{member}]")
+
+if violations:
+    print("STATUS: VIOLATION DETECTED!")
+    for v in violations:
+        print(f"  ✗ {v}")
+    print("\nRemediating policy: Removing allUsers and restricting to authorized Service Account...")
+    # Remediate
+    simulated_iam_policy["bindings"][0]["members"] = ["serviceAccount:sa-checkout@brightloaf.iam.gserviceaccount.com"]
+    print("STATUS: REMEDIATED -> New member binding: serviceAccount:sa-checkout@brightloaf.iam.gserviceaccount.com")
+else:
+    print("STATUS: CLEAN -> No public access bindings detected.")
+PY
+</code></pre>
+<p>Expected output: The script detects the critical violation, removes <code>allUsers</code>, and replaces it with the authenticated service account binding.</p>
+<h4>Step 3 — Document the business logic boundary</h4>
+<p>In your worksheet, write a concise explanation answering why Google Cloud can never be responsible for preventing duplicate order fulfillment in Brightloaf's checkout system, even when running on a fully managed PaaS or FaaS platform.</p>
+<h4>Verification with expected output</h4>
+<p>Verify that your matrix correctly categorizes Customer Data, IAM, and Business Invariants as 100% customer obligations across all three service delivery models, and that the IAM audit script successfully runs and documents the remediation.</p>
+<h4>Troubleshooting</h4>
+<p>If confused about whether network security on Cloud Run belongs to Google or Customer, note that Google manages the physical cables and DDOS mitigation at the edge, but the customer decides whether Cloud Run accepts traffic from the public internet or only from internal VPC load balancers.</p>
+<h4>Cleanup</h4>
+<p>Keep <code>day-011-service-models.md</code> in your local learning directory. No cloud resources or persistent daemons were created.</p>
+<h4>Artifact Acceptance</h4>
+<p>Accept the artifact when the worksheet articulates the shared responsibility split across all layers, identifies the business invariant ownership boundary, and provides the completed IAM audit simulation trace.</p>
+<p>
+<label class="check">
+<input type="checkbox" data-progress="lab-11-topic-02"> I completed and checked this topic exercise</label>
+</p>
+</article>
+</section>
+<section class="completion">
+<h2>Daily evidence</h2>
+<label class="check">
+<input type="checkbox" data-progress="read-11"> I read and reviewed the day</label>
+<label class="check">
+<input type="checkbox" data-progress="artifact-11"> I saved the exit artifact</label>
+</section>
+<nav class="pager" aria-label="Day pagination">
+<a href="day-010.html">← Day 10<small>Images, filesystems and orchestration</small>
+</a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small>
+</a>
+<a href="day-012.html">Day 12 →<small>Regions, scaling and economics</small>
+</a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

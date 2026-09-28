@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 38: Templates, MIGs and scaling · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+</style>
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-037.html" aria-label="Previous day">← Day 37</a>
+<a href="day-039.html" aria-label="Next day">Day 39 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html" selected>Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="38" data-prev="day-037.html" data-next="day-039.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 38 of 180</div>
+
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 38</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">tabletop / cloud design</span>
+<span class="pill">Topic 013</span>
+</div>
+<h1>Day 38 — Templates, MIGs and scaling</h1>
+<p class="lead"><strong>Outcome:</strong> Design and configure immutable Instance Templates, distinguish zonal vs regional Managed Instance Groups (MIGs), and evaluate autoscaling policies under bursty traffic with documented cooldown and capacity constraints.</p>
+<div>
+<strong>Entry prerequisites:</strong>
+<p><a href="day-037.html">Day 37</a> (disks, metadata and persistence), <a href="day-036.html">Day 36</a> (VM sizing and image choices); bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A template configuration and scaling timeline with stated cooldown, target metric thresholds, min/max bounds, and regional capacity assumptions. Tabletop calculations must be explicitly distinguished from live sandbox measurements.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-27; Instance Group and Autoscaler behaviors sourced from GCP Compute Engine documentation. Operational results represent design models rather than production benchmarks.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Instance templates and Managed Instance Groups (MIGs)</span>
+<a href="#topic-01-overview">overview</a> ·
+<a href="#topic-01-technical">discussion</a> ·
+<a href="#topic-01-problem">problem</a> ·
+<a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Zonal vs regional MIGs</span>
+<a href="#topic-02-overview">overview</a> ·
+<a href="#topic-02-technical">discussion</a> ·
+<a href="#topic-02-problem">problem</a> ·
+<a href="#topic-02-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Autoscaling policies (CPU, load balancing utilization, custom metrics, schedules)</span>
+<a href="#topic-03-overview">overview</a> ·
+<a href="#topic-03-technical">discussion</a> ·
+<a href="#topic-03-problem">problem</a> ·
+<a href="#topic-03-lab">lab</a>
+</div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════ PART 1 ══ -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Instance templates and Managed Instance Groups (MIGs)</h3>
+<p>
+  An <strong>Instance Template</strong> is an immutable Google Cloud resource that defines the blueprint for virtual machines: machine family, boot disk image, attached persistent disks, network interfaces, service account, labels, and startup script metadata. A <strong>Managed Instance Group (MIG)</strong> uses this template to instantiate and operate a pool of homogeneous, identical instances as a single logical entity. The MIG control plane automates instance creation, health maintenance, recreation of crashed VMs, and integration with Cloud Load Balancing.
+</p>
+<p>
+  Because individual instances in a stateless MIG are ephemeral and treated as disposable cattle rather than pets, all configuration must reside in the template or be pulled dynamically via startup scripts and Secret Manager. Attempting to modify a running VM directly creates configuration drift that disappears the moment the MIG replaces the instance.
+</p>
+<p class="small"><em>Problem preview:</em> An operator applies an emergency software patch directly via SSH to a running VM in a MIG, but does not update the instance template. Under the next autoscaling event or automated health recreation, the patched VM is deleted and replaced by a fresh instance booted from the unpatched template, silently reintroducing the vulnerability and breaking order processing.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Zonal vs regional MIGs</h3>
+<p>
+  A <strong>Zonal MIG</strong> allocates all its managed instances into a single zone within a region. A <strong>Regional MIG</strong> distributes instances across multiple zones (typically three) in a region, providing resilience against single-zone hardware, power, or facility failures. Regional MIGs also offer configurable target distribution shapes, such as <code>EVEN</code> (equal instance count per zone) or <code>ANY</code> / <code>BALANCED</code> (deploying into zones with available hardware capacity).
+</p>
+<p>
+  For stateless microservices such as the Brightloaf Order API, a regional MIG provides high availability without requiring custom cross-zone orchestration. However, spreading instances across zones introduces cross-zone networking considerations and requires ensuring adequate regional vCPU quota and capacity reservations.
+</p>
+<p class="small"><em>Problem preview:</em> The Brightloaf Order API is deployed in a single zonal MIG in <code>us-central1-a</code> to avoid cross-zone networking overhead. A facility impairment in <code>us-central1-a</code> knocks out all API instances simultaneously, causing total downtime for order ingestion and customer checkout abandonment for over forty minutes.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Autoscaling policies (CPU, load balancing utilization, custom metrics, schedules)</h3>
+<p>
+  Compute Engine <strong>Autoscalers</strong> dynamically adjust the number of instances in a MIG to match workload demand. Autoscaling signals include average target CPU utilization, Cloud Load Balancing serving capacity (target utilization or request rate per instance), Cloud Monitoring custom metrics (such as a Pub/Sub queue backlog), and recurring time-based schedules.
+</p>
+<p>
+  A critical parameter in every autoscaling policy is the <strong>cool-down period</strong> (or initialization period). This defines how long the autoscaler ignores performance metrics from a newly created instance while its operating system, JVM runtime, and application caches initialize. If the cool-down period is shorter than the application's actual startup time, premature metrics cause false overload signals, leading to rapid over-scaling, quota exhaustion, and thrashing.
+</p>
+<p class="small"><em>Problem preview:</em> The Order API autoscaler is configured with an aggressive 30-second cool-down period, but the service requires 90 seconds to warm up its JVM and load in-memory pricing rules. During a morning traffic surge, initializing instances peg CPU during warm-up, causing the autoscaler to violently add instances until the regional vCPU quota is exhausted, leading to connection resets and service degradation.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 2 ══ -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Instance templates and Managed Instance Groups (MIGs)</h3>
+
+<h4>The immutability principle</h4>
+<p>
+  Instance templates in Compute Engine are strictly immutable. Once created, an instance template cannot be modified. To update any configuration—whether updating a container tag, changing machine family, modifying a startup script, or attaching a new disk—an engineer must create a new instance template version (or copy from an existing one) and point the MIG to the new template.
+</p>
+<p>
+  This immutability ensures that every instance spawned by the MIG is guaranteed to have identical, reproducible configuration. When an instance crashes, stops responding to health checks, or is terminated by autoscaling, the MIG manager creates a replacement instance directly from the active template.
+</p>
+
+<h4>Architecture flow: from blueprint to running fleet</h4>
+<table class="comparison">
+<thead>
+<tr>
+<th>Layer</th>
+<th>Responsibility</th>
+<th>Mutability</th>
+<th>GCP Resource</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Blueprint</strong></td>
+<td>Defines machine type, boot image, disks, metadata, network, service account</td>
+<td>Immutable once written</td>
+<td><code>compute.instanceTemplates</code></td>
+</tr>
+<tr>
+<td><strong>Group Manager</strong></td>
+<td>Enforces target instance count, zone distribution, autohealing, rolling updates</td>
+<td>Dynamic controller</td>
+<td><code>compute.instanceGroupManagers</code></td>
+</tr>
+<tr>
+<td><strong>Autoscaler</strong></td>
+<td>Calculates required instance count from metrics; signals group manager</td>
+<td>Configurable policy</td>
+<td><code>compute.autoscalers</code></td>
+</tr>
+<tr>
+<td><strong>Managed Instances</strong></td>
+<td>Ephemeral virtual machines running the actual workload containers/processes</td>
+<td>Disposable</td>
+<td><code>compute.instances</code></td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/instance-groups" rel="noopener noreferrer">Managed Instance Groups overview</a> — GCP Compute Engine documentation on template binding, instance lifecycle, and instance group managers. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Zonal vs regional MIGs</h3>
+
+<h4>Failure boundaries and distribution algorithms</h4>
+<p>
+  A Zonal MIG exists solely inside one zone (e.g., <code>us-central1-a</code>). If that zone suffers an infrastructure degradation, all instances in the group are vulnerable. In contrast, a Regional MIG operates across multiple zones within the same region (e.g., <code>us-central1-a</code>, <code>us-central1-b</code>, <code>us-central1-c</code>).
+</p>
+<p>
+  Regional MIGs provide two distinct zone distribution shapes:
+</p>
+<ul>
+  <li><strong>EVEN (Default):</strong> The MIG distributes instances equally across all configured zones (e.g., 9 instances across 3 zones = 3 instances per zone). If an instance is deleted or scales down, the MIG maintains balance.</li>
+  <li><strong>ANY / BALANCED:</strong> The MIG distributes instances to zones where hardware capacity and quota are available. If one zone experiences a capacity constraint, the MIG allocates instances to the surviving zones.</li>
+</ul>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Zonal MIG</th>
+<th>Regional MIG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Failure Boundary</strong></td>
+<td>Single zone (0% tolerance for zone failure)</td>
+<td>Region (survives loss of 1 or 2 zones)</td>
+</tr>
+<tr>
+<td><strong>Network Cost</strong></td>
+<td>Zero cross-zone data transfer within group</td>
+<td>Potential inter-zone ingress/egress charges if communicating across zones</td>
+</tr>
+<tr>
+<td><strong>Capacity Resiliency</strong></td>
+<td>Bound to zonal stockout risks</td>
+<td>Absorbs zonal capacity shortages by expanding into other zones</td>
+</tr>
+<tr>
+<td><strong>Target Workload</strong></td>
+<td>Batch jobs with local disk latency constraints, test environments</td>
+<td>Production web APIs, order ingestion, customer-facing services</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/instance-groups/regional-migs" rel="noopener noreferrer">Regional Managed Instance Groups</a> — Google Cloud documentation detailing cross-zone distribution shapes, instance redistribution policies, and capacity handling. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Autoscaling policies (CPU, load balancing utilization, custom metrics, schedules)</h3>
+
+<h4>Autoscaling signals and decision mechanics</h4>
+<p>
+  The Compute Engine Autoscaler evaluates performance telemetry every 10–15 seconds to determine whether the current instance pool satisfies the target utilization. Multiple signals can be combined; the autoscaler chooses the largest recommended instance count among all configured policies:
+</p>
+<ul>
+  <li><strong>Target CPU utilization:</strong> Scales to keep the average vCPU utilization across the fleet at a target percentage (e.g., 60%).</li>
+  <li><strong>Load balancing serving capacity:</strong> Integrates directly with Cloud Load Balancing backends to maintain a target number of requests per second (RPS) or target backend utilization per instance.</li>
+  <li><strong>Cloud Monitoring metrics:</strong> Uses custom or system metrics, such as Pub/Sub undelivered message count per worker.</li>
+  <li><strong>Schedules:</strong> Pre-provisions capacity for predictable, recurring traffic spikes (e.g., 08:00 AM daily peak).</li>
+</ul>
+
+<h4>The initialization / cool-down window</h4>
+<p>
+  When a new VM boots, its initialization script downloads packages, starts runtimes (e.g. JVM), and warms caches. During this phase, CPU usage is typically elevated and the instance is not yet ready to serve production load. The <strong>cool-down period</strong> instructs the autoscaler to ignore metrics from that VM until the specified time elapses. Setting this value too low leads to false over-scaling cascades; setting it too high makes the fleet sluggish to respond to real surges.
+</p>
+
+<!-- Part 2 Architecture SVG -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d38-arch-title d38-arch-desc">
+<title id="d38-arch-title">Regional Managed Instance Group control flow and autoscaling engine</title>
+<desc id="d38-arch-desc">A comprehensive architectural diagram showing an immutable Instance Template feeding the Regional MIG Group Manager. The Group Manager orchestrates instances across three separate availability zones (us-central1-a, us-central1-b, us-central1-c) behind a Cloud Load Balancer. The Autoscaling Engine continuously ingests Cloud Monitoring telemetry, evaluates target metrics against cool-down boundaries, and issues scale-out or scale-in instructions to the manager.</desc>
+<defs>
+<marker id="d38-a-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#38bdf8"/>
+</marker>
+<marker id="d38-g-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#4ade80"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Left column: Instance Template -->
+<rect class="box" x="24" y="50" width="168" height="150" rx="8"/>
+<text fill="#38bdf8" font-size="12" font-weight="700" x="108" y="76" text-anchor="middle">Instance Template</text>
+<text class="small-label" x="108" y="98" text-anchor="middle">IMMUTABLE BLUEPRINT</text>
+<text class="small-label" x="108" y="118" text-anchor="middle">• Machine Type (n2-std-2)</text>
+<text class="small-label" x="108" y="136" text-anchor="middle">• Golden Image / Boot PD</text>
+<text class="small-label" x="108" y="154" text-anchor="middle">• Startup Script / SA</text>
+<text class="small-label" x="108" y="172" text-anchor="middle">• Network &amp; Labels</text>
+
+<!-- Middle Column Top: Regional MIG Manager -->
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="2" x="250" y="50" width="220" height="150" rx="8"/>
+<text fill="#38bdf8" font-size="13" font-weight="700" x="360" y="78" text-anchor="middle">Regional MIG Manager</text>
+<text class="small-label" x="360" y="98" text-anchor="middle">Region: us-central1</text>
+<text class="small-label" x="360" y="118" text-anchor="middle">Distribution: EVEN (1/3 per zone)</text>
+<text class="small-label" x="360" y="138" text-anchor="middle">Autohealing &amp; Recreation</text>
+<text class="small-label" x="360" y="158" text-anchor="middle">Target Size Enforcement</text>
+<text fill="#4ade80" font-size="11" x="360" y="182" text-anchor="middle">Target Size: 6 VMs</text>
+
+<path class="path" marker-end="url(#d38-a-arr)" d="M192 125 H250"/>
+
+<!-- Right Column: 3 Zones with VMs -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="530" y="30" width="420" height="230" rx="8"/>
+<text fill="#94a3b8" font-size="11" font-weight="700" x="546" y="52">REGIONAL AVAILABILITY BOUNDARY (us-central1)</text>
+
+<!-- Zone A -->
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="1" x="546" y="68" width="120" height="176" rx="6"/>
+<text fill="#f8fafc" font-size="11" font-weight="700" x="606" y="90" text-anchor="middle">Zone A</text>
+<rect class="box" x="556" y="104" width="100" height="58" rx="4"/>
+<text font-size="10" x="606" y="126" text-anchor="middle">order-api-a1</text>
+<text class="small-label" x="606" y="146" text-anchor="middle">Healthy</text>
+<rect class="box" x="556" y="172" width="100" height="58" rx="4"/>
+<text font-size="10" x="606" y="194" text-anchor="middle">order-api-a2</text>
+<text class="small-label" x="606" y="214" text-anchor="middle">Healthy</text>
+
+<!-- Zone B -->
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="1" x="680" y="68" width="120" height="176" rx="6"/>
+<text fill="#f8fafc" font-size="11" font-weight="700" x="740" y="90" text-anchor="middle">Zone B</text>
+<rect class="box" x="690" y="104" width="100" height="58" rx="4"/>
+<text font-size="10" x="740" y="126" text-anchor="middle">order-api-b1</text>
+<text class="small-label" x="740" y="146" text-anchor="middle">Healthy</text>
+<rect class="box" x="690" y="172" width="100" height="58" rx="4"/>
+<text font-size="10" x="740" y="194" text-anchor="middle">order-api-b2</text>
+<text class="small-label" x="740" y="214" text-anchor="middle">Healthy</text>
+
+<!-- Zone C -->
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="1" x="814" y="68" width="120" height="176" rx="6"/>
+<text fill="#f8fafc" font-size="11" font-weight="700" x="874" y="90" text-anchor="middle">Zone C</text>
+<rect class="box" x="824" y="104" width="100" height="58" rx="4"/>
+<text font-size="10" x="874" y="126" text-anchor="middle">order-api-c1</text>
+<text class="small-label" x="874" y="146" text-anchor="middle">Healthy</text>
+<rect class="box" x="824" y="172" width="100" height="58" rx="4"/>
+<text font-size="10" x="874" y="194" text-anchor="middle">order-api-c2</text>
+<text class="small-label" x="874" y="214" text-anchor="middle">Healthy</text>
+
+<!-- Distribution arrows -->
+<path class="path" marker-end="url(#d38-a-arr)" d="M470 120 Q500 120 546 120"/>
+<path class="path" marker-end="url(#d38-a-arr)" d="M470 120 Q575 80 680 120"/>
+<path class="path" marker-end="url(#d38-a-arr)" d="M470 120 Q642 60 814 120"/>
+
+<!-- Bottom section: Autoscaling Engine & Monitoring -->
+<rect fill="#121526" stroke="#4ade80" stroke-width="1.5" x="250" y="260" width="600" height="150" rx="8"/>
+<text fill="#4ade80" font-size="12" font-weight="700" x="550" y="284" text-anchor="middle">Autoscaling Policy Engine</text>
+
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="1" x="270" y="300" width="160" height="90" rx="6"/>
+<text fill="#38bdf8" font-size="11" font-weight="700" x="350" y="322" text-anchor="middle">Target Signals</text>
+<text class="small-label" x="350" y="342" text-anchor="middle">• CPU target: 60%</text>
+<text class="small-label" x="350" y="360" text-anchor="middle">• ALB utilization / RPS</text>
+<text class="small-label" x="350" y="378" text-anchor="middle">• Pub/Sub queue depth</text>
+
+<rect fill="#161b30" stroke="#facc15" stroke-width="1" x="450" y="300" width="180" height="90" rx="6"/>
+<text fill="#facc15" font-size="11" font-weight="700" x="540" y="322" text-anchor="middle">Temporal Guardrails</text>
+<text class="small-label" x="540" y="342" text-anchor="middle">• Cool-down period: 90s</text>
+<text class="small-label" x="540" y="360" text-anchor="middle">• Scale-in damping limit</text>
+<text class="small-label" x="540" y="378" text-anchor="middle">• Bounds: Min 3, Max 15</text>
+
+<rect fill="#052e16" stroke="#22c55e" stroke-width="1" x="650" y="300" width="180" height="90" rx="6"/>
+<text fill="#4ade80" font-size="11" font-weight="700" x="740" y="322" text-anchor="middle">Evaluation Cycle</text>
+<text class="small-label" x="740" y="342" text-anchor="middle">• Telemetry polled every 15s</text>
+<text class="small-label" x="740" y="360" text-anchor="middle">• Unready VMs filtered</text>
+<text class="small-label" x="740" y="378" text-anchor="middle">• Signal = Target Instance Delta</text>
+
+<!-- Autoscaler to Manager feedback arrow -->
+<path stroke="#4ade80" stroke-width="3" marker-end="url(#d38-g-arr)" fill="none" d="M300 260 V200"/>
+<text fill="#4ade80" font-size="10" font-weight="700" x="250" y="235" text-anchor="middle">Resize Command</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> The relationship between an immutable Instance Template, the Regional MIG manager distributing instances across three availability zones (us-central1-a, b, c), and the Autoscaler policy engine evaluating metric signals against temporal guardrails (cool-down period). <strong>What it does not prove:</strong> Actual network transit latency between zones, instant VM boot time under severe regional cloud capacity contention, or individual JVM memory allocations inside instances.
+</figcaption>
+</figure>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/autoscaler" rel="noopener noreferrer">Autoscaling groups of instances</a> — Official Google Cloud reference on autoscaler policy metrics, cool-down periods, and scale-in controls. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 3 ══ -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problems and solutions</h2>
+<p class="small"><em>The scenarios below represent realistic failure modes encountered in production GCP environments with Managed Instance Groups. Values and traces are synthetic models grounded in architectural principles.</em></p>
+
+<!-- ── Problem 1 ── -->
+<article id="topic-01-problem" class="topic-card">
+<h3>Topic 1 field case — Live manual patching overwritten by MIG instance autohealing</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  During a security vulnerability alert, a systems engineer at Brightloaf logs in via SSH to an active VM (<code>order-api-01</code>) inside the production Managed Instance Group. The engineer manually compiles and updates an OpenSSL shared library and patches the order validation logic directly in <code>/opt/brightloaf/bin/</code>. The API passes immediate health checks, and the vulnerability scanner reports clear for that VM.
+</p>
+<p>
+  Four hours later, during evening checkout traffic, the VM experiences a brief network transient causing two consecutive failed HTTP health probes. The MIG health manager immediately terminates the unhealthy instance and provisions a replacement VM from the active Instance Template. Because the template still points to the old disk image and unpatched startup script, the new instance launches with the unpatched binary. Concurrently, order requests routed to the new VM encounter missing dependencies, generating HTTP 500 errors and corrupting cart states.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Stateless MIG VMs must be treated as ephemeral; manual configuration state is never persistent.</li>
+  <li>Production deployments must preserve the invariant that replaying an order event never triggers a duplicate fulfillment.</li>
+  <li>All VM updates must be traceable through versioned instance templates.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Treating a managed instance as a mutable "pet" rather than disposable infrastructure. When the instance was automatically recreated, all out-of-band manual changes applied to the root filesystem vanished because the instance template was never updated to a new version.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Inspect Compute Engine system event logs: <kbd>gcloud compute operations list --filter="targetLink:order-api"</kbd> reveals an instance recreation event triggered by autohealing.</li>
+  <li>Describe the newly created instance: <kbd>gcloud compute instances describe INSTANCE_NAME</kbd> confirms its source template is still version 1.</li>
+  <li>Verify that the patch was applied only to the deceased VM's ephemeral root disk and not stored in any golden image, repository, or startup script.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Establish an immutable release pipeline: bake the patched binary into a new versioned golden image (or container artifact). Create a new instance template (<code>order-api-template-v2</code>). Update the MIG to point to the new template using a rolling-action update (<kbd>gcloud compute instance-groups managed rolling-action start-update</kbd>) with controlled max-surge and max-unavailable limits.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Trigger a simulated instance recreation (<kbd>gcloud compute instance-groups managed recreate-instances</kbd>). Verify that the freshly spawned VM automatically boots with the patched library, executes startup verification tests, and responds with HTTP 200 on all order endpoints.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Rolling updates require sufficient project vCPU quota to support max-surge instances. If regional quota is tight, surge provisioning will stall until quota is increased.
+</p>
+
+<!-- Incident SVG 1 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d38-i1-title d38-i1-desc">
+<title id="d38-i1-title">Manual live patch wiped out by MIG autohealing recreation</title>
+<desc id="d38-i1-desc">A comparative incident flow showing the failed path where an engineer manually SSH patches a live MIG instance, only to have the MIG manager destroy it and recreate an unpatched VM from the old template. The corrected path updates the immutable Instance Template and performs a controlled rolling update, preserving the patch across all instance recreations.</desc>
+<defs>
+<marker id="d38-i1-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d38-i1-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · MANUAL SSH PATCH IN LIVE VM OVERWRITTEN BY MIG AUTOHEALING</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Operator</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">Manual SSH patch</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">applied to running VM</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">MIG Template Bypassed</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: mutable pet assumption</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Autohealing Triggered</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">VM recreated from v1 template</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">patch wiped completely</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">HTTP 500 Outage</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">Regression returned</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d38-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d38-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d38-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · BAKE NEW TEMPLATE → ROLLING UPDATE → IMMUTABLE RECREATION</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Engineer</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Bakes golden image</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">CI/CD pipeline</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Create Instance Template v2</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Versioned, reproducible artifact</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="308" text-anchor="middle">MIG Rolling Update</text>
+<text class="small-label" x="626" y="330" text-anchor="middle">Max-surge: 1, Max-unavail: 0</text>
+<text class="small-label" x="626" y="348" text-anchor="middle">Graceful draining</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Recreation Resilient</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">All VMs run v2 patch</text>
+
+<path class="corrected" marker-end="url(#d38-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d38-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d38-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> An engineer applied a manual patch directly inside an active VM in an existing MIG; the instance was later terminated by an autohealing health check; the replacement instance launched from the unchanged instance template lacking the patch; order validation failed with HTTP 500 errors. <strong>Architectural inference:</strong> MIG autohealing and scaling assume zero state persistence on local disks; all configuration must be embedded in immutable instance templates or automated startup scripts; mutable changes inevitably cause configuration drift and regressions. <strong>Expected post-fix behavior:</strong> Changes are versioned as Instance Template v2; the MIG applies a rolling update; any future VM recreation reliably launches with the patch in place.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 2 ── -->
+<article id="topic-02-problem" class="topic-card">
+<h3>Topic 2 field case — Zonal MIG outage during unexpected data center facility impairment</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  To save on perceived inter-zone egress networking costs, the Brightloaf Order API service was deployed in a single Zonal MIG locked to <code>us-central1-a</code> with a target capacity of 8 instances. During a severe local power distribution failure in that facility, Google Cloud declared a zone-wide disruption in <code>us-central1-a</code>.
+</p>
+<p>
+  Because all instances in the Zonal MIG resided in <code>us-central1-a</code>, 100% of the API fleet became unreachable simultaneously. Ingress traffic hitting the global HTTP(S) Load Balancer returned HTTP 502 Bad Gateway errors. Order ingestion completely halted for 45 minutes until cloud operations stabilized the physical facility, causing immediate customer checkout drop-off and support call overload.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Business SLA mandates 99.95% availability for the Order API ingestion path.</li>
+  <li>The architecture must withstand the complete and sudden loss of any single availability zone.</li>
+  <li>Replaying pending client requests after recovery must not create duplicate order records in Cloud SQL.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Single point of failure at the zone level. The team chose a Zonal MIG without evaluating the failure domain against their availability target.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Examine Cloud Monitoring uptime checks: 100% packet loss to the backend service.</li>
+  <li>Check Google Cloud Service Health Dashboard: Active incident impacting Compute Engine in <code>us-central1-a</code>.</li>
+  <li>Inspect MIG status: <kbd>gcloud compute instance-groups managed list</kbd> shows zone <code>us-central1-a</code> with all 8 instances in an unreachable state.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Migrate from a Zonal MIG to a <strong>Regional MIG</strong> spread across <code>us-central1-a</code>, <code>us-central1-b</code>, and <code>us-central1-c</code> with target distribution shape set to <code>EVEN</code>. When one zone fails, Cloud Load Balancing health checks immediately withdraw the impacted zone's backends, routing 100% of user traffic to healthy instances in zones B and C while the regional autoscaler expands capacity in the surviving zones.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Conduct a zone-failure simulation in staging: simulate zonal failure by draining and cordoning instances in one zone. Verify that the load balancer seamlessly redistributes HTTP requests to the remaining two zones without dropped connections, maintaining &lt;1% latency degradation.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  During a zone outage, surviving zones absorb the entire traffic load. If the regional MIG's max-instances limit or regional quota does not permit sufficient scale-out in the remaining zones, the surviving instances may become CPU-throttled.
+</p>
+
+<!-- Incident SVG 2 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d38-i2-title d38-i2-desc">
+<title id="d38-i2-title">Zonal MIG single-point-of-failure vs Regional multi-zone resilience</title>
+<desc id="d38-i2-desc">A comparative diagram showing a Zonal MIG suffering a complete outage when its single zone experiences facility failure, versus a Regional MIG distributing instances across three zones where surviving zones immediately absorb the traffic without service disruption.</desc>
+<defs>
+<marker id="d38-i2-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d38-i2-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · ZONAL MIG LOCKED TO US-CENTRAL1-A SUFFERS COMPLETE OUTAGE</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Order Traffic</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">All requests routed</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">to single zone</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Zone us-central1-a Impaired</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: single-zone blast radius</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">All 8 VMs Down</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">No surviving backends</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">LB returns HTTP 502</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">100% Downtime</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">Revenue lost</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d38-i2-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d38-i2-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d38-i2-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · REGIONAL MIG ACROSS 3 ZONES ABSORBS SINGLE-ZONE FAILURE</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Order Traffic</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Global Cloud LB</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">Health-checked endpoints</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Regional MIG (a, b, c)</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Distribution: EVEN (33% per zone)</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Zone A Drops Out</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">Zones B &amp; C continue serving</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Autoscaler expands B &amp; C</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Zero Disruption</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">SLO 99.95% preserved</text>
+
+<path class="corrected" marker-end="url(#d38-i2-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d38-i2-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d38-i2-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The Order API ran exclusively inside a Zonal MIG in <code>us-central1-a</code>; a physical facility disruption made the zone unreachable; all API instances failed simultaneously; order acceptance was interrupted for 45 minutes. <strong>Architectural inference:</strong> Zonal MIGs concentrate failure domains; a regional MIG spanning three zones provides N+1 or N+2 zone redundancy; Cloud Load Balancing seamlessly bypasses unhealthy zones when regional MIG backends are utilized. <strong>Expected post-fix behavior:</strong> The service runs in a regional MIG; loss of any single zone leaves two surviving zones processing orders with automatic capacity expansion and zero user-visible outages.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 3 ── -->
+<article id="topic-03-problem" class="topic-card">
+<h3>Topic 3 field case — Premature autoscaler cool-down period causes JVM warm-up runaway scaling</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  Brightloaf deployed an autoscaling policy targeting 60% average CPU utilization for the Order API service. In an effort to make scaling "lightning fast," the DevOps engineer set the autoscaler's cool-down period to 30 seconds. The underlying service is a Java-based Spring Boot microservice that requires approximately 90 seconds to unpack application jars, perform JVM Just-In-Time (JIT) compilation, warm local caches, and open database connection pools.
+</p>
+<p>
+  During a 09:00 AM breakfast order spike, CPU usage rose to 68%, prompting the autoscaler to launch 2 additional instances. At second 31, the newly created instances were still undergoing heavy JVM startup compilation (reporting 95% CPU) and could not yet accept traffic. The autoscaling engine, seeing average fleet CPU now spike to 78%, concluded that the load had intensified and immediately ordered 4 more instances. This loop repeated every 30 seconds until the group hit its maximum limit and exhausted the project's regional Compute Engine vCPU quota.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>The autoscaler must scale out promptly to absorb legitimate traffic growth.</li>
+  <li>Must not exhaust project regional vCPU quotas on unready, initializing instances.</li>
+  <li>Application initialization characteristics must be measured and directly reflected in infrastructure timing parameters.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  The cool-down period (30s) was substantially shorter than the application's actual initialization duration (90s). The autoscaler treated initialization CPU burn as serving workload demand, causing cascading over-provisioning and quota depletion.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Correlate Cloud Monitoring metrics: Plot <code>instance_group/size</code> against <code>instance/cpu/utilization</code> over time. Observe that instance count rises in step-function jumps while CPU stays pinned at 90%+.</li>
+  <li>Review instance boot logs: Inspect <code>syslog</code> timestamps to measure exact duration between VM boot and the application's "Started Application in X seconds" log line (measured at 88 seconds).</li>
+  <li>Review autoscaling configuration: Confirm <code>coolDownPeriodSec</code> is set to 30s.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Calibrate the cool-down period to exceed the measured warm-up time: set <code>coolDownPeriodSec</code> to 120 seconds (90s boot + 30s buffer). Additionally, configure scale-in controls to prevent rapid oscillation (e.g., maximum scale-in of 20% or 2 instances per 5-minute trailing window).
+</p>
+
+<h4>Verification</h4>
+<p>
+  Subject the staging environment to a synthetic load test step-jump. Verify that the autoscaler adds instances, waits the full 120 seconds for the new instances to report steady serving metrics, and stabilizes fleet CPU at 60% without runaway scaling or quota exhaustion.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  A longer cool-down period means the group will not launch subsequent scale-out batches until the cool-down window passes. If incoming traffic spikes faster than one batch can absorb, target CPU utilization may temporarily exceed 60% during the warm-up window.
+</p>
+
+<!-- Incident SVG 3 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d38-i3-title d38-i3-desc">
+<title id="d38-i3-title">Autoscaler cool-down mismatch causing cascading quota exhaustion</title>
+<desc id="d38-i3-desc">A comparative diagram showing the failed path where a 30s cool-down period on a 90s JVM warm-up workload causes false overload signals and runaway scaling to quota exhaustion. The corrected path uses a 120s calibrated cool-down period, allowing instances to reach steady state before metric evaluation, stabilizing the fleet cleanly.</desc>
+<defs>
+<marker id="d38-i3-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d38-i3-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · 30s COOL-DOWN &lt; 90s JVM BOOT → RUNAWAY SCALING &amp; QUOTA DEPLETION</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Traffic Spike</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">CPU rises to 68%</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">Scale-out triggered</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Cool-Down (30s) Expires</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: JVM still warming at 95% CPU</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">False Overload Detected</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">Repeated scale-out orders</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">every 30 seconds</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">Quota Exhausted</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">vCPU limit hit</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d38-i3-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d38-i3-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d38-i3-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · CALIBRATED 120s COOL-DOWN ENCLOSES WARM-UP → STABLE SCALING</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Traffic Spike</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">CPU rises to 68%</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">Autoscaler adds 2 VMs</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Cool-Down Set to 120s</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Ignores 90s JVM warm-up burn</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Clean Handover</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">VMs reach ready state</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Fleet CPU drops to 58%</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Stable Capacity</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Zero quota thrashing</text>
+
+<path class="corrected" marker-end="url(#d38-i3-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d38-i3-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d38-i3-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The Order API JVM required 90 seconds to initialize; the autoscaler cool-down period was configured at 30 seconds; target CPU was set to 60%; during a traffic burst, high CPU usage during warm-up caused rapid successive scale-outs until project quota was exhausted. <strong>Architectural inference:</strong> The autoscaler cannot distinguish between productive request-handling CPU and initialization overhead without an appropriate cool-down window; cool-down periods must be derived from measured application telemetry plus safety margin. <strong>Expected post-fix behavior:</strong> Setting the cool-down period to 120 seconds prevents metric evaluation during the 90-second warm-up window, allowing new instances to stabilize before further scaling decisions are made.
+</figcaption>
+</figure>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 4 ══ -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1 — Instance Template authoring and validation</h3>
+<p><strong>Goal:</strong> Author a declarative, reproducible Instance Template specification for the Brightloaf Order API service and verify immutable properties.</p>
+<p><strong>Mode:</strong> tabletop design / cloud sandbox · <strong>Prerequisites:</strong> Day 37 exit artifact (storage and metadata decisions).</p>
+
+<div class="callout">
+<strong>Preflight</strong>
+<p>Open <code>day-038-scaling.md</code>. Define the target service parameters: Machine family <code>e2-standard-2</code>, Debian 12 golden image, <code>pd-balanced</code> 20GB boot disk, and service account with <code>roles/monitoring.metricWriter</code>.</p>
+</div>
+
+<ol>
+<li><strong>Define the template command.</strong> Formulate the declarative creation command:
+<pre><code>gcloud compute instance-templates create order-api-template-v1 \
+  --project=PROJECT_ID \
+  --machine-type=e2-standard-2 \
+  --image-family=debian-12 \
+  --image-project=debian-cloud \
+  --boot-disk-type=pd-balanced \
+  --boot-disk-size=20GB \
+  --network=default \
+  --tags=order-api,http-server \
+  --metadata=startup-script="#!/bin/bash
+echo 'Starting Order API' > /var/log/startup.log" \
+  --labels=service=order-api,env=production,version=v1</code></pre>
+</li>
+<li><strong>Evaluate template immutability.</strong> In your notes, document what occurs if an operator attempts to change the machine type of <code>order-api-template-v1</code> via CLI. Note: The API rejects edits; an operator must create <code>order-api-template-v2</code> and update the instance group manager.</li>
+<li><strong>Inspect template configuration.</strong> If running in a sandbox, describe the template:
+<pre><code>gcloud compute instance-templates describe order-api-template-v1 \
+  --project=PROJECT_ID \
+  --format="yaml(name,properties.machineType,properties.disks)"</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A validated instance template specification recorded in <code>day-038-scaling.md</code> with machine parameters, disk types, and immutability rules clearly stated.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-38-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2 — Regional vs Zonal MIG capacity and blast radius analysis</h3>
+<p><strong>Goal:</strong> Model capacity distribution and calculate survivable load under single-zone failure for Zonal vs Regional MIGs.</p>
+<p><strong>Mode:</strong> tabletop / design · <strong>Prerequisites:</strong> Exercise 1 template definition.</p>
+
+<ol>
+<li><strong>Formulate the Regional MIG specification.</strong> Define a 3-zone regional group in <code>us-central1</code>:
+<pre><code>gcloud compute instance-groups managed create order-api-rmig \
+  --project=PROJECT_ID \
+  --region=us-central1 \
+  --zones=us-central1-a,us-central1-b,us-central1-c \
+  --template=order-api-template-v1 \
+  --size=6 \
+  --instance-redistribution-type=PROACTIVE \
+  --target-distribution-shape=EVEN</code></pre>
+</li>
+<li><strong>Model the single-zone failure matrix.</strong> Draw a comparison table in <code>day-038-scaling.md</code>:
+  <ul>
+    <li>Total Fleet Size: 6 instances.</li>
+    <li>Zonal MIG (all in Zone A): Zone A down → 0 instances remaining (0% serving capacity, 100% outage).</li>
+    <li>Regional MIG (EVEN: 2 in A, 2 in B, 2 in C): Zone A down → 4 instances remaining (66.7% serving capacity, 0% complete outage).</li>
+  </ul>
+</li>
+<li><strong>Evaluate failover capacity headroom.</strong> Calculate the required minimum fleet size such that losing 1 zone still satisfies 100% of peak traffic without autoscaling delay:
+  <p>If peak load requires 6 instances, total provisioned capacity must be <code>6 / (1 - 1/N)</code> where N=3 zones → <code>6 / 0.667 = 9 instances</code> (3 per zone). Document this formula.</p>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A capacity distribution sheet showing exact instance allocations across three zones, proving that regional distribution prevents total service collapse during single-zone outages.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-38-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3 — Autoscaling timeline trace under a simulated traffic burst</h3>
+<p><strong>Goal:</strong> Calculate instance scaling decisions and fleet capacity over a 10-minute load timeline under two different cool-down policies.</p>
+<p><strong>Mode:</strong> tabletop timeline simulation · <strong>Prerequisites:</strong> Exercises 1 and 2 artifacts.</p>
+
+<ol>
+<li><strong>Define the workload timeline.</strong> Assume an Order API workload with initial state:
+  <ul>
+    <li>Base capacity: 3 instances (handling 300 RPS, 50% CPU).</li>
+    <li>Autoscaling target: 60% CPU utilization.</li>
+    <li>Instance boot/warm-up time: 90 seconds (utilization = 95% during warm-up).</li>
+    <li>At T = 1:00: Traffic doubles to 600 RPS (fleet CPU jumps to 80%).</li>
+  </ul>
+</li>
+<li><strong>Simulate Policy A (Uncalibrated: 30s cool-down).</strong>
+  <ul>
+    <li><strong>T = 1:00:</strong> CPU is 80% &gt; 60%. Autoscaler requests +2 VMs (Total 5).</li>
+    <li><strong>T = 1:30:</strong> 30s cool-down expires. New VMs are only at second 30 of warm-up (burning 95% CPU). Average fleet CPU is calculated: <code>(3*80% + 2*95%) / 5 = 86%</code>.</li>
+    <li><strong>T = 1:30:</strong> Autoscaler sees 86% CPU and orders +3 VMs (Total 8).</li>
+    <li><strong>T = 2:00:</strong> 30s cool-down expires. 5 VMs still warming up. Autoscaler orders +5 VMs (Total 13). Runaway scaling until quota exhaustion.</li>
+  </ul>
+</li>
+<li><strong>Simulate Policy B (Calibrated: 120s cool-down + scale-in control).</strong>
+  <ul>
+    <li><strong>T = 1:00:</strong> CPU is 80% &gt; 60%. Autoscaler requests +2 VMs (Total 5).</li>
+    <li><strong>T = 2:30:</strong> 120s cool-down period. Telemetry from new VMs is ignored while they complete 90s JVM warm-up.</li>
+    <li><strong>T = 2:30:</strong> Cool-down expires. All 5 VMs are healthy and actively sharing load. Average fleet CPU drops to <code>600 RPS / 5 VMs = 120 RPS/VM = 48% CPU</code>.</li>
+    <li><strong>T = 2:30:</strong> Fleet is stable. Zero runaway scaling.</li>
+  </ul>
+</li>
+<li><strong>Compile the timeline artifact.</strong> Write the complete side-by-side timeline into <code>day-038-scaling.md</code> with explicit assumptions and mathematical checks.</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A completed scaling timeline in <code>day-038-scaling.md</code> illustrating the mathematical difference between premature and calibrated cool-down windows, including capacity ceiling calculations.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>If executed in a live cloud sandbox, delete all test instance templates and managed instance groups to prevent ongoing compute charges:</p>
+<pre><code>gcloud compute instance-groups managed delete order-api-rmig --region=us-central1 --quiet
+gcloud compute instance-templates delete order-api-template-v1 --quiet</code></pre>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-38-topic-03"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-038-scaling.md</code> containing: (1) immutable Instance Template specification, (2) Regional vs Zonal failure blast radius matrix, (3) side-by-side autoscaling timeline comparing 30s vs 120s cool-down policies under traffic burst, (4) documented clean-up and quota assumptions. Distinguish tabletop models from live environment runs.</p>
+<label class="check"><input type="checkbox" data-progress="read-38"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-38"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-037.html">← Day 37<small>Disks, metadata and persistence</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-039.html">Day 39 →<small>Autohealing and deployment changes</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

@@ -1,0 +1,5 @@
+Cloud architects need to know who owns the account, project and bill before provisioning anything. A personal Free Trial, an organization training sandbox and a paid organization billing account have different access rules. Selecting the wrong one can expose company data or charge an unintended owner. A project ID identifies the resource container, while the billing account controls who pays for eligible usage; neither a sign-in nor a credit balance alone proves a lab is safe to run.
+
+For eligible new customers, Google's current Free Trial offer provides a welcome credit for a limited period. The offer, eligible services and remaining credit must be checked in the Console because terms can change. An organization sandbox may have no personal trial credit at all. Record only a redacted account identifier and the visible billing state in study notes; never copy payment details or credentials.
+
+**Further study:** [Google Cloud Free Program — Free Trial](https://docs.cloud.google.com/free/docs/free-cloud-features#free-trial) and [Resource Manager — create projects](https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects#create_a_project).

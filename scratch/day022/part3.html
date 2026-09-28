@@ -1,0 +1,406 @@
+    <section class="part" id="part-3" aria-labelledby="part-3-title">
+      <h2 id="part-3-title">3 · Real-world problems and field crises</h2>
+
+      <article class="topic-card" id="topic-01-problem">
+        <h3>Brightloaf Incident 22.1 · Additive IAM inheritance escalation drops order fulfillment schema</h3>
+        <p><strong>Context &amp; Architecture:</strong> The following operational crisis represents a synthetic engineering postmortem from Brightloaf's regional cloud infrastructure. Brightloaf hosts its core regional order management and point-of-sale ingestion pipeline inside Google Cloud project <code>bl-order-fulfill-prod</code>, located under the folder <code>folders/839102482019</code> (labeled <code>Production-Fulfillment</code>). Persistent order records, customer franchise allocations, and payment reconciliation tables reside in a multi-region Cloud Spanner database named <code>orders-db</code>.</p>
+
+        <h4>Failure Symptom</h4>
+        <p>At 06:14 UTC, during the peak morning store opening rush across 450 franchise bakeries, all order fulfillment worker pods running in Google Kubernetes Engine (GKE) crashed simultaneously, triggering an immediate sev-1 outage alert. The application API gateways began returning HTTP 500 Internal Server Errors to POS cash registers, and worker pod standard error logs were flooded with critical database client exceptions:</p>
+        <pre><code class="language-text">google.api_core.exceptions.NotFound: 404 Database not found:
+projects/bl-order-fulfill-prod/instances/bl-spanner/databases/orders-db
+[StatusCode.NOT_FOUND, Details="Database does not exist or has been deleted"]</code></pre>
+        <p>The primary production database containing active morning orders had completely vanished from the Cloud Spanner instance.</p>
+
+        <h4>Operational &amp; Business Constraints</h4>
+        <ul>
+          <li><strong>Zero Data Loss &amp; Invariant Preservation:</strong> Franchise retail transactions must not be dropped. More critically, Brightloaf's fundamental business invariant must be preserved across all recovery procedures: <strong>replaying an order or re-ingesting events from the queue must never cause a second physical fulfillment (&le; 1 physical fulfillment per unique order ID)</strong>. Double-baking bread batches or duplicating franchise shipments creates severe ingredient waste and accounting imbalances.</li>
+          <li><strong>Recovery Time Objective (RTO):</strong> Full order ingestion must be restored in under 45 minutes before local bakery proofing schedules fail.</li>
+          <li><strong>Recovery Point Objective (RPO):</strong> Transaction data loss must be strictly under 5 minutes.</li>
+        </ul>
+
+        <h4>Discovered Evidence</h4>
+        <p>Centralized security audit analysis revealed the following incontrovertible evidence:</p>
+        <ol>
+          <li><strong>Cloud Audit Log Entry:</strong> A Cloud Audit Activity log export captured the exact administrative call that dropped the database:
+            <pre><code class="language-json">{
+  "protoPayload": {
+    "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+    "serviceName": "spanner.googleapis.com",
+    "methodName": "google.spanner.admin.database.v1.DatabaseAdmin.DropDatabase",
+    "resourceName": "projects/bl-order-fulfill-prod/instances/bl-spanner/databases/orders-db",
+    "authenticationInfo": {
+      "principalEmail": "analytics-deployer@brightloaf-franchise-analytics.iam.gserviceaccount.com"
+    }
+  },
+  "timestamp": "2026-09-27T06:14:02.194Z"
+}</code></pre>
+          </li>
+          <li><strong>Project IAM Policy Inspection:</strong> Directly inspecting the project IAM policy on <code>bl-order-fulfill-prod</code> showed that the service account <code>analytics-deployer@...</code> was bound strictly to the primitive role <code>roles/viewer</code>. Under project-level policies alone, this identity had zero write or delete permissions.</li>
+          <li><strong>Folder IAM Policy Inspection:</strong> Inspecting ancestor container <code>folders/839102482019</code> (<code>Production-Fulfillment</code>) revealed that an infrastructure engineer had previously bound <code>roles/editor</code> to the entire contractor group <code>group:contractors-analytics@brightloaf.com</code>, which contained the service account.</li>
+        </ol>
+
+        <h4>Root Cause Analysis</h4>
+        <p>The incident was caused by a profound misunderstanding of Google Cloud's additive IAM inheritance model. An administrator had granted <code>roles/editor</code> at the parent folder tier so that external analytics contractors could freely create, modify, and delete staging datasets across experimental projects. Recognizing that the folder also contained <code>bl-order-fulfill-prod</code>, the administrator subsequently assigned <code>roles/viewer</code> directly to the contractor group on the production project, assuming the project-level viewer role would override or restrict the folder-level editor role.</p>
+        <p>Because IAM allow permissions are strictly <strong>additive</strong> (evaluated as a mathematical set union across all ancestors), the effective permission set was <code>P_effective = P_folder(roles/editor) &cup; P_project(roles/viewer) = roles/editor</code>. The project-level viewer role had zero restrictiveness. When an automated schema tear-down script in the contractor's CI/CD pipeline was accidentally pointed at the production project ID instead of staging, the <code>DropDatabase</code> API call succeeded immediately.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Query Activity Audit Logs:</strong> Query Cloud Audit Logs in the central security sink for <code>methodName="google.spanner.admin.database.v1.DatabaseAdmin.DropDatabase"</code> to identify the calling principal email, source IP, and exact timestamp.</li>
+          <li><strong>Audit Direct Project IAM Policy:</strong> Inspect the direct project IAM bindings using the Cloud SDK to determine whether the principal was granted write privileges directly on the project.</li>
+          <li><strong>Traverse Ancestor Hierarchy Bindings:</strong> Recursively fetch the IAM policies of all parent folders and the organization root using the Resource Manager API to discover inherited role assignments.</li>
+          <li><strong>Compute Effective Permission Set:</strong> Execute an IAM effective permission analysis demonstrating that the union of ancestor folder permissions granted <code>spanner.databases.drop</code> to the caller despite the project-level viewer role.</li>
+          <li><strong>Verify Buffer &amp; Deduplication Ledger State:</strong> Check Pub/Sub subscription backlogs to verify that in-flight bakery orders were safely buffered in durable message storage with immutable idempotency UUID keys.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Remediation</h4>
+        <ol>
+          <li><strong>Immediate Parent Folder Remediation:</strong> Immediately revoke <code>roles/editor</code> from <code>folders/839102482019</code> and all ancestor containers.</li>
+          <li><strong>Environment-First Folder Isolation:</strong> Reorganize the resource hierarchy into strict environment-first top-level folders (<code>/Production</code> vs. <code>/Non-Production</code>), ensuring external contractors and test automation identities hold zero bindings within the production folder branch.</li>
+          <li><strong>Organization-Level IAM Deny Guardrail:</strong> Implement an Organization IAM Deny Policy that explicitly blocks <code>spanner.databases.drop</code> and <code>spanner.instances.delete</code> for all non-emergency automated service accounts and developer groups across all production folders.</li>
+          <li><strong>Point-in-Time Recovery (PITR) Execution:</strong> Restore the Cloud Spanner database using Spanner Point-in-Time Recovery (PITR) to a timestamp exactly one minute prior to the drop (<code>2026-09-27T06:13:00Z</code>), restoring all tables, secondary indexes, and active transactions.</li>
+          <li><strong>Idempotent Event Stream Replay:</strong> Unpause the GKE fulfillment worker pods and replay the unacknowledged orders buffered in Pub/Sub. The worker application checks each incoming message against the restored transaction table using the unique order idempotency hash; already-committed orders are acknowledged immediately without executing physical bakery printing, guaranteeing that <strong>replaying events causes zero duplicate fulfillments (&le; 1 physical fulfillment per unique order ID)</strong>.</li>
+        </ol>
+
+        <h4>Verification and Residual Risk</h4>
+        <p><strong>Verification:</strong> Simulated penetration tests using the contractor credentials confirmed that attempting to execute <code>spanner.databases.drop</code> returned HTTP 403 PERMISSION_DENIED. Database point-in-time recovery completed within 28 minutes, and replaying 3,214 buffered POS transactions resulted in exactly 3,214 physical bakery dispatches with zero duplicate orders produced.</p>
+        <p><strong>Residual Risk:</strong> Point-in-Time Recovery relies on the database PITR retention window (Cloud Spanner default is 7 days). Global IAM policy modifications may take up to 60 seconds to propagate across all edge regions during emergency credential revocation.</p>
+
+<figure class="diagram-figure" id="fig-22-3">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig22-3-title fig22-3-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig22-3-title">Incident 22.1 Flow: Additive IAM Inheritance Escalation vs. Bounded Least-Privilege Architecture</title>
+      <desc id="fig22-3-desc">Incident diagram contrasting the failed path where inherited folder-level editor permissions dropped a production database with the corrected path implementing environment folder segregation, leaf custom roles, IAM Deny guardrails, and idempotent event replay.</desc>
+      <defs>
+        <linearGradient id="p22-f3-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p22-f3-fail-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e"/>
+        </marker>
+        <marker id="p22-f3-ok-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <!-- Background -->
+      <rect width="960" height="520" rx="12" fill="url(#p22-f3-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header Banner -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INCIDENT 22.1: ADDITIVE IAM INHERITANCE ESCALATION &amp; DEFENSE</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Illustrating how inherited folder editor permissions overrode a project viewer role to drop production Spanner, and the corrected architecture.</text>
+
+      <!-- TOP: Actor / Caller Identity -->
+      <g transform="translate(40, 75)">
+        <rect width="880" height="58" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="24" fill="#f8fafc" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CALLER IDENTITY: analytics-deployer@brightloaf-franchise-analytics.iam.gserviceaccount.com</text>
+        <text x="20" y="44" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Automated pipeline running schema updates; intended for staging but configured with production project credentials.</text>
+      </g>
+
+      <!-- LEFT SIDE: FAILED PATH -->
+      <g transform="translate(40, 150)">
+        <rect width="420" height="280" rx="8" fill="#2d1219" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#881337"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">FAILED PATH: ADDITIVE INHERITANCE OVERRIDE</text>
+
+        <!-- Step 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="48" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Folder Binding: roles/editor</text>
+          <text x="12" y="36" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Parent folder grant injects spanner.databases.drop</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="94" x2="210" y2="108" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p22-f3-fail-arrow)"/>
+
+        <!-- Step 2 -->
+        <g transform="translate(16, 112)">
+          <rect width="388" height="48" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Project Binding: roles/viewer (Subtractive Fallacy)</text>
+          <text x="12" y="36" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">Viewer binding CANNOT subtract inherited editor role!</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="160" x2="210" y2="174" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p22-f3-fail-arrow)"/>
+
+        <!-- Step 3 Failure -->
+        <g transform="translate(16, 178)">
+          <rect width="388" height="88" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[FAILED PATH: DROP DATABASE AUTHORIZED]</text>
+          <text x="12" y="40" fill="#fca5a5" font-size="10" font-family="ui-monospace, monospace">API: spanner.databases.drop &rarr; HTTP 200 OK</text>
+          <text x="12" y="58" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; orders-db deleted; worker pods throw 404 Not Found</text>
+          <text x="12" y="74" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Result: 450 franchise stores cannot fetch order queue</text>
+        </g>
+      </g>
+
+      <!-- RIGHT SIDE: CORRECTED PATH -->
+      <g transform="translate(500, 150)">
+        <rect width="420" height="280" rx="8" fill="#0c2317" stroke="#22c55e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#14532d"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CORRECTED PATH: LEAST-PRIVILEGE &amp; IAM DENY</text>
+
+        <!-- Step 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="48" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Environment-Segregated Folders (/Prod vs /NonProd)</text>
+          <text x="12" y="36" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">No broad editor roles assigned at parent folder levels</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="94" x2="210" y2="108" stroke="#22c55e" stroke-width="2" marker-end="url(#p22-f3-ok-arrow)"/>
+
+        <!-- Step 2 -->
+        <g transform="translate(16, 112)">
+          <rect width="388" height="48" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Leaf Custom Role &amp; Org IAM Deny Policy</text>
+          <text x="12" y="36" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">Deny spanner.databases.drop on all automated service accounts</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="160" x2="210" y2="174" stroke="#22c55e" stroke-width="2" marker-end="url(#p22-f3-ok-arrow)"/>
+
+        <!-- Step 3 Corrected -->
+        <g transform="translate(16, 178)">
+          <rect width="388" height="88" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[CORRECTED PATH: PERMISSION DENIED &amp; PITR RECOVERY]</text>
+          <text x="12" y="40" fill="#86efac" font-size="10" font-family="ui-monospace, monospace">API: spanner.databases.drop &rarr; HTTP 403 Forbidden</text>
+          <text x="12" y="58" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">&check; Spanner PITR restores db; Pub/Sub events replayed</text>
+          <text x="12" y="74" fill="#86efac" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Invariant Preserved: &le; 1 physical fulfillment per unique order ID</text>
+        </g>
+      </g>
+
+      <!-- Bottom Invariant Defense Summary -->
+      <g transform="translate(40, 445)">
+        <rect width="880" height="58" rx="8" fill="#111827" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">FULFILLMENT INVARIANT VERIFICATION BOUNDARY:</text>
+        <text x="20" y="42" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Cloud Spanner PITR restored schema and transactions up to 06:13 UTC. Replaying unacknowledged Pub/Sub queue events verified idempotent deduplication hashes, ensuring zero duplicate bread orders were produced across all 450 bakeries.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 22.3: Incident Flow · Additive IAM Inheritance Escalation vs. Bounded Least-Privilege &amp; Deny Guardrails.</strong>
+    Contrasts the failure path where an inherited folder-level <code>roles/editor</code> grant permitted an unauthorized database drop against the corrected architecture enforcing environment folder segregation, leaf custom roles, and IAM Deny policies.
+    <br><strong>Supplied facts:</strong> A contractor analytics service account issued a <code>DropDatabase</code> API call that succeeded despite an explicit project-level <code>roles/viewer</code> binding.
+    <br><strong>Architectural inference:</strong> IAM allow policies are strictly additive; a project-level viewer binding cannot restrict permissions inherited from an ancestor folder editor binding.
+    <br><strong>Expected post-fix behavior:</strong> Broad editor roles are purged from parent folders, IAM Deny policies prevent database deletion, and Spanner PITR restoration combined with idempotent event replays ensures &le; 1 physical fulfillment per unique order ID.
+  </figcaption>
+</figure>
+
+      </article>
+
+      <article class="topic-card" id="topic-02-problem">
+        <h3>Brightloaf Incident 22.2 · Resource label and network tag conflation exposes order database port</h3>
+        <p><strong>Context &amp; Architecture:</strong> The following operational crisis represents a synthetic security engineering postmortem from Brightloaf's e-commerce backend. Brightloaf runs its primary order ingestion API on Compute Engine virtual machines and hosts its transactional PostgreSQL payment database on a dedicated Compute Engine instance named <code>bl-order-db-prod-vm</code> (private IP <code>10.128.0.45</code>) within the production VPC network. Enterprise security policy strictly dictates that database port 5432 must be accessible exclusively from instances hosting the order ingestion API.</p>
+
+        <h4>Failure Symptom</h4>
+        <p>During an automated vulnerability scan executed by Brightloaf's central security Operations Center (SOC), a high-severity alert triggered at 14:22 UTC:</p>
+        <pre><code class="language-text">VULNERABILITY ALERT [SEV-1]: Port 5432 (PostgreSQL) openly reachable from untrusted subnet!
+Source: 10.240.10.15 (staging-dev-bastion.internal)
+Destination: 10.128.0.45:5432 (bl-order-db-prod-vm.internal)
+Status: TCP SYN-ACK Handshake ESTABLISHED</code></pre>
+        <p>An engineer discovered that a compromised container inside a non-production staging development environment was able to establish a direct, unencrypted TCP session with the production database listener.</p>
+
+        <h4>Operational &amp; Business Constraints</h4>
+        <ul>
+          <li><strong>Zero Disruption to Active Ordering:</strong> Active franchise order ingestion on <code>bl-order-api</code> must remain uninterrupted; applying network firewall remediation must not drop legitimate active API database pools.</li>
+          <li><strong>Fulfillment Invariant Guarantee:</strong> In accordance with Brightloaf's core order invariant, <strong>replaying an order or recovering dropped connections must never result in a second physical fulfillment (&le; 1 physical fulfillment per unique order ID)</strong>. Database integrity and transaction idempotency tokens must remain pristine.</li>
+          <li><strong>Auditable Compliance:</strong> Complete network segregation between production payment data and non-production development environments must be provably enforced to satisfy PCI-DSS audit mandates.</li>
+        </ul>
+
+        <h4>Discovered Evidence</h4>
+        <p>Technical investigation across the infrastructure-as-code repository and live Google Cloud control plane revealed:</p>
+        <ol>
+          <li><strong>Terraform Instance Definition:</strong> In the Terraform provisioning module for the database instance, the engineer configured metadata labels:
+            <pre><code class="language-text"># modules/compute/database.tf
+resource "google_compute_instance" "order_db" {
+  name         = "bl-order-db-prod-vm"
+  machine_type = "n2-standard-4"
+  zone         = "us-central1-a"
+  labels = {
+    environment = "production"
+    tier        = "order-database-secure"
+  }
+  # Note: The "tags" block was completely omitted!
+}</code></pre>
+          </li>
+          <li><strong>VPC Firewall Rule Configuration:</strong> The network security team had configured a restrictive firewall rule targeting network tags:
+            <pre><code class="language-text"># modules/networking/firewalls.tf
+resource "google_compute_firewall" "allow_db_from_api" {
+  name        = "allow-order-db-from-api"
+  network     = "bl-production-vpc"
+  target_tags = ["order-database-secure"]
+  source_tags = ["order-api-tier"]
+  allow {
+    protocol = "tcp"
+    ports    = ["5432"]
+  }
+}</code></pre>
+          </li>
+          <li><strong>Live Instance Metadata State:</strong> Inspecting the running instance via the Compute Engine API revealed:
+            <pre><code class="language-json">{
+  "name": "bl-order-db-prod-vm",
+  "labels": {
+    "environment": "production",
+    "tier": "order-database-secure"
+  },
+  "tags": {
+    "fingerprint": "42WmSpB8nxI=",
+    "items": []
+  }
+}</code></pre>
+            The instance's <code>tags.items</code> array was completely empty.
+          </li>
+        </ol>
+
+        <h4>Root Cause Analysis</h4>
+        <p>The security exposure was caused by conflating <strong>Resource Labels</strong> with Compute Engine <strong>Network Tags</strong>. The DevOps engineer assumed that setting <code>labels = { tier = "order-database-secure" }</code> in Terraform would satisfy the VPC firewall rule's <code>target_tags = ["order-database-secure"]</code> requirement.</p>
+        <p>However, VPC firewalls evaluate network tags exclusively, completely ignoring resource labels. Because the database instance lacked the network tag, the firewall rule <code>allow-order-db-from-api</code> never matched the instance. Consequently, incoming traffic to the database fell through to an overly permissive default internal subnet rule (<code>allow-default-internal</code>, allowing <code>10.128.0.0/9</code>), which permitted any internal IP in the entire VPC network&mdash;including non-production development jump hosts&mdash;to connect directly to port 5432.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Verify TCP Handshake Logs:</strong> Inspect VPC Flow Logs and security scanner output confirming active TCP SYN-ACK sessions between staging IP <code>10.240.10.15</code> and production DB IP <code>10.128.0.45:5432</code>.</li>
+          <li><strong>Inspect VM Instance Tag Array:</strong> Run a detailed instance description using the Compute Engine API to check the <code>tags.items</code> list and verify whether the instance holds the required network tags.</li>
+          <li><strong>Trace VPC Firewall Rule Priority:</strong> Execute VPC firewall rule simulation across the subnet to observe rule precedence, identifying which firewall rule authorized the packet when the targeted rule failed to match.</li>
+          <li><strong>Identify Permissive Fallback Rules:</strong> Locate broad legacy firewall rules (such as default internal allow rules) that inadvertently cover the database port.</li>
+          <li><strong>Audit Ingestion Database for Unauthorized Writes:</strong> Review PostgreSQL transaction audit logs to confirm that no staging or external connections performed write mutations, verifying that all processed transactions preserve the &le; 1 physical fulfillment invariant.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Remediation</h4>
+        <ol>
+          <li><strong>Immediate Network Tag Hotfix:</strong> Add the missing network tag directly to the running Compute Engine instance via the Cloud SDK without interrupting active database connections:
+            <pre><code class="language-bash">gcloud compute instances add-tags bl-order-db-prod-vm   --tags=order-database-secure   --zone=us-central1-a</code></pre>
+          </li>
+          <li><strong>Remediate Infrastructure as Code:</strong> Update the Terraform configuration to explicitly include <code>tags = ["order-database-secure"]</code> in the <code>google_compute_instance</code> resource block, ensuring future CI/CD runs maintain the correct network configuration.</li>
+          <li><strong>Purge Overly Permissive Subnet Rules:</strong> Delete the default <code>allow-default-internal</code> rule and replace it with explicit, least-privilege firewall rules that enforce an overarching Default-Deny ingress policy across the VPC.</li>
+          <li><strong>Transition to Resource Manager Secure Tags:</strong> Migrate VPC firewall packet filtering from mutable Compute Engine network tags to <strong>Resource Manager Secure Tags</strong> (<code>target_secure_tag</code>). Because Secure Tags require centralized <code>resourcemanager.tagUser</code> permissions to bind, compute instance administrators cannot manipulate tags to alter their firewall security posture.</li>
+          <li><strong>Audit Deduplication Ledger &amp; Tokens:</strong> Validate that all transactions committed by <code>bl-order-api</code> during the incident contained immutable idempotency tokens, guaranteeing that subsequent system recovery and connection retries produce <strong>exactly zero duplicate bakery fulfillments (&le; 1 physical fulfillment per unique order ID)</strong>.</li>
+        </ol>
+
+        <h4>Verification and Residual Risk</h4>
+        <p><strong>Verification:</strong> Immediate network probes from staging host <code>10.240.10.15</code> to <code>10.128.0.45:5432</code> timed out with 100% packet loss (dropped by VPC firewall). Probes from <code>bl-order-api</code> with tag <code>order-api-tier</code> connected successfully within 2 ms. The Cloud Billing BigQuery export confirmed that billing labels remained active for cost accounting.</p>
+        <p><strong>Residual Risk:</strong> Standard Compute Engine Network Tags remain mutable by users possessing <code>compute.instances.setTags</code>. Full mitigation requires enforcing Resource Manager Secure Tags with Cloud Next-Gen Firewall policies to separate network security administration from compute instance administration.</p>
+
+<figure class="diagram-figure" id="fig-22-4">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig22-4-title fig22-4-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig22-4-title">Incident 22.2 Flow: Resource Label vs. Network Tag Conflation in VPC Firewall Packet Filtering</title>
+      <desc id="fig22-4-desc">Incident diagram showing how confusing Resource Labels with Compute Engine Network Tags left a production database instance without tag-based firewall filtering, falling through to a permissive fallback rule, and how adding explicit network tags and secure tags restored network isolation.</desc>
+      <defs>
+        <linearGradient id="p22-f4-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p22-f4-fail-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e"/>
+        </marker>
+        <marker id="p22-f4-ok-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <!-- Background -->
+      <rect width="960" height="520" rx="12" fill="url(#p22-f4-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INCIDENT 22.2: METADATA CONFLATION &amp; VPC PACKET FILTERING DEFECT</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">VPC Firewalls evaluate Network Tags, not Resource Labels. Untagged instances fall through to default fallback rules.</text>
+
+      <!-- Top Container: Staging Traffic Source -->
+      <g transform="translate(40, 75)">
+        <rect width="880" height="55" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#f8fafc" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INCOMING PACKET: Staging Bastion (10.240.10.15) &rarr; Target: bl-order-db-prod-vm (10.128.0.45:5432)</text>
+        <text x="20" y="42" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Security goal: Drop all non-production traffic to port 5432; permit only bl-order-api instances.</text>
+      </g>
+
+      <!-- LEFT SIDE: FAILED PATH -->
+      <g transform="translate(40, 145)">
+        <rect width="420" height="285" rx="8" fill="#2d1219" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#881337"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">FAILED PATH: LABEL ASSIGNMENT ONLY</text>
+
+        <!-- Box 1: Configuration Defect -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Terraform Configures Resource Labels Only</text>
+          <text x="12" y="38" fill="#fecaca" font-size="10" font-family="ui-monospace, monospace">labels = { tier = "order-db" } ; tags = [] (EMPTY)</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p22-f4-fail-arrow)"/>
+
+        <!-- Box 2: Firewall Evaluation Miss -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. VPC Firewall Checks targetTags: ["order-db"]</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Tags do not match! Firewall ignores resource labels entirely.</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p22-f4-fail-arrow)"/>
+
+        <!-- Box 3: Exposure Fallthrough -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[FAILED PATH: FALLTHROUGH TO PERMISSIVE RULE]</text>
+          <text x="12" y="40" fill="#fca5a5" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; Packet matches allow-default-internal (10.128.0.0/9)</text>
+          <text x="12" y="58" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; TCP handshake succeeds from staging bastion to port 5432</text>
+          <text x="12" y="74" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Result: Production database exposed to non-prod network</text>
+        </g>
+      </g>
+
+      <!-- RIGHT SIDE: CORRECTED PATH -->
+      <g transform="translate(500, 145)">
+        <rect width="420" height="285" rx="8" fill="#0c2317" stroke="#22c55e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#14532d"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CORRECTED PATH: NETWORK TAGS &amp; SECURE TAGS</text>
+
+        <!-- Box 1: Correct Configuration -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Explicit Network Tag &amp; Secure Tag Applied</text>
+          <text x="12" y="38" fill="#bbf7d0" font-size="10" font-family="ui-monospace, monospace">tags = ["order-db"] + TagBinding (env: prod)</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#22c55e" stroke-width="2" marker-end="url(#p22-f4-ok-arrow)"/>
+
+        <!-- Box 2: Target Match -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Firewall Matches targetTags: ["order-db"]</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Enforces sourceTags: ["order-api-tier"]. Staging tag is absent!</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#22c55e" stroke-width="2" marker-end="url(#p22-f4-ok-arrow)"/>
+
+        <!-- Box 3: Dropped & Secured -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[CORRECTED PATH: PACKET DROPPED &amp; ISOLATED]</text>
+          <text x="12" y="40" fill="#86efac" font-size="10" font-family="system-ui, -apple-system, sans-serif">&check; Staging TCP SYN dropped by distributed VPC firewall</text>
+          <text x="12" y="58" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">&check; bl-order-api allowed via mutual TLS on port 5432</text>
+          <text x="12" y="74" fill="#86efac" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Invariant Preserved: &le; 1 physical fulfillment per unique order ID</text>
+        </g>
+      </g>
+
+      <!-- Bottom Invariant Defense Summary -->
+      <g transform="translate(40, 442)">
+        <rect width="880" height="60" rx="8" fill="#111827" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">SECURITY BOUNDARY &amp; FULFILLMENT INVARIANT VERIFICATION:</text>
+        <text x="20" y="42" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Strict network isolation guarantees that only verified API instances can commit order transactions. Deduplication tokens in the database verify zero phantom rows or duplicated physical fulfillments occurred during the exposure window.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 22.4: Incident Flow · Resource Label vs. Network Tag Conflation in VPC Firewall Filtering.</strong>
+    Visualizes how misconfiguring Terraform with Resource Labels instead of Network Tags left a production database instance without targeted packet filtering, causing traffic to fall through to an open internal subnet rule, and how explicit network and secure tagging corrected the vulnerability.
+    <br><strong>Supplied facts:</strong> A Terraform deployment populated instance labels with <code>tier = "order-db"</code> but omitted the instance <code>tags</code> block, allowing non-production hosts to connect to port 5432.
+    <br><strong>Architectural inference:</strong> VPC firewalls evaluate Compute Engine Network Tags and Resource Manager Secure Tags; they completely ignore resource labels, which exist strictly for billing and metadata query planes.
+    <br><strong>Expected post-fix behavior:</strong> Explicit network tags bind the instance to targeted firewall rules, staging traffic is dropped at the VPC boundary, and deduplication tokens ensure &le; 1 physical fulfillment per unique order ID.
+  </figcaption>
+</figure>
+
+      </article>
+    </section>

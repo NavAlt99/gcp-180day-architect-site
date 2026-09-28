@@ -1,0 +1,426 @@
+    <section class="part" id="part-3" aria-labelledby="part-3-heading">
+      <h2 id="part-3-heading">Part 3 · Real-world problems</h2>
+      <p class="section-lead">Production postmortems from Brightloaf: mitigating catastrophic billing unlinking outages, resolving payment profile privilege escalations, and implementing automated circuit breakers against runaway BigQuery compute spend.</p>
+
+      <!-- Problem 01 -->
+      <article class="card" id="topic-01-problem" aria-labelledby="p1-heading">
+        <span class="badge danger">Incident 27.1</span>
+        <h3 id="p1-heading">Project Billing Unlink Outage: Automated Script Freezes Regional Order Fulfillment</h3>
+
+        <div class="grid-2">
+          <div>
+            <h4>Symptom</h4>
+            <p>At 09:12 UTC, Brightloaf's regional delivery dispatch microservices in project <code>brightloaf-prod-fulfillment</code> suffered sudden catastrophic failure. GKE node pools failed to scale up to meet morning demand, and Cloud Run containers serving store ingress returned <code>503 Service Unavailable: Billing account is disabled or unlinked</code>. Regional delivery routing stopped across seven bakeries.</p>
+          </div>
+          <div>
+            <h4>Constraints &amp; Invariant</h4>
+            <p><strong>Duplicate Fulfillment Invariant:</strong> When billing is re-enabled, delayed Pub/Sub delivery events must not cause multiple bakery dispatch runs for the same order ID (&le; 1 physical fulfillment).
+            <br><strong>Operational Constraint:</strong> SREs must restore project billing linkage within five minutes without re-deploying cluster workloads.</p>
+          </div>
+        </div>
+
+        <h4>Incident Evidence</h4>
+        <pre><code class="language-json">{
+  "protoPayload": {
+    "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+    "authenticationInfo": { "principalEmail": "automation-cleanup@brightloaf-ops.iam.gserviceaccount.com" },
+    "serviceName": "cloudbilling.googleapis.com",
+    "methodName": "google.cloud.billing.v1.CloudBilling.UpdateProjectBillingInfo",
+    "resourceName": "projects/brightloaf-prod-fulfillment/billingInfo",
+    "request": {
+      "name": "projects/brightloaf-prod-fulfillment",
+      "projectBillingInfo": { "billingAccountName": "" }
+    },
+    "status": { "code": 0 }
+  },
+  "severity": "NOTICE",
+  "timestamp": "2026-09-27T09:12:04.182914Z"
+}</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>A maintenance automation script designed to clean up expired sandbox environments executed with an unvalidated target project array. The script iterated over active projects and invoked the Cloud Billing API to set <code>billingAccountName=""</code> on <code>brightloaf-prod-fulfillment</code>. Because unlinking a billing account immediately revokes paid API quota, GKE cluster node autoscaling and container scheduling froze instantly. In-flight HTTP transactions were dropped, and edge order queues began piling up.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Audit Trail Trace:</strong> Query Cloud Audit Logs for <code>UpdateProjectBillingInfo</code> on <code>brightloaf-prod-fulfillment</code> to identify the unlinking timestamp and executing identity.</li>
+          <li><strong>Billing State Verification:</strong> Execute project billing inspection via the Cloud Billing API to confirm <code>billingEnabled: false</code>.</li>
+          <li><strong>Cluster Health Check:</strong> Inspect GKE master events to confirm that control planes remain intact while node creation is suspended due to billing quota denial.</li>
+          <li><strong>Queue Drainage Safeguard:</strong> Pause upstream ingestion topics to prevent massive concurrent retries from overwhelming the dispatch workers when billing is restored.</li>
+          <li><strong>Billing Linkage Restoration:</strong> Associate the project back to the corporate billing account <code>01A2B3-4C5D6E-7F8G9H</code> using authorized billing administrator credentials.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Mitigation</h4>
+        <p>To prevent accidental project billing unlinking:</p>
+        <ol>
+          <li>Immediately restore the project billing linkage. Verify that GKE nodes unfreeze and Cloud Run containers resume servicing requests within two minutes.</li>
+          <li>Attach the tag <code>environment: production</code> to all production projects.</li>
+          <li>Implement a CI/CD and automation gate that queries resource tags and explicitly rejects any billing unlink operation against projects bearing the <code>production</code> tag.</li>
+          <li>Unpause the ingestion queues through an idempotent filter that cross-references Spanner fulfillment receipts, guaranteeing that replayed queue messages do not trigger duplicate baking runs.</li>
+        </ol>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 420" width="100%" height="auto" role="img" aria-labelledby="fig27-3-title fig27-3-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig27-3-title">Figure 27.3: Incident 27.1 Architecture - Project Billing Unlink vs Protected Linkage</title>
+            <desc id="fig27-3-desc">Diagram showing how inadvertently unlinking a production project from its billing account caused immediate API suspension, contrasted with protected billing linkage governance.</desc>
+            <defs>
+              <marker id="arrow27-3-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow27-3-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Title -->
+            <text x="480" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle">Figure 27.3: Accidental Billing Unlink Outage vs. Linkage Protection</text>
+            <text x="480" y="52" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">Incident 27.1 · Preventing production workload suspension via billing linkage controls</text>
+
+            <!-- Actor Box -->
+            <g transform="translate(40, 160)">
+              <rect width="180" height="110" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+              <text x="90" y="30" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">Automation Script</text>
+              <text x="90" y="52" fill="#94a3b8" font-family="monospace" font-size="10" text-anchor="middle">cleanup-test-projects.py</text>
+              <rect x="20" y="68" width="140" height="26" rx="4" fill="#0c4a6e"/>
+              <text x="90" y="85" fill="#bae6fd" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Billing Modification</text>
+            </g>
+
+            <!-- FAILED PATH (Top) -->
+            <g transform="translate(320, 75)">
+              <rect width="280" height="100" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="140" y="24" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">UNPROTECTED BILLING LINK</text>
+              <text x="140" y="44" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">Unlinks 01A2B3-4C5D6E-7F8G9H</text>
+              <text x="140" y="62" fill="#ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Project billing state set to DISABLED</text>
+              <text x="140" y="80" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Paid APIs frozen immediately</text>
+              <text x="140" y="93" fill="#fda4af" font-family="monospace" font-size="9" text-anchor="middle">[FAILED PATH: Unlinked billing suspends project]</text>
+            </g>
+
+            <!-- FAILED DESTINATION (Top Right) -->
+            <g transform="translate(700, 75)">
+              <rect width="220" height="100" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="110" y="26" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Fulfillment Microservice</text>
+              <text x="110" y="46" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">brightloaf-prod-fulfillment</text>
+              <rect x="20" y="58" width="180" height="30" rx="4" fill="#991b1b"/>
+              <text x="110" y="74" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">BILLING SUSPENDED</text>
+              <text x="110" y="86" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="8" text-anchor="middle">GKE autoscaling dead; Orders halted</text>
+            </g>
+
+            <!-- Failed path arrows -->
+            <path d="M 220 190 L 270 190 L 270 125 L 315 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow27-3-red)"/>
+            <path d="M 600 125 L 695 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow27-3-red)"/>
+
+            <!-- CORRECTED PATH (Bottom) -->
+            <g transform="translate(320, 245)">
+              <rect width="280" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="140" y="24" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">PROTECTED BILLING LINKAGE</text>
+              <text x="140" y="44" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">Production tag: env=production</text>
+              <text x="140" y="62" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Unlink blocked by CI safety validator</text>
+              <text x="140" y="80" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Explicit break-glass approval required</text>
+              <text x="140" y="98" fill="#4ade80" font-family="monospace" font-size="9" text-anchor="middle">[CORRECTED PATH: Linkage preserved]</text>
+            </g>
+
+            <!-- CORRECTED DESTINATION (Bottom Right) -->
+            <g transform="translate(700, 245)">
+              <rect width="220" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="110" y="28" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Fulfillment Microservice</text>
+              <text x="110" y="48" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">brightloaf-prod-fulfillment</text>
+              <rect x="20" y="62" width="180" height="34" rx="4" fill="#15803d"/>
+              <text x="110" y="77" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">CONTINUOUS OPERATION</text>
+              <text x="110" y="90" fill="#bbf7d0" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Dispatch unhindered; Invariant safe</text>
+            </g>
+
+            <!-- Corrected path arrows -->
+            <path d="M 220 230 L 270 230 L 270 305 L 315 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow27-3-green)"/>
+            <path d="M 600 305 L 695 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow27-3-green)"/>
+          </svg>
+          <figcaption class="diagram-caption">Figure 27.3: Architecture comparison for Incident 27.1.
+            <br><strong>Supplied facts:</strong> Automated cleanup script stripped the billing account link from the production fulfillment project, placing the project into a suspended billing state.
+            <br><strong>Architectural inference:</strong> Unlinking projectBillingInfo immediately halts paid Google Cloud APIs and freezes GKE autoscaling without destroying persistent disk storage.
+            <br><strong>Expected post-fix behavior:</strong> Production projects are protected with resource tags and CI/CD validation rules that reject billing unlink calls; project billing linkage remains active, safeguarding continuous fulfillment.
+          </figcaption>
+        </figure>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Execute an API query against the project billing endpoint. Verify <code>billingEnabled: true</code> and confirm that the billing account name matches the corporate invoicing account <code>01A2B3-4C5D6E-7F8G9H</code>.</p>
+        <p><strong>Residual Risk:</strong> If a project requires legitimate relocation to a separate billing account (e.g., during a divestiture), the migration window must be scheduled during non-operational maintenance hours.</p>
+      </article>
+
+      <!-- Problem 02 -->
+      <article class="card" id="topic-02-problem" aria-labelledby="p2-heading">
+        <span class="badge danger">Incident 27.2</span>
+        <h3 id="p2-heading">Billing Role Overprivilege: Accidental Payment Profile Swap Triggers Bank Hold</h3>
+
+        <div class="grid-2">
+          <div>
+            <h4>Symptom</h4>
+            <p>At 16:40 UTC, Brightloaf's finance director received an urgent notification from Google Cloud Billing Operations: <em>"Automatic payment failed: credit line authorization declined"</em>. Concurrently, the issuing corporate bank placed an anti-fraud hold on the company credit account. If unresolved within 48 hours, all thirty-five corporate Google Cloud projects faced total billing suspension.</p>
+          </div>
+          <div>
+            <h4>Constraints &amp; Invariant</h4>
+            <p><strong>Duplicate Fulfillment Invariant:</strong> Avoid enterprise-wide shutdown of Spanner and Pub/Sub infrastructure that would trigger failover replays and double-baking risks (&le; 1 physical fulfillment).
+            <br><strong>Governance Constraint:</strong> Engineering must retain the ability to associate new sandbox projects without possessing rights to modify corporate banking details.</p>
+          </div>
+        </div>
+
+        <h4>Incident Evidence</h4>
+        <pre><code class="language-json">{
+  "protoPayload": {
+    "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+    "authenticationInfo": { "principalEmail": "dev-lead@brightloaf.com" },
+    "serviceName": "cloudbilling.googleapis.com",
+    "methodName": "google.cloud.billing.v1.CloudBilling.UpdateBillingAccount",
+    "resourceName": "billingAccounts/01A2B3-4C5D6E-7F8G9H",
+    "request": {
+      "billingAccount": {
+        "masterBillingAccount": "",
+        "displayName": "Brightloaf Enterprise Production",
+        "paymentProfileId": "7891-2345-6789"
+      }
+    },
+    "status": { "code": 0 }
+  },
+  "severity": "NOTICE",
+  "timestamp": "2026-09-27T16:38:12.748102Z"
+}</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>A lead engineer setting up an AI experimentation project requested permission to link the project to corporate billing. A junior administrator granted the engineer <code>roles/billing.admin</code> on the billing account rather than the scoped <code>roles/billing.user</code> role. While testing billing export settings, the engineer clicked into the billing account payment settings and accidentally associated a secondary corporate credit card profile instead of the primary invoiced line of credit. The sudden multi-thousand-dollar authorization attempt triggered an immediate fraud freeze from the card issuer.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Audit Log Extraction:</strong> Filter Cloud Audit Logs for <code>UpdateBillingAccount</code> to determine the principal and timestamp of the payment profile change.</li>
+          <li><strong>Billing IAM Inspection:</strong> Retrieve the IAM policy on <code>billingAccounts/01A2B3-4C5D6E-7F8G9H</code> to enumerate all principals holding <code>roles/billing.admin</code>.</li>
+          <li><strong>Bank Coordination:</strong> Finance leadership contacts the issuing bank to lift the fraud hold and re-authorize the corporate line of credit.</li>
+          <li><strong>Role Demotion:</strong> Strip <code>roles/billing.admin</code> from all non-finance personnel and reassign engineering leads to <code>roles/billing.user</code>.</li>
+          <li><strong>Payment Profile Restoration:</strong> Re-establish the invoiced billing credit profile in the Google Cloud Console.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Mitigation</h4>
+        <p>To enforce strict segregation of duties:</p>
+        <ol>
+          <li>Restore the verified corporate invoice payment agreement. Confirm with Google Cloud Billing Support that the delinquent hold is cleared.</li>
+          <li>Establish an IAM policy rule on the billing account: <code>roles/billing.admin</code> is restricted strictly to <code>group:finance-controllers@brightloaf.com</code>.</li>
+          <li>Grant <code>roles/billing.user</code> to <code>group:engineering-leads@brightloaf.com</code>, allowing them to freely associate projects with the billing account without granting visibility into invoices or payment instruments.</li>
+          <li>Deploy continuous drift detection alerting on any new <code>roles/billing.admin</code> bindings outside the approved finance group.</li>
+        </ol>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 420" width="100%" height="auto" role="img" aria-labelledby="fig27-4-title fig27-4-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig27-4-title">Figure 27.4: Incident 27.2 Architecture - Overprivileged Billing Admin vs Scoped User Role</title>
+            <desc id="fig27-4-desc">Diagram showing how granting roles/billing.admin to engineering permitted an accidental payment profile swap resulting in a bank fraud lock, contrasted with the scoped roles/billing.user role.</desc>
+            <defs>
+              <marker id="arrow27-4-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow27-4-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Header -->
+            <text x="480" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle">Figure 27.4: Overprivileged Billing Admin vs. Scoped Billing User</text>
+            <text x="480" y="52" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">Incident 27.2 · Segregating project linkage rights from corporate payment instrument ownership</text>
+
+            <!-- Actor Box -->
+            <g transform="translate(40, 150)">
+              <rect width="180" height="120" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+              <text x="90" y="28" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">DevOps Lead</text>
+              <text x="90" y="48" fill="#94a3b8" font-family="monospace" font-size="10" text-anchor="middle">dev-lead@brightloaf.com</text>
+              <rect x="20" y="60" width="140" height="48" rx="4" fill="#0c4a6e"/>
+              <text x="90" y="78" fill="#bae6fd" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Provision New Project</text>
+              <text x="90" y="96" fill="#7dd3fc" font-family="monospace" font-size="9" text-anchor="middle">AI Sandbox Project</text>
+            </g>
+
+            <!-- FAILED PATH (Top) -->
+            <g transform="translate(320, 75)">
+              <rect width="280" height="105" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="140" y="22" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">OVERPRIVILEGED: roles/billing.admin</text>
+              <text x="140" y="40" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">Permits payment profile modification</text>
+              <text x="140" y="58" fill="#ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Swaps invoice credit line to credit card</text>
+              <text x="140" y="76" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Bank fraud lock halts payments</text>
+              <text x="140" y="92" fill="#fda4af" font-family="monospace" font-size="9" text-anchor="middle">[FAILED PATH: Admin role mutates payment]</text>
+            </g>
+
+            <!-- FAILED DESTINATION (Top Right) -->
+            <g transform="translate(700, 75)">
+              <rect width="220" height="105" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="110" y="24" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Corporate Billing Account</text>
+              <text x="110" y="44" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">01A2B3-4C5D6E-7F8G9H</text>
+              <rect x="20" y="56" width="180" height="34" rx="4" fill="#991b1b"/>
+              <text x="110" y="72" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">PAYMENT FRAUD LOCK</text>
+              <text x="110" y="84" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="8" text-anchor="middle">Corporate account delinquency risk</text>
+            </g>
+
+            <!-- Failed path arrows -->
+            <path d="M 220 190 L 270 190 L 270 125 L 315 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow27-4-red)"/>
+            <path d="M 600 125 L 695 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow27-4-red)"/>
+
+            <!-- CORRECTED PATH (Bottom) -->
+            <g transform="translate(320, 245)">
+              <rect width="280" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="140" y="22" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">SCOPED ROLE: roles/billing.user</text>
+              <text x="140" y="40" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">Permits: billing.resourceAssociations.create</text>
+              <text x="140" y="60" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">DENIED: Payment profile modification</text>
+              <text x="140" y="78" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Finance retains sole roles/billing.admin</text>
+              <text x="140" y="98" fill="#4ade80" font-family="monospace" font-size="9" text-anchor="middle">[CORRECTED PATH: Scoped least privilege]</text>
+            </g>
+
+            <!-- CORRECTED DESTINATION (Bottom Right) -->
+            <g transform="translate(700, 245)">
+              <rect width="220" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="110" y="26" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Corporate Billing Account</text>
+              <text x="110" y="46" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">01A2B3-4C5D6E-7F8G9H</text>
+              <rect x="20" y="60" width="180" height="34" rx="4" fill="#15803d"/>
+              <text x="110" y="76" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">PAYMENT PROFILE SECURE</text>
+              <text x="110" y="90" fill="#bbf7d0" font-family="system-ui, -apple-system, sans-serif" font-size="8" text-anchor="middle">Invoice terms intact; Invariant safe</text>
+            </g>
+
+            <!-- Corrected path arrows -->
+            <path d="M 220 230 L 270 230 L 270 305 L 315 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow27-4-green)"/>
+            <path d="M 600 305 L 695 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow27-4-green)"/>
+          </svg>
+          <figcaption class="diagram-caption">Figure 27.4: Architecture comparison for Incident 27.2.
+            <br><strong>Supplied facts:</strong> Engineer granted roles/billing.admin mistakenly switched the payment instrument from corporate monthly invoicing to an unapproved credit card, triggering a bank fraud hold.
+            <br><strong>Architectural inference:</strong> roles/billing.admin conflates project association capability with financial contract governance; engineering teams only require roles/billing.user to link new projects.
+            <br><strong>Expected post-fix behavior:</strong> Non-finance staff are restricted to roles/billing.user; attempts to modify payment profiles return 403 Forbidden, and the corporate invoiced credit line remains secure.
+          </figcaption>
+        </figure>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Perform an IAM policy test verifying that an engineering principal holding <code>roles/billing.user</code> receives <code>403 PERMISSION_DENIED</code> when attempting to call <code>UpdateBillingAccount</code> or <code>UpdatePaymentInfo</code>.</p>
+        <p><strong>Residual Risk:</strong> When organizational restructuring occurs, temporary cross-functional teams may request administrative billing access. Standard operating procedures must mandate that all financial delegations go through formal Jira approvals signed by the corporate controller.</p>
+      </article>
+
+      <!-- Problem 03 -->
+      <article class="card" id="topic-03-problem" aria-labelledby="p3-heading">
+        <span class="badge danger">Incident 27.3</span>
+        <h3 id="p3-heading">Runaway Compute Drain: Unmonitored BigQuery Loop Exhausts Engineering Reserve</h3>
+
+        <div class="grid-2">
+          <div>
+            <h4>Symptom</h4>
+            <p>On Monday morning at 08:00 UTC, Brightloaf's FinOps team detected an unexpected $48,000 spend surge in project <code>brightloaf-analytics</code>. Over the Thanksgiving weekend, an automated analytical reporting pipeline executed an unconstrained query loop, consuming the team's entire quarterly cloud reserve in thirty-six hours.</p>
+          </div>
+          <div>
+            <h4>Constraints &amp; Invariant</h4>
+            <p><strong>Duplicate Fulfillment Invariant:</strong> The analytical pipeline processes audit logs of completed bread orders; cost-capping mechanisms must never terminate the transactional Cloud Spanner database or Pub/Sub dispatch queues (&le; 1 physical fulfillment).
+            <br><strong>Operational Constraint:</strong> Analytical jobs must be capped at 1TB scanned per query without manual DBA intervention.</p>
+          </div>
+        </div>
+
+        <h4>Incident Evidence</h4>
+        <pre><code class="language-text">BigQuery Job ID: bqjob_r7a89b01c23d4e5f_0000018f
+User: batch-analytics@brightloaf-analytics.iam.gserviceaccount.com
+State: DONE
+Total Bytes Billed: 140,820,192,000,000 bytes (140.82 TB)
+Estimated Job Cost: $880.12 USD
+Repetitions: 54 executions across 36 hours
+Total Incurred Cost: $47,526.48 USD</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>An analytics developer updated a scheduled reporting workflow to query the raw historical bread order archive table. The developer omitted the partition filter (<code>WHERE _PARTITIONDATE >= ...</code>) and did not configure the <code>maximum_bytes_billed</code> guardrail. The job timed out intermittently due to downstream network throttles, triggering an automatic infinite retry loop in the orchestrator. Because no Cloud Budgets or alert thresholds were configured on the newly provisioned <code>brightloaf-analytics</code> project, the pipeline silently burned nearly $50,000 before human engineers noticed.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Job Log Inspection:</strong> Query BigQuery <code>INFORMATION_SCHEMA.JOBS_BY_PROJECT</code> to identify the top cost-generating queries, scanned bytes, and recurrence rate.</li>
+          <li><strong>Pipeline Immediate Halt:</strong> Suspend the automated scheduler executing the runaway BigQuery workflow to stop ongoing financial drain.</li>
+          <li><strong>Budget Configuration Audit:</strong> Inspect Cloud Billing Budgets to verify that <code>brightloaf-analytics</code> lacked a dedicated budget and threshold alerts.</li>
+          <li><strong>Production Impact Isolation:</strong> Confirm that the runaway analytical queries were confined to the BigQuery analysis project and did not contend with transactional Spanner order processing.</li>
+          <li><strong>Cost Allocation Review:</strong> Tag the incurred spend as an operational learning defect and initiate BigQuery quota reservation controls.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Mitigation</h4>
+        <p>To eliminate silent budget exhaustion and implement automated cost controls:</p>
+        <ol>
+          <li>Configure a dedicated monthly Cloud Budget for <code>brightloaf-analytics</code> with threshold alerts at <strong>50% ($500)</strong>, <strong>90% ($900)</strong>, and <strong>100% ($1,000)</strong>.</li>
+          <li>Bind the budget to a Cloud Pub/Sub topic (<code>projects/brightloaf-analytics/topics/budget-alerts</code>).</li>
+          <li>Deploy an automated Cloud Function that triggers on the 100% threshold to automatically cancel active BigQuery query jobs and set project query quota limits to zero.</li>
+          <li>Enforce the BigQuery organizational custom constraint or client-side default: set <code>maximum_bytes_billed = 1099511627776</code> (1 TB), ensuring queries that exceed 1TB fail fast before scanning data.</li>
+        </ol>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 420" width="100%" height="auto" role="img" aria-labelledby="fig27-5-title fig27-5-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig27-5-title">Figure 27.5: Incident 27.3 Architecture - Runaway BigQuery Spend vs Automated Budget Alerting</title>
+            <desc id="fig27-5-desc">Diagram contrasting unmonitored query amplification on BigQuery resulting in budget exhaustion with early-warning budget alert thresholds and automated Pub/Sub remediation.</desc>
+            <defs>
+              <marker id="arrow27-5-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow27-5-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Header -->
+            <text x="480" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle">Figure 27.5: Runaway BigQuery Costs vs. Multi-Tier Budget Governance</text>
+            <text x="480" y="52" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">Incident 27.3 · Protecting quarterly engineering budgets with 50%, 90%, and 100% alert triggers</text>
+
+            <!-- Actor Box -->
+            <g transform="translate(40, 150)">
+              <rect width="180" height="120" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+              <text x="90" y="28" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">Analytics Pipeline</text>
+              <text x="90" y="48" fill="#94a3b8" font-family="monospace" font-size="10" text-anchor="middle">hourly-order-summary</text>
+              <rect x="20" y="60" width="140" height="48" rx="4" fill="#0c4a6e"/>
+              <text x="90" y="78" fill="#bae6fd" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Recursive Query Loop</text>
+              <text x="90" y="96" fill="#7dd3fc" font-family="monospace" font-size="9" text-anchor="middle">Scans 140TB / retry</text>
+            </g>
+
+            <!-- FAILED PATH (Top) -->
+            <g transform="translate(320, 75)">
+              <rect width="280" height="105" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="140" y="22" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">ZERO BUDGET ALERTS CONFIGURED</text>
+              <text x="140" y="40" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">No early warning thresholds</text>
+              <text x="140" y="58" fill="#ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Retries loop 120 times over weekend</text>
+              <text x="140" y="76" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Consumes $48,000 on-demand compute</text>
+              <text x="140" y="92" fill="#fda4af" font-family="monospace" font-size="9" text-anchor="middle">[FAILED PATH: Silent runaway cost]</text>
+            </g>
+
+            <!-- FAILED DESTINATION (Top Right) -->
+            <g transform="translate(700, 75)">
+              <rect width="220" height="105" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="110" y="24" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">BigQuery Billing Ledger</text>
+              <text x="110" y="44" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">brightloaf-analytics</text>
+              <rect x="20" y="56" width="180" height="34" rx="4" fill="#991b1b"/>
+              <text x="110" y="72" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">$48,000 DEBT INCURRED</text>
+              <text x="110" y="84" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="8" text-anchor="middle">Quarterly budget exhausted</text>
+            </g>
+
+            <!-- Failed path arrows -->
+            <path d="M 220 190 L 270 190 L 270 125 L 315 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow27-5-red)"/>
+            <path d="M 600 125 L 695 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow27-5-red)"/>
+
+            <!-- CORRECTED PATH (Bottom) -->
+            <g transform="translate(320, 245)">
+              <rect width="280" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="140" y="22" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">BUDGET LADDER (50% / 90% / 100%)</text>
+              <text x="140" y="40" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">50% alert at Hour 2 triggers warning</text>
+              <text x="140" y="60" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">100% threshold emits Pub/Sub event</text>
+              <text x="140" y="78" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Cloud Function terminates rogue query jobs</text>
+              <text x="140" y="98" fill="#4ade80" font-family="monospace" font-size="9" text-anchor="middle">[CORRECTED PATH: Automated cost governance]</text>
+            </g>
+
+            <!-- CORRECTED DESTINATION (Bottom Right) -->
+            <g transform="translate(700, 245)">
+              <rect width="220" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="110" y="26" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">BigQuery Billing Ledger</text>
+              <text x="110" y="46" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">brightloaf-analytics</text>
+              <rect x="20" y="60" width="180" height="34" rx="4" fill="#15803d"/>
+              <text x="110" y="76" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">SPEND CAPPED AT $1,000</text>
+              <text x="110" y="90" fill="#bbf7d0" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Fulfillment safe; Invariant preserved</text>
+            </g>
+
+            <!-- Corrected path arrows -->
+            <path d="M 220 230 L 270 230 L 270 305 L 315 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow27-3-green)"/>
+            <path d="M 600 305 L 695 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow27-3-green)"/>
+          </svg>
+          <figcaption class="diagram-caption">Figure 27.5: Architecture comparison for Incident 27.3.
+            <br><strong>Supplied facts:</strong> Recursive BigQuery batch query on unpartitioned order audit logs looped over a holiday weekend without budget alerts, accumulating $48,000 in unmonitored compute charges.
+            <br><strong>Architectural inference:</strong> BigQuery on-demand analysis charges per byte scanned; absent threshold alerts and query byte limits, failed retry pipelines can consume arbitrary cloud capital.
+            <br><strong>Expected post-fix behavior:</strong> Standard 50%, 90%, and 100% budget alerts are configured before deploying analytical workloads; Pub/Sub events trigger automated query cancellation and enforce maximum bytes billed limits.
+          </figcaption>
+        </figure>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Execute a synthetic test query exceeding 1TB scanned bytes against the BigQuery project. Verify that the query engine rejects execution with <code>Query exceeded limit for bytes billed: 1099511627776</code> before any charges are incurred.</p>
+        <p><strong>Residual Risk:</strong> Legitimate heavy analytics queries required for monthly financial reconciliation may exceed the 1TB cap. SREs must maintain a dedicated query reservation pool for approved heavy workloads.</p>
+      </article>
+    </section>

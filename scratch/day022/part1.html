@@ -1,0 +1,28 @@
+    <section class="part" id="part-1" aria-labelledby="part-1-title">
+      <h2 id="part-1-title">1 · Concepts and problem previews</h2>
+
+      <article class="topic-card" id="topic-01-overview">
+        <h3>Resources and additive IAM inheritance</h3>
+        <p><strong>What it is:</strong> In the Google Cloud resource hierarchy, Identity and Access Management (IAM) policies flow strictly downward from the apex Organization node through intermediate Folders to Projects and individual Leaf Resources. The fundamental governing principle of cloud access control is that IAM allow policies are strictly <em>additive</em>: the effective permissions granted to a security principal on a target resource represent the mathematical union of all role bindings assigned at the resource itself, its parent project, and every ancestor folder up to the organization root. An allow permission granted at an ancestor folder or organization container cannot be revoked, attenuated, or overridden by a more restrictive IAM binding assigned at a child project or leaf resource.</p>
+        <p><strong>Why today:</strong> Building directly upon the container architecture established on <a href="day-021.html">Day 21</a>, cloud architects must master how security policies propagate through that structure before configuring enterprise access. A widespread architectural error is assuming that project-level role bindings can restrict broader folder-level permissions, leading teams to assign broad roles like <code>roles/editor</code> at high folder tiers and inadvertently exposing production databases across all child workloads with no leaf-level remedy short of explicit IAM Deny policies.</p>
+        <p><strong>Where it sits:</strong> At the heart of the Google Cloud IAM Policy Evaluation Engine within the control plane. Every API request directed to a Google Cloud service triggers a hierarchical traversal that computes the effective permission set via mathematical union across all ancestor resource policies, validating whether the principal possesses the required authorization before granting execution access.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>A franchise infrastructure administrator assigns the broad <code>roles/editor</code> role to an external contractor group at the parent <code>Analytics</code> folder level while attempting to restrict them with a <code>roles/viewer</code> role on the child production order project. Because IAM allow bindings are strictly additive across the hierarchy, the contractor automation script retained full write privileges, accidentally dropping the primary production fulfillment queue table and halting morning bakery order processing across 450 franchise stores.</p>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-overview">
+        <h3>Labels vs. tags vs. network tags</h3>
+        <p><strong>What it is:</strong> Google Cloud provides three completely distinct metadata mechanisms that are frequently conflated due to similar terminology:
+        <strong>Resource Labels</strong> (client-managed key-value metadata attached to resources for cost allocation, BigQuery billing export grouping, and script inventory filtering),
+        <strong>Resource Manager Tags</strong> (strongly typed, centrally governed key-value resources created under the Organization or Folder tree, inherited down the container hierarchy, and evaluated within IAM Conditions and Organization Policies), and
+        <strong>Network Tags</strong> (ephemeral, unvalidated string attributes attached strictly to Compute Engine VM instances and templates for VPC firewall packet filtering and custom route evaluation).</p>
+        <p><strong>Why today:</strong> Enterprise architects must establish disciplined governance, cost management, and network security boundaries without confusing operational metadata with cryptographic security controls. Mistaking a non-authoritative billing label for a firewall tag leaves mission-critical databases exposed to untrusted subnets, while failing to control VM-level network tags allows compute instance administrators to bypass network security perimeters.</p>
+        <p><strong>Where it sits:</strong> Across three entirely separate architectural planes: Resource Labels operate in the Resource Metadata and Cloud Billing export plane; Resource Manager Tags operate in the Resource Manager, IAM Conditional Policy, and Organization Policy governance plane; and Network Tags operate exclusively in the VPC Virtual Distributed Router and firewall data plane.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>A DevOps automation script applies resource labels with <code>role: order-db</code> to production database virtual machines, expecting VPC firewall rules targeting the <code>order-db</code> tag to restrict inbound connections to port 5432. Because VPC firewalls evaluate network tags rather than resource labels, the database instances received zero tag-based firewall filtering and defaulted to an open internal subnet rule, exposing raw customer payment tokens to a compromised staging development container and triggering an immediate regulatory audit.</p>
+        </div>
+      </article>
+    </section>

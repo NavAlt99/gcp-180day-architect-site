@@ -1,0 +1,36 @@
+    <section class="part" id="part-1" aria-labelledby="part-1-title">
+      <h2 id="part-1-title">1 · Concepts and problem previews</h2>
+
+      <article class="topic-card" id="topic-01-overview">
+        <h3>Cloud Shell architecture, persistent storage, and ephemeral runtime</h3>
+        <p><strong>What it is:</strong> Cloud Shell is an online bash development and administrative environment provisioned automatically from the Google Cloud Console. Backed by an ephemeral Debian Linux Compute Engine virtual machine container, it mounts a persistent 5&nbsp;GB disk under the user's home directory (<code>/home/$USER</code>) and arrives pre-authenticated with the active Google Cloud user session. Pre-installed with major DevOps and cloud management utilities—including the Google Cloud CLI, Terraform, Docker, Git, Python, and language compilers—Cloud Shell provides an immediate command-line control plane without requiring local workstation installations or firewall exceptions.</p>
+        <p><strong>Why today:</strong> Having established sandbox billing controls and account hierarchies on <a href="day-018.html">Day 18</a>, architects need an operational interface to inspect resources, query APIs, and validate sandbox security settings. Understanding Cloud Shell is critical because its hybrid architecture—combining a temporary container runtime with persistent disk storage—establishes the fundamental boundary between ephemeral compute states and persistent data volumes in cloud design.</p>
+        <p><strong>Where it sits:</strong> Cloud Shell resides in a Google-managed tenant project outside the customer's Virtual Private Cloud (VPC). It connects securely to the Google Cloud management API control plane (<code>*.googleapis.com</code>) via internal Google frontends, exposing an integrated Web Preview reverse proxy that tunnels local HTTP listeners on the container out to authenticated browser sessions.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>An engineer customizes system-level packages in <code>/usr/local</code> and starts a background daemon during an urgent production debugging session, only to discover all customizations and background jobs vanished after a 20-minute idle disconnect. The incident response stalled during an active bakery dispatch outage, doubling mean time to recovery while the team scrambled to reconstruct missing diagnostics tools.</p>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-overview">
+        <h3>Local gcloud installation, core properties, and named configuration profiles</h3>
+        <p><strong>What it is:</strong> The Google Cloud CLI (<code>gcloud</code>) is the primary local command-line interface for deploying, configuring, and operating Google Cloud services. Its runtime state is governed by structured properties—including <code>core/project</code>, <code>core/account</code>, <code>compute/region</code>, and <code>compute/zone</code>—which can be organized into distinct, named configuration profiles stored in the user's local configuration directory (<code>~/.config/gcloud/configurations/</code>). Named configurations allow operators to switch seamlessly between development, staging, and production environments without continually passing manual parameters or re-authenticating.</p>
+        <p><strong>Why today:</strong> Relying exclusively on Cloud Shell is insufficient for production operations requiring automated local scripts, IDE integrations, and isolated identity boundaries. Establishing disciplined local <code>gcloud</code> configuration management on Day 19 prevents the cross-project operational drift that causes accidental modifications across enterprise project boundaries.</p>
+        <p><strong>Where it sits:</strong> Installed locally on engineer workstations, CI/CD runners, and bastion hosts, <code>gcloud</code> manages OAuth 2.0 refresh tokens, constructs signed REST and gRPC API payloads, and persists local preferences. It enforces a strict property evaluation hierarchy, resolving parameters sequentially across command-line flags, environment variables, active named configurations, and system defaults.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>An automation engineer switches active configurations in terminal A but executes a destructive bucket cleanup script in terminal B where an inherited environment variable overrides the expected project context. Brightloaf's staging cleanup script purged production order reconciliation tables, halting payment auditing and delaying automated franchisee settlement payouts for twelve hours.</p>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-03-overview">
+        <h3>Specialized cloud tooling: gcloud storage vs gsutil, BigQuery CLI, and kubectl</h3>
+        <p><strong>What it is:</strong> Google Cloud provides specialized command-line utilities tailored to distinct resource domains: <code>gcloud</code> storage is the modern, high-performance CLI for Cloud Storage replacing the legacy Python-based <code>gsutil</code>; <code>bq</code> is the command-line client for BigQuery data warehousing and analytics queries; and <code>kubectl</code> is the upstream Kubernetes CLI, integrated with Google Kubernetes Engine (GKE) through the <code>gke-gcloud-auth-plugin</code>. While all three interface with Google Cloud services, they maintain separate credential resolution workflows and configuration storage backends.</p>
+        <p><strong>Why today:</strong> Cloud enterprise architectures extend beyond basic infrastructure provisioning. Real-world solutions require uploading assets to object stores, querying analytical datasets, and managing containerized workloads. Mastering how these specialized tools authenticate and locate their target resources is essential to ensure operational commands reach the correct infrastructure endpoints.</p>
+        <p><strong>Where it sits:</strong> These tools run alongside <code>gcloud</code> in local environments and Cloud Shell. While <code>gcloud</code> storage is fully unified into the core SDK binary and <code>bq</code> directly inherits active SDK credentials, <code>kubectl</code> relies on a separate client configuration file (<code>~/.kube/config</code>). Because <code>kubectl</code> does not automatically track active <code>gcloud</code> project changes, an architectural decoupling exists between the GCP project context and the Kubernetes cluster target.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>A developer updates <code>gcloud</code> config to point to <code>brightloaf-dev</code> and issues a namespace deletion command believing the Kubernetes context automatically followed the active Google Cloud project. The command executed against the production GKE cluster referenced by the untouched kubeconfig context, tearing down Brightloaf's live delivery dispatch microservices and dropping four thousand in-flight orders.</p>
+        </div>
+      </article>
+    </section>

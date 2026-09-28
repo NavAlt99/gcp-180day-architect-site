@@ -1,0 +1,40 @@
+<main id="main" class="container day" data-day="66" data-prev="day-065.html" data-next="day-067.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 66 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">tabletop / design</span>
+<span class="pill">Topics 021</span>
+</div>
+<h1>Day 66 — Reproduce and recover the integrated baseline</h1>
+<p class="lead"><strong>Outcome:</strong> Rebuild the small baseline from recorded steps, introduce a single connection or consumer failure and recover it; compare alternate runtimes by diagram.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-065.html">Day 65</a>, <a href="day-057.html">Day 57</a>; bring their exit artifacts.</p></div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A reproducibility log, recovery runbook and inventory/cleanup evidence rather than several new deployments.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Reproduce, diagnose and restore the integrated application</span>
+<a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a>
+</div>
+</aside>
+
+<section id="part-1" class="part"><h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>Reproduce, diagnose and restore the integrated application</h3>
+<p>Enterprise cloud architecture transitions from theoretical design to operational maturity through deterministic reproducibility and automated fault recovery. While Day 65 integrated Brightloaf&#39;s baseline order flow across managed services, Day 66 subjects that baseline to the operational crucible: rebuilding the complete multi-tier topology from declarative Infrastructure as Code (IaC) manifests and controlled gcloud workflows, methodically injecting critical failure modes across datastore, messaging, and identity boundaries, and establishing defensible recovery procedures measured by strict Recovery Time Objectives (RTO) and Mean Time to Recovery (MTTR). The reproducible baseline encompasses a Global external Application Load Balancer (ALB) terminating client HTTPS with Cloud Armor defense-in-depth, routing through Serverless Network Endpoint Groups (NEGs) to containerized <code>order-service</code> instances on Cloud Run. The runtime tier leverages Direct VPC Egress allocated across a dedicated <code>/24</code> subnet to privately reach Cloud SQL for PostgreSQL Regional High Availability via Private Service Connect (PSC endpoint <code>10.128.0.50/32</code>), completely bypassing public IP exposure. Transaction events dispatch to a Cloud Pub/Sub topic (<code>orders.v1</code>) enforcing strict ordering keys and Dead-Letter Topic (DLT) quarantine policies, ingested by an asynchronous fulfillment worker operating under least-privilege Cloud Run Invoker IAM service account perimeters.</p>
+<p>Architecting for failure requires mastering three distinct failure injection vectors: (1) <strong>Datastore Loss and Connection Exhaustion</strong>, evaluating decoupled <code>/healthz</code> (liveness) and <code>/readyz</code> (readiness) probe mechanics and client-side circuit breakers when PSC routes fail or connection limits saturate; (2) <strong>Poison Pill Payload Quarantine</strong>, validating that malformed or unprocessable messages with active ordering keys are redirected to a dead-letter queue after <code>maxDeliveryAttempts: 5</code> without inducing permanent head-of-line blocking on customer message partitions; and (3) <strong>Identity Token Breach and Perimeter Defense</strong>, proving that unauthenticated or unauthorized callers are decisively rejected at the Google Front End (GFE) proxy layer with HTTP 401 Unauthorized and HTTP 403 Forbidden responses before consuming compute resources. Furthermore, architects must rigorously evaluate multi-runtime trade-offs—contrasting Cloud Run&#39;s zero-to-N serverless agility against GKE&#39;s Pod-level networking, Compute Engine MIGs&#39; stateful kernel control, and Cloud Functions&#39; single-event triggers—while enforcing a deterministic, reverse-dependency resource teardown lifecycle that prevents costly orphaned cloud infrastructure and lingering IP reservation leaks.</p>
+<p>A silent Private Service Connect network partition during database failover trips connection pools without failing container liveness probes, while an unquarantined poison pill message permanently stalls the regional Pub/Sub ordering partition. The resulting hanging socket storm and head-of-line fulfillment blockage cause 24,000 order checkouts to hang until gateway timeout, stranding $168,000 in revenue and accumulating $14,200 in orphaned cloud billing leaks during disaster recovery.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+</section>

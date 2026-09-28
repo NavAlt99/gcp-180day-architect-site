@@ -1,0 +1,355 @@
+<section id="part-2" class="part"><h2>2 · Technical discussion of each topic</h2>
+<!-- PART_2_SVG_PLACEHOLDER -->
+
+<article id="topic-01-technical" class="topic-card">
+<h3>End-to-end integration baseline: Runtime, private datastore, and asynchronous event consumer</h3>
+<p>Modern enterprise cloud architectures require integrating disparate managed services into a hardened, highly available, and secure transactional fabric. For enterprise retailer Brightloaf, establishing a single end-to-end order processing baseline requires coordinating public edge ingress, serverless container execution, private relational database connectivity, and resilient asynchronous event choreography. Rather than deploying fragmented proof-of-concept topologies across multiple unhardened runtimes, the production baseline standardizes on a concrete, fully secured path:</p>
+<ol>
+<li><strong>Client Ingress &amp; Edge Security:</strong> Public client requests terminate on a Global external Application Load Balancer (ALB). Edge defenses are enforced by Cloud Armor security policies (providing DDoS mitigation, geographic filtering, and WAF rules against SQL injection and cross-site scripting) and Google-managed TLS 1.3 certificates terminating at the Google Front End (GFE). The ALB URL map routes traffic targeting <code>/v1/orders</code> to a Serverless Network Endpoint Group (NEG) pointing to the regional compute runtime.</li>
+<li><strong>Containerized Compute Runtime:</strong> The <code>order-service</code> application executes on Google Cloud Run in <code>us-central1</code>, running under a dedicated least-privilege service account (<code>sa-order-service@brightloaf-prod.iam.gserviceaccount.com</code>). Cloud Run provides automated horizontal autoscaling from zero up to hundreds of container instances, ephemeral execution isolation, and native ingress access controls.</li>
+<li><strong>Direct VPC Egress Network Boundary:</strong> Unlike legacy Serverless VPC Access connectors—which required provisioning and managing clusters of <code>e2-micro</code> connector VMs that introduced throughput bottlenecks (limited to 200–660 Mbps) and scaling delays—the Cloud Run service leverages <strong>Direct VPC Egress</strong>. Direct VPC Egress assigns an elastic virtual network interface directly to each Cloud Run container instance within a dedicated VPC subnet (e.g., <code>10.128.10.0/24</code> in <code>brightloaf-vpc</code>). This provides sub-millisecond network latency, up to 100 Gbps egress throughput, and native RFC 1918 private routing directly to internal Google Cloud resources without intermediary NAT hops.</li>
+<li><strong>Private Relational Datastore via Private Service Connect (PSC):</strong> The runtime connects to a Regional High Availability Cloud SQL for PostgreSQL 16 cluster. To eliminate public IP exposure while avoiding the cross-VPC IP address overlap constraints and peering route limits of legacy VPC Peering (Private Services Access / PSA), the database is exposed via <strong>Private Service Connect (PSC)</strong>. The Cloud SQL producer publishes a Service Attachment, and the consumer project creates a PSC forwarding rule with an internal static IP address (<code>10.128.0.50/32</code>) bound to port <code>5432</code> with private DNS record <code>pg.orders.internal</code>. All database TCP packets travel entirely over Google's internal software-defined network (Andromeda).</li>
+<li><strong>Asynchronous Event Pipeline:</strong> Upon committing an order transaction, the runtime emits a domain event to a Cloud Pub/Sub topic (<code>orders.v1</code>). To guarantee causal ordering for state updates per customer or order, messages are published with <code>ordering_key = order_id</code>. A Dead Letter Topic (<code>orders.v1.deadletter</code>) is attached with <code>maxDeliveryAttempts = 5</code> to isolate unparseable payloads without halting the ordered partition.</li>
+<li><strong>Asynchronous Fulfillment Worker:</strong> An asynchronous background service (<code>fulfillment-service</code>) running under identity <code>sa-fulfillment@brightloaf-prod.iam.gserviceaccount.com</code> consumes events via a Pull subscription using the StreamingPull gRPC protocol. The worker enforces idempotency via a dedicated deduplication table and executes inventory dispatch.</li>
+</ol>
+
+<h4>Health Checking Architecture: Decoupling Liveness (/healthz) from Readiness (/readyz)</h4>
+<p>In containerized and serverless environments, conflating liveness and readiness probes is a primary catalyst for cascading platform outages. Cloud Run and load balancers must evaluate these two lifecycle signals independently:</p>
+<ul>
+<li><strong>Liveness Probe (<code>/healthz</code>):</strong> Validates whether the container runtime process and HTTP event loop are functioning and not deadlocked. The liveness check executes lightweight local assertions (process uptime, memory headroom) without querying downstream remote databases. If <code>/healthz</code> fails repeatedly (e.g., 3 consecutive failures over 30 seconds), the Cloud Run orchestrator assumes an unrecoverable process hang and restarts the container instance.</li>
+<li><strong>Readiness Probe (<code>/readyz</code>):</strong> Validates whether the container instance has fully initialized its internal state and is capable of serving incoming user traffic without error. Crucially, the readiness probe verifies that the database connection pool (e.g., HikariCP or SQLAlchemy connection pool) has successfully established valid TCP sockets to the Cloud SQL PSC endpoint (<code>10.128.0.50:5432</code>) and completed initial authentication handshakes. If a newly spawned container is experiencing connection pool throttling or during a database failover blip, <code>/readyz</code> returns <code>HTTP 503 Service Unavailable</code>. The ALB immediately stops dispatching ingress traffic to that container instance until the pool recovers, preventing user checkout requests from encountering connection reset errors.</li>
+</ul>
+
+<h4>Connection Pool Sizing and Exhaustion Prevention</h4>
+<p>Because Cloud Run instances scale horizontally and dynamically based on incoming request concurrency, unmanaged connection pooling will instantly overwhelm the backend PostgreSQL database. In PostgreSQL, each client connection spawns a dedicated operating system backend process on the database VM, consuming between 2 MB and 10 MB of RAM plus transaction memory buffers. Sizing connection pools across autoscaling serverless instances requires strict mathematical limits:</p>
+<div class="callout">
+<strong>Connection Pool Sizing Invariant:</strong> The total potential connections across all autoscaled Cloud Run instances must not exceed PostgreSQL's <code>max_connections</code> minus reserved superuser headroom:<br>
+<code>(Cloud Run Max Instances) &times; (Max Pool Size per Instance) &lt; (PostgreSQL max_connections - 10)</code>
+</div>
+<p>For Brightloaf, if Cloud Run is configured with <code>max-instances = 40</code>, setting the connection pool to <code>max_connections = 5</code> per container caps peak database load at 200 concurrent connections. For higher concurrency requirements, architects insert an intermediate connection pooler—such as PgBouncer deployed with transaction-level pooling—or route connections through the Cloud SQL Auth Proxy configured with connection multiplexing.</p>
+
+<h4>Service-to-Service IAM &amp; OpenID Connect (OIDC) Token Verification</h4>
+<p>To establish a zero-trust network architecture, the <code>order-service</code> ingress perimeter disables unauthenticated access (<code>--no-allow-unauthenticated</code>). Upstream callers (such as API Gateways or internal dispatchers) must authenticate using Google Cloud's native OpenID Connect (OIDC) infrastructure:</p>
+<ol>
+<li><strong>Token Minting:</strong> The caller's runtime requests a signed OIDC ID token from Google's local metadata server (<code>http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://order-service-xyz-uc.a.run.app</code>). The token is a cryptographically signed JSON Web Token (JWT) containing standard claims: <code>iss</code> (<code>https://accounts.google.com</code>), <code>sub</code> (caller service account unique ID), <code>email</code> (caller service account email), <code>aud</code> (target service URL), and <code>exp</code> (expiration timestamp, typically 3600 seconds).</li>
+<li><strong>Header Transmission:</strong> The caller transmits the token in the standard HTTP request header: <code>Authorization: Bearer &lt;id_token&gt;</code>.</li>
+<li><strong>Signature and Claims Verification:</strong> As the request crosses the Cloud Run GFE proxy boundary, Google's infrastructure validates the token's RSA signature using Google's public JWKS certificates (<code>https://www.googleapis.com/oauth2/v3/certs</code>). The proxy verifies that the token has not expired and that the <code>aud</code> claim matches the target Cloud Run service URL.</li>
+<li><strong>IAM Authorization Check:</strong> The proxy verifies that the caller principal (e.g., <code>caller-service@brightloaf-prod.iam.gserviceaccount.com</code>) holds the <strong>Cloud Run Invoker</strong> role (<code>roles/run.invoker</code>) on the <code>order-service</code> resource.</li>
+<li><strong>Boundary Enforcement:</strong>
+<ul>
+<li>If the <code>Authorization</code> header is omitted or contains an expired token, the request is instantly rejected with <strong><code>HTTP 401 Unauthorized</code></strong>.</li>
+<li>If the token signature is valid but the principal lacks <code>roles/run.invoker</code>, the request is rejected with <strong><code>HTTP 403 Forbidden</code></strong>.</li>
+<li>Only fully authenticated and authorized requests are admitted to the container runtime.</li>
+</ul>
+</li>
+</ol>
+
+<h4>End-to-End Integration Stack Comparisons</h4>
+<p>Evaluating compute, datastore networking, and asynchronous messaging architectures across Google Cloud requires analyzing throughput, security perimeters, and operational overhead:</p>
+
+<table class="comparison-table">
+<thead>
+<tr>
+<th>Architecture Tier</th>
+<th>Selected Baseline Component</th>
+<th>Alternative GCP Option</th>
+<th>Network &amp; Security Integration</th>
+<th>Scaling &amp; Latency Characteristics</th>
+<th>Architectural Trade-off &amp; Decision Driver</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Client Ingress &amp; Edge</strong></td>
+<td>Global External ALB + Cloud Armor + Managed TLS</td>
+<td>Regional External ALB or API Gateway</td>
+<td>Anycast public VIP, GFE termination, Cloud Armor WAF rules, Serverless NEG backend</td>
+<td>Sub-30ms global edge termination; 1M+ QPS DDoS absorption; HTTP/2 and HTTP/3 support</td>
+<td>Global ALB provides centralized WAF and multi-region failover; Regional ALB is lower cost but lacks anycast routing and cross-region resilience.</td>
+</tr>
+<tr>
+<td><strong>Compute Runtime (API)</strong></td>
+<td>Cloud Run (<code>order-service</code>)</td>
+<td>GKE Autopilot or Compute Engine MIG</td>
+<td>Dedicated Service Account, IAM Invoker check, Direct VPC Egress into internal subnet</td>
+<td>Rapid scale-from-zero (sub-second cold start); concurrency up to 1,000 req/container</td>
+<td>Cloud Run eliminates node patch toil and idle cost; GKE Autopilot offers advanced DaemonSets and service mesh (Istio) for complex topologies.</td>
+</tr>
+<tr>
+<td><strong>Private Datastore Path</strong></td>
+<td>Private Service Connect (PSC) Forwarding Rule</td>
+<td>VPC Peering (PSA) or Serverless VPC Connector</td>
+<td>Dedicated <code>/32</code> IP in consumer subnet; zero route exchange; private DNS mapping</td>
+<td>Line-rate Andromeda SDN throughput; sub-millisecond local network latency; no VM bottlenecks</td>
+<td>PSC avoids IP address space collisions and peering quota limits; legacy PSA peering requires rigid non-overlapping CIDR blocks and transit peering hurdles.</td>
+</tr>
+<tr>
+<td><strong>Relational Datastore</strong></td>
+<td>Cloud SQL for PostgreSQL 16 (Regional HA)</td>
+<td>AlloyDB for PostgreSQL or Spanner</td>
+<td>Primary/Standby across 2 zones; synchronous WAL replication; Cloud SQL Auth Proxy / IAM DB auth</td>
+<td>Regional RPO = 0, RTO &lt; 60s; vertical scaling up to 96 vCPUs and 624 GB RAM</td>
+<td>Cloud SQL offers turnkey PostgreSQL compatibility and predictable pricing; AlloyDB offers 4x transactional throughput for extreme write bursts.</td>
+</tr>
+<tr>
+<td><strong>Event Broker &amp; Pipeline</strong></td>
+<td>Cloud Pub/Sub (<code>orders.v1</code>)</td>
+<td>Cloud Tasks or Eventarc</td>
+<td>Global broker, partition serialization via <code>ordering_key</code>, Dead Letter Topic isolation</td>
+<td>Horizontal partition scaling; sub-100ms publish latency; durable message retention up to 31 days</td>
+<td>Pub/Sub enables broadcast fan-out to multiple subscribers (analytics, billing); Cloud Tasks is strictly point-to-point queueing with rate throttling.</td>
+</tr>
+<tr>
+<td><strong>Asynchronous Consumer</strong></td>
+<td>Fulfillment Worker (Cloud Run / GKE)</td>
+<td>Cloud Functions or Workflows</td>
+<td>StreamingPull subscription; client lease management; crash-before-ack deduplication</td>
+<td>Continuous pull streaming; low per-message dispatch overhead; horizontal worker autoscaling</td>
+<td>Long-running worker enables connection reuse and high batch throughput; Cloud Functions incurs invocation billing per individual message.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Distributed Identity &amp; Token Verification Mechanisms</h4>
+<p>Authenticating workloads across distributed boundaries requires choosing token formats aligned with the security perimeter and trust domain:</p>
+
+<table class="comparison-table">
+<thead>
+<tr>
+<th>Authentication Mechanism</th>
+<th>Protocol &amp; Token Format</th>
+<th>Issuer &amp; Verification Authority</th>
+<th>Verification Latency &amp; Caching</th>
+<th>Target GCP Integration Boundary</th>
+<th>Failure Mode &amp; Security Rejection Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Google OIDC ID Token</strong></td>
+<td>OpenID Connect / JWT (RSA-256 signed)</td>
+<td>Google Accounts (<code>accounts.google.com</code>) via Google Public JWKS</td>
+<td>Sub-millisecond local verification via cached public keys (TTL: 6 hours)</td>
+<td>Service-to-Service: API Gateway &rarr; Cloud Run, Cloud Tasks &rarr; Cloud Run</td>
+<td>Expired or missing token &rarr; <code>HTTP 401 Unauthorized</code>; Missing IAM role &rarr; <code>HTTP 403 Forbidden</code></td>
+</tr>
+<tr>
+<td><strong>OAuth 2.0 Access Token</strong></td>
+<td>Google OAuth2 Bearer Token (opaque or JWT)</td>
+<td>Google OAuth2 Token Service (<code>oauth2.googleapis.com</code>)</td>
+<td>Requires remote tokeninfo call or GFE proxy validation</td>
+<td>Service-to-Google API: Cloud Run &rarr; Cloud Pub/Sub, Cloud Run &rarr; Cloud Storage</td>
+<td>Expired token &rarr; <code>401 UNAUTHENTICATED</code> (gRPC code 16); Insufficient OAuth scope &rarr; <code>403 PERMISSION_DENIED</code> (gRPC code 7)</td>
+</tr>
+<tr>
+<td><strong>IAM Database Authentication</strong></td>
+<td>Short-lived OAuth2 Token / Ephemeral SSL Cert</td>
+<td>Cloud SQL Admin API + Google IAM Authority</td>
+<td>Generated via Cloud SQL Auth Proxy; refreshed automatically every 55 minutes</td>
+<td>Compute Runtime &rarr; Cloud SQL PostgreSQL (Port 5432)</td>
+<td>Expired token &rarr; <code>FATAL: PAM authentication failed for user "sa-name"</code> (PostgreSQL error 28000)</td>
+</tr>
+<tr>
+<td><strong>Workload Identity Federation</strong></td>
+<td>OIDC / SAML 2.0 Exchange for GCP STS Token</td>
+<td>External IdP (AWS STS, Azure AD, GitHub Actions, K8s)</td>
+<td>Two-step STS exchange: external token traded for short-lived GCP access token</td>
+<td>Multi-Cloud / CI/CD: External runner &rarr; GCP Resource Deployment</td>
+<td>Invalid STS assertion &rarr; <code>HTTP 400 Bad Request: Invalid token assertion</code></td>
+</tr>
+<tr>
+<td><strong>Mutual TLS (mTLS)</strong></td>
+<td>X.509 Client and Server Certificates</td>
+<td>Enterprise Private CA (Certificate Authority Service)</td>
+<td>Hardware/TLS-accelerated handshake verification on initial TCP connection</td>
+<td>Zero-Trust Service Mesh: GKE Pod &rarr; GKE Pod across VPC</td>
+<td>Certificate untrusted or expired &rarr; SSL Handshake Failure (Connection Reset)</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it:</strong>
+<p>Input: Ingress request reaches Cloud Run with an expired OIDC token, and a concurrent database connection surge exhausts the pool. Expected: Cloud Run GFE proxy immediately rejects the unauthenticated request with <code>HTTP 401 Unauthorized</code> without executing application code or consuming database sockets; concurrently, <code>/readyz</code> returns <code>HTTP 503</code> to divert ingress traffic away from the exhausted instance until the pool re-establishes.</p>
+</div>
+
+<div class="callout">
+<strong>Further study:</strong>
+<p><a href="../sources.html#topic-021">Topic 021 source section</a> in this site, with original publisher links and the reading context.</p>
+<p>Publisher documentation:</p>
+<ul>
+<li><a href="https://cloud.google.com/run/docs/authenticating/service-to-service" rel="noopener noreferrer">Cloud Run Service-to-Service Authentication</a> — Official Google Cloud guide on generating and validating OIDC ID tokens.</li>
+<li><a href="https://cloud.google.com/run/docs/configuring/vpc-direct-vpc-egress" rel="noopener noreferrer">Cloud Run Direct VPC Egress</a> — Architecture, subnet allocation, and private routing setup.</li>
+<li><a href="https://cloud.google.com/sql/docs/postgres/private-service-connect" rel="noopener noreferrer">Cloud SQL Private Service Connect Configuration</a> — Connecting to PostgreSQL instances via consumer PSC forwarding rules.</li>
+</ul>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Preserve request IDs, identities, and business invariants across the distributed path</h3>
+<p>In distributed transaction processing, propagating context and guaranteeing invariants across network, process, and broker boundaries is essential for transactional correctness and rapid observability. Without strict context preservation, distributed architectures degrade into un-debuggable black boxes where lost records, duplicate charges, and data corruption cannot be linked to specific ingress requests.</p>
+
+<h4>Distributed Tracing: W3C Trace Context and Request ID Correlation</h4>
+<p>Modern distributed tracing is standardized on the <strong>W3C Trace Context</strong> specification. Every transaction traversing Brightloaf's architecture is tracked via the <code>traceparent</code> header, formatted as four hyphen-separated fields: <code>version-trace_id-parent_id-trace_flags</code>:</p>
+<div class="callout">
+<strong>W3C Traceparent Structure:</strong><br>
+<code>00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01</code><br>
+&bull; <strong>version (2 hex chars):</strong> <code>00</code> (current standard).<br>
+&bull; <strong>trace_id (32 hex chars / 16 bytes):</strong> <code>4bf92f3577b34da6a3ce929d0e0e4736</code> — globally unique identifier for the entire end-to-end request transaction.<br>
+&bull; <strong>parent_id / span_id (16 hex chars / 8 bytes):</strong> <code>00f067aa0ba902b7</code> — unique identifier of the specific parent hop or operation.<br>
+&bull; <strong>trace_flags (2 hex chars / 8-bit bitmap):</strong> <code>01</code> indicates sampled recording enabled.
+</div>
+
+<p>The trace context flows seamlessly across all five tiers of the architecture:</p>
+<ol>
+<li><strong>Edge Injection:</strong> When an HTTP request enters the Global ALB, the Google Front End (GFE) inspects incoming headers. If a valid <code>traceparent</code> is present, the GFE preserves it; if absent, the GFE generates a new <code>trace_id</code> and initial <code>span_id</code>. The ALB also generates a unique correlation identifier: <code>X-Request-Id: req-8942-ord-a1b2c3</code>.</li>
+<li><strong>Runtime Extraction:</strong> The Cloud Run <code>order-service</code> framework extracts <code>traceparent</code> and <code>X-Request-Id</code> from incoming headers and binds them to the execution thread's context (using OpenTelemetry SDK or Python <code>contextvars</code>). All application log entries emit structured JSON payloads containing <code>logging.googleapis.com/trace: "projects/brightloaf-prod/traces/4bf92f3577b34da6a3ce929d0e0e4736"</code> and <code>logging.googleapis.com/spanId: "1a2b3c4d5e6f7081"</code>.</li>
+<li><strong>Database Query Tracing (SQLCommenter):</strong> When the application executes SQL queries against Cloud SQL over the PSC socket, it uses SQLCommenter to append trace metadata as a trailing comment:
+<pre><code>INSERT INTO orders (id, customer_id, total, status) VALUES ('ord-42', 'cust-99', 42.50, 'CREATED') /*traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-1a2b3c4d5e6f7081-01',x_request_id='req-8942-ord'*/;</code></pre>
+This correlates Cloud SQL query execution metrics in Cloud Logging and Database Insights directly to the originating client HTTP span.</li>
+<li><strong>Broker Context Propagation:</strong> Because Cloud Pub/Sub operates at the transport layer, it does not automatically inspect or forward HTTP headers. When the runtime publishes to <code>orders.v1</code>, it explicitly injects the trace context into the Pub/Sub message attributes:
+<pre><code>attributes = {
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-1a2b3c4d5e6f7081-01",
+    "x-request-id": "req-8942-ord-a1b2c3",
+    "ordering_key": "ord-42"
+}</code></pre>
+</li>
+<li><strong>Consumer Span Resumption:</strong> The asynchronous fulfillment worker receives the message, reads the <code>traceparent</code> attribute, instantiates a child span (<code>span_id: a9b8c7d6e5f43210</code>) linked to parent <code>1a2b3c4d5e6f7081</code>, and logs all fulfillment activity under the identical <code>trace_id</code>. In Cloud Trace, this renders a complete, unbroken flamegraph spanning the browser, load balancer, API runtime, database, messaging broker, and background consumer.</li>
+</ol>
+
+<h4>Distributed Tracing &amp; Correlation Header Standards Comparison</h4>
+<table class="comparison-table">
+<thead>
+<tr>
+<th>Header Standard</th>
+<th>Syntax &amp; Example</th>
+<th>ALB / GFE Handling</th>
+<th>Messaging (Pub/Sub) Propagation</th>
+<th>Cloud Trace &amp; Logging Ingestion</th>
+<th>Interoperability &amp; Architectural Standard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>W3C Trace Context (traceparent)</strong></td>
+<td><code>traceparent: 00-4bf92f...-00f067...-01</code></td>
+<td>Preserves incoming; generates new span_id; injects if missing</td>
+<td>Must be explicitly mapped to Pub/Sub message attributes</td>
+<td>Native ingestion via Google Cloud OpenTelemetry exporters</td>
+<td><strong>Universal standard:</strong> Mandatory for all modern polyglot distributed microservices.</td>
+</tr>
+<tr>
+<td><strong>W3C Trace State (tracestate)</strong></td>
+<td><code>tracestate: congo=t61rcWkgMzE,rojo=00f067a</code></td>
+<td>Preserved and passed downstream transparently</td>
+<td>Mapped to Pub/Sub message attributes alongside traceparent</td>
+<td>Supported for vendor-specific routing and filtering metadata</td>
+<td>Used for propagating multi-tenant or multi-vendor tracing state across vendor boundaries.</td>
+</tr>
+<tr>
+<td><strong>Google Cloud Trace</strong></td>
+<td><code>X-Cloud-Trace-Context: TRACE_ID/SPAN_ID;o=1</code></td>
+<td>Legacy GFE native header; automatically created if traceparent absent</td>
+<td>Mapped to Pub/Sub message attributes</td>
+<td>Direct native ingestion into Cloud Trace legacy APIs</td>
+<td>Superseded by W3C traceparent; retained for legacy App Engine / GCP client libraries.</td>
+</tr>
+<tr>
+<td><strong>Correlation Request ID</strong></td>
+<td><code>X-Request-Id: req-8942-ord-a1b2c3</code></td>
+<td>Forwarded if present; can be injected via ALB custom header rules</td>
+<td>Mapped to Pub/Sub message attributes</td>
+<td>Indexed as structured log field <code>httpRequest.requestId</code></td>
+<td>Essential for operational debugging, customer support triage, and log grepping.</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry B3</strong></td>
+<td><code>X-B3-TraceId: 4bf92f...</code><br><code>X-B3-SpanId: 00f067...</code></td>
+<td>Passed transparently as custom HTTP headers</td>
+<td>Mapped manually to message attributes</td>
+<td>Requires OpenTelemetry B3 propagator plugin to convert to Cloud Trace format</td>
+<td>Legacy Zipkin/Brave format; recommended to migrate to W3C Trace Context.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>The Four Inviolable Business Invariants</h4>
+<p>Across the distributed retail path, system failures, network retries, and high-concurrency contention must never violate four fundamental business rules:</p>
+
+<div class="callout caution">
+<strong>The Four Inviolable Invariants:</strong>
+<ol>
+<li><strong>Atomicity of Order &amp; Outbox:</strong> The customer order record and the outbox event envelope must be committed in the identical local ACID transaction in Cloud SQL. A system crash or network disconnect must never result in an order existing without a published event, or an event being published for a rolled-back order.</li>
+<li><strong>Inventory Integrity (Overselling Prevention):</strong> Stock levels must never drop below zero (<code>inventory_count &gt;= 0</code>). This invariant must be enforced by the relational database storage engine via check constraints and pessimistic lock ordering (<code>SELECT ... FOR UPDATE</code>), rendering overselling physically impossible regardless of application-layer race conditions.</li>
+<li><strong>Exactly-One Fulfillment per Order:</strong> Even though Cloud Pub/Sub operates under at-least-once delivery, an order must be fulfilled and billed exactly once. Consumers must maintain an ACID <code>processed_events</code> deduplication table and adhere to the <strong>Crash-Before-Ack</strong> discipline: database changes must commit before the message is acknowledged to the broker.</li>
+<li><strong>Monotonic State Progression:</strong> An order must traverse a strict, unidirectional state machine: <code>CREATED</code> &rarr; <code>PAID</code> &rarr; <code>PROCESSING</code> &rarr; <code>FULFILLED</code> (or terminal <code>CANCELLED</code>). Out-of-order or delayed messages must never regress an order's lifecycle state.</li>
+</ol>
+</div>
+
+<h4>Mechanics of Invariant Enforcement in PostgreSQL</h4>
+<p>To implement these invariants definitively in PostgreSQL over the Private Service Connect connection, the database schema enforces relational constraints directly in the DDL:</p>
+<pre><code>-- Invariant 2: Hard relational constraint preventing overselling
+CREATE TABLE inventory (
+    item_id VARCHAR(64) PRIMARY KEY,
+    stock INTEGER NOT NULL,
+    CONSTRAINT chk_inventory_non_negative CHECK (stock >= 0)
+);
+
+-- Invariant 1: Orders and Outbox tables populated in same transaction
+CREATE TABLE orders (
+    order_id VARCHAR(64) PRIMARY KEY,
+    customer_id VARCHAR(64) NOT NULL,
+    amount NUMERIC(10,2) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'CREATED',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE outbox_events (
+    event_id VARCHAR(64) PRIMARY KEY,
+    aggregate_type VARCHAR(32) NOT NULL,
+    aggregate_id VARCHAR(64) NOT NULL,
+    payload JSONB NOT NULL,
+    traceparent VARCHAR(128) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    published BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+-- Invariant 3: Consumer Deduplication Table
+CREATE TABLE processed_events (
+    event_id VARCHAR(64) PRIMARY KEY,
+    order_id VARCHAR(64) NOT NULL,
+    processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);</code></pre>
+
+<p>When the <code>order-service</code> executes an order transaction, it acquires pessimistic row locks on inventory items, decrements stock, inserts the order, and writes the outbox event in a single transaction block:</p>
+<pre><code>BEGIN;
+-- Pessimistic lock: Prevents concurrent race conditions
+SELECT stock FROM inventory WHERE item_id = 'artisan-sourdough' FOR UPDATE;
+
+-- Decrement stock (violating CHECK constraint raises DB error and rolls back)
+UPDATE inventory SET stock = stock - 2 WHERE item_id = 'artisan-sourdough';
+
+INSERT INTO orders (order_id, customer_id, amount, status)
+VALUES ('ord-8942', 'cust-501', 18.00, 'CREATED');
+
+INSERT INTO outbox_events (event_id, aggregate_type, aggregate_id, payload, traceparent)
+VALUES ('evt-101', 'ORDER', 'ord-8942', '{"order_id":"ord-8942","items":["artisan-sourdough"]}', '00-4bf92f3577b34da6a3ce929d0e0e4736-1a2b3c4d5e6f7081-01');
+COMMIT;</code></pre>
+
+<div class="callout">
+<strong>Apply it:</strong>
+<p>Input: Two concurrent checkout threads attempt to purchase the final remaining artisan loaf simultaneously, while a delayed Pub/Sub replay delivers event <code>evt-101</code> a second time. Expected: Thread 1 acquires the row lock, decrements stock to 0, and commits; Thread 2 waits, attempts to decrement stock to -1, triggers <code>CHECK chk_inventory_non_negative</code> violation, and safely aborts with HTTP 409 Conflict. On the consumer side, the replayed message hits <code>processed_events</code> unique constraint violation, skips physical packaging, and acknowledges the duplicate message safely.</p>
+</div>
+
+<div class="callout">
+<strong>Further study:</strong>
+<p><a href="../sources.html#topic-021">Topic 021 source section</a> in this site, with original publisher links and the reading context.</p>
+<p>Publisher documentation:</p>
+<ul>
+<li><a href="https://cloud.google.com/trace/docs/trace-context" rel="noopener noreferrer">Cloud Trace W3C Trace Context Propagation</a> — Google Cloud implementation standards for traceparent.</li>
+<li><a href="https://docs.cloud.google.com/pubsub/docs/exactly-once-delivery" rel="noopener noreferrer">Pub/Sub Delivery Guarantees</a> — Message leasing, at-least-once delivery, and consumer idempotency design.</li>
+<li><a href="https://cloud.google.com/sql/docs/postgres/features#transactions" rel="noopener noreferrer">PostgreSQL Transaction Isolation and Locking</a> — Row-level locking and ACID transaction mechanics in Cloud SQL.</li>
+</ul>
+</div>
+</article>
+</section>

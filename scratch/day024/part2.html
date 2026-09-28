@@ -1,0 +1,486 @@
+    <section class="part" id="part-2" aria-labelledby="part-2-title">
+      <h2 id="part-2-title">2 · Architecture, control flow, boundaries, and limits</h2>
+
+      <article class="topic-card" id="topic-01-technical">
+        <h3>Workforce directory architecture: Cloud Identity, Google Workspace, and consumer accounts</h3>
+        <p>A fundamental tenet of Google Cloud security architecture is the complete decoupling of identity authentication from resource authorization. Google Cloud does not maintain an internal user directory; instead, it relies entirely on external identity repositories to authenticate human principals before evaluating IAM permissions.</p>
+
+        <h4>Identity Directory Options Compared</h4>
+        <p>Enterprise architects encounter three primary identity repository models within Google Cloud environments:</p>
+        <ol>
+          <li><strong>Cloud Identity (Free &amp; Premium):</strong> Google&#x27;s standalone Identity-as-a-Service (IDaaS) platform anchored to an enterprise-verified primary domain (such as <code>brightloaf.com</code>). It provides centralized user provisioning, password policies, SAML 2.0 / OIDC federation with external corporate IdPs (such as Okta, Ping Identity, or Microsoft Entra ID), 2-Step Verification enforcement, and automated de-provisioning. The Premium edition adds context-aware access, mobile device management (MDM), and automated user lifecycle rules.</li>
+          <li><strong>Google Workspace:</strong> Integrates the complete suite of productivity applications (Gmail, Google Drive, Docs, Meet) on top of the exact same underlying Cloud Identity directory and Google Admin Console. An enterprise utilizing Google Workspace already possesses an authoritative Cloud Identity directory for Google Cloud authentication.</li>
+          <li><strong>Consumer Google Accounts:</strong> Personal accounts ending in <code>@gmail.com</code> or unmanaged email addresses created directly on Google. These accounts belong entirely to the individual; enterprise administrators cannot reset passwords, enforce security keys, audit logins, or revoke access upon employee termination.</li>
+        </ol>
+
+        <h4>Enterprise Directory Federation &amp; Domain Restricted Sharing</h4>
+        <p>To establish a secure enterprise workforce baseline, architects implement two critical integration controls:</p>
+        <ul>
+          <li><strong>Automated Directory Synchronization:</strong> Enterprises synchronize users and groups from Active Directory using <strong>Google Cloud Directory Sync (GCDS)</strong> or from cloud identity providers (Okta / Entra) using <strong>SCIM (System for Cross-domain Identity Management)</strong> connectors. When an employee is deactivated in the corporate HRIS, their Google Cloud access is revoked immediately.</li>
+          <li><strong>Domain Restricted Sharing Organization Policy:</strong> To prevent shadow IT and data exfiltration, administrators enforce the constraint <code>constraints/iam.allowedPolicyMemberDomains</code> at the Organization root. This constraint strictly limits IAM role assignments to verified Cloud Identity customer directory IDs, programmatically blocking the addition of personal <code>@gmail.com</code> accounts or external partner domains.</li>
+        </ul>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Identity Repository Capabilities, Governance Controls, and Cloud Integration</caption>
+            <thead>
+              <tr>
+                <th scope="col">Directory Model</th>
+                <th scope="col">Primary Use Case</th>
+                <th scope="col">SAML / OIDC SSO</th>
+                <th scope="col">Centralized De-provisioning</th>
+                <th scope="col">Google Cloud Enterprise Governance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Cloud Identity Free</th>
+                <td>Enterprises using external IdPs (Okta/Entra) needing Google Cloud access</td>
+                <td>Supported (SAML 2.0 / OIDC)</td>
+                <td>Supported via SCIM / GCDS</td>
+                <td>Baseline standard for Google Cloud workforce administration</td>
+              </tr>
+              <tr>
+                <th scope="row">Cloud Identity Premium</th>
+                <td>Enterprises requiring advanced device management &amp; Context-Aware Access</td>
+                <td>Supported (SAML 2.0 / OIDC)</td>
+                <td>Supported with automated rule engines</td>
+                <td>Enterprise standard with zero-trust context-aware policies</td>
+              </tr>
+              <tr>
+                <th scope="row">Google Workspace</th>
+                <td>Enterprises using Google for both email/collaboration and cloud operations</td>
+                <td>Supported (Built-in or federated)</td>
+                <td>Supported via Admin Console / API</td>
+                <td>Shares identical identity root with Cloud Identity</td>
+              </tr>
+              <tr>
+                <th scope="row">Consumer Google Account</th>
+                <td>Personal individuals, unmanaged personal email accounts</td>
+                <td>Unsupported</td>
+                <td>Unsupported (Cannot be revoked by enterprise)</td>
+                <td>Strictly prohibited; blocked via Organization Policy constraints</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout note">
+          <strong>Further Study · Enterprise Workforce Identity</strong>
+          <p>Review the primary Google Cloud documentation for directory setup and workforce federation:</p>
+          <ul>
+            <li><a href="https://cloud.google.com/docs/enterprise/best-practices-for-enterprise-organizations">Google Cloud Architecture &mdash; Best Practices for Enterprise Organizations</a></li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-technical">
+        <h3>Principal taxonomy: Evaluating the six IAM principal types and public exposure risks</h3>
+        <p>In Google Cloud IAM, an authorization policy binds one or more <strong>Roles</strong> to specific <strong>Principals</strong> on a resource. Understanding the precise syntax, evaluation behavior, and security blast radius of each principal type is essential for preventing unintended data disclosures.</p>
+
+        <h4>The Six Principal Types</h4>
+        <ol>
+          <li><code>user:{email}</code>: Represents an individual human account (e.g. <code>user:alice@brightloaf.com</code>). Evaluated by matching the authenticated email in the caller&#x27;s OAuth2 bearer token.</li>
+          <li><code>group:{email}</code>: Represents a Google Group (e.g. <code>group:bakery-ops@brightloaf.com</code>). When evaluated, the IAM engine queries Cloud Identity to determine if the calling user belongs to the group.</li>
+          <li><code>serviceAccount:{email}</code>: Represents a Google Cloud service account (e.g. <code>serviceAccount:order-api@bl-prod.iam.gserviceaccount.com</code>), used by applications, CI/CD runners, and VM instances.</li>
+          <li><code>domain:{domain.com}</code>: Represents all users within an entire verified Cloud Identity domain (e.g. <code>domain:brightloaf.com</code>). Automatically matches any user account created under that domain.</li>
+          <li><code>allAuthenticatedUsers</code>: A global Google-managed identifier matching <strong>any human or workload authenticated with any Google account anywhere in the world</strong>. This includes personal consumer <code>@gmail.com</code> accounts, external contractors, and competitors.</li>
+          <li><code>allUsers</code>: A global identifier matching <strong>anyone on the public internet</strong>, completely unauthenticated. Used exclusively for public internet assets (such as public web static assets on Cloud Storage or unauthenticated Cloud Run endpoints).</li>
+        </ol>
+
+        <h4>The Catastrophic Fallacy of allAuthenticatedUsers</h4>
+        <p>A frequent and disastrous security vulnerability arises from conflating <code>domain:company.com</code> with <code>allAuthenticatedUsers</code>. Administrators erroneously assume that <code>allAuthenticatedUsers</code> restricts access to "users who have authenticated into our corporate single sign-on." In reality, Google Cloud interprets this identifier as <em>anyone who has authenticated with Google</em>. Binding <code>allAuthenticatedUsers</code> to an internal bucket or database grants download permissions to all 3 billion Google account holders globally.</p>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Google Cloud IAM Principal Types, Syntax, Evaluation Scope, and Exposure Risks</caption>
+            <thead>
+              <tr>
+                <th scope="col">Principal Type</th>
+                <th scope="col">Prefix Syntax Example</th>
+                <th scope="col">Evaluation Scope</th>
+                <th scope="col">Security Risk Level</th>
+                <th scope="col">Recommended Enterprise Usage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Google Group</th>
+                <td><code>group:pos-devs@brightloaf.com</code></td>
+                <td>Members of the specific Google Group in Cloud Identity</td>
+                <td>Low (Managed via directory)</td>
+                <td>Standard pattern for all workforce access</td>
+              </tr>
+              <tr>
+                <th scope="row">Service Account</th>
+                <td><code>serviceAccount:sa@proj.iam.gserviceaccount.com</code></td>
+                <td>Target non-human application workload</td>
+                <td>Low to Moderate (Token security)</td>
+                <td>Standard pattern for automated workload authorization</td>
+              </tr>
+              <tr>
+                <th scope="row">Individual User</th>
+                <td><code>user:alice@brightloaf.com</code></td>
+                <td>Single specific human user account</td>
+                <td>Moderate (Administrative sprawl)</td>
+                <td>Anti-pattern; avoid in enterprise production IAM</td>
+              </tr>
+              <tr>
+                <th scope="row">Domain</th>
+                <td><code>domain:brightloaf.com</code></td>
+                <td>All users within the verified Cloud Identity directory</td>
+                <td>Moderate to High (Broad blast radius)</td>
+                <td>Use sparingly for enterprise-wide read-only portals</td>
+              </tr>
+              <tr>
+                <th scope="row">allAuthenticatedUsers</th>
+                <td><code>allAuthenticatedUsers</code></td>
+                <td>ANY valid Google account globally (Consumer &amp; Enterprise)</td>
+                <td>Extreme Risk (Data leak)</td>
+                <td>Strictly prohibited for internal enterprise resources</td>
+              </tr>
+              <tr>
+                <th scope="row">allUsers</th>
+                <td><code>allUsers</code></td>
+                <td>Public unauthenticated internet (Anonymous callers)</td>
+                <td>Public Exposure</td>
+                <td>Restricted strictly to public CDN assets and web frontends</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+<figure class="diagram-figure" id="fig-24-1">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig24-1-title fig24-1-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig24-1-title">Google Cloud Workforce Identity Providers and Principal Taxonomy</title>
+      <desc id="fig24-1-desc">Architectural taxonomy contrasting unmanaged consumer Google accounts with managed Cloud Identity directories, and categorizing the six Google Cloud IAM principal types with security risk boundaries.</desc>
+      <defs>
+        <linearGradient id="p24-f1-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <linearGradient id="p24-f1-managed" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#064e3b"/>
+          <stop offset="100%" stop-color="#022c22"/>
+        </linearGradient>
+        <linearGradient id="p24-f1-unmanaged" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#3b111e"/>
+          <stop offset="100%" stop-color="#180b18"/>
+        </linearGradient>
+        <marker id="p24-f1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#38bdf8"/>
+        </marker>
+      </defs>
+
+      <!-- Background Canvas -->
+      <rect width="960" height="520" rx="12" fill="url(#p24-f1-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header Label -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">WORKFORCE IDENTITY TAXONOMY &amp; PRINCIPAL SECURITY BOUNDARIES</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Contrasting identity providers and establishing the 6 IAM principal types with associated security postures.</text>
+
+      <!-- LEFT: Identity Repositories -->
+      <g transform="translate(36, 85)">
+        <rect width="380" height="315" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+        <rect x="0" y="0" width="380" height="36" rx="8" fill="#334155"/>
+        <text x="16" y="24" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">IDENTITY SOURCES OF TRUTH</text>
+
+        <!-- Managed: Cloud Identity / Workspace -->
+        <g transform="translate(14, 48)">
+          <rect width="352" height="120" rx="6" fill="url(#p24-f1-managed)" stroke="#22c55e" stroke-width="1.2"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">&check; MANAGED: CLOUD IDENTITY / WORKSPACE</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Domain: <tspan fill="#ffffff" font-family="ui-monospace, monospace">@brightloaf.com</tspan> (Verified DNS)</text>
+          <text x="12" y="56" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">&bull; Automated HRIS/SCIM user provisioning &amp; suspension</text>
+          <text x="12" y="72" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">&bull; Enforces corporate SAML 2.0 / OIDC SSO (Okta/Entra)</text>
+          <text x="12" y="88" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">&bull; Mandatory hardware security key 2-Step Verification</text>
+          <text x="12" y="104" fill="#86efac" font-size="9" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Status: Required for all corporate workforce access</text>
+        </g>
+
+        <!-- Unmanaged: Consumer Accounts -->
+        <g transform="translate(14, 180)">
+          <rect width="352" height="110" rx="6" fill="url(#p24-f1-unmanaged)" stroke="#f43f5e" stroke-width="1.2"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">&cross; UNMANAGED: CONSUMER GOOGLE ACCOUNTS</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Domain: <tspan fill="#fca5a5" font-family="ui-monospace, monospace">@gmail.com</tspan> or personal external email</text>
+          <text x="12" y="56" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">&bull; Zero corporate password policies or MFA enforcement</text>
+          <text x="12" y="72" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">&bull; Cannot be revoked when employee or contractor departs</text>
+          <text x="12" y="88" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">&bull; Creates severe shadow IT and compliance audit failures</text>
+          <text x="12" y="104" fill="#f43f5e" font-size="9" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Status: Blocked via constraints/iam.allowedPolicyMemberDomains</text>
+        </g>
+      </g>
+
+      <!-- Connection Arrow: Identity to Principal Evaluation -->
+      <line x1="416" y1="240" x2="456" y2="240" stroke="#38bdf8" stroke-width="2" marker-end="url(#p24-f1-arrow)"/>
+
+      <!-- RIGHT: The 6 Principal Types -->
+      <g transform="translate(460, 85)">
+        <rect width="464" height="315" rx="8" fill="#111827" stroke="#334155" stroke-width="1.5"/>
+        <rect x="0" y="0" width="464" height="36" rx="8" fill="#1e293b"/>
+        <text x="16" y="24" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">THE 6 GOOGLE CLOUD IAM PRINCIPAL TYPES</text>
+
+        <!-- Types List -->
+        <g transform="translate(12, 46)">
+          <!-- 1. Group -->
+          <rect width="440" height="38" rx="5" fill="#062e1c" stroke="#22c55e" stroke-width="1"/>
+          <text x="10" y="22" fill="#86efac" font-size="10" font-weight="700" font-family="ui-monospace, monospace">group:pos-devs@brightloaf.com</text>
+          <text x="240" y="22" fill="#22c55e" font-size="9" font-weight="700" font-family="system-ui, -apple-system, sans-serif">&check; RECOMMENDED BEST PRACTICE</text>
+
+          <!-- 2. Service Account -->
+          <rect y="44" width="440" height="38" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+          <text x="10" y="66" fill="#38bdf8" font-size="10" font-weight="700" font-family="ui-monospace, monospace">serviceAccount:order-api@bl-prod.iam...</text>
+          <text x="270" y="66" fill="#7dd3fc" font-size="9" font-family="system-ui, -apple-system, sans-serif">Workload Identity / Non-human</text>
+
+          <!-- 3. User -->
+          <rect y="88" width="440" height="38" rx="5" fill="#2d1d03" stroke="#f59e0b" stroke-width="1"/>
+          <text x="10" y="110" fill="#fde68a" font-size="10" font-weight="700" font-family="ui-monospace, monospace">user:alice@brightloaf.com</text>
+          <text x="240" y="110" fill="#f59e0b" font-size="9" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Anti-Pattern (Direct User Binding)</text>
+
+          <!-- 4. Domain -->
+          <rect y="132" width="440" height="38" rx="5" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+          <text x="10" y="154" fill="#c7d2fe" font-size="10" font-weight="700" font-family="ui-monospace, monospace">domain:brightloaf.com</text>
+          <text x="220" y="154" fill="#a5b4fc" font-size="9" font-family="system-ui, -apple-system, sans-serif">All accounts in corporate directory</text>
+
+          <!-- 5. allAuthenticatedUsers -->
+          <rect y="176" width="440" height="38" rx="5" fill="#450a0a" stroke="#f43f5e" stroke-width="1.2"/>
+          <text x="10" y="198" fill="#fca5a5" font-size="10" font-weight="700" font-family="ui-monospace, monospace">allAuthenticatedUsers</text>
+          <text x="175" y="198" fill="#f43f5e" font-size="9" font-weight="700" font-family="system-ui, -apple-system, sans-serif">&cross; ANY Google account globally (High Risk!)</text>
+
+          <!-- 6. allUsers -->
+          <rect y="220" width="440" height="38" rx="5" fill="#4c0519" stroke="#e11d48" stroke-width="1.2"/>
+          <text x="10" y="242" fill="#fda4af" font-size="10" font-weight="700" font-family="ui-monospace, monospace">allUsers</text>
+          <text x="160" y="242" fill="#f43f5e" font-size="9" font-weight="700" font-family="system-ui, -apple-system, sans-serif">&cross; Public unauthenticated internet (Public Exposure!)</text>
+        </g>
+      </g>
+
+      <!-- Bottom Alert Callout -->
+      <g transform="translate(36, 420)">
+        <rect width="888" height="75" rx="8" fill="#450a0a" stroke="#f43f5e" stroke-width="1.2"/>
+        <text x="18" y="22" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">ARCHITECTURAL PITFALL WARNING: allAuthenticatedUsers IS NOT DOMAIN-RESTRICTED</text>
+        <text x="18" y="42" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif"><code>allAuthenticatedUsers</code> does NOT mean \"all employees authenticated into my company.\" It matches <strong>any human on Earth</strong> logged into any consumer Gmail account or external Google Cloud identity. Never use it for internal resources!</text>
+        <text x="18" y="58" fill="#cbd5e1" font-size="9" font-family="system-ui, -apple-system, sans-serif">Enforce <code>constraints/iam.allowedPolicyMemberDomains</code> to block both consumer accounts and unauthorized external domains.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 24.1: Google Cloud Workforce Identity Providers and Principal Taxonomy.</strong>
+    Contrasts managed enterprise identity directories (Cloud Identity and Google Workspace) against unmanaged consumer accounts. Maps the six IAM principal types and highlights the extreme security exposure of <code>allAuthenticatedUsers</code>, which grants access to any authenticated identity globally rather than internal corporate employees.
+  </figcaption>
+</figure>
+
+
+        <div class="callout note">
+          <strong>Further Study · IAM Principals &amp; Overview</strong>
+          <p>Review the primary Google Cloud documentation on principal definitions and authorization mechanics:</p>
+          <ul>
+            <li><a href="https://cloud.google.com/iam/docs/overview">Google Cloud IAM &mdash; Overview of IAM Concepts</a></li>
+            <li><a href="https://cloud.google.com/iam/docs/principals-overview">Google Cloud IAM &mdash; Principals Overview</a></li>
+            <li><a href="https://cloud.google.com/iam/docs/service-accounts">Google Cloud IAM &mdash; Service Accounts Overview</a></li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-03-technical">
+        <h3>Why groups (not individual users) should receive roles: Limits, privilege creep, and decoupling</h3>
+        <p>Enterprise IAM architecture establishes a strict governance rule: <strong>IAM roles must be assigned to Google Groups, never to individual user accounts</strong>. While Google Cloud permits binding roles directly to <code>user:alice@brightloaf.com</code>, doing so introduces severe operational failure modes, privilege accumulation vulnerabilities, and hard platform limit violations.</p>
+
+        <h4>Hard Platform Limits: Policy Size and Member Thresholds</h4>
+        <p>Google Cloud enforces strict platform quotas on IAM policy payloads:</p>
+        <ul>
+          <li><strong>Maximum Policy Size:</strong> An individual IAM policy on an Organization, Folder, Project, or Resource cannot exceed <strong>250 KB</strong> in total serialized JSON size.</li>
+          <li><strong>Maximum Member Limit:</strong> A single IAM policy cannot contain more than <strong>1,500 total member entries</strong> across all role bindings.</li>
+        </ul>
+        <p>In an enterprise with 200 developers working across 50 microservices, binding individuals directly to roles results in thousands of discrete member entries, rapidly exhausting policy limits. Once the 250 KB limit is reached, all subsequent IAM modifications fail with an API error, blocking emergency hotfixes and deployment pipelines. Binding roles to Google Groups reduces hundreds of individual entries down to a single compact entry (e.g. <code>group:bakery-devs@brightloaf.com</code>), shrinking policy size by over 95%.</p>
+
+        <h4>Eliminating Privilege Accumulation and Orphan Permissions</h4>
+        <p>When roles are bound directly to individuals, organizational role changes result in severe security drift:</p>
+        <ul>
+          <li><strong>Privilege Creep:</strong> When an engineer transfers from the Logistics team to the Analytics team, new permissions are granted on analytics projects, but administrators rarely audit or remove existing permissions across dozens of logistics projects. Over years, senior staff accumulate dangerous superuser privileges across the entire cloud estate.</li>
+          <li><strong>Orphan Permissions:</strong> When an employee or contractor departs the enterprise, failing to clean up direct bindings leaves residual references across hundreds of project policies. If the user account is ever reprovisioned or compromised, inherited project bindings remain active.</li>
+          <li><strong>Architectural Decoupling:</strong> With group-based authorization, identity management is completely decoupled from cloud infrastructure. Adding or removing an employee from a group in Okta or Cloud Identity instantly grants or revokes access across all cloud projects globally, requiring zero Terraform runs or Google Cloud IAM updates.</li>
+        </ul>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Comparative Architectural Analysis: Direct User Bindings vs. Group-Based Authorization</caption>
+            <thead>
+              <tr>
+                <th scope="col">Architectural Dimension</th>
+                <th scope="col">Direct User Binding (Anti-Pattern)</th>
+                <th scope="col">Group-Based Authorization (Enterprise Standard)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Policy Size &amp; Scalability</th>
+                <td>Violates 250 KB / 1,500 member limit as team scales</td>
+                <td>Compact (&lt; 5 KB); easily supports thousands of employees</td>
+              </tr>
+              <tr>
+                <th scope="row">Employee Offboarding Revocation</th>
+                <td>High risk; requires scanning &amp; editing dozens of project policies</td>
+                <td>Instantaneous; single deactivation in corporate IdP revokes all access</td>
+              </tr>
+              <tr>
+                <th scope="row">Privilege Accumulation (Creep)</th>
+                <td>Severe; historical permissions rarely pruned upon internal transfer</td>
+                <td>Eliminated; moving user between groups automatically updates access</td>
+              </tr>
+              <tr>
+                <th scope="row">Infrastructure Pipeline Drift</th>
+                <td>Constant Terraform drift as developers join and depart teams</td>
+                <td>Zero drift; Terraform declares static job-function group bindings</td>
+              </tr>
+              <tr>
+                <th scope="row">Compliance &amp; Auditability</th>
+                <td>Unmanageable matrix; requires complex cross-project IAM dumps</td>
+                <td>Clean audit trail; group memberships audited directly in corporate directory</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+<figure class="diagram-figure" id="fig-24-2">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig24-2-title fig24-2-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig24-2-title">Direct Individual User Binding Anti-Pattern vs. Group-Based Authorization Architecture</title>
+      <desc id="fig24-2-desc">Architectural comparison contrasting the fragile direct individual user role binding anti-pattern that bloats IAM policies and creates orphaned permissions with the scalable group-based indirect authorization model.</desc>
+      <defs>
+        <linearGradient id="p24-f2-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <linearGradient id="p24-f2-bad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#2d1219"/>
+          <stop offset="100%" stop-color="#180b18"/>
+        </linearGradient>
+        <linearGradient id="p24-f2-good" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#062e1c"/>
+          <stop offset="100%" stop-color="#021f14"/>
+        </linearGradient>
+        <marker id="p24-f2-arrow-bad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e"/>
+        </marker>
+        <marker id="p24-f2-arrow-good" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <!-- Canvas Background -->
+      <rect width="960" height="520" rx="12" fill="url(#p24-f2-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header Label -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">ENTERPRISE ACCESS ARCHITECTURE: DIRECT USER BINDINGS VS. GOOGLE GROUPS</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Direct individual bindings cause policy size overflow and privilege creep; group-based binding decouples identity lifecycle.</text>
+
+      <!-- LEFT: ANTI-PATTERN (Direct User Bindings) -->
+      <g transform="translate(36, 85)">
+        <rect width="425" height="320" rx="8" fill="url(#p24-f2-bad)" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="425" height="36" rx="8" fill="#881337"/>
+        <text x="16" y="24" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">ANTI-PATTERN: DIRECT INDIVIDUAL ROLE BINDINGS</text>
+
+        <!-- Diagram elements for direct binding -->
+        <g transform="translate(14, 48)">
+          <!-- Users Box -->
+          <rect width="160" height="130" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="10" y="20" fill="#fca5a5" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INDIVIDUAL IDENTITIES</text>
+          <text x="10" y="42" fill="#cbd5e1" font-size="9" font-family="ui-monospace, monospace">user:alice@company.com</text>
+          <text x="10" y="62" fill="#cbd5e1" font-size="9" font-family="ui-monospace, monospace">user:bob@company.com</text>
+          <text x="10" y="82" fill="#cbd5e1" font-size="9" font-family="ui-monospace, monospace">user:charlie@company.com</text>
+          <text x="10" y="102" fill="#94a3b8" font-size="9" font-family="ui-monospace, monospace">... (100+ engineers)</text>
+
+          <!-- Many Arrows crossing -->
+          <line x1="160" y1="42" x2="230" y2="42" stroke="#f43f5e" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#p24-f2-arrow-bad)"/>
+          <line x1="160" y1="62" x2="230" y2="70" stroke="#f43f5e" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#p24-f2-arrow-bad)"/>
+          <line x1="160" y1="82" x2="230" y2="98" stroke="#f43f5e" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#p24-f2-arrow-bad)"/>
+
+          <!-- Projects Box -->
+          <g transform="translate(235, 0)">
+            <rect width="160" height="130" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+            <text x="10" y="20" fill="#fca5a5" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">PROJECT IAM POLICIES</text>
+            <text x="10" y="42" fill="#e2e8f0" font-size="9" font-family="system-ui, -apple-system, sans-serif">Project bl-order-prod</text>
+            <text x="10" y="62" fill="#e2e8f0" font-size="9" font-family="system-ui, -apple-system, sans-serif">Project bl-pos-prod</text>
+            <text x="10" y="82" fill="#e2e8f0" font-size="9" font-family="system-ui, -apple-system, sans-serif">Project bl-analytics-prod</text>
+            <text x="10" y="102" fill="#fca5a5" font-size="9" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Over 2,000 bindings!</text>
+          </g>
+
+          <!-- Consequences Box -->
+          <g transform="translate(0, 142)">
+            <rect width="395" height="115" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.2"/>
+            <text x="12" y="20" fill="#ffffff" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CRITICAL FLAWS OF DIRECT USER BINDINGS:</text>
+            <text x="12" y="38" fill="#fca5a5" font-size="9" font-family="system-ui, -apple-system, sans-serif">&bull; Breaches 250 KB / 1,500 member policy limit; updates fail</text>
+            <text x="12" y="54" fill="#fca5a5" font-size="9" font-family="system-ui, -apple-system, sans-serif">&bull; Severe privilege creep; permissions never removed when roles change</text>
+            <text x="12" y="70" fill="#fca5a5" font-size="9" font-family="system-ui, -apple-system, sans-serif">&bull; Offboarding requires scanning &amp; editing hundreds of GCP projects</text>
+            <text x="12" y="86" fill="#fca5a5" font-size="9" font-family="system-ui, -apple-system, sans-serif">&bull; Infrastructure CI/CD pipelines constantly redeploying IAM state</text>
+          </g>
+        </g>
+      </g>
+
+      <!-- RIGHT: RECOMMENDED (Group-Based Indirect Authorization) -->
+      <g transform="translate(500, 85)">
+        <rect width="425" height="320" rx="8" fill="url(#p24-f2-good)" stroke="#22c55e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="425" height="36" rx="8" fill="#14532d"/>
+        <text x="16" y="24" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">RECOMMENDED: GROUP-BASED INDIRECT BINDING</text>
+
+        <!-- Diagram elements for group binding -->
+        <g transform="translate(14, 48)">
+          <!-- Cloud Identity Groups Box -->
+          <rect width="175" height="130" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="10" y="20" fill="#86efac" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CLOUD IDENTITY GROUPS</text>
+          <text x="10" y="42" fill="#cbd5e1" font-size="9" font-family="ui-monospace, monospace">group:order-devs@...</text>
+          <text x="10" y="62" fill="#cbd5e1" font-size="9" font-family="ui-monospace, monospace">group:pos-sre@...</text>
+          <text x="10" y="82" fill="#cbd5e1" font-size="9" font-family="ui-monospace, monospace">group:sec-auditors@...</text>
+          <text x="10" y="104" fill="#86efac" font-size="9" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Synced via SCIM / HRIS</text>
+
+          <!-- Single Clean Arrow -->
+          <line x1="175" y1="62" x2="225" y2="62" stroke="#22c55e" stroke-width="2" marker-end="url(#p24-f2-arrow-good)"/>
+          <text x="180" y="55" fill="#86efac" font-size="8" font-family="system-ui, -apple-system, sans-serif">1 Binding</text>
+
+          <!-- Projects Box -->
+          <g transform="translate(230, 0)">
+            <rect width="165" height="130" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+            <text x="10" y="20" fill="#86efac" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">PROJECT IAM POLICIES</text>
+            <text x="10" y="42" fill="#e2e8f0" font-size="9" font-family="system-ui, -apple-system, sans-serif">Role: spannerViewer</text>
+            <text x="10" y="62" fill="#e2e8f0" font-size="9" font-family="system-ui, -apple-system, sans-serif">Role: computeViewer</text>
+            <text x="10" y="82" fill="#e2e8f0" font-size="9" font-family="system-ui, -apple-system, sans-serif">Role: loggingViewer</text>
+            <text x="10" y="104" fill="#22c55e" font-size="9" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Total size &lt; 5 KB!</text>
+          </g>
+
+          <!-- Benefits Box -->
+          <g transform="translate(0, 142)">
+            <rect width="395" height="115" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.2"/>
+            <text x="12" y="20" fill="#ffffff" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">ENTERPRISE ADVANTAGES OF GOOGLE GROUPS:</text>
+            <text x="12" y="38" fill="#bbf7d0" font-size="9" font-family="system-ui, -apple-system, sans-serif">&check; Compact IAM policies; zero risk of hitting 250 KB limit</text>
+            <text x="12" y="54" fill="#bbf7d0" font-size="9" font-family="system-ui, -apple-system, sans-serif">&check; Onboarding &amp; offboarding executed in HRIS/IdP (Okta/Entra)</text>
+            <text x="12" y="70" fill="#bbf7d0" font-size="9" font-family="system-ui, -apple-system, sans-serif">&check; Instantaneous revocation across all projects when staff depart</text>
+            <text x="12" y="86" fill="#bbf7d0" font-size="9" font-family="system-ui, -apple-system, sans-serif">&check; Infrastructure code remains static; zero IAM drift</text>
+          </g>
+        </g>
+      </g>
+
+      <!-- Bottom Guidance Banner -->
+      <g transform="translate(36, 420)">
+        <rect width="888" height="75" rx="8" fill="#111827" stroke="#334155" stroke-width="1.2"/>
+        <text x="18" y="22" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">ENTERPRISE WORKFORCE IAM ARCHITECTURAL RULE:</text>
+        <text x="18" y="42" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">&bull; <strong>Human Identities:</strong> Always bind roles to <code>group:job-function@company.com</code>. Never assign roles directly to individual users.</text>
+        <text x="18" y="58" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">&bull; <strong>Workload Identities:</strong> Bind roles to dedicated <code>serviceAccount:workload-id@project.iam.gserviceaccount.com</code>.</text>
+        <text x="18" y="72" fill="#22c55e" font-size="9" font-weight="600" font-family="system-ui, -apple-system, sans-serif">&check; Decoupling identity management from infrastructure code guarantees auditability and prevents platform limit failures.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 24.2: Direct Individual User Binding Anti-Pattern vs. Group-Based Authorization Architecture.</strong>
+    Contrasts the fragile anti-pattern of binding individual developer email addresses directly to IAM policies across multiple projects against the scalable enterprise pattern of binding roles to Google Groups. Group-based access control prevents policy size overflow (250 KB limit), eliminates privilege accumulation, and enables instantaneous employee de-provisioning from centralized corporate HRIS systems.
+  </figcaption>
+</figure>
+
+
+        <div class="callout note">
+          <strong>Further Study · Enterprise IAM Best Practices</strong>
+          <p>Review the primary Google Cloud architecture guidance on group-based authorization and role assignments:</p>
+          <ul>
+            <li><a href="https://cloud.google.com/docs/enterprise/best-practices-for-enterprise-organizations">Google Cloud Architecture &mdash; Best Practices for Enterprise Organizations</a></li>
+            <li><a href="https://cloud.google.com/iam/docs/understanding-roles">Google Cloud IAM &mdash; Understanding Roles and Permissions</a></li>
+          </ul>
+        </div>
+      </article>
+    </section>

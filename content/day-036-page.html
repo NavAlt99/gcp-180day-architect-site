@@ -1,0 +1,1294 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 36: VM sizing and image choices · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+</style>
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-035.html" aria-label="Previous day">← Day 35</a>
+<a href="day-037.html" aria-label="Next day">Day 37 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html" selected>Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="36" data-prev="day-035.html" data-next="day-037.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 36 of 180</div>
+
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 36</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">tabletop sizing + optional cloud lab</span>
+<span class="pill">Topic 013</span>
+</div>
+<h1>Day 36 — VM sizing and image choices</h1>
+<p class="lead"><strong>Outcome:</strong> Compare machine families and image types, apply custom sizing to the Brightloaf Order API workload, and produce a sizing sheet that names workload assumptions, customer-managed layers, and one rejected option with a stated reason.</p>
+<div>
+<strong>Entry prerequisites:</strong>
+<p><a href="day-035.html">Day 35</a> (Gate 2 artifact), <a href="day-008.html">Day 8</a> (CPU and memory signals), <a href="day-010.html">Day 10</a> (images and filesystems); bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A sizing sheet with stated workload assumptions (CPU/memory baseline, peak headroom, OS layer), a customer-managed layer inventory, and at least one explicitly rejected option with the reason for rejection.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-27; machine family names and vCPU/memory limits sourced from GCP Compute Engine documentation and subject to product change. Verify current availability and pricing in the GCP console before provisioning. A tabletop sizing result is a design exercise, not a production benchmark.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Machine families: general-purpose, compute-optimized, memory-optimized, HPC, accelerator</span>
+<a href="#topic-01-overview">overview</a> ·
+<a href="#topic-01-technical">discussion</a> ·
+<a href="#topic-01-problem">problem</a> ·
+<a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Custom machine types and extended memory</span>
+<a href="#topic-02-overview">overview</a> ·
+<a href="#topic-02-technical">discussion</a> ·
+<a href="#topic-02-problem">problem</a> ·
+<a href="#topic-02-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Shared-core vs standard machine types</span>
+<a href="#topic-03-overview">overview</a> ·
+<a href="#topic-03-technical">discussion</a> ·
+<a href="#topic-03-problem">problem</a> ·
+<a href="#topic-03-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Boot disks, images (public, custom, image families), snapshots and machine images</span>
+<a href="#topic-04-overview">overview</a> ·
+<a href="#topic-04-technical">discussion</a> ·
+<a href="#topic-04-problem">problem</a> ·
+<a href="#topic-04-lab">lab</a>
+</div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════ PART 1 ══ -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Machine families: general-purpose, compute-optimized, memory-optimized, HPC, accelerator</h3>
+<p>
+  GCP groups Compute Engine machine types into <strong>families</strong> optimised for different workload shapes. Choosing the wrong family does not just waste money — it can cause throttling, resource contention, or an inability to meet latency targets. The Brightloaf Order API is a stateless HTTP service with bursty CPU demand; the fulfillment worker is a long-running consumer with moderate, steady CPU and higher JVM heap. These two profiles land in different parts of the family map.
+</p>
+<p class="small"><em>Problem preview:</em> A Brightloaf engineer sizes the fulfillment worker on an N2D compute-optimized machine because it was the cheapest per-vCPU option found in a price list. Under load the worker frequently hits the GC pause ceiling because available memory per vCPU in a compute-optimized type is lower than the application's heap requirement. Business impact: order acknowledgement latency spikes during peak hours, violating the SLO established in the service level objectives exercise.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Custom machine types and extended memory</h3>
+<p>
+  Standard predefined machine types come in fixed vCPU-to-memory ratios. When a workload sits between two standard sizes — enough CPU headroom in the smaller but not enough memory, or enough memory in the larger but idle CPU — a <strong>custom machine type</strong> avoids paying for unused resources. Extended memory allows the memory allocation to exceed the maximum for a given vCPU count in the standard ratio, at an additional cost.
+</p>
+<p class="small"><em>Problem preview:</em> A Brightloaf analyst configures a custom machine type with 6 vCPUs and 48 GB of RAM for a batch analytics job that runs nightly. The job finishes in under two hours; the VM is left running. Because the custom type's cost is billed per vCPU and per GB of memory separately, the idle VM costs more per hour than a standard n2-standard-8 would have. Business impact: the monthly sandbox spend exceeds the alert threshold set in Day 18 before the next billing review.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Shared-core vs standard machine types</h3>
+<p>
+  <strong>Shared-core</strong> machine types (e2-micro, e2-small, e2-medium, f1-micro, g1-small) run on physical cores shared across multiple VMs. Each gets a guaranteed fraction of a vCPU. They cost significantly less than standard types and are appropriate for development instances, low-traffic services, and workloads where intermittent CPU bursting is acceptable. A standard machine type provides dedicated vCPU capacity; bursting is not the primary mechanism.
+</p>
+<p class="small"><em>Problem preview:</em> The Brightloaf staging Order API is deployed on an e2-micro instance to minimise cost. During a load test that simulates peak traffic, the shared-core fraction is exhausted and requests queue. The staging test then incorrectly informs a go/no-go decision for production, which would run on a dedicated standard type. Business impact: the test result is misleading — production sizing decisions based on a shared-core staging benchmark are not transferable.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-04-overview" class="topic-card">
+<h3>Boot disks, images (public, custom, image families), snapshots and machine images</h3>
+<p>
+  A VM's <strong>boot disk</strong> is a persistent disk containing the OS; its image source determines the OS, kernel version, and pre-installed software. <strong>Public images</strong> are maintained by Google or third parties; <strong>custom images</strong> are built and owned by your project; <strong>image families</strong> are rolling aliases that always resolve to the latest image in a named set. <strong>Snapshots</strong> capture a persistent disk's state at a point in time; <strong>machine images</strong> capture the entire VM configuration (all disks, metadata, network) for full-instance cloning or disaster recovery.
+</p>
+<p class="small"><em>Problem preview:</em> A Brightloaf operator creates a VM from an image family alias (<code>debian-12</code>) assuming the alias is pinned to a specific kernel version. A routine image update rolls the family to a new minor version; the next VM created from the family alias uses the updated image. The new kernel has a different default TCP buffer size that affects the Order API's high-throughput connections. Business impact: a subtle throughput regression appears only after the next deployment, making the root cause difficult to trace.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 2 ══ -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Machine families: general-purpose, compute-optimized, memory-optimized, HPC, accelerator</h3>
+
+<h4>Family overview</h4>
+<p>GCP Compute Engine organises machine types into series within families. The family choice is the first decision; the series and size follow from workload measurement. Refer to current GCP documentation for exact series names, vCPU ranges, and regional availability — these change as new hardware generations are introduced.</p>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Family</th>
+<th>Representative series</th>
+<th>vCPU:memory ratio</th>
+<th>Primary workload fit</th>
+<th>Brightloaf fit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>General-purpose</td>
+<td>E2, N2, N2D, N4, T2D, T2A</td>
+<td>~4–8 GB / vCPU (varies by series)</td>
+<td>Web services, CI/CD, databases, development</td>
+<td>Order API frontend; fulfillment worker at moderate heap</td>
+</tr>
+<tr>
+<td>Compute-optimized</td>
+<td>C2, C2D, C3, H3</td>
+<td>~4 GB / vCPU (lower memory ratio)</td>
+<td>CPU-bound: encoding, scientific compute, game servers</td>
+<td>Not a fit for fulfillment worker (memory-limited)</td>
+</tr>
+<tr>
+<td>Memory-optimized</td>
+<td>M1, M2, M3</td>
+<td>~14–24+ GB / vCPU</td>
+<td>In-memory databases, SAP HANA, large analytics</td>
+<td>Overkill for Order API; possible for analytics tier</td>
+</tr>
+<tr>
+<td>HPC-optimized</td>
+<td>H3, A3 (with InfiniBand fabric)</td>
+<td>Varies; high network bandwidth</td>
+<td>Tightly-coupled MPI workloads, climate modelling</td>
+<td>Not a fit; Brightloaf has no HPC requirement</td>
+</tr>
+<tr>
+<td>Accelerator-optimized</td>
+<td>A2, A3, G2</td>
+<td>~7–40+ GB / vCPU; includes GPU</td>
+<td>ML training, inference, graphics rendering</td>
+<td>Potential fit for future ML inference; not Day 36</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Choosing within a family: series and size</h4>
+<p>
+  Within the general-purpose family, <strong>N2</strong> uses Intel or AMD processors with balanced performance; <strong>N2D</strong> is AMD EPYC-based and often offers a lower per-vCPU price; <strong>E2</strong> uses a shared hardware pool and is the cheapest standard-ratio option but offers lower per-vCPU performance than N2. <strong>T2D</strong> (Tau T2D) and <strong>T2A</strong> (Tau Arm) target scale-out workloads like containerised web services. For the Brightloaf Order API, N2 or E2 are the primary candidates; T2D is worth evaluating if the application is pre-tested on x86.
+</p>
+
+<h4>Reading a workload before choosing</h4>
+<p>From Day 8, the signals that inform machine type selection are:</p>
+<ul>
+  <li><strong>CPU utilisation</strong> sustained above ~70% under normal load → move up one size or to a higher-performance series.</li>
+  <li><strong>Memory utilisation</strong> near limit with swap activity → choose a higher-memory ratio or a memory-optimized type.</li>
+  <li><strong>Network throughput</strong> saturation → consider a type with a higher maximum egress bandwidth (N2 offers up to 32 Gbps with sufficient vCPUs).</li>
+  <li><strong>Disk IOPS</strong> saturation → this is a Persistent Disk constraint, not a machine type constraint (covered in Day 37).</li>
+</ul>
+
+<div class="callout">
+<strong>Further study</strong>
+<p>
+  <a href="https://cloud.google.com/compute/docs/machine-resource" rel="noopener noreferrer">Machine families resource and comparison guide</a> — GCP Compute Engine documentation, compare families, series, vCPU ranges, memory ratios, and maximum egress. (Publisher documentation; link selected from Compute Engine concepts, 2026-09-27. Verify current series names before provisioning.)
+</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Custom machine types and extended memory</h3>
+
+<h4>When custom sizing applies</h4>
+<p>
+  Standard machine types increment in fixed vCPU steps. If a workload needs, say, 6 vCPUs and 32 GB of RAM, the nearest standard types are n2-standard-4 (4 vCPU / 16 GB) — too small — or n2-standard-8 (8 vCPU / 32 GB) — correct memory but 25% surplus CPU. A custom machine type with 6 vCPU / 32 GB avoids paying for 2 idle vCPUs.
+</p>
+
+<h4>Custom type naming and constraints</h4>
+<ul>
+  <li>Notation: <code>SERIES-custom-vCPUS-MEMORY_MB</code>, e.g. <code>n2-custom-6-32768</code>.</li>
+  <li>vCPU count must be even (except 1); memory must be a multiple of 256 MB.</li>
+  <li>Memory range: at minimum 0.9 GB per vCPU; standard maximum 6.5 GB per vCPU for N2. Exceeding the standard maximum requires <strong>extended memory</strong>.</li>
+  <li>Extended memory is billed at a higher per-GB rate than standard memory. It is intended for memory-intensive outliers that do not warrant a full memory-optimized type.</li>
+</ul>
+
+<h4>Cost model</h4>
+<p>
+  Custom machine type pricing is per-vCPU per hour + per-GB RAM per hour, billed separately. A custom type with the same vCPU and memory as a predefined type costs slightly more because predefined types receive a small discount for the packaging. Custom types are most economical when they save at least one vCPU or 4+ GB compared to the next standard size up.
+</p>
+<p>
+  Sustained use discounts (SUDs) apply automatically to custom types that run more than 25% of a month in a region. Committed use discounts (CUDs) require a 1- or 3-year commitment and offer deeper savings.
+</p>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Standard predefined</th>
+<th>Custom type</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6 vCPU, 32 GB needed</td>
+<td>n2-standard-8 (8 vCPU, 32 GB) — 2 idle vCPUs</td>
+<td>n2-custom-6-32768 (6 vCPU, 32 GB)</td>
+<td>Custom saves ~25% CPU cost if utilisation confirms 6 vCPU ceiling</td>
+</tr>
+<tr>
+<td>4 vCPU, 16 GB needed</td>
+<td>n2-standard-4 (4 vCPU, 16 GB) — exact match</td>
+<td>n2-custom-4-16384 — same, slight premium</td>
+<td>Use predefined; custom adds overhead for no gain</td>
+</tr>
+<tr>
+<td>4 vCPU, 48 GB needed</td>
+<td>Closest: n2-standard-4 (16 GB) — too small; n2-standard-8 (32 GB) — still too small</td>
+<td>n2-custom-4-49152 with extended memory</td>
+<td>Extended memory applicable; compare to n2-highmem-4 (32 GB) — may still need custom</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p>
+  <a href="https://cloud.google.com/compute/docs/general-purpose-machines#custom_machine_types" rel="noopener noreferrer">Custom machine types</a> — GCP Compute Engine documentation, covers naming syntax, constraints, extended memory, and pricing model. (Publisher documentation; 2026-09-27.)
+</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Shared-core vs standard machine types</h3>
+
+<h4>Shared-core characteristics</h4>
+<p>
+  Shared-core machine types run on physical cores shared by multiple VMs. Each VM receives a guaranteed fraction of a physical core. Available shared-core types include:
+</p>
+<ul>
+  <li><strong>e2-micro</strong>: 2 vCPU (shared), 1 GB RAM. Burstable up to 2 vCPU when capacity is available.</li>
+  <li><strong>e2-small</strong>: 2 vCPU (shared), 2 GB RAM.</li>
+  <li><strong>e2-medium</strong>: 2 vCPU (shared), 4 GB RAM.</li>
+  <li><strong>f1-micro</strong> (legacy): 1 shared vCPU, 0.6 GB RAM. Eligible for the Always Free tier under current limits.</li>
+  <li><strong>g1-small</strong> (legacy): 1 shared vCPU, 1.7 GB RAM.</li>
+</ul>
+<p>
+  The key distinction: a shared-core VM has a guaranteed minimum CPU allocation (expressed as a fraction of a vCPU) and can burst above that minimum if the physical core has spare capacity. A <strong>standard machine type</strong> provides dedicated vCPU threads with no sharing — the vCPU count reflects actual available compute, not a fractional guarantee.
+</p>
+
+<h4>When to use shared-core</h4>
+<ul>
+  <li>Development, staging environments with intermittent load.</li>
+  <li>Monitoring agents, log forwarders, CI workers that run short jobs and idle most of the time.</li>
+  <li>Applications that can tolerate CPU throttling without user-facing latency impact (background batch).</li>
+</ul>
+
+<h4>Critical limitation: benchmark validity</h4>
+<p>
+  Performance measurements taken on a shared-core VM cannot be used to size a standard-core production deployment. The burst ceiling and scheduling behaviour differ. If a staging environment uses shared-core to save cost, any benchmark results must be labeled with the machine type and marked as "not transferable to production sizing."
+</p>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Shared-core (e.g. e2-micro)</th>
+<th>Standard (e.g. e2-standard-2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU guarantee</td>
+<td>Fractional share; burst available</td>
+<td>Full vCPU threads; no sharing</td>
+</tr>
+<tr>
+<td>CPU under load</td>
+<td>May throttle when share exhausted</td>
+<td>Sustained full utilisation possible</td>
+</tr>
+<tr>
+<td>Pricing</td>
+<td>Significantly lower</td>
+<td>Higher; more predictable</td>
+</tr>
+<tr>
+<td>Benchmark validity</td>
+<td>Not transferable to standard</td>
+<td>Transferable within same series</td>
+</tr>
+<tr>
+<td>Appropriate use</td>
+<td>Dev, agents, low-traffic services</td>
+<td>Production, load testing, SLO-bound services</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p>
+  <a href="https://cloud.google.com/compute/docs/general-purpose-machines#e2_limitations" rel="noopener noreferrer">E2 machine types and shared-core limitations</a> — GCP Compute Engine documentation; covers the e2-micro/small/medium shared-core behaviour and the f1-micro/g1-small legacy types. (Publisher documentation; 2026-09-27.)
+</p>
+</div>
+</article>
+
+<article id="topic-04-technical" class="topic-card">
+<h3>Boot disks, images (public, custom, image families), snapshots and machine images</h3>
+
+<h4>Boot disk</h4>
+<p>
+  A VM's boot disk is a zonal Persistent Disk containing the OS image and the system filesystem. By default it is deleted when the VM is deleted (<code>--no-keep-disks</code> is the gcloud default). To retain the disk for re-attachment or inspection, create the VM with <code>--no-boot-disk-auto-delete</code>. Boot disk size and type (pd-standard, pd-balanced, pd-ssd) affect startup latency, OS throughput, and cost.
+</p>
+
+<h4>Image sources</h4>
+<ul>
+  <li><strong>Public images</strong>: maintained by Google (Debian, Ubuntu, COS, Windows) or by third-party vendors in the Marketplace. Google updates these for security patches; minor kernel changes may occur.</li>
+  <li><strong>Custom images</strong>: built from an existing disk, snapshot, or image. Owned by your project. Used to bake application dependencies, agents, and OS configuration into a golden image. Custom images must be updated and maintained by your team.</li>
+  <li><strong>Image families</strong>: a named alias that always resolves to the <em>latest non-deprecated</em> image in the family. For example, <code>debian-12</code> in project <code>debian-cloud</code> always resolves to the current Debian 12 image. Using a family alias means new VMs pick up OS updates automatically; using a specific image ID pins to a known state.</li>
+  <li><strong>Shared images</strong>: custom images published to an image project and shared across projects via IAM. Useful for golden-image pipelines in large organizations.</li>
+</ul>
+
+<h4>Snapshots vs machine images</h4>
+<table class="comparison">
+<thead>
+<tr>
+<th>Feature</th>
+<th>Snapshot</th>
+<th>Machine image</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What it captures</td>
+<td>A single Persistent Disk at a point in time</td>
+<td>Full VM: all disks, machine config, metadata, network interfaces, service accounts</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>One disk; can be any PD, including non-boot</td>
+<td>One VM instance, all attached resources</td>
+</tr>
+<tr>
+<td>Primary use</td>
+<td>Backup, disk cloning, baseline before risky change</td>
+<td>VM cloning, disaster recovery, migration to a different zone or region</td>
+</tr>
+<tr>
+<td>Restore</td>
+<td>Create a new disk from snapshot; attach to VM</td>
+<td>Create a new VM from machine image; all disks and config restored</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Per-GB of compressed data stored</td>
+<td>Per-GB of all disk data stored; higher than a single snapshot</td>
+</tr>
+<tr>
+<td>Incremental</td>
+<td>Yes — only changed blocks after first snapshot</td>
+<td>Yes — internally uses snapshots</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Image family vs pinned image: the tradeoff</h4>
+<p>
+  Use a family alias (<code>--image-family=debian-12 --image-project=debian-cloud</code>) for environments where automatic OS updates are acceptable and you can tolerate minor changes between VM generations. Pin to a specific image ID (<code>--image=debian-12-bookworm-v20260901</code>) for environments where configuration drift must be controlled, reproducible deploys are required, or OS changes need explicit testing before rollout.
+</p>
+<p>
+  A golden-image pipeline bridges both approaches: periodically build a custom image from the latest family image, run a bake-and-test pipeline, and pin production deployments to the baked custom image ID. This gives patch currency with configuration control.
+</p>
+
+<!-- Part 2 architecture SVG: VM sizing and image decision tree -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 500" role="img" aria-labelledby="d36-arch-title d36-arch-desc">
+<title id="d36-arch-title">VM sizing and image selection decision flow for a Brightloaf workload</title>
+<desc id="d36-arch-desc">A left-to-right decision flow starting from workload measurement (CPU, memory, network profile), branching through machine family selection (general-purpose, compute-optimized, memory-optimized), then through standard vs custom sizing, then through shared-core vs standard core for dev vs production, and finally through image source selection (public family alias, pinned ID, custom golden image), ending at the provisioned VM. Each decision point has labeled criteria.</desc>
+<defs>
+<marker id="d36-a-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#38bdf8"/>
+</marker>
+<marker id="d36-g-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#4ade80"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="500" rx="8"/>
+
+<!-- Step 1: Measure workload -->
+<rect class="box" x="20" y="200" width="148" height="100" rx="8"/>
+<text x="94" y="236" text-anchor="middle" font-weight="700">Measure</text>
+<text x="94" y="254" text-anchor="middle">workload</text>
+<text class="small-label" x="94" y="274" text-anchor="middle">CPU · memory</text>
+<text class="small-label" x="94" y="288" text-anchor="middle">network · disk</text>
+
+<!-- Step 2: Family selection diamond -->
+<polygon points="264,250 330,210 396,250 330,290" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+<text fill="#f8fafc" font-size="11" x="330" y="246" text-anchor="middle">Memory</text>
+<text fill="#f8fafc" font-size="11" x="330" y="262" text-anchor="middle">ratio?</text>
+<path class="path" marker-end="url(#d36-a-arr)" d="M168 250 H264"/>
+
+<!-- Family branches -->
+<!-- High memory → M-series -->
+<rect class="box" x="418" y="60" width="168" height="56" rx="8"/>
+<text x="502" y="88" text-anchor="middle">Memory-optimized</text>
+<text class="small-label" x="502" y="106" text-anchor="middle">M1/M2/M3 · &gt;14 GB/vCPU</text>
+<path class="path" marker-end="url(#d36-a-arr)" d="M330 210 Q330 88 418 88"/>
+<text fill="#4ade80" font-size="10" x="350" y="150" text-anchor="middle">High memory</text>
+
+<!-- CPU-bound → C-series -->
+<rect class="box" x="418" y="138" width="168" height="56" rx="8"/>
+<text x="502" y="166" text-anchor="middle">Compute-optimized</text>
+<text class="small-label" x="502" y="184" text-anchor="middle">C2/C2D/C3 · ~4 GB/vCPU</text>
+<path class="path" marker-end="url(#d36-a-arr)" d="M396 232 Q407 166 418 166"/>
+<text fill="#94a3b8" font-size="10" x="400" y="198" text-anchor="middle">CPU-bound</text>
+
+<!-- Balanced → N/E-series -->
+<rect class="box" x="418" y="222" width="168" height="56" rx="8"/>
+<text x="502" y="250" text-anchor="middle">General-purpose</text>
+<text class="small-label" x="502" y="268" text-anchor="middle">E2/N2/N2D/T2D</text>
+<path class="path" marker-end="url(#d36-a-arr)" d="M396 250 H418"/>
+<text fill="#38bdf8" font-size="10" x="407" y="244" text-anchor="middle">Balanced</text>
+
+<!-- GPU/ML → A-series -->
+<rect class="box" x="418" y="300" width="168" height="56" rx="8"/>
+<text x="502" y="328" text-anchor="middle">Accelerator-optimized</text>
+<text class="small-label" x="502" y="346" text-anchor="middle">A2/A3/G2 + GPU</text>
+<path class="path" marker-end="url(#d36-a-arr)" d="M330 290 Q330 328 418 328"/>
+<text fill="#94a3b8" font-size="10" x="348" y="318" text-anchor="middle">GPU / ML</text>
+
+<!-- Step 3: Custom vs standard -->
+<polygon points="618,250 682,218 746,250 682,282" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+<text fill="#f8fafc" font-size="11" x="682" y="246" text-anchor="middle">Fits std</text>
+<text fill="#f8fafc" font-size="11" x="682" y="262" text-anchor="middle">size?</text>
+
+<!-- Arrow from GP to sizing decision -->
+<path class="path" marker-end="url(#d36-a-arr)" d="M586 250 H618"/>
+
+<!-- Yes → predefined -->
+<rect fill="#161b30" stroke="#4ade80" stroke-width="2" x="758" y="190" width="160" height="56" rx="8"/>
+<text fill="#4ade80" font-size="12" x="838" y="218" text-anchor="middle">Predefined type</text>
+<text class="small-label" x="838" y="236" text-anchor="middle">e.g. n2-standard-4</text>
+<path stroke="#4ade80" stroke-width="2" marker-end="url(#d36-g-arr)" fill="none" d="M746 237 Q752 218 758 218"/>
+<text fill="#4ade80" font-size="10" x="750" y="230" text-anchor="middle">Yes</text>
+
+<!-- No → custom -->
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="2" x="758" y="278" width="160" height="56" rx="8"/>
+<text fill="#38bdf8" font-size="12" x="838" y="306" text-anchor="middle">Custom type</text>
+<text class="small-label" x="838" y="324" text-anchor="middle">e.g. n2-custom-6-32768</text>
+<path stroke="#94a3b8" stroke-width="2" marker-end="url(#d36-a-arr)" fill="none" d="M746 263 Q752 306 758 306"/>
+<text fill="#94a3b8" font-size="10" x="750" y="278" text-anchor="middle">No</text>
+
+<!-- Image path (bottom band) -->
+<rect fill="#0f1929" stroke="#38bdf8" stroke-width="1" stroke-dasharray="4 3" x="20" y="400" width="944" height="82" rx="8"/>
+<text fill="#38bdf8" font-size="11" font-weight="700" x="36" y="420">IMAGE SELECTION</text>
+<rect class="box" x="36" y="428" width="164" height="44" rx="6"/>
+<text x="118" y="450" text-anchor="middle">Public family alias</text>
+<text class="small-label" x="118" y="465" text-anchor="middle">auto-patches · may drift</text>
+<rect class="box" x="220" y="428" width="164" height="44" rx="6"/>
+<text x="302" y="450" text-anchor="middle">Pinned image ID</text>
+<text class="small-label" x="302" y="465" text-anchor="middle">fixed state · manual update</text>
+<rect class="box" x="404" y="428" width="240" height="44" rx="6"/>
+<text x="524" y="450" text-anchor="middle">Custom golden image</text>
+<text class="small-label" x="524" y="465" text-anchor="middle">bake + test pipeline · org-controlled</text>
+<path class="path" marker-end="url(#d36-a-arr)" d="M200 450 H220"/>
+<path class="path" marker-end="url(#d36-a-arr)" d="M384 450 H404"/>
+<text fill="#94a3b8" font-size="10" x="700" y="445" text-anchor="middle">Snapshots: per-disk backup</text>
+<text fill="#94a3b8" font-size="10" x="700" y="462" text-anchor="middle">Machine images: full-VM clone / DR</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> a conceptual decision flow for selecting a GCP Compute Engine machine type and image source, applied to a Brightloaf workload. The flow covers family selection from workload profile, predefined vs custom sizing, and image source trade-offs. <strong>What it does not prove:</strong> exact pricing ratios (not shown; subject to change), specific vCPU or memory limits per series (verify in current GCP documentation), or benchmark comparisons between families (not measured).
+</figcaption>
+</figure>
+
+<div class="callout">
+<strong>Further study</strong>
+<p>
+  <a href="https://cloud.google.com/compute/docs/images" rel="noopener noreferrer">Images overview</a> — GCP Compute Engine documentation; covers public images, custom images, image families, and machine images. (Publisher documentation; 2026-09-27.)
+</p>
+<p>
+  <a href="https://cloud.google.com/compute/docs/machine-images" rel="noopener noreferrer">Machine images</a> — Covers full-VM capture, use cases, and comparison to snapshots. (Publisher documentation; 2026-09-27.)
+</p>
+</div>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 3 ══ -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problems and solutions</h2>
+<p class="small"><em>The scenarios below are illustrative examples grounded in Day 36 topics. They are not observed production incidents. All numeric values are design assumptions, not measured results.</em></p>
+
+<!-- ── Problem 1 ── -->
+<article id="topic-01-problem" class="topic-card">
+<h3>Topic 1 field case — Compute-optimized type chosen for a memory-bound fulfillment worker</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  A Brightloaf engineer selects an N2D compute-optimized instance for the fulfillment worker because a marketing table shows it has the lowest per-vCPU price among N-series types. The fulfillment worker is a JVM-based consumer that maintains a large in-memory order cache and performs per-order state validation. The workload's memory requirement is approximately 6 GB of heap for the expected queue depth. The N2D compute-optimized series offers roughly 4 GB of RAM per vCPU; at 2 vCPUs the VM has 8 GB total, which appears sufficient. However, under sustained queue processing, GC pauses lengthen as the heap approaches its configured maximum, because OS overhead and JVM metaspace consume the non-heap remainder. Throughput drops and order acknowledgement latency rises above the SLO threshold.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Cannot change the JVM heap size beyond 6 GB without re-testing the fulfillment logic under load.</li>
+  <li>Must stay within the sandbox CPU quota; cannot increase vCPU count by more than one.</li>
+  <li>The fix must not require a new VM image (only a machine type change).</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  The selection was driven by a single cost metric (lowest per-vCPU price) without reading the workload's memory signal. The compute-optimized series' lower memory-to-vCPU ratio is correct for CPU-bound workloads but is under-provisioned for memory-bound JVM workloads with a large heap.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Collect memory utilisation data from Day 8's signals: check resident set size, heap utilisation, and GC pause frequency.</li>
+  <li>Calculate the minimum RAM required: heap (6 GB) + OS overhead (estimate 1–1.5 GB) + JVM metaspace (estimate 0.5 GB) = approximately 8–8.5 GB effective requirement.</li>
+  <li>Select a general-purpose type with a higher memory ratio: N2 or N2D highmem series (up to 8 GB/vCPU) would fit 2 vCPU / 16 GB.</li>
+  <li>Record the rejected compute-optimized option and the reason in the sizing sheet.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Migrate the fulfillment worker to an N2-highmem-2 or equivalent (2 vCPU / 16 GB). Stop the compute-optimized instance, change the machine type (via <kbd>gcloud compute instances set-machine-type</kbd> while stopped), restart, and observe GC pause frequency and throughput under the same queue depth.
+</p>
+
+<h4>Verification</h4>
+<p>
+  After the change: GC pause frequency should return to background levels; order acknowledgement latency should remain below the SLO threshold. Record the before/after memory headroom (heap used vs total allocated) in the sizing sheet as the post-fix evidence.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  The 16 GB highmem option provides significant headroom but increases hourly cost. If peak queue depth is seasonal, a custom type with exactly the required RAM (e.g., 2 vCPU / 10 GB) would balance cost and headroom. This requires a separate sizing iteration.
+</p>
+
+<!-- Incident SVG: Topic 1 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 460" role="img" aria-labelledby="d36-i1-title d36-i1-desc">
+<title id="d36-i1-title">Compute-optimized type under-memory for JVM fulfillment worker — incident and corrected path</title>
+<desc id="d36-i1-desc">The upper dashed lane shows the engineer selecting a compute-optimized instance based on lowest per-vCPU price alone, leading to a memory-bound GC pressure failure as heap fills the limited RAM. The lower solid lane reads the memory signal first, selects a general-purpose highmem type, and crosses the verification boundary with GC pause and latency evidence.</desc>
+<defs>
+<marker id="d36-i1-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/></marker>
+<marker id="d36-i1-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/></marker>
+</defs>
+<rect class="canvas" width="980" height="460" rx="8"/>
+<rect class="lane-failed" x="18" y="18" width="944" height="190" rx="8"/>
+<text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · PRICE-ONLY SELECTION → MEMORY-BOUND GC PRESSURE → SLO BREACH</text>
+<rect class="lane-corrected" x="18" y="256" width="944" height="188" rx="8"/>
+<text class="lane-label" x="34" y="278" fill="#4ade80">CORRECTED PATH · READ MEMORY SIGNAL → HIGHMEM TYPE → VERIFY GC + LATENCY</text>
+
+<!-- Failed nodes -->
+<rect class="box" x="36" y="78" width="148" height="76" rx="8"/>
+<text x="110" y="110" text-anchor="middle">Workload spec</text>
+<text class="small-label" x="110" y="132" text-anchor="middle">6 GB JVM heap</text>
+
+<rect class="failbox" x="240" y="66" width="220" height="100" rx="8"/>
+<text x="350" y="96" text-anchor="middle">FAILURE POINT</text>
+<text x="350" y="118" text-anchor="middle">compute-optimized chosen</text>
+<text class="small-label" x="350" y="141" text-anchor="middle">root cause: price metric only</text>
+
+<rect class="failbox" x="524" y="78" width="192" height="76" rx="8"/>
+<text x="620" y="104" text-anchor="middle">GC pressure</text>
+<text class="small-label" x="620" y="126" text-anchor="middle">latency &gt; SLO threshold</text>
+
+<rect class="failbox" x="778" y="78" width="166" height="76" rx="8"/>
+<text x="861" y="104" text-anchor="middle">SLO breach</text>
+<text x="861" y="122" text-anchor="middle">order ack delayed</text>
+<text class="small-label" x="861" y="143" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d36-i1-f)" d="M184 116 H240"/>
+<path class="failed" marker-end="url(#d36-i1-f)" d="M460 116 H524"/>
+<path class="failed" marker-end="url(#d36-i1-f)" d="M716 116 H778"/>
+
+<!-- Corrected nodes -->
+<rect class="box" x="36" y="312" width="148" height="76" rx="8"/>
+<text x="110" y="344" text-anchor="middle">Same spec</text>
+<text class="small-label" x="110" y="366" text-anchor="middle">measure memory signal</text>
+
+<rect class="box" x="240" y="300" width="220" height="100" rx="8"/>
+<text x="350" y="332" text-anchor="middle">Corrected control</text>
+<text x="350" y="354" text-anchor="middle">general-purpose highmem</text>
+<text class="small-label" x="350" y="376" text-anchor="middle">memory ratio checked first</text>
+
+<rect class="box" x="524" y="312" width="192" height="76" rx="8"/>
+<text x="620" y="344" text-anchor="middle">Machine type changed</text>
+<text class="small-label" x="620" y="366" text-anchor="middle">stopped · resized · restarted</text>
+
+<rect class="verifybox" x="778" y="300" width="166" height="100" rx="8"/>
+<text x="861" y="332" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="861" y="354" text-anchor="middle">GC pauses nominal</text>
+<text class="small-label" x="861" y="376" text-anchor="middle">latency below SLO</text>
+
+<path class="corrected" marker-end="url(#d36-i1-c)" d="M184 350 H240"/>
+<path class="corrected" marker-end="url(#d36-i1-c)" d="M460 350 H524"/>
+<path class="corrected" marker-end="url(#d36-i1-c)" d="M716 350 H778"/>
+<rect class="boundary" x="764" y="286" width="194" height="128" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> the fulfillment worker is a JVM application requiring approximately 6 GB of heap; the engineer selected a compute-optimized machine type based on lowest per-vCPU price without measuring the memory-to-vCPU ratio; the workload experienced GC pressure and latency violations under sustained queue processing. <strong>Architectural inference:</strong> the compute-optimized series' lower memory ratio is not sufficient for this heap size at the vCPU count chosen; the fix is a machine type change, not a code change; no benchmark data is provided. <strong>Expected post-fix behavior:</strong> after migrating to a general-purpose highmem type with sufficient RAM headroom, GC pause frequency returns to background levels and order acknowledgement latency remains below the SLO threshold; the rejected compute-optimized option and the memory-ratio reasoning are recorded in the sizing sheet.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 2 ── -->
+<article id="topic-02-problem" class="topic-card">
+<h3>Topic 2 field case — Custom type left running after nightly batch completes</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  A Brightloaf analyst provisions a custom machine type (6 vCPU / 48 GB RAM) for a nightly analytics batch that processes the previous day's order data. The batch finishes within two hours. The VM is not deleted after the job because the provisioning script lacks a post-job cleanup step. The analyst assumes the VM will be stopped by an instance schedule (from Day 33); however, the schedule was applied to a different instance name and does not cover this VM. The VM runs continuously. Because custom type pricing is per-vCPU and per-GB memory separately, the idle cost is higher than expected.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>The batch must complete within its two-hour window; the VM cannot be downsized mid-job.</li>
+  <li>The budget alert (Day 18) should catch runaway spend, but alert delivery to an unmonitored inbox is a known gap from Day 35's remediation.</li>
+  <li>The fix must not require changing the batch job code — only the infrastructure lifecycle.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  The provisioning script had no post-job teardown. The instance schedule assumption was not verified against the actual VM name. The combined effect is an orphaned VM with a higher hourly cost than a standard predefined type would have had.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Inventory running VMs by label: confirm the batch VM is running outside its expected window.</li>
+  <li>Check the instance schedule: verify which VM names it targets and confirm the batch VM is not included.</li>
+  <li>Delete the VM immediately and confirm an empty label inventory.</li>
+  <li>Add a <kbd>gcloud compute instances delete</kbd> call to the batch script's exit handler (runs on success or failure).</li>
+  <li>Apply the instance schedule to the correct VM name or replace the schedule with script-level teardown.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Update the provisioning script to delete the VM on job completion. As a defence-in-depth, configure a budget alert with an actively monitored recipient (Day 35 remediation) and add a label (<code>owner=batch-analytics</code>, <code>env=lab</code>) so inventory checks catch any future orphans.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Run the batch script end-to-end. After job completion, confirm the VM is deleted by label inventory. Check the billing report (or budget alert) to confirm no continued charge from that instance after the job window.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Script-level teardown fails if the script is forcibly killed. A second defence is an instance schedule set to stop (not delete) the VM one hour after the expected job end. Stopping is cheaper than running but does not eliminate the disk cost; deletion is cleanest for a truly disposable batch VM.
+</p>
+
+<!-- Incident SVG: Topic 2 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 460" role="img" aria-labelledby="d36-i2-title d36-i2-desc">
+<title id="d36-i2-title">Custom type VM left running after batch job — missing teardown and wrong schedule target</title>
+<desc id="d36-i2-desc">The upper dashed lane shows the batch job completing, the teardown step absent, the instance schedule targeting a different VM name, and the custom type VM running idle. The lower solid lane adds a script teardown step, verifies the schedule target, and crosses the verification boundary with an empty label inventory.</desc>
+<defs>
+<marker id="d36-i2-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/></marker>
+<marker id="d36-i2-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/></marker>
+</defs>
+<rect class="canvas" width="980" height="460" rx="8"/>
+<rect class="lane-failed" x="18" y="18" width="944" height="190" rx="8"/>
+<text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · NO TEARDOWN + WRONG SCHEDULE TARGET → VM RUNS IDLE CONTINUOUSLY</text>
+<rect class="lane-corrected" x="18" y="256" width="944" height="188" rx="8"/>
+<text class="lane-label" x="34" y="278" fill="#4ade80">CORRECTED PATH · SCRIPT TEARDOWN + SCHEDULE VERIFIED → EMPTY INVENTORY</text>
+
+<!-- Failed nodes -->
+<rect class="box" x="36" y="78" width="148" height="76" rx="8"/>
+<text x="110" y="110" text-anchor="middle">Batch job starts</text>
+<text class="small-label" x="110" y="132" text-anchor="middle">custom 6vCPU/48GB</text>
+
+<rect class="failbox" x="240" y="66" width="218" height="100" rx="8"/>
+<text x="349" y="96" text-anchor="middle">FAILURE POINT</text>
+<text x="349" y="118" text-anchor="middle">no teardown in script</text>
+<text class="small-label" x="349" y="141" text-anchor="middle">root cause: wrong schedule target</text>
+
+<rect class="failbox" x="524" y="78" width="190" height="76" rx="8"/>
+<text x="619" y="104" text-anchor="middle">Job finishes</text>
+<text class="small-label" x="619" y="126" text-anchor="middle">VM continues running idle</text>
+
+<rect class="failbox" x="778" y="78" width="166" height="76" rx="8"/>
+<text x="861" y="104" text-anchor="middle">Budget overrun</text>
+<text x="861" y="122" text-anchor="middle">orphaned custom VM</text>
+<text class="small-label" x="861" y="143" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d36-i2-f)" d="M184 116 H240"/>
+<path class="failed" marker-end="url(#d36-i2-f)" d="M458 116 H524"/>
+<path class="failed" marker-end="url(#d36-i2-f)" d="M714 116 H778"/>
+
+<!-- Corrected nodes -->
+<rect class="box" x="36" y="312" width="148" height="76" rx="8"/>
+<text x="110" y="344" text-anchor="middle">Same batch job</text>
+<text class="small-label" x="110" y="366" text-anchor="middle">same custom type</text>
+
+<rect class="box" x="240" y="300" width="218" height="100" rx="8"/>
+<text x="349" y="332" text-anchor="middle">Corrected control</text>
+<text x="349" y="354" text-anchor="middle">exit handler deletes VM</text>
+<text class="small-label" x="349" y="376" text-anchor="middle">schedule target verified</text>
+
+<rect class="box" x="524" y="312" width="190" height="76" rx="8"/>
+<text x="619" y="344" text-anchor="middle">Job finishes</text>
+<text class="small-label" x="619" y="366" text-anchor="middle">VM deleted by exit handler</text>
+
+<rect class="verifybox" x="778" y="300" width="166" height="100" rx="8"/>
+<text x="861" y="332" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="861" y="354" text-anchor="middle">label inventory empty</text>
+<text class="small-label" x="861" y="376" text-anchor="middle">no continued charge</text>
+
+<path class="corrected" marker-end="url(#d36-i2-c)" d="M184 350 H240"/>
+<path class="corrected" marker-end="url(#d36-i2-c)" d="M458 350 H524"/>
+<path class="corrected" marker-end="url(#d36-i2-c)" d="M714 350 H778"/>
+<rect class="boundary" x="764" y="286" width="194" height="128" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> a custom machine type (6 vCPU / 48 GB) was provisioned for a nightly analytics batch; the provisioning script had no post-job teardown; an instance schedule existed but targeted a different VM name; the VM continued running after the job completed. <strong>Architectural inference:</strong> custom type per-hour cost is higher than an equivalent predefined type because vCPU and memory are billed separately; the exact overspend is not stated because duration and rate are not provided; the demonstrated defect is lifecycle governance, not a billing system error. <strong>Expected post-fix behavior:</strong> after adding a script exit handler that deletes the VM and verifying the instance schedule target, the label inventory is empty after each batch run and the billing report shows no continued charge from that instance after the job window.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 3 ── -->
+<article id="topic-03-problem" class="topic-card">
+<h3>Topic 3 field case — Shared-core staging benchmark used to size production</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  The Brightloaf staging Order API runs on an e2-micro (shared-core) to minimise lab cost. A load test at 20 requests/second is run against staging; average response time is recorded. The engineer uses this result to justify choosing an e2-standard-2 (standard-core, 2 vCPU / 8 GB) for production, reasoning that if staging handles 20 RPS on a micro, standard will comfortably handle the target 50 RPS. After production launch, the service performs correctly at lower loads but begins to degrade at 35 RPS — well below the projected 50 RPS ceiling.
+</p>
+
+<h4>Root cause</h4>
+<p>
+  The shared-core micro burst ceiling was not exhausted during the staging test because 20 RPS was below the burst threshold for that particular physical host at test time. The result is not transferable: the e2-micro's guaranteed CPU fraction is far less than a full vCPU, and its burst behaviour depends on physical host utilisation at test time. The staging benchmark result is an artefact of host availability, not a transferable throughput ceiling.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  Run load tests only on standard-core machine types of the same series as the production target. Size staging with a machine type that reflects the production CPU guarantee, not the smallest available type. Annotate all benchmark results with the machine type, series, and "not transferable to shared-core/different series" notes.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Re-run the load test on an e2-standard-2 staging instance. Record the throughput ceiling and compare to the production target. Record both the machine type and the test date in the sizing sheet. The rejected e2-micro option must appear in the sizing sheet with the reason: "Shared-core; benchmark not transferable to standard sizing."
+</p>
+
+<!-- Incident SVG: Topic 3 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 460" role="img" aria-labelledby="d36-i3-title d36-i3-desc">
+<title id="d36-i3-title">Shared-core staging benchmark used for production sizing — non-transferable result</title>
+<desc id="d36-i3-desc">The upper dashed lane shows a load test on a shared-core e2-micro producing a result that appears acceptable, the result transferred to production sizing, and production degrading below the projected ceiling. The lower solid lane uses a standard-core staging instance matching the production series, records the benchmark with machine type annotation, and crosses the verification boundary with a transferable sizing result.</desc>
+<defs>
+<marker id="d36-i3-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/></marker>
+<marker id="d36-i3-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/></marker>
+</defs>
+<rect class="canvas" width="980" height="460" rx="8"/>
+<rect class="lane-failed" x="18" y="18" width="944" height="190" rx="8"/>
+<text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · SHARED-CORE BENCHMARK TRANSFERRED TO STANDARD SIZING → PRODUCTION DEGRADATION</text>
+<rect class="lane-corrected" x="18" y="256" width="944" height="188" rx="8"/>
+<text class="lane-label" x="34" y="278" fill="#4ade80">CORRECTED PATH · STANDARD-CORE STAGING → ANNOTATED BENCHMARK → TRANSFERABLE SIZING</text>
+
+<!-- Failed nodes -->
+<rect class="box" x="36" y="78" width="148" height="76" rx="8"/>
+<text x="110" y="110" text-anchor="middle">Load test</text>
+<text class="small-label" x="110" y="132" text-anchor="middle">e2-micro · 20 RPS</text>
+
+<rect class="failbox" x="240" y="66" width="218" height="100" rx="8"/>
+<text x="349" y="96" text-anchor="middle">FAILURE POINT</text>
+<text x="349" y="118" text-anchor="middle">shared-core result assumed</text>
+<text class="small-label" x="349" y="141" text-anchor="middle">root cause: benchmark not labeled</text>
+
+<rect class="failbox" x="524" y="78" width="190" height="76" rx="8"/>
+<text x="619" y="104" text-anchor="middle">Production sized</text>
+<text class="small-label" x="619" y="126" text-anchor="middle">from non-transferable data</text>
+
+<rect class="failbox" x="778" y="78" width="166" height="76" rx="8"/>
+<text x="861" y="100" text-anchor="middle">Degradation at 35 RPS</text>
+<text x="861" y="118" text-anchor="middle">below 50 RPS target</text>
+<text class="small-label" x="861" y="141" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d36-i3-f)" d="M184 116 H240"/>
+<path class="failed" marker-end="url(#d36-i3-f)" d="M458 116 H524"/>
+<path class="failed" marker-end="url(#d36-i3-f)" d="M714 116 H778"/>
+
+<!-- Corrected nodes -->
+<rect class="box" x="36" y="312" width="148" height="76" rx="8"/>
+<text x="110" y="344" text-anchor="middle">Load test</text>
+<text class="small-label" x="110" y="366" text-anchor="middle">e2-standard-2 staging</text>
+
+<rect class="box" x="240" y="300" width="218" height="100" rx="8"/>
+<text x="349" y="332" text-anchor="middle">Corrected control</text>
+<text x="349" y="354" text-anchor="middle">standard-core same series</text>
+<text class="small-label" x="349" y="376" text-anchor="middle">result labeled with type+date</text>
+
+<rect class="box" x="524" y="312" width="190" height="76" rx="8"/>
+<text x="619" y="344" text-anchor="middle">Production sized</text>
+<text class="small-label" x="619" y="366" text-anchor="middle">from annotated benchmark</text>
+
+<rect class="verifybox" x="778" y="300" width="166" height="100" rx="8"/>
+<text x="861" y="332" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="861" y="354" text-anchor="middle">ceiling confirmed</text>
+<text class="small-label" x="861" y="376" text-anchor="middle">sizing sheet complete</text>
+
+<path class="corrected" marker-end="url(#d36-i3-c)" d="M184 350 H240"/>
+<path class="corrected" marker-end="url(#d36-i3-c)" d="M458 350 H524"/>
+<path class="corrected" marker-end="url(#d36-i3-c)" d="M714 350 H778"/>
+<rect class="boundary" x="764" y="286" width="194" height="128" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> the staging Order API ran on a shared-core e2-micro; a load test at 20 RPS produced a result that appeared acceptable; the result was used to justify production sizing on an e2-standard-2; production degraded at 35 RPS, below the target of 50 RPS. <strong>Architectural inference:</strong> the e2-micro's burst behaviour at 20 RPS depended on physical host availability at test time and is not transferable to standard-core capacity planning; the production degradation is consistent with the standard type not having the same burst cushion the micro happened to show during the test; no exact throughput ceiling is implied for any specific type. <strong>Expected post-fix behavior:</strong> after re-running the load test on an e2-standard-2 staging instance and recording the benchmark with machine type annotation, the sizing sheet contains a transferable result; the rejected e2-micro option is listed with the note "Shared-core; benchmark not transferable."
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 4 ── -->
+<article id="topic-04-problem" class="topic-card">
+<h3>Topic 4 field case — Image family alias rolls to a new kernel version, causing connection regression</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  The Brightloaf Order API is deployed from a Terraform configuration that uses the <code>debian-12</code> image family alias and the <code>debian-cloud</code> project. A routine deployment creates a new VM as part of a rolling update. The image family has been updated to a new minor version since the previous deployment; the new VM boots with an updated kernel. The new kernel's default TCP receive buffer size is different from the previous version's default, affecting high-throughput connections from the API to the fulfillment queue. Throughput on those connections is lower than before, but the change is subtle enough that it is not caught by health checks. The regression is noticed during the next load test.
+</p>
+
+<h4>Root cause</h4>
+<p>
+  The image family alias always resolves to the latest non-deprecated image. Using a family alias in production means kernel and system package versions can change between deployments without an explicit version bump in the Terraform configuration. The team had no mechanism to detect or test image version changes between releases.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  For production VMs: pin to a specific image ID rather than a family alias. Adopt a golden-image pipeline: periodically build a custom image from the latest family image, run automated tests (including connection throughput), and only promote the custom image ID to production after testing passes. Record the current image ID in the Terraform configuration as a versioned value.
+</p>
+
+<h4>Verification</h4>
+<p>
+  After pinning: a new deployment must use the pinned image ID regardless of which image is currently latest in the family. Confirm the image ID in the running instance's describe output matches the pinned value. The sizing sheet must record the image ID (not family alias) as the customer-managed layer for OS version.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Pinning to a specific image ID means security patches do not roll out automatically. The golden-image pipeline must include a cadence for pulling new family images and testing them. An organisation that pins without a pipeline update process will accumulate unpatched OS versions.
+</p>
+
+<!-- Incident SVG: Topic 4 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 460" role="img" aria-labelledby="d36-i4-title d36-i4-desc">
+<title id="d36-i4-title">Image family alias rolls to new kernel — undetected connection regression</title>
+<desc id="d36-i4-desc">The upper dashed lane shows a deployment using a family alias, a new kernel version rolling in silently, health checks passing, and a connection throughput regression discovered only at the next load test. The lower solid lane pins to a specific image ID in a golden-image pipeline, tests connection throughput before promoting, and crosses the verification boundary with a confirmed image ID and passing throughput test.</desc>
+<defs>
+<marker id="d36-i4-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/></marker>
+<marker id="d36-i4-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/></marker>
+</defs>
+<rect class="canvas" width="980" height="460" rx="8"/>
+<rect class="lane-failed" x="18" y="18" width="944" height="190" rx="8"/>
+<text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · FAMILY ALIAS ROLLS KERNEL → HEALTH CHECK PASSES → SILENT REGRESSION</text>
+<rect class="lane-corrected" x="18" y="256" width="944" height="188" rx="8"/>
+<text class="lane-label" x="34" y="278" fill="#4ade80">CORRECTED PATH · GOLDEN IMAGE PIPELINE → PINNED ID → THROUGHPUT TESTED → VERIFIED</text>
+
+<!-- Failed nodes -->
+<rect class="box" x="36" y="78" width="148" height="76" rx="8"/>
+<text x="110" y="110" text-anchor="middle">Deployment</text>
+<text class="small-label" x="110" y="132" text-anchor="middle">family alias: debian-12</text>
+
+<rect class="failbox" x="240" y="66" width="218" height="100" rx="8"/>
+<text x="349" y="96" text-anchor="middle">FAILURE POINT</text>
+<text x="349" y="118" text-anchor="middle">new kernel resolves silently</text>
+<text class="small-label" x="349" y="141" text-anchor="middle">root cause: alias unpinned</text>
+
+<rect class="failbox" x="524" y="78" width="190" height="76" rx="8"/>
+<text x="619" y="104" text-anchor="middle">Health check passes</text>
+<text class="small-label" x="619" y="126" text-anchor="middle">throughput not tested</text>
+
+<rect class="failbox" x="778" y="78" width="166" height="76" rx="8"/>
+<text x="861" y="100" text-anchor="middle">Regression found</text>
+<text x="861" y="118" text-anchor="middle">next load test</text>
+<text class="small-label" x="861" y="141" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d36-i4-f)" d="M184 116 H240"/>
+<path class="failed" marker-end="url(#d36-i4-f)" d="M458 116 H524"/>
+<path class="failed" marker-end="url(#d36-i4-f)" d="M714 116 H778"/>
+
+<!-- Corrected nodes -->
+<rect class="box" x="36" y="312" width="148" height="76" rx="8"/>
+<text x="110" y="344" text-anchor="middle">Same deployment</text>
+<text class="small-label" x="110" y="366" text-anchor="middle">golden image pipeline</text>
+
+<rect class="box" x="240" y="300" width="218" height="100" rx="8"/>
+<text x="349" y="332" text-anchor="middle">Corrected control</text>
+<text x="349" y="354" text-anchor="middle">pinned image ID</text>
+<text class="small-label" x="349" y="376" text-anchor="middle">throughput tested before promote</text>
+
+<rect class="box" x="524" y="312" width="190" height="76" rx="8"/>
+<text x="619" y="344" text-anchor="middle">Image ID confirmed</text>
+<text class="small-label" x="619" y="366" text-anchor="middle">in describe output</text>
+
+<rect class="verifybox" x="778" y="300" width="166" height="100" rx="8"/>
+<text x="861" y="332" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="861" y="354" text-anchor="middle">throughput test passes</text>
+<text class="small-label" x="861" y="376" text-anchor="middle">pinned ID in sizing sheet</text>
+
+<path class="corrected" marker-end="url(#d36-i4-c)" d="M184 350 H240"/>
+<path class="corrected" marker-end="url(#d36-i4-c)" d="M458 350 H524"/>
+<path class="corrected" marker-end="url(#d36-i4-c)" d="M714 350 H778"/>
+<rect class="boundary" x="764" y="286" width="194" height="128" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> the deployment used the <code>debian-12</code> family alias in the <code>debian-cloud</code> project; the image family was updated to a new minor version between deployments; the new VM booted with an updated kernel; health checks passed; a connection throughput regression was detected only at the next load test. <strong>Architectural inference:</strong> the family alias always resolves to the latest image, meaning kernel version can change silently between deployments; the specific kernel buffer size difference is an example mechanism, not a documented behaviour of a specific kernel version; the regression is consistent with a silent OS change affecting TCP stack defaults. <strong>Expected post-fix behavior:</strong> after adopting a golden-image pipeline that pins to a specific image ID after throughput testing, each deployment uses a confirmed image version; the <kbd>gcloud compute instances describe</kbd> output's disk source image field matches the pinned ID; the sizing sheet lists the image ID as the customer-managed OS layer.
+</figcaption>
+</figure>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 4 ══ -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1 — Machine family comparison: identify the right family for two Brightloaf workloads</h3>
+<p><strong>Goal:</strong> Apply the family decision framework to the Brightloaf Order API and fulfillment worker; produce the machine family section of the sizing sheet with one rejected option.</p>
+<p><strong>Mode:</strong> tabletop sizing · <strong>Prerequisites:</strong> <a href="day-008.html">Day 8</a> CPU/memory signal vocabulary; <a href="day-035.html">Day 35</a> Gate 2 artifact.</p>
+
+<ol>
+<li><strong>Create the sizing sheet.</strong> Open <code>day-036-sizing.md</code>. Add sections: Workload Profiles, Machine Family Selection, Custom Type Analysis, Image Source Decisions, Rejected Options.</li>
+<li><strong>Define the Brightloaf workload profiles.</strong> Under Workload Profiles, fill in:
+  <ul>
+    <li>Order API: nature (stateless HTTP, bursty), CPU signal (estimate: peaks at request bursts, low sustained), memory signal (estimate: JVM heap ~2 GB for small instance), network signal (inbound HTTP + outbound to queue).</li>
+    <li>Fulfillment worker: nature (long-running queue consumer), CPU signal (moderate sustained), memory signal (JVM heap ~6 GB for large cache).</li>
+  </ul>
+  Label all estimates as tabletop assumptions, not measured values.
+</li>
+<li><strong>Apply the family decision.</strong> For each workload, state which machine family you chose and why. For the fulfillment worker, explicitly state why compute-optimized is rejected (memory ratio insufficient for a 6 GB heap at 2 vCPUs). Record the rejected option under Rejected Options.</li>
+<li><strong>Check your reasoning.</strong> Confirm: (a) at least one family is chosen for each workload, (b) the compute-optimized family is considered and rejected for the fulfillment worker with a stated reason, (c) the reason references the memory-to-vCPU ratio, not just price.</li>
+<li><strong>Save.</strong> Add the machine family section to <code>day-036-sizing.md</code> and record the date.</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A sizing sheet with two workload profiles, a family selection for each with stated reasoning, and at least one rejected option (compute-optimized for the fulfillment worker) with the rejection reason tied to the memory-to-vCPU ratio.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If the family decision is unclear, use the GCP Machine families resource guide linked in Part 2 to find the memory-to-vCPU ratio for each family. If the rejection reason is vague, state a concrete numeric comparison: "compute-optimized provides ~4 GB/vCPU; at 2 vCPU that is 8 GB total, leaving only ~2 GB headroom after heap, which is insufficient given OS and JVM overhead estimates."</p>
+</div>
+<div class="callout">
+<strong>Cleanup</strong>
+<p>No cloud resources created. Keep <code>day-036-sizing.md</code> as the exit artifact in progress.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-36-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2 — Custom type analysis: compare custom vs predefined for a given vCPU/memory requirement</h3>
+<p><strong>Goal:</strong> Evaluate whether a custom machine type or a predefined type is more appropriate for a specific requirement; add the analysis to the sizing sheet.</p>
+<p><strong>Mode:</strong> tabletop · <strong>Prerequisites:</strong> Exercise 1 sizing sheet in progress.</p>
+
+<ol>
+<li><strong>State the requirement.</strong> The Brightloaf fulfillment worker needs 6 vCPUs and 32 GB of RAM based on the sizing exercise above (assumption: heap 6 GB + overhead + headroom). Record this as a stated requirement, not a measured value.</li>
+<li><strong>Identify the nearest predefined types.</strong> From the N2 series, the nearest standard types are n2-standard-4 (4 vCPU / 16 GB — too small) and n2-standard-8 (8 vCPU / 32 GB — correct memory, 2 extra vCPUs). Record both.</li>
+<li><strong>Evaluate the custom option.</strong> The custom type would be n2-custom-6-32768 (6 vCPU / 32 GB). State the trade-off: saves 2 vCPUs of cost vs n2-standard-8, but custom type pricing applies (slightly higher rate per resource unit than predefined). Is the saving worth the complexity? Record your reasoning.</li>
+<li><strong>Add extended memory analysis.</strong> If the heap requirement grew to 48 GB, the standard n2-standard-8 (32 GB) would be insufficient. The next step would be n2-highmem-8 (64 GB) — excess memory, or n2-custom-6-49152 with extended memory. Record which you would choose and why.</li>
+<li><strong>Add to sizing sheet.</strong> Add the Custom Type Analysis section with the four steps above. State the final recommendation and the rejected alternative.</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A custom type analysis comparing n2-standard-8 vs n2-custom-6-32768 for the 6 vCPU / 32 GB requirement, with a stated recommendation and reasoning about the cost-complexity trade-off. An extended memory scenario for 48 GB is included.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-36-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3 — Shared-core vs standard: choose the correct type for each Brightloaf environment</h3>
+<p><strong>Goal:</strong> Decide which machine type is appropriate for each Brightloaf environment (development, staging, production) and document why shared-core benchmarks are not transferable.</p>
+<p><strong>Mode:</strong> tabletop · <strong>Prerequisites:</strong> Exercise 1 sizing sheet.</p>
+
+<ol>
+<li><strong>Define three environments.</strong> In the sizing sheet, add a table with columns: Environment | Purpose | Acceptable CPU throttling? | Shared-core or standard? | Machine type choice.</li>
+<li><strong>Fill in the table.</strong>
+  <ul>
+    <li>Development: no production traffic, intermittent use, cost priority → shared-core acceptable → e2-micro or e2-small.</li>
+    <li>Staging (load tests): must reflect production behaviour → shared-core NOT acceptable for load tests → e2-standard-2 (same series as production target).</li>
+    <li>Production: SLO-bound service → standard-core only → chosen from Exercise 1 sizing.</li>
+  </ul>
+</li>
+<li><strong>Write the benchmark validity statement.</strong> Add a paragraph to the sizing sheet: "Any benchmark result taken from a shared-core instance (e2-micro, e2-small, e2-medium, f1-micro, g1-small) must be labeled with the machine type and marked as 'not transferable to standard-core production sizing.' The result reflects burst availability at test time, not a guaranteed CPU floor."</li>
+<li><strong>Verify and save.</strong> Confirm the staging entry explicitly uses a standard type for load testing. Save the sizing sheet.</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A three-environment table with machine type choices and a benchmark validity statement that explicitly disqualifies shared-core results from production sizing decisions.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-36-topic-03"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-04-lab" class="topic-card lab">
+<h3>Exercise 4 — Image source decisions: choose family alias vs pinned ID vs custom golden image</h3>
+<p><strong>Goal:</strong> Decide the image source strategy for each Brightloaf environment and record the customer-managed layer in the sizing sheet; optionally verify an image family resolution.</p>
+<p><strong>Mode:</strong> tabletop + optional cloud verification · <strong>Prerequisites:</strong> <a href="day-010.html">Day 10</a> image and filesystem vocabulary; Exercise 1 sizing sheet.</p>
+
+<ol>
+<li><strong>Define the image source policy.</strong> In the sizing sheet, add an Image Source Decisions section. For each environment (development, staging, production), state:
+  <ul>
+    <li>Which image source type: family alias, pinned ID, or custom golden image.</li>
+    <li>The reason: automatic updates acceptable (dev), reproducible deploys required (staging/production).</li>
+    <li>The customer-managed layer: OS family and version is customer-selected; kernel patch timing is managed by Google for public images, by the team for custom images.</li>
+  </ul>
+</li>
+<li><strong>State the snapshot vs machine image policy.</strong> For the Brightloaf Order API VM: "Snapshot the boot disk before any risky configuration change. Use a machine image only when needing to clone the entire VM (all disks + config) for zone migration or disaster recovery."</li>
+<li><strong>Optional cloud verification.</strong> If cloud access is available:
+<pre><code># Resolve the current debian-12 family image
+gcloud compute images describe-from-family debian-12 \
+  --project=debian-cloud \
+  --format="yaml(name,family,selfLink,creationTimestamp)"</code></pre>
+Record the resolved image name. Note that a VM created tomorrow with the same family alias may resolve to a different image if the family has been updated. Label this as an observed result.
+</li>
+<li><strong>Describe the golden-image pipeline.</strong> In two to four sentences, describe the pipeline that would allow production VMs to use a tested image ID: (1) pull latest family image, (2) bake custom image with application dependencies, (3) run throughput + health tests, (4) promote image ID to Terraform if tests pass.</li>
+<li><strong>Save and complete.</strong> Add the image section to the sizing sheet. Confirm the sizing sheet now contains: workload profiles, machine family decisions, custom type analysis, environment table (shared-core/standard), image source decisions, and rejected options. This completes the exit artifact.</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A completed <code>day-036-sizing.md</code> containing all five sections. The customer-managed OS layer is identified for each environment. The rejected options list includes at minimum: compute-optimized type for the fulfillment worker (memory ratio), and family alias for production (drift risk). If cloud verification was run, the resolved image name is recorded and labeled as an observed result.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If the family alias resolution command fails with PERMISSION_DENIED: confirm the active project and that the Compute Engine API is enabled. If the image is not found: use <kbd>gcloud compute images list --project=debian-cloud --filter="family=debian-12" --sort-by="~creationTimestamp" --limit=3</kbd> to find the current family members. If cloud access is unavailable, describe the expected output format as a tabletop prediction.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>No chargeable resources are created in this exercise. The optional verification command is read-only. Keep <code>day-036-sizing.md</code> as the Day 36 exit artifact.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-36-topic-04"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-036-sizing.md</code> containing: (1) workload profiles for Order API and fulfillment worker with stated assumptions, (2) machine family selection for each with reasoning, (3) custom type analysis comparing predefined vs custom for the 6 vCPU / 32 GB requirement, (4) three-environment table with shared-core vs standard decisions and benchmark validity statement, (5) image source decisions for each environment with customer-managed layer identified, (6) rejected options list with stated reasons. Label all values as tabletop assumptions or observed results.</p>
+<label class="check"><input type="checkbox" data-progress="read-36"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-36"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-035.html">← Day 35<small>Gate 2 — Sandbox and identity readiness</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-037.html">Day 37 →<small>Disks, metadata and persistence</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

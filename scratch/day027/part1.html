@@ -1,0 +1,33 @@
+    <section class="part" id="part-1" aria-labelledby="part-1-heading">
+      <h2 id="part-1-heading">Part 1 · Topics of the day</h2>
+      <p class="section-lead">Establishing enterprise financial governance in Google Cloud: decoupling billing accounts from project hierarchies, enforcing strict segregation of duties via billing IAM roles, and implementing proactive 50%, 90%, and 100% budget threshold alerts.</p>
+
+      <div class="topic-grid">
+        <article class="card" id="topic-01-overview" aria-labelledby="t1-title">
+          <span class="badge">Topic 01</span>
+          <h3 id="t1-title">Billing accounts vs projects (many projects can link to one billing account)</h3>
+          <p><strong>What it is:</strong> A Google Cloud Billing account is an independent financial entity tied to a payment instrument (such as a credit card or monthly invoicing agreement). It is fundamentally separate from the resource hierarchy. While every active Google Cloud project must be associated with an open billing account to consume billable APIs, a single billing account can fund dozens or hundreds of projects across multiple folders and organizations. Projects can be linked, unlinked, or reassigned without moving or modifying their underlying resource trees.</p>
+          <p><strong>Why today:</strong> Decoupling billing accounts from projects enables centralized financial administration, consolidated corporate invoicing, and enterprise-wide committed use discounts. At the same time, this separation means project administrators do not require access to corporate bank accounts or invoicing terms to deploy workloads.</p>
+          <p><strong>Where it sits:</strong> Billing accounts reside at the root of the commercial boundary. They exist outside the standard Resource Manager folder hierarchy and attach horizontally to projects via project billing linkages (<code>projectBillingInfo</code>).</p>
+          <p>A developer attempting to test an automated cost-saving script inadvertently unlinked the production billing account from the regional fulfillment project. The unlinked project immediately entered a suspended billing state, causing all GKE node auto-provisioning to freeze and halting bakery dispatch operations across four states.</p>
+        </article>
+
+        <article class="card" id="topic-02-overview" aria-labelledby="t2-title">
+          <span class="badge">Topic 02</span>
+          <h3 id="t2-title">Billing roles (Billing Account Administrator vs User vs Viewer)</h3>
+          <p><strong>What it is:</strong> Google Cloud IAM enforces segregation of duties between cloud infrastructure teams and corporate finance through dedicated billing roles. A <em>Billing Account Administrator</em> (<code>roles/billing.admin</code>) holds full authority over financial settings, payment instruments, account closure, and budget definitions. A <em>Billing Account User</em> (<code>roles/billing.user</code>) possesses the precise permission required to link new or existing projects to the billing account without visibility into corporate spend or invoices. A <em>Billing Account Viewer</em> (<code>roles/billing.viewer</code>) grants read-only access to spend reports, invoices, and cost breakdowns without modification rights.</p>
+          <p><strong>Why today:</strong> Overprivileged billing assignments violate financial compliance standards (such as Sarbanes-Oxley and SOC 2). Granting engineers administrative billing privileges risks unapproved payment profile changes or accidental account closure, while denying the <code>roles/billing.user</code> role blocks project creation and automation pipelines.</p>
+          <p><strong>Where it sits:</strong> Billing roles are bound directly on the Billing Account resource (or inherited from the root Organization level), completely distinct from project-level roles such as Project Creator or Project Owner.</p>
+          <p>Granting a lead DevOps engineer <code>roles/billing.admin</code> instead of the scoped <code>roles/billing.user</code> role allowed an unauthorized modification to the corporate credit line. The inadvertent payment profile swap triggered a fraud prevention lock from the issuing bank, stopping automated billing reconciliation and risking enterprise-wide service throttling.</p>
+        </article>
+
+        <article class="card" id="topic-03-overview" aria-labelledby="t3-title">
+          <span class="badge">Topic 03</span>
+          <h3 id="t3-title">**Set budgets and alerts first** (thresholds at 50%, 90%, 100%)</h3>
+          <p><strong>What it is:</strong> Google Cloud Budgets track actual and forecasted cumulative spend against a fixed monetary target or rolling dynamic average. Standard architecture mandates configuring budgets and threshold alerts <em>before</em> deploying any billable infrastructure. Best practice defines an early warning alert ladder triggering notifications at 50% (initial consumption check), 90% (near-capacity operational review), and 100% (budget exhaustion) of actual or forecasted monthly spend.</p>
+          <p><strong>Why today:</strong> Google Cloud budgets do <strong>not</strong> stop running resources or cap spend by default; they are non-destructive notification systems. Without budget alerts established on day one, runaway autoscaling loops, unoptimized analytical queries, or leaked credentials can accumulate tens of thousands of dollars in debt before the end-of-month invoice arrives.</p>
+          <p><strong>Where it sits:</strong> Cloud Budgets evaluate aggregated billing export data and real-time usage metrics within the Cloud Billing control plane, distributing alerts via email to billing administrators and publishing programmatic event envelopes to Pub/Sub for automated cost remediation.</p>
+          <p>A batch data ingestion pipeline entered an infinite retry loop on an unpartitioned BigQuery table over a holiday weekend without active budget alerts. The unmonitored query amplification consumed $48,000 in on-demand compute within thirty-six hours, completely exhausting the quarterly exploratory engineering budget.</p>
+        </article>
+      </div>
+    </section>

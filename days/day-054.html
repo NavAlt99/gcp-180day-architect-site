@@ -1,0 +1,1385 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 54: Health checks, certificates and draining · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-053.html" aria-label="Previous day">← Day 53</a>
+<a href="day-055.html" aria-label="Next day">Day 55 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html" selected>Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="54" data-prev="day-053.html" data-next="day-055.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 54 of 180</div>
+<section class="hero">
+<div class="pills"><span class="pill">DAY 54</span><span class="pill">3–4 hours</span><span class="pill">production practice</span><span class="pill">Reliability &amp; TLS</span></div>
+<h1>Day 54 — Health checks, certificates and draining</h1>
+<p class="lead"><strong>Outcome:</strong> Break a local readiness endpoint or certificate fixture, then restore it; walk connection draining during a rollout to ensure zero in-flight dropped transactions.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-053.html">Day 53</a>, <a href="day-004.html">Day 4</a>; bring their exit artifacts.</p></div>
+<div class="callout success"><strong>Exit artifact</strong><p>A timestamped failure/recovery trace and certificate/health-check ownership checklist, documented in <code>day-054-health-cert-trace.md</code>.</p></div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>Passthrough Network Load Balancers (external and internal)</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>Health checks (protocols, intervals, thresholds, firewall rules)</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+<div class="toc-topic"><span>Session affinity, connection draining, timeouts</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+<div class="toc-topic"><span>SSL certificates: Google-managed, self-managed, Certificate Manager, SSL policies</span><a href="#topic-04-overview">overview</a> · <a href="#topic-04-technical">discussion</a> · <a href="#topic-04-problem">problem</a> · <a href="#topic-04-lab">lab</a></div>
+</aside>
+
+<!-- ================= PART 1 ================= -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Passthrough Network Load Balancers (external and internal)</h3>
+<p>Passthrough Network Load Balancers (NLBs) are non-proxied Layer 4 distributed routing engines engineered on Google's Maglev packet forwarder architecture. Unlike reverse proxies that terminate TCP sockets and negotiate separate backend connections, Passthrough NLBs forward raw IP datagrams directly to backend VM network interfaces without altering client IP headers, TCP sequence numbers, or UDP payloads. Utilizing Direct Server Return (DSR), backend virtual machines reply directly to the client's public IP address via the VPC Internet Gateway, eliminating return-path bottleneck constraints and achieving line-rate multi-million packet-per-second throughput with microsecond latency. External and Internal Passthrough NLBs support stateful failover policies, active/backup backend pools, and configurable failover ratio thresholds.</p>
+<p>When an engineer configures an External Passthrough Network Load Balancer with port forwarding on 9443 while pointing to backend services listening on 8443, all client SYN packets are rejected with TCP resets because Maglev bypasses port translation and delivers raw packets to the guest OS. In-store point-of-sale registers across 200 retail storefronts fail to synchronize transaction logs, halting $850,000 in afternoon checkout receipts and leaving customer queues stalled at retail registers.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Health checks (protocols, intervals, thresholds; firewall rules needed for health check ranges)</h3>
+<p>Google Cloud health checks provide continuous, automated liveness and readiness verification to safeguard client traffic from degraded or partitioned backend workloads. Probing engines query backends using multi-protocol probes—including HTTP, HTTPS, HTTP/2, TCP, and SSL—evaluating response status codes, host headers, and exact payload strings against distinct operational endpoints (<code>/healthz</code> liveness versus <code>/readyz</code> readiness). Because Google dispatches health checks from redundant, distributed prober fleets rather than a centralized VIP, probes land at higher aggregate frequencies than individual check intervals imply. Crucially, ingress traffic from immutable Google health prober CIDR blocks (<code>35.191.0.0/16</code>, <code>130.211.0.0/22</code>, <code>209.85.152.0/22</code>, and <code>209.85.204.0/22</code>) must be explicitly permitted through VPC firewall rules to prevent catastrophic false-positive backend evictions.</p>
+<p>When a security team implements a default-deny VPC firewall policy without an explicit ingress allow rule for Google's prober blocks (35.191.0.0/16 and 130.211.0.0/22), health probes fail across every healthy backend instance. The external load balancer marks 100% of the fleet UNHEALTHY and serves HTTP 502 Bad Gateway to all global traffic, blacking out the customer portal for 42 minutes and generating 3,800 urgent support tickets.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Session affinity, connection draining, timeouts</h3>
+<p>Production reliability requires deterministic connection lifecycle management during autoscaling scale-down events, blue-green deployments, and rolling instance updates. Session affinity binds sequential requests from a single client to an identical backend instance using 2-tuple client IP hashes, 3-tuple client IP/protocol hashes, 5-tuple hashes, managed HTTP cookies (<code>GENERATED_COOKIE</code>), or custom request headers, balancing stateful application requirements against load distribution uniformity. Connection draining (deregistration delay) establishes a defined grace window (such as 300 seconds) during which instances marked for decommissioning stop receiving new connections while existing in-flight TCP streams and HTTP keep-alive connections terminate naturally. Synchronizing frontend client timeouts, backend service timeouts, and backend web server keep-alive timeouts prevents silent socket terminations and intermittent gateway errors.</p>
+<p>When an automated rolling update replaces Compute Engine instances without connection draining configured, active long-running TCP streams and file upload payloads are instantly terminated with ERR_CONNECTION_RESET. Over 450 franchise store managers lose uncommitted end-of-day financial ledger uploads, corrupting batch reconciliations and requiring 16 hours of emergency database repair.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-04-overview" class="topic-card">
+<h3>SSL certificates: Google-managed, self-managed, Certificate Manager, SSL policies</h3>
+<p>Edge encryption governance on Google Cloud balances automated public-key lifecycle management with stringent enterprise cryptographic compliance. Organizations select between Google-managed certificates with automated ACME domain verification, self-managed certificates requiring customer-driven renewal cycles, and Google Cloud Certificate Manager. Certificate Manager delivers planetary enterprise scale through Certificate Maps and Certificate Map Entries, providing seamless wildcard domain issuance (<code>*.brightloaf.com</code>) via automated Cloud DNS authorizations and integrating natively with Cloud Private CA (Certificate Authority Service) for zero-trust internal microservices. Complementing certificate management, custom SSL Policies enforce modern cryptographic baselines across target proxies, deprecating insecure TLS 1.0 and 1.1 handshakes, eliminating vulnerable CBC ciphers, and satisfying strict regulatory frameworks.</p>
+<p>When an enterprise relies on manually renewed self-managed SSL certificates without automated Certificate Manager DNS authorization, an unexpected midnight certificate expiration triggers catastrophic browser security warnings (NET::ERR_CERT_DATE_INVALID). Payment gateway webhooks reject TLS handshakes and abort checkout authorizations, halting $1.4 million in overnight electronic commerce transactions until an on-call engineer can obtain and install a replacement certificate.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ================= PART 2 ================= -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<!-- Part 2 Full-Width Architecture SVG: Health Probing, Maglev DSR, Connection Draining & TLS Termination Lifecycle -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d54-arch-title d54-arch-desc" viewBox="0 0 1000 550" width="100%" height="auto" style="background:#0a0f1d;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d54-arch-title">Load Balancer Health Probing, Maglev Direct Server Return, Connection Draining, and TLS Governance</title>
+<desc id="d54-arch-desc">Comprehensive architectural blueprint showing Maglev L4 Direct Server Return packet steering, Google distributed health check probers crossing VPC firewall boundaries, connection draining state transitions, and Certificate Manager DNS authorization with SSL Policy cipher enforcement.</desc>
+<defs>
+<marker id="d54-dsr-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d54-probe-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d54-drain-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+<marker id="d54-tls-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#a855f7"/>
+</marker>
+</defs>
+
+<!-- Outer Canvas -->
+<rect x="15" y="15" width="970" height="520" rx="8" fill="#0d1424" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="42" fill="#f8fafc" font-size="15" font-weight="700">Load Balancer Reliability, Probing, DSR &amp; TLS Lifecycle Fabric</text>
+<text x="35" y="60" fill="#94a3b8" font-size="11">Maglev L4 Passthrough (DSR) · Distributed Probers (35.191.0.0/16) · Connection Draining (300s Grace) · Certificate Manager &amp; SSL Policies</text>
+
+<!-- Column 1: Maglev Passthrough & DSR (x: 35 to 255) -->
+<rect x="35" y="80" width="220" height="435" rx="6" fill="#061f17" stroke="#22c55e" stroke-width="1.5"/>
+<text x="48" y="104" fill="#4ade80" font-size="12" font-weight="700">1. Maglev Passthrough (DSR)</text>
+<text x="48" y="120" fill="#94a3b8" font-size="9.5">Direct Server Return Architecture</text>
+
+<!-- Client Box -->
+<rect x="45" y="135" width="200" height="65" rx="4" fill="#0b2c21" stroke="#22c55e" stroke-width="1"/>
+<text x="55" y="155" fill="#86efac" font-size="11" font-weight="700">External Client</text>
+<text x="55" y="172" fill="#cbd5e1" font-size="9.5">IP: 203.0.113.50 | Port: 54321</text>
+<text x="55" y="188" fill="#94a3b8" font-size="9">SYN to VIP:9000 (No Proxy Delay)</text>
+
+<!-- Maglev Forwarder Box -->
+<rect x="45" y="215" width="200" height="95" rx="4" fill="#133d2e" stroke="#34d399" stroke-width="1"/>
+<text x="55" y="235" fill="#a7f3d0" font-size="11" font-weight="700">Maglev Packet Forwarder</text>
+<text x="55" y="252" fill="#cbd5e1" font-size="9">• Consistent Hashing Table M</text>
+<text x="55" y="267" fill="#cbd5e1" font-size="9">• 5-Tuple Steering (No PAT)</text>
+<text x="55" y="282" fill="#cbd5e1" font-size="9">• Dest IP unchanged on wire (VIP)</text>
+<text x="55" y="297" fill="#86efac" font-size="8.5">Packet sent to VM NIC via Andromeda</text>
+
+<!-- Backend Guest VM Box -->
+<rect x="45" y="325" width="200" height="85" rx="4" fill="#0b2c21" stroke="#22c55e" stroke-width="1"/>
+<text x="55" y="345" fill="#86efac" font-size="11" font-weight="700">Backend VM (Guest OS)</text>
+<text x="55" y="362" fill="#cbd5e1" font-size="9">• Local Route Table intercepts VIP</text>
+<text x="55" y="377" fill="#cbd5e1" font-size="9">• App Socket bound to 0.0.0.0:9000</text>
+<text x="55" y="393" fill="#cbd5e1" font-size="9">• Client IP visible natively on socket</text>
+
+<!-- DSR Return Callout -->
+<rect x="45" y="425" width="200" height="75" rx="4" fill="#042014" stroke="#4ade80" stroke-width="1.2"/>
+<text x="55" y="445" fill="#4ade80" font-size="10.5" font-weight="700">Direct Server Return (DSR)</text>
+<text x="55" y="462" fill="#cbd5e1" font-size="9">• VM sends SYN-ACK with Src=VIP</text>
+<text x="55" y="477" fill="#cbd5e1" font-size="9">• Routes via VPC Internet Gateway</text>
+<text x="55" y="492" fill="#86efac" font-size="8.5">Bypasses Maglev entirely on egress!</text>
+
+<!-- Column 2: Health Probers & Firewall (x: 275 to 495) -->
+<rect x="275" y="80" width="220" height="435" rx="6" fill="#08182b" stroke="#38bdf8" stroke-width="1.5"/>
+<text x="288" y="104" fill="#38bdf8" font-size="12" font-weight="700">2. Prober Fleet &amp; Firewalls</text>
+<text x="288" y="120" fill="#94a3b8" font-size="9.5">Multi-Zone Distributed Verification</text>
+
+<!-- Google Prober Range Box -->
+<rect x="285" y="135" width="200" height="95" rx="4" fill="#0e2a47" stroke="#38bdf8" stroke-width="1"/>
+<text x="295" y="155" fill="#7dd3fc" font-size="11" font-weight="700">Google Distributed Probers</text>
+<text x="295" y="172" fill="#cbd5e1" font-size="9">Global: 35.191.0.0/16, 130.211.0.0/22</text>
+<text x="295" y="187" fill="#cbd5e1" font-size="9">Regional: 209.85.152.0/22, 204.0/22</text>
+<text x="295" y="202" fill="#cbd5e1" font-size="9">Redundant probers per zone</text>
+<text x="295" y="217" fill="#38bdf8" font-size="8.5">Aggregate Rate: ~1.2 probes/sec/VM</text>
+
+<!-- VPC Firewall Ingress Rule Box -->
+<rect x="285" y="245" width="200" height="85" rx="4" fill="#133659" stroke="#60a5fa" stroke-width="1.2"/>
+<text x="295" y="265" fill="#93c5fd" font-size="11" font-weight="700">VPC Ingress Firewall Rule</text>
+<text x="295" y="282" fill="#cbd5e1" font-size="9">• Priority: 1000 | Action: ALLOW</text>
+<text x="295" y="297" fill="#cbd5e1" font-size="9">• Target: tag allow-health-check</text>
+<text x="295" y="312" fill="#86efac" font-size="8.5">CRITICAL: Drop = 100% 502 Outage</text>
+
+<!-- Endpoint Check Box -->
+<rect x="285" y="345" width="200" height="80" rx="4" fill="#0e2a47" stroke="#38bdf8" stroke-width="1"/>
+<text x="295" y="365" fill="#7dd3fc" font-size="11" font-weight="700">Health Endpoint Contract</text>
+<text x="295" y="382" fill="#cbd5e1" font-size="9">• /healthz (Liveness: process up)</text>
+<text x="295" y="397" fill="#cbd5e1" font-size="9">• /readyz (Readiness: DB/cache ok)</text>
+<text x="295" y="412" fill="#cbd5e1" font-size="9">• Fast &lt;10ms execution time</text>
+
+<!-- Threshold State Evaluator -->
+<rect x="285" y="440" width="200" height="65" rx="4" fill="#071b30" stroke="#38bdf8" stroke-width="1"/>
+<text x="295" y="458" fill="#60a5fa" font-size="10.5" font-weight="700">Threshold State Evaluator</text>
+<text x="295" y="475" fill="#cbd5e1" font-size="9">Interval: 5s | Timeout: 3s</text>
+<text x="295" y="491" fill="#86efac" font-size="9">Healthy: 2 passes | Unhealthy: 3 fails</text>
+
+<!-- Column 3: Connection Draining & Lifecycle (x: 515 to 735) -->
+<rect x="515" y="80" width="220" height="435" rx="6" fill="#211505" stroke="#f59e0b" stroke-width="1.5"/>
+<text x="528" y="104" fill="#fbbf24" font-size="12" font-weight="700">3. Connection Draining</text>
+<text x="528" y="120" fill="#94a3b8" font-size="9.5">Lifecycle &amp; Timeout Alignment</text>
+
+<!-- Draining Timeline Step 1 -->
+<rect x="525" y="135" width="200" height="75" rx="4" fill="#382407" stroke="#f59e0b" stroke-width="1"/>
+<text x="535" y="155" fill="#fcd34d" font-size="11" font-weight="700">State: DRAINING (t=0s)</text>
+<text x="535" y="172" fill="#cbd5e1" font-size="9">• Trigger: Rolling update or scale-down</text>
+<text x="535" y="187" fill="#cbd5e1" font-size="9">• Load balancer drops VM from hash</text>
+<text x="535" y="202" fill="#fcd34d" font-size="8.5">Zero new connections dispatched</text>
+
+<!-- Draining Timeline Step 2 -->
+<rect x="525" y="225" width="200" height="85" rx="4" fill="#4d3008" stroke="#fbbf24" stroke-width="1"/>
+<text x="535" y="245" fill="#fde68a" font-size="11" font-weight="700">Grace Window (t=0s..300s)</text>
+<text x="535" y="262" fill="#cbd5e1" font-size="9">• Existing TCP streams persist</text>
+<text x="535" y="277" fill="#cbd5e1" font-size="9">• In-flight file uploads conclude</text>
+<text x="535" y="292" fill="#cbd5e1" font-size="9">• HTTP keep-alives finish requests</text>
+<text x="535" y="305" fill="#86efac" font-size="8.5">drainingTimeoutSec = 300s</text>
+
+<!-- Draining Timeline Step 3 -->
+<rect x="525" y="325" width="200" height="75" rx="4" fill="#382407" stroke="#f59e0b" stroke-width="1"/>
+<text x="535" y="345" fill="#fcd34d" font-size="11" font-weight="700">Timer Expiry (t=300s)</text>
+<text x="535" y="362" fill="#cbd5e1" font-size="9">• Compute Engine issues SIGTERM</text>
+<text x="535" y="377" fill="#cbd5e1" font-size="9">• 30s OS shutdown delay</text>
+<text x="535" y="392" fill="#94a3b8" font-size="8.5">SIGKILL sent only if process hangs</text>
+
+<!-- Keep-Alive Alignment Rule -->
+<rect x="525" y="415" width="200" height="90" rx="4" fill="#241402" stroke="#f59e0b" stroke-width="1.2"/>
+<text x="535" y="435" fill="#fbbf24" font-size="10.5" font-weight="700">Keep-Alive Alignment Rule</text>
+<text x="535" y="452" fill="#cbd5e1" font-size="9">• LB Backend Keepalive: 600s</text>
+<text x="535" y="467" fill="#cbd5e1" font-size="9">• Web Server Keepalive: 650s</text>
+<text x="535" y="482" fill="#86efac" font-size="8.5">Prevents race condition 502 errors!</text>
+<text x="535" y="497" fill="#94a3b8" font-size="8">Backend timeout &gt; LB idle timeout</text>
+
+<!-- Column 4: Certificate Manager & SSL Policy (x: 755 to 965) -->
+<rect x="755" y="80" width="210" height="435" rx="6" fill="#1e0c2b" stroke="#a855f7" stroke-width="1.5"/>
+<text x="768" y="104" fill="#d8b4fe" font-size="12" font-weight="700">4. Cert Manager &amp; Policy</text>
+<text x="768" y="120" fill="#94a3b8" font-size="9.5">Automated ACME &amp; Cryptography</text>
+
+<!-- Cloud DNS Authorization Box -->
+<rect x="765" y="135" width="190" height="85" rx="4" fill="#35144d" stroke="#c084fc" stroke-width="1"/>
+<text x="775" y="155" fill="#e9d5ff" font-size="11" font-weight="700">Cloud DNS Authorization</text>
+<text x="775" y="172" fill="#cbd5e1" font-size="9">• _acme-challenge CNAME</text>
+<text x="775" y="187" fill="#cbd5e1" font-size="9">• Automated domain proof</text>
+<text x="775" y="202" fill="#cbd5e1" font-size="9">• Zero VIP pointing needed</text>
+<text x="775" y="215" fill="#86efac" font-size="8.5">Supports *.brightloaf.com</text>
+
+<!-- Certificate Map & Entry Box -->
+<rect x="765" y="235" width="190" height="95" rx="4" fill="#4c1d6f" stroke="#d8b4fe" stroke-width="1"/>
+<text x="775" y="255" fill="#f3e8ff" font-size="11" font-weight="700">Certificate Map &amp; Entries</text>
+<text x="775" y="272" fill="#cbd5e1" font-size="9">• Decoupled from proxy</text>
+<text x="775" y="287" fill="#cbd5e1" font-size="9">• Dynamic wildcard SNI route</text>
+<text x="775" y="302" fill="#cbd5e1" font-size="9">• Auto-renews 30 days ahead</text>
+<text x="775" y="317" fill="#a7f3d0" font-size="8.5">Issued by Google Trust Services</text>
+
+<!-- SSL Policy Enforcement Box -->
+<rect x="765" y="345" width="190" height="90" rx="4" fill="#35144d" stroke="#c084fc" stroke-width="1"/>
+<text x="775" y="365" fill="#e9d5ff" font-size="11" font-weight="700">Custom SSL Policy</text>
+<text x="775" y="382" fill="#cbd5e1" font-size="9">• Profile: MODERN / RESTRICTED</text>
+<text x="775" y="397" fill="#cbd5e1" font-size="9">• Min TLS Version: TLS 1.2 / 1.3</text>
+<text x="775" y="412" fill="#cbd5e1" font-size="9">• ECDHE-RSA/ECDSA PFS ciphers</text>
+<text x="775" y="427" fill="#f43f5e" font-size="8.5">Insecure CBC ciphers disabled</text>
+
+<!-- Target HTTPS Proxy Binding -->
+<rect x="765" y="450" width="190" height="55" rx="4" fill="#1b0826" stroke="#a855f7" stroke-width="1"/>
+<text x="775" y="470" fill="#d8b4fe" font-size="10.5" font-weight="700">Target HTTPS Proxy</text>
+<text x="775" y="487" fill="#86efac" font-size="8.5">Binds Certificate Map + SSL Policy</text>
+<text x="775" y="499" fill="#94a3b8" font-size="8">Zero-downtime SNI updates</text>
+
+</svg>
+<figcaption>Figure 54.1: Load Balancer Health Checking, Maglev Direct Server Return, Connection Draining, and TLS Governance Architecture. Shows Maglev L4 consistent hashing packet steering with DSR returning packets directly to clients via Internet Gateway, Google distributed health check probers passing through VPC ingress firewalls to /healthz endpoints, connection draining grace window protecting in-flight sessions during rolling updates, and Certificate Manager DNS authorization issuing auto-renewing wildcard TLS certificates governed by modern SSL policies.</figcaption>
+</figure>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Passthrough Network Load Balancers (external and internal)</h3>
+<p>Passthrough Network Load Balancers are high-performance, non-proxied Layer 4 load balancers built upon Google's Maglev software-defined distributed packet routing architecture. Unlike Application Load Balancers or Proxy Network Load Balancers that terminate incoming client TCP connections and establish separate backend TCP sessions, Passthrough NLBs route raw IP packets directly to guest virtual machine interfaces without modifying packet payloads, source IP addresses, or source ports.</p>
+
+<h4>Maglev Distributed Packet Forwarder Architecture</h4>
+<p>Maglev runs as a horizontally scalable user-space packet forwarder on commodity Linux servers across Google Points of Presence (PoPs) and data center clusters. Its core design principles provide resilient high-availability and extreme packet processing throughput:</p>
+<ul>
+<li><strong>Consistent Hashing Lookup Table:</strong> Maglev assigns packets to backend targets using a specialized consistent hashing algorithm. Each backend instance generates a random preference list across a lookup table of prime size <code>M</code> (where <code>M</code> is significantly larger than the number of backends, typically hundreds of thousands of entries). When backends are added or removed during autoscaling, minimal disruption is guaranteed: exactly <code>1/N</code> of keys are remapped, preserving existing connection state across the cluster.</li>
+<li><strong>Connectionless Packet Steering:</strong> Maglev does not maintain synchronized connection state tables across forwarders. Instead, any Maglev node receiving a packet executes the 5-tuple consistent hash (source IP, source port, destination IP, destination port, IP protocol) to deterministically steer the packet to the exact same backend instance. The packet is encapsulated in a lightweight Generic Routing Encapsulation (GRE) or Geneve tunnel and transmitted over Google's Andromeda SDN virtualization fabric directly to the host hypervisor.</li>
+<li><strong>Direct Server Return (DSR) Mechanics:</strong> In traditional proxy architectures, all ingress and egress traffic must traverse the load balancer, creating a severe egress bandwidth choke point. Under Maglev Passthrough NLB, the load balancer VIP is not rewritten to the backend VM's internal IP address; the destination IP header remains the Forwarding Rule VIP. Compute Engine automatically injects a local routing rule into the guest OS kernel (observable via the Linux local routing table), enabling the guest OS to accept packets destined for the VIP on its primary network interface. When the backend application transmits its response (e.g. TCP SYN-ACK or data stream), it sets the packet's source IP to the Forwarding Rule VIP and routes directly to the VPC default gateway. The return packet egresses directly to the client over Google's backbone, completely bypassing Maglev. This asymmetrical routing model delivers near-zero latency, multi-million packet-per-second capability, and unlimited aggregate egress bandwidth bounded only by guest VM network interfaces.</li>
+</ul>
+
+<h4>External vs Internal Passthrough NLBs</h4>
+<p>Google Cloud delivers two distinct flavors of Passthrough NLB:</p>
+<ul>
+<li><strong>External Passthrough Network Load Balancer:</strong> Fronted by a regional external IPv4 or IPv6 address. Terminates internet-facing TCP and UDP traffic, as well as ESP, GRE, ICMP, and ICMPv6 protocols. Backends can be configured as Managed Instance Groups (MIGs), unmanaged instance groups, or Zonal Network Endpoint Groups (NEGs) with <code>GCE_VM_IP</code> endpoints. Modern deployments utilize regional Backend Services rather than legacy Target Pools, unlocking advanced traffic steering, multi-protocol health checks, and stateful failover policies.</li>
+<li><strong>Internal Passthrough Network Load Balancer:</strong> Fronted by an internal RFC 1918 private IPv4 address (or internal IPv6) allocated from a VPC subnet. Provides ultra-low latency east-west load balancing for microservices, internal database clusters (PostgreSQL, MySQL read replicas), and Kubernetes NodePort forwarding. By default, Internal Passthrough NLBs are regional; however, enabling the <code>--allow-global-access</code> flag permits clients located in any Google Cloud region, or connected via Cloud VPN and Cloud Interconnect, to seamlessly access the internal regional VIP.</li>
+</ul>
+
+<h4>Failover Policy Mechanics</h4>
+<p>Passthrough NLBs configured with Backend Services support automated failover policies between an active (primary) backend pool and a standby (backup) backend pool within the same region:</p>
+<ul>
+<li><strong>Failover Ratio Threshold:</strong> Defined by <code>--failover-ratio</code> (a float between 0.0 and 1.0, typically set to <code>0.25</code>). When the proportion of healthy backend instances in the primary backend service falls below this threshold (e.g. fewer than 25% healthy), the load balancer automatically engages the backup backend service, steering incoming traffic to standby instances.</li>
+<li><strong>Connection Draining and Drop Mechanics on Failover:</strong> The failover policy offers granular control over existing connections via the <code>--drop-drain-connection</code> flag:
+  <ul>
+    <li><code>--no-drop-drain-connection</code> (Default): When failover activates, existing established TCP connections to surviving healthy instances in the primary pool are preserved and drained gracefully, while only new connections are steered to the backup pool. This minimizes user disruption for stable long-lived connections.</li>
+    <li><code>--drop-drain-connection</code>: When failover triggers, existing connections to the failing primary backend service are immediately severed. This is critical for active-passive database failovers where surviving nodes in the primary pool may be in split-brain or read-only states and must not process further writes.</li>
+  </ul>
+</li>
+</ul>
+
+<h4>Architecture Comparison: Passthrough NLB vs Proxy Load Balancers</h4>
+<table class="data-table">
+<thead>
+<tr>
+<th>Architectural Dimension</th>
+<th>Passthrough NLB (Maglev DSR)</th>
+<th>Application Load Balancers (ALB)</th>
+<th>Proxy NLBs (TCP/SSL Proxy)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OSI Layer &amp; Model</strong></td>
+<td>Layer 4 (Transport / Raw IP)</td>
+<td>Layer 7 (HTTP, HTTPS, HTTP/2, gRPC)</td>
+<td>Layer 4 (TCP, SSL reverse proxy)</td>
+</tr>
+<tr>
+<td><strong>Connection Termination</strong></td>
+<td>None (Passthrough datagram forwarding)</td>
+<td>Dual-socket proxy termination (GFE/Envoy)</td>
+<td>Dual-socket proxy termination (GFE/Envoy)</td>
+</tr>
+<tr>
+<td><strong>Return Traffic Path</strong></td>
+<td>Direct Server Return (DSR - skips LB)</td>
+<td>Proxy return path (flows through GFE/Envoy)</td>
+<td>Proxy return path (flows through GFE/Envoy)</td>
+</tr>
+<tr>
+<td><strong>Client IP Visibility</strong></td>
+<td>Native (Preserved in packet IP header)</td>
+<td>HTTP header (<code>X-Forwarded-For</code>)</td>
+<td>PROXY Protocol v1/v2 header injection</td>
+</tr>
+<tr>
+<td><strong>Port Mapping (PAT)</strong></td>
+<td>No port translation (VIP port = VM port)</td>
+<td>Full port translation supported</td>
+<td>Full port translation supported</td>
+</tr>
+<tr>
+<td><strong>Protocols Supported</strong></td>
+<td>TCP, UDP, ESP, GRE, ICMP</td>
+<td>HTTP/1.1, HTTP/2, HTTP/3 (QUIC), gRPC</td>
+<td>Raw TCP, SSL</td>
+</tr>
+<tr>
+<td><strong>Throughput / Scale</strong></td>
+<td>Line-rate; bounded only by VM vNICs</td>
+<td>Proxy-bounded; autoscales horizontally</td>
+<td>Proxy-bounded; autoscales horizontally</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf deploys an internal Redis cache cluster and syslog aggregator in <code>us-east4</code> processing 1.2 million UDP datagrams per second with strict sub-millisecond latency requirements. Expected: Deploy an <strong>Internal Passthrough Network Load Balancer</strong> with <code>--allow-global-access</code>. Passthrough Maglev routing eliminates proxy buffer serialization delay, preserves client IP addresses natively on the wire, and routes UDP packets without connection termination.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/load-balancing/docs/net" rel="noopener noreferrer">Passthrough Network Load Balancer Overview</a>.</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Health checks (protocols, intervals, thresholds; firewall rules needed for health check ranges)</h3>
+<p>Health checks represent the foundational reliability engine of Google Cloud load balancing. Centralized probing systems actively query backend endpoints to determine whether an instance is capable of receiving client traffic, automatically evicting degraded instances and preventing traffic black holes.</p>
+
+<h4>Prober Mechanisms and Protocol Capabilities</h4>
+<p>Google Cloud supports five distinct probe protocols configured through Compute Engine health check resources:</p>
+<ul>
+<li><strong>HTTP Health Checks:</strong> Probers transmit an HTTP/1.1 GET request to a specified request path (e.g. <code>/healthz</code>). The check succeeds if the backend returns an <code>HTTP 200 OK</code> response within the timeout window. Optional configurations include validating custom <code>Host</code> headers and matching exact ASCII response body strings (up to 1,024 bytes).</li>
+<li><strong>HTTPS Health Checks:</strong> Probers establish a TLS handshake before issuing the HTTP GET request. The prober does not validate whether the backend's TLS certificate is signed by a public CA, allowing self-signed backend certificates.</li>
+<li><strong>HTTP/2 Health Checks:</strong> Probers establish an HTTP/2 multiplexed stream, verifying high-efficiency gRPC and microservice endpoints natively.</li>
+<li><strong>TCP Health Checks:</strong> Probers execute a standard three-way TCP handshake (SYN, SYN-ACK, ACK) on the target port. A simple handshake constitutes success, or an optional send/receive request-response text string can be validated.</li>
+<li><strong>SSL Health Checks:</strong> Probers negotiate an SSL/TLS handshake over TCP, ensuring the backend socket can negotiate cryptographic parameters successfully.</li>
+</ul>
+
+<h4>Liveness vs Readiness Semantics</h4>
+<p>Architects must carefully delineate between <strong>liveness</strong> (<code>/healthz</code>) and <strong>readiness</strong> (<code>/readyz</code>) probe semantics:</p>
+<ul>
+<li><code>/healthz</code> (Liveness): Validates that the application runtime process is active, the event loop is responsive, and local memory is intact. This endpoint must execute in less than 5 milliseconds without blocking on downstream dependencies.</li>
+<li><code>/readyz</code> (Readiness): Validates that the instance has loaded required in-memory caches, established database connection pools, and is fully prepared to serve customer transactions.</li>
+<li><em>Production Anti-Pattern:</em> Connecting a load balancer health check directly to an endpoint that performs heavy database queries (such as <code>SELECT 1 FROM orders</code>) or external third-party API calls. If the central database experiences transient query latency under peak load, the health check will time out across every backend instance simultaneously, triggering a catastrophic cascading failure where the entire cluster is marked UNHEALTHY even though the web servers are functioning perfectly.</li>
+</ul>
+
+<h4>Timing Parameters and Distributed Prober Frequency</h4>
+<p>Health check behavior is governed by four core parameters:</p>
+<ul>
+<li><code>check-interval</code>: The time between probe initiations from a single prober (default: 5 seconds).</li>
+<li><code>timeout-sec</code>: The duration the prober waits for a response before marking that probe attempt as failed (default: 5 seconds; must be &le; <code>check-interval</code>).</li>
+<li><code>unhealthy-threshold</code>: The number of consecutive probe failures required to transition an instance from HEALTHY to UNHEALTHY (default: 2 or 3).</li>
+<li><code>healthy-threshold</code>: The number of consecutive probe successes required to transition an instance back to HEALTHY (default: 2).</li>
+</ul>
+<p><strong>Calculating Distributed Prober Load:</strong> A common misconception is that a backend receives only one probe every <code>check-interval</code> seconds. Google Cloud deploys redundant, distributed prober fleets located across multiple zones and edge locations to eliminate prober single points of failure. In production, multiple independent probers query each backend VM concurrently. For example, if 3 to 6 distributed probers query an instance with a 5-second interval, the backend VM will receive an incoming probe every <strong>0.8 to 1.6 seconds</strong>. Health check handler endpoints must be lightweight and non-allocating to prevent prober-induced CPU exhaustion.</p>
+
+<h4>Health Check Prober IP Ranges and Mandatory VPC Ingress Firewall Rules</h4>
+<p>Health check probes originate from immutable, reserved Google Cloud internal network blocks—not from the load balancer forwarding rule VIP. Backend instances located in private subnets must be reachable from these IP blocks:</p>
+<table class="data-table">
+<thead>
+<tr>
+<th>Load Balancer Type</th>
+<th>Supported Probes</th>
+<th>Prober IPv4 CIDR Ranges</th>
+<th>Required Ingress Firewall Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Global external Application Load Balancer</strong></td>
+<td>HTTP, HTTPS, HTTP/2</td>
+<td><code>35.191.0.0/16</code>, <code>130.211.0.0/22</code></td>
+<td>Ingress ALLOW TCP on health check port targeted by network tag or service account</td>
+</tr>
+<tr>
+<td><strong>Regional external &amp; Internal ALB</strong></td>
+<td>HTTP, HTTPS, HTTP/2</td>
+<td><code>35.191.0.0/16</code>, <code>130.211.0.0/22</code></td>
+<td>Ingress ALLOW from prober ranges AND regional proxy-only subnet CIDR</td>
+</tr>
+<tr>
+<td><strong>External Passthrough NLB (Maglev)</strong></td>
+<td>HTTP, HTTPS, TCP, SSL</td>
+<td><code>35.191.0.0/16</code>, <code>209.85.152.0/22</code>, <code>209.85.204.0/22</code></td>
+<td>Ingress ALLOW TCP/UDP on target port from all three regional prober blocks</td>
+</tr>
+<tr>
+<td><strong>Internal Passthrough NLB (Maglev)</strong></td>
+<td>HTTP, HTTPS, TCP, SSL</td>
+<td><code>35.191.0.0/16</code>, <code>130.211.0.0/22</code></td>
+<td>Ingress ALLOW TCP/UDP on target port from prober blocks</td>
+</tr>
+<tr>
+<td><strong>Proxy Network Load Balancer (TCP/SSL)</strong></td>
+<td>TCP, SSL</td>
+<td><code>35.191.0.0/16</code>, <code>130.211.0.0/22</code></td>
+<td>Ingress ALLOW TCP on target service port from prober blocks</td>
+</tr>
+</tbody>
+</table>
+
+<p><em>Failure Cascade Analysis:</em> If a VPC firewall rule omits any of the required prober ranges, or if a newly provisioned VM template fails to attach the specified network tag (e.g. <code>allow-health-check</code>), the prober SYN packets are dropped by the VPC ingress filter. Once the <code>unhealthy-threshold</code> consecutive timeouts elapse, the load balancer marks all backends UNHEALTHY. For Application Load Balancers, this triggers an immediate planetary <code>HTTP 502 Bad Gateway</code> outage across 100% of incoming user requests.</p>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf deploys an e-commerce catalog API on port 8080 across private VMs in <code>us-east4</code>. During peak sales, database spikes cause <code>/readyz</code> to take 4.5 seconds to query MySQL. Health check timeout is configured to 3 seconds. Expected: Probes time out during traffic peaks, falsely evicting healthy instances and triggering a collapse of surviving nodes. Solution: Point the load balancer health check to a lightweight <code>/healthz</code> endpoint checking local memory and HTTP listener availability (&lt;10ms execution), decoupling edge routing from database contention.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/load-balancing/docs/health-checks" rel="noopener noreferrer">Google Cloud Health Checks Overview</a>.</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Session affinity, connection draining, timeouts</h3>
+<p>Maintaining transaction integrity and state consistency during operational lifecycle changes requires harmonious orchestration of session binding, graceful connection termination, and timeout hierarchies.</p>
+
+<h4>Session Affinity Modes and Operational Trade-Offs</h4>
+<p>Session affinity directs subsequent requests from a specific client to the identical backend instance, essential for stateful web applications, local memory caches, or sequential transaction handshakes:</p>
+<table class="data-table">
+<thead>
+<tr>
+<th>Affinity Mode</th>
+<th>Hash Tuple / Mechanism</th>
+<th>Applicable Load Balancers</th>
+<th>Architectural Characteristic &amp; Trade-Off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NONE</code></td>
+<td>5-Tuple / Least Request</td>
+<td>All load balancers</td>
+<td>Default round-robin distribution; optimal load spreading; no state persistence.</td>
+</tr>
+<tr>
+<td><code>CLIENT_IP</code></td>
+<td>2-Tuple (Source IP, Dest IP)</td>
+<td>External/Internal Passthrough NLB, ALB</td>
+<td>Binds client IP to backend. <em>Vulnerability:</em> Corporate NAT gateways with thousands of users appear as one IP, creating severe traffic hotspots on a single VM.</td>
+</tr>
+<tr>
+<td><code>CLIENT_IP_PROTO</code></td>
+<td>3-Tuple (Src IP, Dest IP, Protocol)</td>
+<td>Passthrough NLB</td>
+<td>Differentiates between TCP and UDP traffic from the same client IP address.</td>
+</tr>
+<tr>
+<td><code>CLIENT_IP_PORT_PROTO</code></td>
+<td>5-Tuple (Src IP, Src Port, Dest IP, Dest Port, Proto)</td>
+<td>Internal Passthrough NLB</td>
+<td>High entropy; distributes independent client sockets across backends while maintaining packet affinity per stream.</td>
+</tr>
+<tr>
+<td><code>GENERATED_COOKIE</code></td>
+<td>Injected HTTP Cookie (<code>GCPHTTP_LOADBALANCER_COOKIE</code>)</td>
+<td>Global &amp; Regional external ALB, Internal ALB</td>
+<td>The load balancer sets a cryptographically signed cookie with configurable TTL (e.g. <code>affinityCookieTtlSec=1800</code>). Immune to client-side NAT IP consolidation.</td>
+</tr>
+<tr>
+<td><code>HEADER_FIELD</code></td>
+<td>Specified HTTP Request Header</td>
+<td>Application Load Balancers</td>
+<td>Hashes custom HTTP headers (e.g. <code>X-User-ID</code> or <code>Authorization</code>). Ideal for authenticated API gateways and multi-tenant SaaS routing.</td>
+</tr>
+<tr>
+<td><code>HTTP_COOKIE</code></td>
+<td>Existing Application Cookie</td>
+<td>Application Load Balancers</td>
+<td>Evaluates an application-defined session cookie name and path, binding requests without injecting additional headers.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Connection Draining (Deregistration Delay) Mechanics</h4>
+<p>When an instance is removed from a backend service—whether through autoscaler scale-down, an automated rolling instance replacement, or manual backend maintenance—abruptly terminating the instance severs in-flight TCP connections, resulting in client socket resets (<code>ECONNRESET</code>), corrupted multi-part file uploads, and aborted financial transactions.</p>
+<ul>
+<li><strong>Draining State Transition:</strong> Compute Engine transitions the target instance into the <code>DRAINING</code> state. The load balancer control plane immediately excludes the instance from consistent hash rings and round-robin scheduling algorithms; zero new connections are dispatched to the instance.</li>
+<li><strong>Grace Window (<code>drainingTimeoutSec</code>):</strong> Configurable between 0 and 3,600 seconds (default: 0 seconds for unmanaged backends; recommended production setting: 300 seconds). During this grace window, existing established TCP streams, active WebSocket connections, and long-running HTTP transactions are permitted to complete naturally.</li>
+<li><strong>Instance Deletion Lifecycle:</strong> When all active connections terminate naturally, or when the configured <code>drainingTimeoutSec</code> countdown expires, Compute Engine issues an ACPI shutdown signal / <code>SIGTERM</code> to guest processes. The guest OS is granted a standard 30-second shutdown script execution window before a final <code>SIGKILL</code> destroys the virtual machine.</li>
+</ul>
+
+<h4>Timeout Alignment and the Keep-Alive Race Condition</h4>
+<p>A prevalent production failure pattern in Layer 7 load balancing stems from misaligned HTTP timeout hierarchies:</p>
+<ul>
+<li><strong>Frontend Keep-Alive Timeout:</strong> Google Front End (GFE) proxies support client keep-alive timeouts up to 610 seconds, allowing browsers to reuse idle TCP sockets.</li>
+<li><strong>Backend Service Timeout:</strong> Configured on the Google Cloud Backend Service (default: 30 seconds). Governs the maximum duration the load balancer waits for a backend HTTP response before aborting with <code>HTTP 504 Gateway Timeout</code>. For long-polling endpoints, Server-Sent Events (SSE), or large analytical reporting queries, this timeout must be increased (e.g. to 300s or 600s).</li>
+<li><strong>Backend Web Server Keep-Alive Timeout (The Race Condition):</strong> Between the load balancer proxy (GFE/Envoy) and the backend web server (e.g. Nginx, Gunicorn, Apache), persistent TCP keep-alive sockets are maintained. The backend web server's keep-alive timeout <strong>MUST be configured slightly larger than the load balancer's keep-alive timeout</strong> (Google Cloud ALB maintains an idle keep-alive of 600 seconds):
+  <ul>
+    <li><em>The Failure Sequence:</em> If Nginx has <code>keepalive_timeout 600s;</code> and the ALB also uses 600 seconds, a classic TCP race condition occurs. If Nginx decides to close the idle TCP socket (sending a TCP FIN) at the exact millisecond the ALB dispatches a newly arrived client request into that socket, the request collides with the FIN packet. Nginx rejects the request with a TCP RST, and the ALB returns an intermittent <code>HTTP 502 Bad Gateway</code> (logged in Cloud Logging as <code>backend_connection_closed_before_data_sent_to_client</code>).</li>
+    <li><em>The Architectural Remedy:</em> Configure the backend web server keep-alive timeout to <strong>650 seconds</strong> (greater than 600s). This guarantees that the load balancer proxy always initiates idle socket closures, permanently eliminating keep-alive collision 502 errors.</li>
+  </ul>
+</li>
+</ul>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf store managers upload daily 150 MB store reconciliation spreadsheets taking up to 180 seconds. During rolling MIG image updates, uploads abort with <code>Broken pipe</code>. In addition, users observe occasional 502 errors on idle pages. Expected: Update the backend service with <code>--draining-timeout=300s</code> and <code>--timeout=300s</code>, and configure backend Nginx instances with <code>keepalive_timeout 650s;</code>. Draining protects active uploads during rolling deployments, while keepalive alignment prevents TCP socket race collisions.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/load-balancing/docs/enabling-connection-draining" rel="noopener noreferrer">Connection Draining Documentation</a>.</p>
+</div>
+</article>
+
+<article id="topic-04-technical" class="topic-card">
+<h3>SSL certificates: Google-managed, self-managed, Certificate Manager, SSL policies</h3>
+<p>Securing public edge endpoints and internal service boundaries requires automated public-key infrastructure (PKI), rapid cryptographic rotation, and enforceable cipher governance.</p>
+
+<h4>Google-Managed Certificates vs Self-Managed Certificates</h4>
+<ul>
+<li><strong>Self-Managed SSL Certificates:</strong> Customers generate private keys, submit Certificate Signing Requests (CSRs) to external commercial Certificate Authorities (CAs), and upload the signed PEM certificate chain and private key to Compute Engine. <em>Architectural Risk:</em> High operational toil and vulnerability to human error; an expired certificate instantly causes global connection rejections and browser security warnings.</li>
+<li><strong>Classic Google-Managed Certificates:</strong> Fully automated, zero-cost public certificates issued by Google Trust Services (GTS) or Let's Encrypt. Google automatically provisions the certificate and initiates background renewal 30 days prior to expiration. <em>Architectural Limitations:</em> Requires that the public DNS A/AAAA record points directly to the load balancer VIP for HTTP-based ACME domain validation. Does not support wildcard domain names (e.g. <code>*.brightloaf.com</code>), and enforces a ceiling of 100 Subject Alternative Names (SANs) per certificate.</li>
+</ul>
+
+<h4>Google Cloud Certificate Manager Architecture</h4>
+<p>Certificate Manager represents Google Cloud's modern, enterprise-scale TLS orchestration platform, decoupling certificate administration from load balancer target proxies and enabling planetary scale:</p>
+<ul>
+<li><strong>Certificate Maps &amp; Certificate Map Entries:</strong> Rather than attaching individual certificates directly to a Target HTTPS Proxy, the proxy references a unified <strong>Certificate Map</strong>. The map contains multiple <strong>Certificate Map Entries</strong> matching specific Server Name Indication (SNI) hostnames or wildcard expressions to designated certificates. This permits dynamically serving tens of thousands of domains and multi-tenant customer hostnames without modifying the load balancer control plane.</li>
+<li><strong>Wildcard Certificates via DNS Authorization:</strong> Certificate Manager overcomes classic limitations by supporting wildcard certificates (e.g. <code>*.brightloaf.com</code>). Verification is accomplished through <strong>DNS Authorization</strong>: Certificate Manager generates a unique CNAME challenge record (e.g. <code>_acme-challenge.brightloaf.com</code> pointing to a Google domain verification target). Once populated in Cloud DNS, Google Trust Services validates domain control and issues the wildcard certificate before traffic is ever routed to the load balancer VIP.</li>
+<li><strong>Cloud Private CA Integration:</strong> For zero-trust internal enterprise architectures, Certificate Manager integrates directly with Google Cloud Certificate Authority Service (Private CA). Managed internal certificates are issued and rotated automatically against private enterprise root and subordinate CAs, terminating internal mTLS and TLS across Internal Application Load Balancers without exposing private keys.</li>
+</ul>
+
+<h4>SSL Policies and Cryptographic Governance</h4>
+<p>By default, Google Cloud external target proxies accept legacy TLS versions and broad cipher suites to ensure backwards compatibility with older clients. Enterprise landing zones enforce strict cryptographic posture using declarative <strong>SSL Policies</strong>:</p>
+<table class="data-table">
+<thead>
+<tr>
+<th>SSL Policy Profile</th>
+<th>Minimum TLS Version</th>
+<th>Permitted Cipher Families</th>
+<th>Blocked Vulnerabilities &amp; Deprecated Ciphers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COMPATIBLE</code></td>
+<td>TLS 1.0, 1.1, 1.2</td>
+<td>Broadest compatibility; permits older CBC and RSA key exchange ciphers</td>
+<td>Permits legacy clients; vulnerable to BEAST, POODLE if TLS 1.0 enabled.</td>
+</tr>
+<tr>
+<td><code>MODERN</code></td>
+<td>TLS 1.2</td>
+<td>PFS (Perfect Forward Secrecy) ciphers: ECDHE-RSA-AES128-GCM, ECDHE-ECDSA-AES256-GCM, CHACHA20-POLY1305</td>
+<td>Disables vulnerable CBC ciphers, RC4, 3DES, and static RSA key exchange. Meets PCI-DSS standards.</td>
+</tr>
+<tr>
+<td><code>RESTRICTED</code></td>
+<td>TLS 1.2</td>
+<td>Strict cipher subset: AES-128/256-GCM and CHACHA20-POLY1305 with ECDHE</td>
+<td>Rejects older enterprise clients and payment terminals lacking ECDHE support.</td>
+</tr>
+<tr>
+<td><code>CUSTOM</code></td>
+<td>Configurable (1.0 to 1.3)</td>
+<td>Explicit administrator-selected cipher whitelist</td>
+<td>Allows granular cipher selection to satisfy bespoke corporate cryptographic governance.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf must provision edge TLS termination for 150 tenant storefronts under <code>*.brightloaf.com</code> and enforce PCI-DSS 4.0 cryptographic standards. Expected: Deploy <strong>Certificate Manager with DNS Authorization</strong> to issue an auto-renewing Google-managed wildcard certificate (<code>*.brightloaf.com</code>) attached via a Certificate Map, and apply an SSL Policy configured with <code>--min-tls-version=1.2</code> and <code>--profile=MODERN</code> to permanently disable insecure CBC ciphers.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/certificate-manager/docs/overview" rel="noopener noreferrer">Certificate Manager Documentation</a>.</p>
+</div>
+</article>
+</section>
+
+<!-- ================= PART 3 ================= -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+
+<article id="topic-01-problem" class="topic-card">
+<h3>Passthrough NLB Port Mismatch &amp; Failover Drain Flap in Point-of-Sale Fleet · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's retail operations launched an in-store Point-of-Sale (POS) synchronization daemon across 200 retail storefronts nationwide, listening on TCP port 9443. The infrastructure team provisioned an External Passthrough Network Load Balancer with a forwarding rule on port 9443, but configured the backend service to target port 8443 under the false assumption that Maglev would perform Port Address Translation (PAT). Furthermore, an aggressive failover policy was attached with <code>--drop-drain-connection</code> enabled. All POS registers failed to connect, throwing immediate TCP connection reset errors and triggering false failovers that severed active store manager sessions, stalling $850,000 in retail transactions during peak afternoon sales.</p>
+
+<p><strong>Constraints:</strong> Must preserve low-latency Direct Server Return without proxy serialization; register firmware is hardcoded to connect to port 9443; cannot insert intermediary proxy instances due to latency budgets; backend failover must not drop surviving healthy connections.</p>
+
+<p><strong>Diagnosis and root cause:</strong> Protocol packet captures on the backend VMs revealed incoming TCP SYN packets arriving with destination port 9443 unaltered. Because Maglev is a non-proxied passthrough forwarder operating on DSR, it does not rewrite TCP ports; packets reach the guest OS virtual NIC with the exact destination port transmitted by the client. Since the guest application daemon was bound only to <code>0.0.0.0:8443</code>, the Linux kernel rejected incoming SYN packets with TCP RST. Concurrently, transient probe timeouts caused the active pool health ratio to momentarily dip below 0.25; because <code>--drop-drain-connection</code> was set, Maglev immediately terminated all established sessions rather than draining them gracefully.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Reconfigured the backend application systemd unit to bind directly to TCP port 9443.
+2. Aligned the Backend Service and TCP Health Check port definitions to 9443.
+3. Updated the Failover Policy on the Backend Service with <code>--failover-ratio=0.25</code> and <code>--no-drop-drain-connection</code>, ensuring established sessions to healthy instances persist during standby failovers.</p>
+
+<!-- Incident 1 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d54-i1-title d54-i1-desc" viewBox="0 0 980 290" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d54-i1-title">Incident 1: Passthrough NLB Port Mismatch vs Direct Port Alignment and Graceful Failover</title>
+<desc id="d54-i1-desc">Diagram showing failed path where Passthrough NLB delivered port 9443 unaltered to an application listening on 8443 causing TCP resets and drop-drain session termination, followed by corrected path aligning ports to 9443 with graceful failover draining.</desc>
+<defs>
+<marker id="d54-i1-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d54-i1-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="115" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Passthrough NLB Bypasses PAT (Port 9443 Delivered) + Drop-Drain Severance</text>
+
+<rect x="40" y="60" width="220" height="55" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">POS Register Client</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">SYN to VIP:9443</text>
+
+<rect x="330" y="60" width="280" height="55" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="340" y="80" fill="#fda4af" font-size="11" font-weight="700">Maglev Passthrough NLB</text>
+<text x="340" y="96" fill="#fecdd3" font-size="10">No PAT: Forwards Port 9443 Unaltered</text>
+<text x="340" y="108" fill="#fda4af" font-size="8.5">Failover drop-drain drops active sessions</text>
+
+<rect x="680" y="60" width="260" height="55" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="690" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Backend VM (Port 8443)</text>
+<text x="690" y="96" fill="#f43f5e" font-size="10">REJECT: TCP RST (Port 9443 Unbound)</text>
+<text x="690" y="108" fill="#fda4af" font-size="8.5">Active POS sync sessions killed</text>
+
+<path d="M 260 87 L 330 87" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d54-i1-f)"/>
+<path d="M 610 87 L 680 87" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d54-i1-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="150" width="940" height="120" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="175" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Port 9443 Aligned End-to-End + Graceful Failover Drain Preserving Sessions</text>
+
+<rect x="40" y="190" width="220" height="60" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="210" fill="#f1f5f9" font-size="11" font-weight="600">POS Register Client</text>
+<text x="50" y="226" fill="#86efac" font-size="10">SYN to VIP:9443</text>
+<text x="50" y="240" fill="#cbd5e1" font-size="9">Stable sync connection</text>
+
+<rect x="330" y="190" width="280" height="60" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="340" y="210" fill="#a7f3d0" font-size="11" font-weight="700">Maglev Passthrough NLB</text>
+<text x="340" y="226" fill="#cbd5e1" font-size="10">Forwards Port 9443 directly</text>
+<text x="340" y="240" fill="#86efac" font-size="9">no-drop-drain-connection enabled</text>
+
+<rect x="680" y="190" width="260" height="60" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="690" y="210" fill="#f1f5f9" font-size="11" font-weight="600">Backend VM (Port 9443)</text>
+<text x="690" y="226" fill="#86efac" font-size="10">SYN-ACK Sent via DSR (Handshake Pass)</text>
+<text x="690" y="240" fill="#cbd5e1" font-size="9">0 dropped in-flight transactions</text>
+
+<path d="M 260 220 L 330 220" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d54-i1-c)"/>
+<path d="M 610 220 L 680 220" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d54-i1-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="670" y="180" width="280" height="78" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="680" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Guest Port Bind &amp; DSR Route</text>
+</svg>
+<figcaption>Figure 54.2: Incident 1 Root Cause and Remediation. <strong>Supplied facts:</strong> POS terminals received TCP reset packets when attempting connections through a Passthrough NLB, and transient pool flaps severed existing sessions. <strong>Architectural inference:</strong> Maglev passthrough does not perform port translation; packets arrive at guest OS interfaces with the original VIP port, requiring exact listener port alignment. <strong>Expected post-fix behavior:</strong> Binding backend listeners directly to port 9443 and setting no-drop-drain-connection enables instantaneous DSR handshakes and preserves healthy active sessions during failovers.</figcaption>
+</figure>
+
+<p><strong>Verification and residual risk:</strong> Verified using <span class="cmd">ss -tulpn | grep 9443</span> on backend VMs and validating end-to-end TCP handshakes from remote POS clients. Residual risk: If a local host firewall (e.g. <code>ufw</code> or <code>iptables</code>) within the guest OS blocks port 9443, handshakes will still be dropped even though VPC firewalls are clear.</p>
+</article>
+
+<article id="topic-02-problem" class="topic-card">
+<h3>VPC Security Hardening Dropping Health Probers Triggering Global 502 Outage · field case</h3>
+<p><strong>Situation and impact:</strong> During a scheduled infrastructure security hardening window, Brightloaf applied a strict default-deny firewall rule (priority 65000) across the production Shared VPC. Within 60 seconds, the Global external Application Load Balancer began returning <code>HTTP 502 Bad Gateway</code> to 100% of global user traffic. The primary e-commerce web platform and mobile API went completely dark worldwide for 42 minutes during peak hours, generating 3,800 customer support escalations and stranding $280,000 in active checkout carts.</p>
+
+<p><strong>Constraints:</strong> Must maintain zero-trust security posture; cannot grant open internet ingress to private backend subnets; backends must only accept authenticated proxy traffic and legitimate Google health probers.</p>
+
+<p><strong>Diagnosis and root cause:</strong> Cloud Logging and Cloud Monitoring revealed that all 120 healthy backend instances across <code>us-east4-a</code> and <code>us-east4-b</code> transitioned to <code>UNHEALTHY</code> simultaneously. The new default-deny firewall rule lacked an exception for Google's immutable health check prober CIDR blocks: <strong><code>35.191.0.0/16</code></strong> and <strong><code>130.211.0.0/22</code></strong>. Because prober TCP SYN packets were dropped at the VPC boundary, the prober timeout (5s) expired across 3 consecutive cycles. When every backend instance in a backend service is marked UNHEALTHY, Google Front End proxies return an immediate 502 Bad Gateway to clients.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Provisioned a high-priority (priority 1000) VPC ingress firewall rule explicitly permitting TCP traffic on port 8080 from prober ranges <code>35.191.0.0/16</code> and <code>130.211.0.0/22</code>.
+2. Targeted the firewall rule strictly to backend instances using the network tag <code>allow-health-check</code>.
+3. Within two probe cycles (10 seconds), backend health status transitioned from UNHEALTHY to HEALTHY, and the global ALB immediately resumed normal traffic serving.</p>
+
+<!-- Incident 2 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d54-i2-title d54-i2-desc" viewBox="0 0 980 290" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d54-i2-title">Incident 2: Blocked Health Check Probers vs Explicit Ingress Whitelist</title>
+<desc id="d54-i2-desc">Diagram showing failed path where default deny firewall blocked 35.191.0.0/16 marking all backends unhealthy and returning 502, followed by corrected path allowing prober ranges to target tags.</desc>
+<defs>
+<marker id="d54-i2-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d54-i2-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="115" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Default Deny Firewall Blocks Probers (35.191.0.0/16) → 100% Fleet 502 Outage</text>
+
+<rect x="40" y="60" width="220" height="55" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Google Health Prober</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">Source: 35.191.0.0/16</text>
+
+<rect x="330" y="60" width="280" height="55" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="340" y="80" fill="#fda4af" font-size="11" font-weight="700">VPC Firewall (Default Deny)</text>
+<text x="340" y="96" fill="#fecdd3" font-size="10">DROP: Probers Blocked at Subnet Boundary</text>
+<text x="340" y="108" fill="#fda4af" font-size="8.5">Probes time out across 3 consecutive cycles</text>
+
+<rect x="680" y="60" width="260" height="55" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="690" y="80" fill="#f1f5f9" font-size="11" font-weight="600">All Backends Marked UNHEALTHY</text>
+<text x="690" y="96" fill="#f43f5e" font-size="10">ALB Serves 502 Bad Gateway</text>
+<text x="690" y="108" fill="#fda4af" font-size="8.5">100% global user traffic dropped</text>
+
+<path d="M 260 87 L 330 87" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d54-i2-f)"/>
+<path d="M 610 87 L 680 87" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d54-i2-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="150" width="940" height="120" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="175" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Ingress Firewall Allows 35.191.0.0/16 and 130.211.0.0/22 to Target Tags</text>
+
+<rect x="40" y="190" width="220" height="60" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="210" fill="#f1f5f9" font-size="11" font-weight="600">Google Health Prober</text>
+<text x="50" y="226" fill="#86efac" font-size="10">Source: 35.191.0.0/16</text>
+<text x="50" y="240" fill="#cbd5e1" font-size="9">TCP Probe to Port 8080</text>
+
+<rect x="330" y="190" width="280" height="60" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="340" y="210" fill="#a7f3d0" font-size="11" font-weight="700">Firewall: allow-health-checks</text>
+<text x="340" y="226" fill="#cbd5e1" font-size="10">ALLOW: TCP 8080 from Prober CIDRs</text>
+<text x="340" y="240" fill="#86efac" font-size="9">Priority 1000 overrides default deny</text>
+
+<rect x="680" y="190" width="260" height="60" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="690" y="210" fill="#f1f5f9" font-size="11" font-weight="600">Backends Marked HEALTHY</text>
+<text x="690" y="226" fill="#86efac" font-size="10">ALB Serves HTTP 200 OK Globally</text>
+<text x="690" y="240" fill="#cbd5e1" font-size="9">Traffic recovers within 10 seconds</text>
+
+<path d="M 260 220 L 330 220" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d54-i2-c)"/>
+<path d="M 610 220 L 680 220" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d54-i2-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="320" y="180" width="300" height="78" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="330" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: VPC Ingress Prober Rule</text>
+</svg>
+<figcaption>Figure 54.3: Incident 2 Root Cause and Remediation. <strong>Supplied facts:</strong> Global external ALB returned 502 Bad Gateway to all users after applying a strict security policy. <strong>Architectural inference:</strong> Health check prober ranges are external to the VPC; blocking them causes all backend instances to fail health checks simultaneously. <strong>Expected post-fix behavior:</strong> Explicitly allowing prober IP blocks restores backend health state to HEALTHY within 10 seconds.</figcaption>
+</figure>
+
+<p><strong>Verification and residual risk:</strong> Verified using the backend service health status API to confirm all instances transitioned to <code>healthState: HEALTHY</code>. Residual risk: Regional External and Internal ALBs also require ingress traffic from the regional proxy-only subnet CIDR; if the proxy subnet is blocked, Envoy proxies cannot forward user requests even if health checks report healthy.</p>
+</article>
+
+<article id="topic-03-problem" class="topic-card">
+<h3>Abrupt MIG Rolling Update Terminating 450 In-Flight Ledger Streams (0s Draining) &amp; Keep-Alive Race · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf franchise store managers submit large daily revenue reconciliation spreadsheets (50 MB to 200 MB) through an enterprise billing portal, requiring 60 to 180 seconds to stream. During an automated CI/CD deployment that triggered a rolling update of the backend Managed Instance Group, 450 store managers experienced abrupt upload failures with <code>ERR_CONNECTION_RESET</code> and <code>Broken pipe</code>. Corrupted database ledger fragments triggered audit compliance alarms, requiring 16 hours of emergency manual reconciliation. In addition, users reported intermittent 502 Bad Gateway errors on idle web pages throughout the day.</p>
+
+<p><strong>Constraints:</strong> Must execute zero-downtime rolling updates; large file uploads cannot be fragmented across HTTP chunk boundaries; cannot pause deployments during business hours; must eliminate idle socket 502 errors.</p>
+
+<p><strong>Diagnosis and root cause:</strong> Investigation identified two compounded architectural misconfigurations:
+1. <em>Zero Connection Draining Delay:</em> The Backend Service had connection draining configured with a default timeout of 0 seconds (disabled). When Compute Engine initiated rolling replacement of VM instances, it issued immediate ACPI shutdown signals to instances actively processing 150 MB upload streams. Sockets were killed instantly.
+2. <em>Keep-Alive Race Condition:</em> The backend Nginx web servers were configured with <code>keepalive_timeout 600s;</code>, matching the ALB idle keep-alive timeout of 600s. When Nginx closed an idle keep-alive socket at the exact moment the load balancer dispatched a new HTTP request, the request was rejected with TCP RST, producing intermittent 502 errors.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Configured connection draining on the Backend Service with <code>--draining-timeout=300s</code> (5 minutes), providing ample grace time for 180-second file uploads to conclude cleanly.
+2. Reconfigured the backend Nginx keep-alive timeout to <strong>650 seconds</strong> (exceeding the ALB 600s timeout by 50 seconds), guaranteeing that the load balancer proxy always initiates socket retirement and eliminating the TCP race condition.
+3. Implemented proper <code>SIGTERM</code> handling in the container runtime, pausing new request intake and completing in-flight streams before process termination.</p>
+
+<!-- Incident 3 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d54-i3-title d54-i3-desc" viewBox="0 0 980 290" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d54-i3-title">Incident 3: 0s Connection Draining Abort &amp; Keepalive Race vs 300s Grace Window and 650s Server Keepalive</title>
+<desc id="d54-i3-desc">Diagram showing failed path where 0s draining killed VMs mid-upload corrupting files and matching keepalives caused race 502s, followed by corrected path with a 300s connection draining grace window and 650s backend keepalive.</desc>
+<defs>
+<marker id="d54-i3-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d54-i3-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="115" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Draining Timeout = 0s + Nginx Keepalive = 600s → Sockets Aborted Mid-Stream</text>
+
+<rect x="40" y="60" width="220" height="55" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Client (File Upload)</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">Streaming 150 MB ledger</text>
+
+<rect x="330" y="60" width="280" height="55" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="340" y="80" fill="#fda4af" font-size="11" font-weight="700">MIG Rolling Update</text>
+<text x="340" y="96" fill="#fecdd3" font-size="10">Immediate VM Terminate (t=0s)</text>
+<text x="340" y="108" fill="#fda4af" font-size="8.5">TCP RST sent into in-flight stream</text>
+
+<rect x="680" y="60" width="260" height="55" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="690" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Corrupted Upload / 502 Race</text>
+<text x="690" y="96" fill="#f43f5e" font-size="10">ERR_CONNECTION_RESET / Broken Pipe</text>
+<text x="690" y="108" fill="#fda4af" font-size="8.5">450 store managers blocked</text>
+
+<path d="M 260 87 L 330 87" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d54-i3-f)"/>
+<path d="M 610 87 L 680 87" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d54-i3-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="150" width="940" height="120" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="175" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: 300s Draining Grace Window + 650s Nginx Keepalive Timeout Hierarchy</text>
+
+<rect x="40" y="190" width="220" height="60" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="210" fill="#f1f5f9" font-size="11" font-weight="600">Client (File Upload)</text>
+<text x="50" y="226" fill="#86efac" font-size="10">Active TCP Stream Maintained</text>
+<text x="50" y="240" fill="#cbd5e1" font-size="9">Streams 150 MB ledger to end</text>
+
+<rect x="330" y="190" width="280" height="60" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="340" y="210" fill="#a7f3d0" font-size="11" font-weight="700">Draining State (300s Window)</text>
+<text x="340" y="226" fill="#cbd5e1" font-size="10">No new conns; existing streams finish</text>
+<text x="340" y="240" fill="#86efac" font-size="9">Nginx keepalive 650s &gt; ALB 600s</text>
+
+<rect x="680" y="190" width="260" height="60" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="690" y="210" fill="#f1f5f9" font-size="11" font-weight="600">Upload Completed Cleanly</text>
+<text x="690" y="226" fill="#86efac" font-size="10">HTTP 201 Created (100% OK)</text>
+<text x="690" y="240" fill="#cbd5e1" font-size="9">0 dropped uploads; zero 502 races</text>
+
+<path d="M 260 220 L 330 220" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d54-i3-c)"/>
+<path d="M 610 220 L 680 220" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d54-i3-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="320" y="180" width="300" height="78" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="330" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Draining Timer &amp; Keepalive</text>
+</svg>
+<figcaption>Figure 54.4: Incident 3 Root Cause and Remediation. <strong>Supplied facts:</strong> In-flight file uploads failed with connection reset during instance group updates, and idle sessions received intermittent 502 errors. <strong>Architectural inference:</strong> Compute Engine destroys instances immediately unless connection draining delay is configured on the backend service, while identical keep-alive timeouts trigger TCP race collisions. <strong>Expected post-fix behavior:</strong> Setting a 300s draining window allows existing file streams to conclude cleanly before instance shutdown, and setting backend keepalive to 650s permanently eliminates idle socket 502 errors.</figcaption>
+</figure>
+
+<p><strong>Verification and residual risk:</strong> Rehearsed in staging by generating synthetic 150 MB upload streams and triggering a rolling MIG restart; 100% of uploads returned HTTP 201 Created. Residual risk: Excessively long draining timeouts (e.g. 1 hour) can stall emergency security rollouts; draining timeouts must align with the 99th percentile request processing duration.</p>
+</article>
+
+<article id="topic-04-problem" class="topic-card">
+<h3>Expired Self-Managed SSL Certificate on Checkout Domain Halting Global Commerce · field case</h3>
+<p><strong>Situation and impact:</strong> At midnight UTC on Sunday, Brightloaf's primary payment and checkout domain (<code>checkout.brightloaf.com</code>) began displaying critical browser security warnings: <code>NET::ERR_CERT_DATE_INVALID</code>. Automated payment webhook calls from Stripe, Adyen, and PayPal immediately aborted TLS handshakes, refusing to deliver payment authorizations. The commercial SSL certificate had expired. Because the certificate had been purchased manually from an external commercial CA and uploaded as a self-managed resource, the single security operations engineer who held CA console credentials was off-grid on personal leave. Global commerce halted for 5.5 hours, forfeiting $1.4 million in checkout revenue.</p>
+
+<p><strong>Constraints:</strong> Must eliminate manual certificate renewal tracking permanently; must support wildcard domain coverage (<code>*.brightloaf.com</code>); must automate certificate validation without requiring production load balancer VIP DNS downtime; must enforce modern cipher suites.</p>
+
+<p><strong>Diagnosis and root cause:</strong> The enterprise was utilizing a self-managed SSL certificate attached to the global Target HTTPS Proxy. The manual expiration tracking spreadsheet failed to flag the Sunday renewal. Furthermore, classic Google-managed certificates could not be adopted directly because the domain architecture required wildcard coverage (<code>*.brightloaf.com</code>), which classic managed certificates do not support.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Migrated TLS lifecycle governance to <strong>Google Cloud Certificate Manager</strong>.
+2. Created a <strong>DNS Authorization</strong> resource in Certificate Manager, obtaining an automated challenge CNAME record (<code>_acme-challenge.brightloaf.com</code>).
+3. Created the CNAME record in Cloud DNS, proving domain ownership to Google Trust Services.
+4. Created a Google-managed wildcard certificate targeting <code>*.brightloaf.com</code> referencing the DNS authorization.
+5. Bound the certificate to a <strong>Certificate Map</strong>, linked a Certificate Map Entry to the target hostname, and attached the map to the Target HTTPS Proxy.
+6. Applied a modern SSL Policy with <code>--min-tls-version=1.2</code> and <code>--profile=MODERN</code>, permanently securing TLS 1.3 handshakes with autonomous 30-day pre-expiry auto-renewals.</p>
+
+<!-- Incident 4 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d54-i4-title d54-i4-desc" viewBox="0 0 980 290" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d54-i4-title">Incident 4: Expired Self-Managed Certificate vs Certificate Manager Auto-Renewal</title>
+<desc id="d54-i4-desc">Diagram showing failed path where an expired self-managed certificate triggered browser security errors, followed by corrected path using Certificate Manager with DNS authorization auto-renewing wildcard certificates.</desc>
+<defs>
+<marker id="d54-i4-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d54-i4-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="115" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Self-Managed SSL Certificate Expires at Midnight → NET::ERR_CERT_DATE_INVALID</text>
+
+<rect x="40" y="60" width="220" height="55" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Browser / Stripe Webhook</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">HTTPS to checkout.brightloaf.com</text>
+
+<rect x="330" y="60" width="280" height="55" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="340" y="80" fill="#fda4af" font-size="11" font-weight="700">Target HTTPS Proxy</text>
+<text x="340" y="96" fill="#fecdd3" font-size="10">Serves Expired Self-Managed Cert</text>
+<text x="340" y="108" fill="#fda4af" font-size="8.5">CA account credentials unavailable</text>
+
+<rect x="680" y="60" width="260" height="55" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="690" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Security Error / Handshake Abort</text>
+<text x="690" y="96" fill="#f43f5e" font-size="10">NET::ERR_CERT_DATE_INVALID</text>
+<text x="690" y="108" fill="#fda4af" font-size="8.5">$1.4M checkout commerce stalled</text>
+
+<path d="M 260 87 L 330 87" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d54-i4-f)"/>
+<path d="M 610 87 L 680 87" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d54-i4-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="150" width="940" height="120" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="175" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Certificate Manager DNS Authorization (Autonomous 30-Day Renewal)</text>
+
+<rect x="40" y="190" width="220" height="60" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="210" fill="#f1f5f9" font-size="11" font-weight="600">Browser / Stripe Webhook</text>
+<text x="50" y="226" fill="#86efac" font-size="10">HTTPS to checkout.brightloaf.com</text>
+<text x="50" y="240" fill="#cbd5e1" font-size="9">TLS 1.3 ClientHello</text>
+
+<rect x="330" y="190" width="280" height="60" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="340" y="210" fill="#a7f3d0" font-size="11" font-weight="700">Certificate Manager Map</text>
+<text x="340" y="226" fill="#cbd5e1" font-size="10">Auto-Renewed *.brightloaf.com Cert</text>
+<text x="340" y="240" fill="#86efac" font-size="9">DNS Auth via Cloud DNS CNAME</text>
+
+<rect x="680" y="190" width="260" height="60" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="690" y="210" fill="#f1f5f9" font-size="11" font-weight="600">TLS 1.3 Established</text>
+<text x="690" y="226" fill="#86efac" font-size="10">Valid Padlock: 0 Interruption</text>
+<text x="690" y="240" fill="#cbd5e1" font-size="9">MODERN profile filters weak ciphers</text>
+
+<path d="M 260 220 L 330 220" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d54-i4-c)"/>
+<path d="M 610 220 L 680 220" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d54-i4-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="320" y="180" width="300" height="78" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="330" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Certificate Map &amp; DNS Auth</text>
+</svg>
+<figcaption>Figure 54.5: Incident 4 Root Cause and Remediation. <strong>Supplied facts:</strong> Manual SSL certificate expired triggering global browser security warnings and webhook aborts. <strong>Architectural inference:</strong> Self-managed certificates introduce human single points of failure; Certificate Manager automates ACME DNS validation and background renewals. <strong>Expected post-fix behavior:</strong> Google Trust Services automatically issues and renews wildcard certificates, guaranteeing 100% TLS uptime and strict modern cipher negotiation.</figcaption>
+</figure>
+
+<p><strong>Verification and residual risk:</strong> Validated domain issuance status using the Certificate Manager resource details showing status <code>ACTIVE</code>. Residual risk: DNS authorization requires persistent retention of the <code>_acme-challenge</code> CNAME in Cloud DNS; if the DNS record is deleted, automated background certificate renewals will fail 30 days prior to certificate expiration.</p>
+</article>
+</section>
+
+<!-- ================= PART 4 ================= -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Deploy an External Passthrough Network Load Balancer with Failover Policy</h3>
+<p><strong>Goal:</strong> Deploy a Regional External Passthrough NLB operating with Direct Server Return, configure an active and backup backend service, and verify failover threshold policies.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 53 exit artifacts.</p>
+<ol>
+<li><strong>Reserve a Regional Static External IP Address:</strong>
+<pre><code>gcloud compute addresses create nlb-static-ip \
+  --region=us-east4</code></pre>
+</li>
+<li><strong>Create a Regional TCP Health Check:</strong>
+<pre><code>gcloud compute health-checks create tcp nlb-tcp-check \
+  --region=us-east4 \
+  --port=9000 \
+  --check-interval=5s \
+  --timeout=3s \
+  --healthy-threshold=2 \
+  --unhealthy-threshold=2</code></pre>
+</li>
+<li><strong>Create Primary and Backup Regional Backend Services:</strong>
+<pre><code>gcloud compute backend-services create nlb-primary-svc \
+  --load-balancing-scheme=EXTERNAL \
+  --protocol=TCP \
+  --region=us-east4 \
+  --health-checks=nlb-tcp-check \
+  --health-checks-region=us-east4</code></pre>
+<pre><code>gcloud compute backend-services create nlb-backup-svc \
+  --load-balancing-scheme=EXTERNAL \
+  --protocol=TCP \
+  --region=us-east4 \
+  --health-checks=nlb-tcp-check \
+  --health-checks-region=us-east4</code></pre>
+</li>
+<li><strong>Configure Failover Policy on Primary Backend Service:</strong> Set failover ratio to 25% and preserve healthy active sessions:
+<pre><code>gcloud compute backend-services update nlb-primary-svc \
+  --region=us-east4 \
+  --backup-service=nlb-backup-svc \
+  --failover-ratio=0.25 \
+  --no-drop-drain-connection</code></pre>
+</li>
+<li><strong>Create Regional Forwarding Rule:</strong>
+<pre><code>gcloud compute forwarding-rules create nlb-forwarding-rule \
+  --load-balancing-scheme=EXTERNAL \
+  --address=nlb-static-ip \
+  --region=us-east4 \
+  --backend-service=nlb-primary-svc \
+  --ports=9000</code></pre>
+</li>
+<li><strong>Verify Forwarding Rule and Failover Policy Details:</strong>
+<pre><code>gcloud compute forwarding-rules describe nlb-forwarding-rule \
+  --region=us-east4 \
+  --format="yaml(name,IPAddress,portRange,loadBalancingScheme,backendService)"</code></pre>
+<pre><code>gcloud compute backend-services describe nlb-primary-svc \
+  --region=us-east4 \
+  --format="yaml(failoverPolicy)"</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The Forwarding Rule provisions with scheme <code>EXTERNAL</code> on port 9000. The failover policy reports <code>failoverRatio: 0.25</code> and <code>dropDrainConnection: false</code>. Packets steer via Maglev DSR directly to backend instances without proxy termination.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Ensure backend virtual machines run listener daemons bound to <code>0.0.0.0:9000</code>; passthrough NLBs do not perform port translation (PAT).</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete forwarding rules, backend services, health checks, and reserved IP address when testing is complete.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-54-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Create Multi-Protocol Health Checks and Ingress Prober Firewall Rules</h3>
+<p><strong>Goal:</strong> Deploy an HTTP health check with custom request path and timing parameters, configure the mandatory Google prober firewall rule, and inspect health status.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 53 exit artifacts.</p>
+<ol>
+<li><strong>Create Advanced HTTP Health Check with Host Header and Custom Path:</strong>
+<pre><code>gcloud compute health-checks create http app-health-check \
+  --port=8080 \
+  --request-path=/healthz \
+  --host=health.brightloaf.com \
+  --check-interval=5s \
+  --timeout=3s \
+  --healthy-threshold=2 \
+  --unhealthy-threshold=3 \
+  --global</code></pre>
+</li>
+<li><strong>Create Ingress VPC Firewall Rule for Google Prober CIDR Blocks:</strong>
+<pre><code>gcloud compute firewall-rules create allow-health-check-ingress \
+  --network=prod-shared-vpc \
+  --action=ALLOW \
+  --direction=INGRESS \
+  --priority=1000 \
+  --source-ranges=35.191.0.0/16,130.211.0.0/22 \
+  --rules=tcp:8080 \
+  --target-tags=allow-health-check</code></pre>
+</li>
+<li><strong>Verify Distributed Prober Frequency and Inspect Backend Health:</strong>
+<pre><code>gcloud compute backend-services get-health web-backend-svc \
+  --global \
+  --format="table(status.healthStatus[].instance,status.healthStatus[].healthState)"</code></pre>
+</li>
+<li><strong>Simulate Probe Failure and Observe Status Transition:</strong> Stop the health check listener on one VM:
+<pre><code>sudo systemctl stop healthz.service</code></pre>
+<p>Wait 15 seconds (3 probe cycles) and re-query health status; observe that the instance transitions to <code>UNHEALTHY</code> while the remaining instances continue serving traffic.</p>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Firewall rule permits prober CIDR blocks <code>35.191.0.0/16</code> and <code>130.211.0.0/22</code> on port 8080. Health status confirms state <code>HEALTHY</code> under normal operation and transitions cleanly to <code>UNHEALTHY</code> upon listener failure.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If instances report <code>UNHEALTHY</code>, confirm that the guest application is listening on <code>0.0.0.0:8080</code> rather than localhost <code>127.0.0.1:8080</code> and that the VM instance has the <code>allow-health-check</code> network tag attached.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Restart the health service and retain the firewall rule as part of the production VPC baseline.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-54-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Configure Connection Draining, Session Affinity, and Keep-Alive Timeout Tuning</h3>
+<p><strong>Goal:</strong> Update a backend service with a 300-second connection draining timeout, cookie-based session affinity, and align backend server keep-alive timeouts to 650s.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 53 exit artifacts.</p>
+<ol>
+<li><strong>Configure Connection Draining and Generated Cookie Affinity:</strong>
+<pre><code>gcloud compute backend-services update web-backend-svc \
+  --global \
+  --draining-timeout=300s \
+  --session-affinity=GENERATED_COOKIE \
+  --affinity-cookie-ttl=1800</code></pre>
+</li>
+<li><strong>Verify Backend Service Configuration:</strong>
+<pre><code>gcloud compute backend-services describe web-backend-svc \
+  --global \
+  --format="yaml(connectionDraining.drainingTimeoutSec,sessionAffinity,affinityCookieTtlSec)"</code></pre>
+</li>
+<li><strong>Configure Backend Nginx Keep-Alive Timeout (Prevent Race 502s):</strong> Create or update Nginx configuration to set keepalive higher than the ALB 600s idle timeout:
+<pre><code>cat &lt;&lt; 'EOF' | sudo tee /etc/nginx/conf.d/keepalive.conf
+# Set keepalive timeout to 650s to exceed Google Cloud ALB 600s timeout
+keepalive_timeout 650s;
+keepalive_requests 10000;
+EOF
+sudo nginx -t &amp;&amp; sudo systemctl reload nginx</code></pre>
+</li>
+<li><strong>Initiate Rolling Action Restart and Monitor Draining Transition:</strong>
+<pre><code>gcloud compute instance-groups managed rolling-action restart order-app-mig-east4 \
+  --region=us-east4 \
+  --max-unavailable=1</code></pre>
+<p>Monitor instance states during the rollout, verifying that instances enter <code>DRAINING</code> state and allow active connections to finish before termination.</p>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Backend service confirms <code>drainingTimeoutSec: 300</code> and <code>sessionAffinity: GENERATED_COOKIE</code>. Nginx keepalive is verified at 650s. Zero in-flight connection drops or 502 race errors during rolling replacement.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Verify that client requests preserve cookies across sequential API invocations to test session affinity consistency.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>No extra GCP infrastructure charges are incurred for connection draining or session affinity.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-54-topic-03"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-04-lab" class="topic-card lab">
+<h3>Exercise 4: Provision Wildcard TLS with Certificate Manager and Enforce Modern SSL Policy</h3>
+<p><strong>Goal:</strong> Deploy a modern SSL Policy enforcing TLS 1.2 minimum with the MODERN profile, create a DNS Authorization in Certificate Manager, and issue a Google-managed wildcard certificate.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 53 exit artifacts.</p>
+<ol>
+<li><strong>Create Modern SSL Policy:</strong> Enforce modern PFS cipher suites and disable insecure legacy ciphers:
+<pre><code>gcloud compute ssl-policies create strict-modern-ssl-policy \
+  --profile=MODERN \
+  --min-tls-version=1.2 \
+  --global</code></pre>
+</li>
+<li><strong>Create DNS Authorization in Certificate Manager:</strong>
+<pre><code>gcloud certificate-manager dns-authorizations create brightloaf-dns-auth \
+  --domain="brightloaf.com" \
+  --location=global</code></pre>
+</li>
+<li><strong>Retrieve ACME DNS Challenge Record:</strong>
+<pre><code>gcloud certificate-manager dns-authorizations describe brightloaf-dns-auth \
+  --location=global \
+  --format="yaml(dnsResourceRecord)"</code></pre>
+<p>Populate the designated <code>_acme-challenge</code> CNAME in Cloud DNS.</p>
+</li>
+<li><strong>Provision Google-Managed Wildcard Certificate:</strong>
+<pre><code>gcloud certificate-manager certificates create brightloaf-wildcard-cert \
+  --domains="brightloaf.com,*.brightloaf.com" \
+  --dns-authorizations=brightloaf-dns-auth \
+  --location=global</code></pre>
+</li>
+<li><strong>Create Certificate Map and Map Entry:</strong>
+<pre><code>gcloud certificate-manager maps create brightloaf-cert-map \
+  --location=global</code></pre>
+<pre><code>gcloud certificate-manager maps entries create brightloaf-wildcard-entry \
+  --map=brightloaf-cert-map \
+  --certificates=brightloaf-wildcard-cert \
+  --hostname="*.brightloaf.com" \
+  --location=global</code></pre>
+</li>
+<li><strong>Bind Certificate Map and SSL Policy to Target HTTPS Proxy:</strong>
+<pre><code>gcloud compute target-https-proxies update web-target-https-proxy \
+  --certificate-map=brightloaf-cert-map \
+  --ssl-policy=strict-modern-ssl-policy</code></pre>
+</li>
+<li><strong>Verify TLS Handshake and Cipher Negotiation:</strong>
+<pre><code>openssl s_client -connect api.brightloaf.com:443 -servername api.brightloaf.com -tls1_3</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The Certificate Map binds the wildcard certificate to the proxy. The SSL Policy restricts handshakes to TLS 1.2+ with modern PFS ciphers. The certificate auto-renews 30 days prior to expiration via DNS authorization.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Ensure the <code>_acme-challenge</code> CNAME record in Cloud DNS resolves globally before creating the certificate; DNS propagation delays can hold certificate status in <code>PROVISIONING</code>.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete test certificates, certificate maps, and SSL policies when no longer required.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-54-topic-04"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<!-- ================= COMPLETION ================= -->
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>Assemble your notes and architecture decisions into a markdown file named <code>day-054-health-cert-trace.md</code>. Document your health check prober firewall rules, connection draining parameters (300s window), keep-alive timeout hierarchy, and your certificate ownership and renewal checklist using Certificate Manager.</p>
+<label class="check"><input type="checkbox" data-progress="read-54"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-54"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-053.html">← Day 53<small>Load-balancer architecture</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-055.html">Day 55 →<small>CDN, WAF and traffic management</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

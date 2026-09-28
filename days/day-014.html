@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Day 14 of the GCP architect roadmap: Git version control fundamentals, REST APIs, JSON data contracts, and error handling.">
+  <title>Day 14 — Git, APIs and JSON · GCP Architect</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <script defer src="../assets/site.js"></script>
+  <style>
+    .day-badge{display:inline-block;border:1px solid #f43f5e;border-radius:999px;color:#f43f5e;padding:4px 10px;font-size:12px;font-weight:800;white-space:nowrap}
+    .topic-card h4{color:#f43f5e;margin:22px 0 7px}
+    .topic-card table{width:100%;border-collapse:collapse;margin:16px 0;display:block;overflow-x:auto}
+    .topic-card caption{text-align:left;color:var(--rose,#f43f5e);font-weight:800;margin-bottom:8px}
+    .topic-card th,.topic-card td{border:1px solid #3b1d38;padding:9px 12px;text-align:left;vertical-align:top;min-width:150px}
+    .topic-card th{background:#090d16;color:#38bdf8}
+    .topic-card code{overflow-wrap:anywhere}
+    .topic-card pre code{overflow-wrap:normal}
+    .topic-card>span[id]{display:block;scroll-margin-top:140px}
+    .step{border-left:2px solid #3b1d38;padding-left:17px;margin:18px 0}
+    .step h4{margin-top:0}
+    .further{border-left:3px solid #38bdf8;padding:12px 16px;background:rgba(56,189,248,.06);margin-top:20px}
+    .further h4{margin:0 0 7px}
+    .further ul{margin:6px 0}
+    .meta{color:#a9b7cb;font-size:13px}
+    .topic-card p{max-width:82ch}
+    .diagram-figure{margin:20px 0;padding:14px;border:1px solid #3b1d38;border-radius:12px;background:#090d16;overflow-x:auto}
+    .diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}
+    .diagram-figure figcaption{color:#a9b7cb;font-size:12px;margin-top:10px}
+    .diagram-scroll-hint{display:none;color:#a9b7cb;font-size:11px}
+    @media(max-width:720px){.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-nav">
+    <nav class="nav-inner" aria-label="Site navigation">
+      <a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+      <span class="day-badge" aria-current="page">Day 14</span>
+      <label class="jump-label" for="day-jump">Choose a day</label>
+      <select id="day-jump" aria-label="Choose a day">
+        <optgroup label="Foundations">
+          <option value="day-001.html">Day 1 — Local workspace and learning baseline</option>
+          <option value="day-002.html">Day 2 — IP addressing and packet paths</option>
+          <option value="day-003.html">Day 3 — DNS, sockets and transport</option>
+          <option value="day-004.html">Day 4 — TLS, HTTP, MTU and routing vocabulary</option>
+          <option value="day-005.html">Day 5 — VPN, load balancers and firewalls</option>
+          <option value="day-006.html">Day 6 — Shell, processes and services</option>
+          <option value="day-007.html">Day 7 — SSH, scripts and process inspection</option>
+          <option value="day-008.html">Day 8 — CPU, memory and diagnostic signals</option>
+          <option value="day-009.html">Day 9 — VM and container isolation</option>
+          <option value="day-010.html">Day 10 — Images, filesystems and orchestration</option>
+          <option value="day-011.html">Day 11 — Cloud service models and responsibility</option>
+          <option value="day-012.html">Day 12 — Regions, scaling and economics</option>
+          <option value="day-013.html">Day 13 — State, availability and recovery vocabulary</option>
+          <option value="day-014.html" selected>Day 14 — Git, APIs and JSON</option>
+          <option value="day-015.html">Day 15 — Small application and architecture styles</option>
+          <option value="day-016.html">Day 16 — SQL foundations and business outcomes</option>
+          <option value="day-017.html">Day 17 — Gate 1 — Foundation recall and repair</option>
+        </optgroup>
+        <optgroup label="Cloud environment and identity">
+          <option value="day-018.html">Day 18 — Cloud sandbox and cost controls</option>
+          <option value="day-019.html">Day 19 — CLI configuration and identity checks</option>
+          <option value="day-020.html">Day 20 — APIs, client libraries and emulators</option>
+          <option value="day-021.html">Day 21 — Resource hierarchy and ownership</option>
+          <option value="day-022.html">Day 22 — Inheritance, labels and tags</option>
+          <option value="day-023.html">Day 23 — Organization policies and lifecycle</option>
+          <option value="day-024.html">Day 24 — Principals and workforce identity</option>
+          <option value="day-025.html">Day 25 — Roles and authorization decisions</option>
+          <option value="day-026.html">Day 26 — Credentials, tokens and impersonation</option>
+          <option value="day-027.html">Day 27 — Billing roles and budget ownership</option>
+          <option value="day-028.html">Day 28 — Cost attribution and notifications</option>
+          <option value="day-029.html">Day 29 — Cost exports, quota and capacity</option>
+          <option value="day-030.html">Day 30 — Region and resource-scope decisions</option>
+          <option value="day-031.html">Day 31 — Network tiers and delivery paths</option>
+          <option value="day-032.html">Day 32 — Support, inventory and learning tracker</option>
+          <option value="day-033.html">Day 33 — Lifecycle policies and operating assumptions</option>
+          <option value="day-034.html">Day 34 — First controlled cloud resource operation</option>
+          <option value="day-035.html">Day 35 — Gate 2 — Sandbox and identity readiness</option>
+        </optgroup>
+        <optgroup label="Core services and integrated practice">
+          <option value="day-036.html">Day 36 — VM sizing and image choices</option>
+          <option value="day-037.html">Day 37 — Disks, metadata and persistence</option>
+          <option value="day-038.html">Day 38 — Templates, MIGs and scaling</option>
+          <option value="day-039.html">Day 39 — Autohealing and deployment changes</option>
+          <option value="day-040.html">Day 40 — Spot, tenancy and secure VM access</option>
+          <option value="day-041.html">Day 41 — VM operations and resource diagnosis</option>
+          <option value="day-042.html">Day 42 — Kubernetes architecture and cluster choices</option>
+          <option value="day-043.html">Day 43 — Scheduling, scaling and Kubernetes access</option>
+          <option value="day-044.html">Day 44 — Service networking and persistent volumes</option>
+          <option value="day-045.html">Day 45 — Probes, secrets and workload failures</option>
+          <option value="day-046.html">Day 46 — Fleet, supply chain and mesh trade-offs</option>
+          <option value="day-047.html">Day 47 — Cloud Run and event-driven functions</option>
+          <option value="day-048.html">Day 48 — Workflows and runtime selection</option>
+          <option value="day-049.html">Day 49 — VPC address and route design</option>
+          <option value="day-050.html">Day 50 — Firewall policy and private API access</option>
+          <option value="day-051.html">Day 51 — Peering, Shared VPC, PSC and NAT</option>
+          <option value="day-052.html">Day 52 — DNS, hybrid transit and network diagnosis</option>
+          <option value="day-053.html">Day 53 — Load-balancer architecture</option>
+          <option value="day-054.html">Day 54 — Health checks, certificates and draining</option>
+          <option value="day-055.html">Day 55 — CDN, WAF and traffic management</option>
+          <option value="day-056.html">Day 56 — Hybrid topology and failure domains</option>
+          <option value="day-057.html">Day 57 — BGP, MTU and NAT diagnosis</option>
+          <option value="day-058.html">Day 58 — Object storage and local durability</option>
+          <option value="day-059.html">Day 59 — Transfers, block storage and restore</option>
+          <option value="day-060.html">Day 60 — File systems and backup design</option>
+          <option value="day-061.html">Day 61 — Relational databases and transactions</option>
+          <option value="day-062.html">Day 62 — Distributed and nonrelational database choices</option>
+          <option value="day-063.html">Day 63 — Caching, CDC and database selection</option>
+          <option value="day-064.html">Day 64 — Messaging, outbox and duplicate handling</option>
+          <option value="day-065.html">Day 65 — Integrate one order-service path</option>
+          <option value="day-066.html">Day 66 — Reproduce and recover the integrated baseline</option>
+          <option value="day-067.html">Day 67 — Gate 3 — Operate the core application</option>
+        </optgroup>
+        <optgroup label="Requirements, migration and architecture">
+          <option value="day-068.html">Day 68 — Requirements from observed behavior</option>
+          <option value="day-069.html">Day 69 — Stakeholders and priority trade-offs</option>
+          <option value="day-070.html">Day 70 — Well-Architected review lenses</option>
+          <option value="day-071.html">Day 71 — Performance, sustainability and trade-offs</option>
+          <option value="day-072.html">Day 72 — Application architecture patterns</option>
+          <option value="day-073.html">Day 73 — Data and hybrid architecture vocabulary</option>
+          <option value="day-074.html">Day 74 — Regional and tenant boundaries</option>
+          <option value="day-075.html">Day 75 — Migration assessment and VMware fit</option>
+          <option value="day-076.html">Day 76 — Migration rehearsal and reconciliation</option>
+          <option value="day-077.html">Day 77 — Migration waves and acceptance</option>
+          <option value="day-078.html">Day 78 — Decision matrices grounded in experiments</option>
+          <option value="day-079.html">Day 79 — ADRs, TCO and risk registers</option>
+          <option value="day-080.html">Day 80 — Architecture diagrams and failure sequences</option>
+          <option value="day-081.html">Day 81 — First architecture defense</option>
+          <option value="day-082.html">Day 82 — Gate 4 — Design from operational evidence</option>
+        </optgroup>
+        <optgroup label="Reliability and security">
+          <option value="day-083.html">Day 83 — Availability math and dependency risk</option>
+          <option value="day-084.html">Day 84 — Failure domains and graceful degradation</option>
+          <option value="day-085.html">Day 85 — Retries, timeouts and overload vocabulary</option>
+          <option value="day-086.html">Day 86 — SLIs, SLOs and error budgets</option>
+          <option value="day-087.html">Day 87 — Incidents, toil and capacity</option>
+          <option value="day-088.html">Day 88 — Availability across infrastructure layers</option>
+          <option value="day-089.html">Day 89 — Messaging, DNS and application health</option>
+          <option value="day-090.html">Day 90 — Recovery targets and patterns</option>
+          <option value="day-091.html">Day 91 — Backups and replication correctness</option>
+          <option value="day-092.html">Day 92 — Failover and failback planning</option>
+          <option value="day-093.html">Day 93 — Metrics, alerting and burn rates</option>
+          <option value="day-094.html">Day 94 — Logs, traces and profiling</option>
+          <option value="day-095.html">Day 95 — Central observability and audit evidence</option>
+          <option value="day-096.html">Day 96 — Bounded failure experiment design</option>
+          <option value="day-097.html">Day 97 — Run a recovery and overload experiment</option>
+          <option value="day-098.html">Day 98 — Restore and failover acceptance</option>
+          <option value="day-099.html">Day 99 — Advanced IAM and policy evaluation</option>
+          <option value="day-100.html">Day 100 — Workload federation and short-lived access</option>
+          <option value="day-101.html">Day 101 — Workforce federation and remote access</option>
+          <option value="day-102.html">Day 102 — Privileged access and break-glass</option>
+          <option value="day-103.html">Day 103 — Defense in depth and network policy</option>
+          <option value="day-104.html">Day 104 — Data perimeters and egress controls</option>
+          <option value="day-105.html">Day 105 — Certificates, mTLS and hybrid encryption</option>
+          <option value="day-106.html">Day 106 — Data classification and key lifecycle</option>
+          <option value="day-107.html">Day 107 — Secrets and de-identification</option>
+          <option value="day-108.html">Day 108 — Residency, confidentiality and data access</option>
+          <option value="day-109.html">Day 109 — Compliance evidence and responsibility</option>
+          <option value="day-110.html">Day 110 — Policy as code and audit retention</option>
+          <option value="day-111.html">Day 111 — Regulated workload design</option>
+          <option value="day-112.html">Day 112 — Threat detection and triage</option>
+          <option value="day-113.html">Day 113 — Incident response and threat modelling</option>
+          <option value="day-114.html">Day 114 — Artifact integrity and admission</option>
+          <option value="day-115.html">Day 115 — Container and pipeline hardening</option>
+          <option value="day-116.html">Day 116 — Integrate private access and key controls</option>
+          <option value="day-117.html">Day 117 — Security handover and evidence repair</option>
+          <option value="day-118.html">Day 118 — Gate 5 — Reliability and security acceptance</option>
+        </optgroup>
+        <optgroup label="Performance, delivery and operations">
+          <option value="day-119.html">Day 119 — Cost baseline and commitments</option>
+          <option value="day-120.html">Day 120 — Storage, network and database costs</option>
+          <option value="day-121.html">Day 121 — Runtime, analytics and carbon cost drivers</option>
+          <option value="day-122.html">Day 122 — Unit economics and sensitivity</option>
+          <option value="day-123.html">Day 123 — Caching correctness under load</option>
+          <option value="day-124.html">Day 124 — Database, network and I/O bottlenecks</option>
+          <option value="day-125.html">Day 125 — Profiling and capacity evidence</option>
+          <option value="day-126.html">Day 126 — Terraform baseline and state boundaries</option>
+          <option value="day-127.html">Day 127 — Terraform testing, drift and recovery</option>
+          <option value="day-128.html">Day 128 — Build and deployment pipeline</option>
+          <option value="day-129.html">Day 129 — Release rollback and delivery measures</option>
+          <option value="day-130.html">Day 130 — Service catalog and ownership</option>
+          <option value="day-131.html">Day 131 — Lifecycle, exceptions and adoption</option>
+          <option value="day-132.html">Day 132 — Customer success and platform outcomes</option>
+          <option value="day-133.html">Day 133 — Operations integration and remediation</option>
+        </optgroup>
+        <optgroup label="Data, AI and distributed correctness">
+          <option value="day-134.html">Day 134 — Warehouse foundations and query costs</option>
+          <option value="day-135.html">Day 135 — Warehouse security and reporting</option>
+          <option value="day-136.html">Day 136 — Batch and streaming processing choices</option>
+          <option value="day-137.html">Day 137 — Streaming correctness and CDC</option>
+          <option value="day-138.html">Day 138 — Lakehouse and open table design</option>
+          <option value="day-139.html">Day 139 — Catalogs, lineage and data contracts</option>
+          <option value="day-140.html">Day 140 — ML lifecycle and model selection</option>
+          <option value="day-141.html">Day 141 — Build a small grounded-answer flow</option>
+          <option value="day-142.html">Day 142 — Bounded tools and enterprise assistants</option>
+          <option value="day-143.html">Day 143 — AI security and evaluation</option>
+          <option value="day-144.html">Day 144 — AI serving and infrastructure choices</option>
+          <option value="day-145.html">Day 145 — Distributed state and regional correctness</option>
+        </optgroup>
+        <optgroup label="Discovery, cases and exam preparation">
+          <option value="day-146.html">Day 146 — Case analysis and discovery method</option>
+          <option value="day-147.html">Day 147 — Extract facts and numeric requirements</option>
+          <option value="day-148.html">Day 148 — Map requirements and conflicts</option>
+          <option value="day-149.html">Day 149 — Discovery: business, load and recovery</option>
+          <option value="day-150.html">Day 150 — Discovery: data, regulation and skills</option>
+          <option value="day-151.html">Day 151 — Discovery: budget, risks and success</option>
+          <option value="day-152.html">Day 152 — EHR Healthcare — facts and migration constraints</option>
+          <option value="day-153.html">Day 153 — EHR Healthcare — defend the design</option>
+          <option value="day-154.html">Day 154 — Altostrat Media — content and AI requirements</option>
+          <option value="day-155.html">Day 155 — Altostrat Media — architecture defense</option>
+          <option value="day-156.html">Day 156 — Cymbal Retail — catalog and commerce requirements</option>
+          <option value="day-157.html">Day 157 — Cymbal Retail — architecture defense</option>
+          <option value="day-158.html">Day 158 — KnightMotives — modernization requirements</option>
+          <option value="day-159.html">Day 159 — KnightMotives — architecture defense</option>
+          <option value="day-160.html">Day 160 — Case synthesis and feedback</option>
+          <option value="day-161.html">Day 161 — Changed-constraint design exercise</option>
+          <option value="day-162.html">Day 162 — Exam domain mapping and sample questions</option>
+          <option value="day-163.html">Day 163 — Timed reasoning and source-backed limits</option>
+          <option value="day-164.html">Day 164 — Readiness plan and remaining repairs</option>
+        </optgroup>
+        <optgroup label="Multi-team architecture and synthesis">
+          <option value="day-165.html">Day 165 — Landing zones and multi-team platform boundaries</option>
+          <option value="day-166.html">Day 166 — Production identity across teams</option>
+          <option value="day-167.html">Day 167 — API contracts and compatibility</option>
+          <option value="day-168.html">Day 168 — Sustainability and assisted operations</option>
+          <option value="day-169.html">Day 169 — Capacity allocation and overload governance</option>
+          <option value="day-170.html">Day 170 — Compute and database decision synthesis</option>
+          <option value="day-171.html">Day 171 — Network decision synthesis</option>
+          <option value="day-172.html">Day 172 — Storage, messaging and limits synthesis</option>
+          <option value="day-173.html">Day 173 — Consulting, portfolio and customer handover</option>
+        </optgroup>
+        <optgroup label="Final gate and capstone defenses">
+          <option value="day-174.html">Day 174 — Gate 6 — Integrated readiness and remediation</option>
+          <option value="day-175.html">Day 175 — Capstone 1 — Landing-zone defense</option>
+          <option value="day-176.html">Day 176 — Capstone 2 — Regulated-workload defense</option>
+          <option value="day-177.html">Day 177 — Capstone 3 — Global-application defense</option>
+          <option value="day-178.html">Day 178 — Capstone 4 — Migration defense</option>
+          <option value="day-179.html">Day 179 — Capstone 5 — Cost and reliability rescue</option>
+        </optgroup>
+        <optgroup label="Final review and rest">
+          <option value="day-180.html">Day 180 — Final review, logistics and rest</option>
+        </optgroup>
+      </select>
+      <a href="#part-1">Topics</a><a href="#part-2">Discussion</a><a href="#part-3">Problems</a><a href="#part-4">Labs</a>
+    </nav>
+  </header>
+  <main id="main" class="container day" data-day="14" data-prev="day-013.html" data-next="day-015.html" data-index="../index.html">
+    <div class="crumb"><a href="../index.html">Roadmap Index</a> / <a href="../index.html#block-foundations">Foundations</a> / Day 14</div>
+    <section class="hero" aria-labelledby="day-title">
+      <div class="pills"><span class="pill">DAY 14</span><span class="pill">Foundations</span><span class="pill">2–3 hours</span><span class="pill">Local lab</span><span class="pill">Topics 005</span></div>
+      <h1 id="day-title">Day 14 — Git, APIs and JSON</h1>
+      <p class="lead"><strong>Outcome:</strong> Commit a tiny request/response example; create a branch, review a diff and merge a change; parse an error response.</p>
+      <p><strong>Entry prerequisites:</strong> <a href="day-007.html">Day 7</a> and <a href="day-010.html">Day 10</a>; bring their exit artifacts.</p>
+      <div class="callout success"><strong>Exit artifact</strong><p>A repository history and annotated HTTP/JSON success and failure examples.</p></div>
+      <p class="meta">This lesson operates entirely in a local Linux sandbox using Git and Python 3. No Google Cloud credentials, project setup, or chargeable resources are required.</p>
+    </section>
+    <aside class="toc" aria-label="On this page">
+      <strong>On this page</strong>
+      <a href="#part-1">Part 1 · Topics of the day</a><a href="#part-2">Part 2 · Technical discussion</a><a href="#part-3">Part 3 · Real-world problems</a><a href="#part-4">Part 4 · Step-by-step labs</a>
+      <div class="toc-topic"><span>Git fundamentals (branch, merge, PR)</span><a href="#topic-01-overview">Overview</a> · <a href="#topic-01-technical">Discussion</a> · <a href="#topic-01-problem">Problem</a> · <a href="#topic-01-lab">Lab</a></div>
+      <div class="toc-topic"><span>REST APIs and JSON</span><a href="#topic-02-overview">Overview</a> · <a href="#topic-02-technical">Discussion</a> · <a href="#topic-02-problem">Problem</a> · <a href="#topic-02-lab">Lab</a></div>
+    </aside>
+
+    <section class="part" id="part-1" aria-labelledby="part-1-title">
+      <h2 id="part-1-title">Part 1 · Topics of the day</h2>
+      <article class="topic-card" id="topic-01-overview">
+        <h3>Git fundamentals (branch, merge, PR)</h3>
+        <p><strong>What it is.</strong> Git is a distributed version control system that records changes to a directory of files as an immutable, cryptographically hashed directed acyclic graph (DAG) of commit objects. A branch is a movable pointer to a specific commit, allowing isolated parallel exploration; merging integrates divergent commit histories through fast-forward or three-way merge operations; a pull request (PR) or merge request provides an asynchronous peer review, automated validation gate, and audit checkpoint before integrating code into the primary production trunk.</p>
+        <p><strong>Why today.</strong> In modern cloud architecture, infrastructure (Terraform), cluster state (Kubernetes manifests), and microservice configurations are declared as code. Establishing rigorous Git hygiene, branch isolation, and review controls is the prerequisite for reliable GitOps and CI/CD delivery pipelines.</p>
+        <p><strong>System location.</strong> Git repositories sit at the developer workstation and remote code forges (such as Cloud Source Repositories, GitHub, or GitLab), serving as the single source of truth triggering Cloud Build pipelines and deployment controllers.</p>
+        <p><strong>Problem preview.</strong> A developer directly pushes an unreviewed schema change to the main branch, triggering an automated pipeline that deploys a broken order validation model to production. Checkout immediately halts with HTTP 400 validation failures, creating cart abandonment and blocking critical order fulfillment.</p>
+      </article>
+      <article class="topic-card" id="topic-02-overview">
+        <h3>REST APIs and JSON</h3>
+        <p><strong>What it is.</strong> Representational State Transfer (REST) is an architectural style for networked systems characterized by stateless client-server interactions, resource-oriented URIs, standard HTTP request verbs (GET, POST, PUT, DELETE, PATCH), and standardized HTTP response status codes. JavaScript Object Notation (JSON) is the universal, language-agnostic text serialization format for transmitting structured key-value maps, arrays, strings, numbers, and boolean primitives over HTTP.</p>
+        <p><strong>Why today.</strong> Google Cloud management APIs, Kubernetes control planes, and cloud-native microservices communicate primarily via RESTful HTTP/JSON interfaces. Cloud architects must understand payload contracts, status code semantics, and defensive parsing boundaries to build resilient service integrations.</p>
+        <p><strong>System location.</strong> RESTful HTTP/JSON interfaces operate across ingress load balancers, API gateways, Cloud Run microservice endpoints, and third-party payment and carrier webhook integrations.</p>
+        <p><strong>Problem preview.</strong> An upstream payment gateway webhook transmits an unexpected JSON error schema with missing order identifiers during a checkout retry, causing the Order API to crash with an unhandled parser exception. Shoppers are billed without receiving confirmation, flooding customer support with payment disputes and delaying warehouse dispatch.</p>
+      </article>
+    </section>
+
+    <section class="part" id="part-2" aria-labelledby="part-2-title">
+      <h2 id="part-2-title">Part 2 · Technical discussion</h2>
+      <article class="topic-card" id="topic-01-technical">
+        <h3>Git fundamentals (branch, merge, PR)</h3>
+        <p>Git treats project history as a snapshot stream rather than file-by-file delta diffs. Every commit is identified by a unique cryptographic hash (SHA-1 or SHA-256) calculated over its directory tree, author identity, parent commit hashes, and commit message. Because commit identifiers are cryptographically linked to their entire ancestry, history cannot be altered without changing all subsequent hashes, providing an immutable audit trail for cloud infrastructure declarations.</p>
+        <p>Branching creates a named reference pointing to a commit. In trunk-based development, engineers maintain a protected primary branch (typically <code>main</code>) representing production-ready code. Developers branch from <code>main</code> to create short-lived feature branches (such as <code>feature/order-tax</code>). Merging reconciles divergent histories: a fast-forward merge simply advances the branch pointer when no divergent commits exist on <code>main</code>, whereas a non-fast-forward merge creates a dedicated merge commit joining two divergent lines of history. In cloud deployment pipelines, squash merging is frequently favored because it condenses a multi-commit feature branch into a single atomic, bisectable commit on the trunk.</p>
+        <p>The Pull Request (PR) workflow introduces governance and automated validation before integration. Protected branch policies require pull requests to pass automated continuous integration (CI) gates—such as static code analysis, linter checks, and unit tests—and require sign-off from authorized peer reviewers before code can enter <code>main</code>. In GitOps architectures, committing or merging to <code>main</code> serves as the automated trigger for deployment engines (such as Cloud Build or Config Sync), ensuring that running cloud environments strictly reflect audited, version-controlled repository state.</p>
+        <table>
+          <caption>Git operation, commit graph effect, and architectural role</caption>
+          <thead>
+            <tr><th>Git operation</th><th>Commit graph effect</th><th>Architectural &amp; CI/CD role</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>commit</code></td><td>Records snapshot of staged changes; generates new SHA hash pointing to parent</td><td>Creates immutable audit record of infrastructure or code change</td></tr>
+            <tr><td><code>branch</code></td><td>Creates new named pointer to current commit HEAD</td><td>Isolates feature development and experimental changes from production trunk</td></tr>
+            <tr><td><code>diff</code></td><td>Computes line-by-line syntactic difference between trees or working directory</td><td>Enables pre-commit review of intended configuration and schema modifications</td></tr>
+            <tr><td><code>merge</code></td><td>Unifies histories via fast-forward pointer advance or three-way merge commit</td><td>Integrates validated feature branch into protected trunk</td></tr>
+            <tr><td>Pull Request (PR)</td><td>Asynchronous review interface binding branches, approvals, and CI checks</td><td>Enforces peer review, compliance gates, and automated test triggers before deployment</td></tr>
+          </tbody>
+        </table>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day14-git-lifecycle-title day14-git-lifecycle-desc" viewBox="0 0 940 330">
+<title id="day14-git-lifecycle-title">Git Branching, Pull Request Review Lifecycle, and GitOps CI/CD Integration</title>
+<desc id="day14-git-lifecycle-desc">Architectural diagram illustrating feature branch divergence from main, automated CI test gates, peer code review, squash-merge integration, and Cloud Build pipeline triggering.</desc>
+<defs>
+<marker id="day14-git-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day14-merge-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+</defs>
+<!-- Main Trunk Line -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="420" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="230" y="50">MAIN BRANCH (PROTECTED TRUNK)</text>
+</g>
+<!-- Main Commits -->
+<g font-size="10" text-anchor="middle">
+<circle cx="60" cy="85" r="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+<text x="60" y="89" fill="#38bdf8" font-weight="700">C0</text>
+<text x="60" y="112" fill="#a9b7cb" font-size="8">Init</text>
+
+<circle cx="160" cy="85" r="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+<text x="160" y="89" fill="#38bdf8" font-weight="700">C1</text>
+<text x="160" y="112" fill="#a9b7cb" font-size="8">Baseline</text>
+
+<circle cx="360" cy="85" r="16" fill="#1e293b" stroke="#34d399" stroke-width="2.5"/>
+<text x="360" y="89" fill="#34d399" font-weight="700">C4</text>
+<text x="360" y="112" fill="#34d399" font-size="8">Merge PR</text>
+
+<!-- Main trunk connectors -->
+<path d="M74 85 L146 85" stroke="#38bdf8" stroke-width="2" marker-end="url(#day14-git-arrow)"/>
+<path d="M174 85 L344 85" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#day14-git-arrow)"/>
+</g>
+
+<!-- Feature Branch Line -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="150" width="420" height="150" rx="8" stroke="#eab308"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="230" y="170">FEATURE BRANCH: feature/order-tax</text>
+</g>
+<g font-size="10" text-anchor="middle">
+<circle cx="160" cy="225" r="14" fill="#1e293b" stroke="#eab308" stroke-width="2"/>
+<text x="160" y="229" fill="#eab308" font-weight="700">C2</text>
+<text x="160" y="252" fill="#a9b7cb" font-size="8">Schema +Tax</text>
+
+<circle cx="280" cy="225" r="14" fill="#1e293b" stroke="#eab308" stroke-width="2"/>
+<text x="280" y="229" fill="#eab308" font-weight="700">C3</text>
+<text x="280" y="252" fill="#a9b7cb" font-size="8">Unit Tests</text>
+
+<!-- Feature branch connectors -->
+<path d="M160 99 L160 211" stroke="#eab308" stroke-width="2" marker-end="url(#day14-git-arrow)"/>
+<path d="M174 225 L266 225" stroke="#eab308" stroke-width="2" marker-end="url(#day14-git-arrow)"/>
+<text x="230" y="280" fill="#a9b7cb" font-size="9">Isolated Developer Iteration</text>
+</g>
+
+<!-- Pull Request & CI Gates -->
+<g fill="#121526" stroke-width="2">
+<rect x="470" y="30" width="230" height="270" rx="8" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="585" y="52">PULL REQUEST GATES</text>
+<text x="585" y="68" fill="#34d399" font-size="9" font-weight="400">Pre-Merge Validation Protocol</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="485" y="85" width="200" height="48" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="585" y="103" fill="#38bdf8" font-weight="700">1. Automated CI Checks</text>
+<text x="585" y="117" fill="#fce7f3">Linter + pytest passed</text>
+<text x="585" y="127" fill="#34d399">JSON Schema Compatible</text>
+
+<rect x="485" y="142" width="200" height="48" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="585" y="160" fill="#eab308" font-weight="700">2. Peer Architecture Review</text>
+<text x="585" y="174" fill="#fce7f3">Minimum 1 Principal Approval</text>
+<text x="585" y="184" fill="#a9b7cb">No direct pushes to main</text>
+
+<rect x="485" y="199" width="200" height="48" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="585" y="217" fill="#34d399" font-weight="700">3. Integration Strategy</text>
+<text x="585" y="231" fill="#fce7f3">Squash &amp; Merge (1 commit)</text>
+<text x="585" y="241" fill="#a9b7cb">Linear, clean git history</text>
+<text x="585" y="280" fill="#f43f5e" font-weight="700">Branch Protection Enforced</text>
+</g>
+
+<!-- Cloud Build & Deployment Trigger -->
+<g fill="#121526" stroke-width="2">
+<rect x="730" y="30" width="190" height="270" rx="8" stroke="#f43f5e"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="825" y="52">GITOPS CI/CD</text>
+<text x="825" y="68" fill="#f43f5e" font-size="9" font-weight="400">Continuous Delivery</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="745" y="85" width="160" height="50" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="825" y="103" fill="#38bdf8" font-weight="700">Cloud Build Trigger</text>
+<text x="825" y="117" fill="#fce7f3">Fires on commit to main</text>
+<text x="825" y="127" fill="#a9b7cb">Automated Docker build</text>
+
+<rect x="745" y="145" width="160" height="50" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="825" y="163" fill="#34d399" font-weight="700">Artifact Registry</text>
+<text x="825" y="177" fill="#fce7f3">Immutable image tag</text>
+<text x="825" y="187" fill="#a9b7cb">SHA-256 signed digest</text>
+
+<rect x="745" y="205" width="160" height="50" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="825" y="223" fill="#eab308" font-weight="700">Deploy to Cloud Run</text>
+<text x="825" y="237" fill="#fce7f3">Zero-downtime rollout</text>
+<text x="825" y="247" fill="#34d399">Order Invariant: &lt;= 1</text>
+</g>
+
+<!-- Connectors from PR to Main and CD -->
+<g fill="none" stroke-width="2">
+<path d="M294 225 L470 180" stroke="#34d399" marker-end="url(#day14-merge-arrow)"/>
+<path d="M700 85 L745 105" stroke="#38bdf8" marker-end="url(#day14-git-arrow)"/>
+</g>
+</svg>
+<figcaption>Figure 14.1: Git feature branching and Pull Request review lifecycle showing branch divergence, automated CI verification gates, protected trunk squash-merging, and downstream Cloud Build deployment triggering.</figcaption>
+</figure>
+        <div class="further">
+          <h4>Further study</h4>
+          <ul>
+            <li><a href="https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging">Pro Git: Basic Branching and Merging</a> — foundational branching mechanics, fast-forward vs three-way merges, and conflict resolution.</li>
+            <li><a href="https://docs.cloud.google.com/build/docs/automating-builds/create-manage-triggers">Google Cloud Build: Create and manage build triggers</a> — connecting Git repository branch events and pull requests to automated cloud pipelines.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-technical">
+        <h3>REST APIs and JSON</h3>
+        <p>RESTful architectures model services as hierarchically named resources exposed over standard HTTP. A resource identifier is represented as a URI path (such as <code>/v1/orders</code> for a collection, or <code>/v1/orders/BL-14-1001</code> for an individual instance). Clients interact with resources using standardized HTTP verbs. Method semantics dictate safety and idempotency: <code>GET</code> and <code>HEAD</code> are safe and idempotent (they perform reads without modifying server state); <code>PUT</code> and <code>DELETE</code> are idempotent but modify state (repeating the exact request yields the identical resulting state); while <code>POST</code> is neither safe nor inherently idempotent (invoking it repeatedly creates multiple distinct resources unless explicit application deduplication is implemented).</p>
+        <p>JSON represents structured data using lightweight human-readable syntax composed of two structural forms: associative key-value objects enclosed in curly braces <code>{}</code>, and ordered sequences of values enclosed in square brackets <code>[]</code>. Keys must be double-quoted strings. Values may be strings, numbers, booleans (<code>true</code>, <code>false</code>), <code>null</code>, or nested objects and arrays. RESTful APIs negotiate payload serialization using the <code>Content-Type: application/json</code> request and response header. Servers must validate JSON syntax defensively: malformed JSON (such as unquoted keys or trailing commas) must be rejected with HTTP 400 Bad Request before attempting to parse business fields.</p>
+        <p>HTTP status codes provide standardized signaling across failure domains. Success responses occupy the 2xx class (<code>200 OK</code> for query results, <code>201 Created</code> for newly persisted entities). Client errors occupy the 4xx class (<code>400 Bad Request</code> for malformed payloads, <code>404 Not Found</code> for absent resources, <code>409 Conflict</code> for duplicate unique keys, and <code>422 Unprocessable Entity</code> for syntactically valid JSON that violates domain validation rules). Server errors occupy the 5xx class (<code>500 Internal Server Error</code> for unhandled crashes, <code>502 Bad Gateway</code> when an upstream proxy returns an invalid response, and <code>504 Gateway Timeout</code> when a backend dependency fails to respond in time). To guarantee the business invariant that an order is fulfilled at most once ($\le 1$ physical fulfillment), APIs implementing <code>POST /v1/orders</code> must require an <code>Idempotency-Key</code> header, ensuring client retries across transient network drops return the original confirmed response without duplicate order creation.</p>
+        <table>
+          <caption>REST method, semantics, status codes, and idempotency guarantees</caption>
+          <thead>
+            <tr><th>HTTP method</th><th>Resource target</th><th>Idempotent?</th><th>Expected status</th><th>Business failure mode to guard</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>GET</code></td><td><code>/v1/orders/{id}</code></td><td>Yes</td><td>200 OK, 404 Not Found</td><td>Cache poisoning, stale order state reads</td></tr>
+            <tr><td><code>POST</code></td><td><code>/v1/orders</code></td><td>No (needs key)</td><td>201 Created, 400, 422</td><td>Duplicate order insertion and double fulfillment on network retry</td></tr>
+            <tr><td><code>PUT</code></td><td><code>/v1/orders/{id}</code></td><td>Yes</td><td>200 OK, 204 No Content</td><td>Accidental overwriting of updated fulfillment status</td></tr>
+            <tr><td><code>DELETE</code></td><td><code>/v1/orders/{id}</code></td><td>Yes</td><td>204 No Content, 404</td><td>Deleting committed orders without retaining audit history</td></tr>
+            <tr><td><code>PATCH</code></td><td><code>/v1/orders/{id}</code></td><td>No / conditional</td><td>200 OK, 409 Conflict</td><td>Concurrent modification race conditions on order status</td></tr>
+          </tbody>
+        </table>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day14-rest-lifecycle-title day14-rest-lifecycle-desc" viewBox="0 0 940 330">
+<title id="day14-rest-lifecycle-title">RESTful HTTP/JSON Request-Response Lifecycle, Status Codes, and Idempotency Gateway</title>
+<desc id="day14-rest-lifecycle-desc">Architecture diagram illustrating RESTful client-server communication over HTTP/JSON, schema validation error boundaries, status code semantics, and idempotent order deduplication.</desc>
+<defs>
+<marker id="day14-rest-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day14-ok-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day14-err-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<!-- Client Tier -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="180" height="265" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="110" y="52">CLIENT REQUEST</text>
+<text x="110" y="68" fill="#38bdf8" font-size="9" font-weight="400">HTTP/1.1 or HTTP/2 over TLS</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="35" y="85" width="150" height="32" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="110" y="101" fill="#fce7f3" font-weight="700">POST /v1/orders</text>
+<text x="110" y="112" fill="#38bdf8">Resource Creation Verb</text>
+
+<rect x="35" y="125" width="150" height="52" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="110" y="141" fill="#eab308" font-weight="700">Request Headers</text>
+<text x="110" y="153" fill="#fce7f3">Content-Type: app/json</text>
+<text x="110" y="165" fill="#34d399">Idempotency-Key: 7b8f-410a</text>
+
+<rect x="35" y="185" width="150" height="65" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="110" y="201" fill="#fce7f3" font-weight="700">JSON Request Body</text>
+<text x="110" y="215" fill="#a9b7cb">{"order_id": "BL-14-1001",</text>
+<text x="110" y="227" fill="#a9b7cb"> "item": "Sourdough",</text>
+<text x="110" y="239" fill="#a9b7cb"> "quantity": 2, "price": 7.5}</text>
+<text x="110" y="278" fill="#38bdf8" font-size="9">Stateless Client</text>
+</g>
+
+<!-- Processing & Validation Gateway -->
+<g fill="#121526" stroke-width="2">
+<rect x="225" y="30" width="440" height="265" rx="8" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="445" y="52">ORDER API GATEWAY &amp; SERVICE WORKER</text>
+<text x="445" y="68" fill="#34d399" font-size="9" font-weight="400">Validation, Idempotency, and Transaction Boundaries</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<!-- Step 1: Content-Type & JSON Parse -->
+<rect x="240" y="85" width="195" height="55" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="337" y="101" fill="#38bdf8" font-weight="700">1. Defensive JSON Parse</text>
+<text x="337" y="115" fill="#fce7f3">Verify Content-Type header</text>
+<text x="337" y="127" fill="#a9b7cb">try / catch JSONDecodeError</text>
+
+<!-- Step 2: Schema Validation -->
+<rect x="455" y="85" width="195" height="55" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="552" y="101" fill="#eab308" font-weight="700">2. Business Schema Rules</text>
+<text x="552" y="115" fill="#fce7f3">Validate fields &amp; types</text>
+<text x="552" y="127" fill="#a9b7cb">quantity &gt; 0, price &gt; 0.0</text>
+
+<!-- Step 3: Idempotency Check -->
+<rect x="240" y="155" width="195" height="65" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="337" y="171" fill="#34d399" font-weight="700">3. Idempotency Interceptor</text>
+<text x="337" y="185" fill="#fce7f3">Lookup Idempotency-Key</text>
+<text x="337" y="197" fill="#34d399">If present: return cached 200</text>
+<text x="337" y="209" fill="#a9b7cb">Prevents duplicate order creation</text>
+
+<!-- Step 4: Transaction Commit -->
+<rect x="455" y="155" width="195" height="65" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="552" y="171" fill="#34d399" font-weight="700">4. Database Transaction</text>
+<text x="552" y="185" fill="#fce7f3">INSERT INTO orders</text>
+<text x="552" y="197" fill="#34d399">Primary Key uniqueness guard</text>
+<text x="552" y="209" fill="#a9b7cb">Commit row &amp; write outbox</text>
+
+<rect x="240" y="235" width="410" height="45" rx="4" fill="#090d16" stroke="#475569"/>
+<text x="445" y="252" fill="#34d399" font-weight="700">Order Fulfillment Invariant: &lt;= 1 Fulfillment Per Order</text>
+<text x="445" y="266" fill="#a9b7cb">Network retry or replayed webhook safely resolves to the identical confirmed state</text>
+</g>
+
+<!-- Status Code Taxonomy & Response -->
+<g fill="#121526" stroke-width="2">
+<rect x="690" y="30" width="230" height="265" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="805" y="52">STATUS CODE TAXONOMY</text>
+<text x="805" y="68" fill="#38bdf8" font-size="9" font-weight="400">RFC 9110 Semantics</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<!-- 2xx Success -->
+<rect x="705" y="85" width="200" height="52" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="805" y="101" fill="#34d399" font-weight="700">2xx Success Outcomes</text>
+<text x="805" y="115" fill="#fce7f3">201 Created (New order placed)</text>
+<text x="805" y="127" fill="#a9b7cb">200 OK (Idempotent re-submission)</text>
+
+<!-- 4xx Client Errors -->
+<rect x="705" y="145" width="200" height="52" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="805" y="161" fill="#eab308" font-weight="700">4xx Client Errors</text>
+<text x="805" y="175" fill="#fce7f3">400 Bad Request (Malformed JSON)</text>
+<text x="805" y="187" fill="#a9b7cb">422 Unprocessable (Schema fail)</text>
+
+<!-- 5xx Server Errors -->
+<rect x="705" y="205" width="200" height="52" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="805" y="221" fill="#f43f5e" font-weight="700">5xx Server / Gateway Errors</text>
+<text x="805" y="235" fill="#f43f5e">502 Bad Gateway (Upstream HTML)</text>
+<text x="805" y="247" fill="#a9b7cb">504 Gateway Timeout (Latency)</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M185 140 L240 115" stroke="#38bdf8" marker-end="url(#day14-rest-arrow)"/>
+<path d="M650 115 L705 105" stroke="#34d399" marker-end="url(#day14-ok-arrow)"/>
+<path d="M435 115 L705 165" stroke="#eab308" stroke-dasharray="4 3" marker-end="url(#day14-err-arrow)"/>
+</g>
+</svg>
+<figcaption>Figure 14.2: RESTful HTTP and JSON communication architecture showing resource routing, payload schema validation, error status code boundaries, and header-based idempotency deduplication.</figcaption>
+</figure>
+        <div class="further">
+          <h4>Further study</h4>
+          <ul>
+            <li><a href="https://docs.cloud.google.com/apis/design/standard_methods">Google Cloud API Design Guide: Standard methods</a> — resource-oriented design principles, HTTP verb mappings, and standard request/response conventions.</li>
+            <li><a href="https://www.json.org/json-en.html">JSON Data Interchange Standard (ECMA-404)</a> — universal syntax definition for JSON strings, numbers, objects, arrays, and escape sequences.</li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="part" id="part-3" aria-labelledby="part-3-title">
+      <h2 id="part-3-title">Part 3 · Real-world problems and solutions</h2>
+      <article class="topic-card" id="topic-01-problem">
+        <h3>Incident exercise · Unreviewed commit to main breaks checkout schema</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> In an urgent effort to support an upcoming regional marketing campaign, a developer modified Brightloaf's Order API JSON payload model. The developer renamed the core field <code>order_id</code> to <code>id</code> and added a mandatory <code>postal_code_ext</code> string field to the JSON schema. Believing the change was minor and under pressure to meet a deadline, the developer bypassed local feature branching and executed a direct a direct push to <code>origin main</code> to the team's central repository. The repository had no branch protection rules enabled on <code>main</code>. Cloud Build immediately detected the new commit on the trunk branch, triggered an automated container build, and deployed the new container revision to the production Cloud Run Order API service. Within 30 seconds, 100% of production checkout transactions initiated by mobile app shoppers began failing with HTTP 400 Bad Request errors. Because the mobile client continued transmitting the established payload containing <code>order_id</code>, the newly deployed service rejected the requests for missing the required <code>id</code> field. Customer shopping carts were abandoned en masse, and order intake completely halted during the evening peak.</p>
+        <p><strong>Constraints and operational invariants:</strong> Checkout operations must be restored immediately; production deployment pipelines must guarantee that breaking API schema changes cannot be merged without verification; and all recovery actions must strictly preserve Brightloaf's fundamental duplicate fulfillment invariant: a retried order submission or replayed event must never cause duplicate physical warehouse fulfillment (&lt;= 1 fulfillment per unique order ID).</p>
+        <p><strong>Evidence and root cause:</strong> Review of repository Git history using the commit log on <code>main</code> identified an unreviewed commit (<code>commit 4f9b81a</code>) authored directly on <code>main</code> without a pull request reference. Cloud Run service revision logs confirmed that the deployment coincided with the commit timestamp, and container logs recorded thousands of schema validation errors: <code>Missing required field: id</code>. The root cause was operational failure to enforce branch protection and automated pull request verification: allowing direct write access to <code>main</code> bypassed peer code reviews and automated backward-compatibility tests, permitting a breaking API contract regression to reach production unchallenged.</p>
+        <p><strong>Diagnostic sequence:</strong></p>
+        <ol>
+          <li>Inspect Cloud Run traffic metrics and error logs to identify the exact timestamp and revision identifier associated with the surge in HTTP 400 responses.</li>
+          <li>Query the repository Git log on <code>main</code> to isolate recent commits deployed around the incident onset.</li>
+          <li>Execute the commit diff between <code>HEAD~1</code> and <code>HEAD</code> to examine the specific code modifications introduced in the culprit commit.</li>
+          <li>Review repository branch configuration settings to verify whether branch protection rules and required status checks are active on <code>main</code>.</li>
+          <li>Inspect the Order API schema definition and test fixtures to verify whether backward-compatibility aliases exist for legacy client payloads.</li>
+        </ol>
+        <p><strong>Defensible solution:</strong> Execute a two-phase remediation: First, immediate operational recovery: in Cloud Run, execute an instant traffic rollback to the previous healthy container revision, restoring checkout intake in under 30 seconds. In Git, create a clean rollback commit using the <code>revert</code> command targeting commit <code>4f9b81a</code> and push it to <code>main</code> to align repository state with running production. Second, architectural prevention: enable GitHub/GitLab Branch Protection on <code>main</code>, requiring that: (a) all code changes originate from feature branches; (b) pull requests require at least two approving reviews from designated Principal Architects; and (c) Cloud Build automated CI checks—including unit tests, linter checks, and an automated JSON schema compatibility test suite—must pass before merging. Ensure all future schema updates provide backward-compatible field aliases (e.g. accepting both <code>order_id</code> and <code>id</code>) until client version deprecation cycles complete.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day14-git-incident-title day14-git-incident-desc" viewBox="0 0 940 320">
+<title id="day14-git-incident-title">Direct Commit to Main Failure and Protected Branch PR Remediation</title>
+<desc id="day14-git-incident-desc">Incident diagram showing an unreviewed direct commit to main breaking production JSON checkout validation, and the corrected protected branch workflow with automated CI schema validation.</desc>
+<defs>
+<marker id="day14-ok-arrow-1" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day14-fail-arrow-1" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="160" height="90" rx="8" stroke="#38bdf8"/>
+<rect x="210" y="25" width="470" height="115" rx="8" stroke="#f43f5e" stroke-dasharray="7 5"/>
+<rect x="210" y="175" width="470" height="115" rx="8" stroke="#34d399"/>
+<rect x="710" y="110" width="210" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="600" text-anchor="middle">
+<text x="100" y="140">Developer</text>
+<text x="100" y="156" fill="#a9b7cb">Schema Update</text>
+<text x="100" y="172" fill="#38bdf8">Order JSON Model</text>
+
+<!-- Failed Path -->
+<text x="445" y="44" fill="#f43f5e" font-weight="700">[FAILED PATH: Direct Push to Main Without Branch Protection]</text>
+<text x="445" y="60" fill="#fce7f3">Developer pushes commit renaming order_id to id directly to main</text>
+<text x="445" y="76" fill="#f43f5e">EXACT FAILURE POINT: Automated Cloud Build deploys breaking schema</text>
+<text x="445" y="92" fill="#f43f5e">Root Cause: No peer review, no branch protection, no CI schema gate</text>
+<text x="445" y="108" fill="#f43f5e">Frontend clients send legacy JSON → API rejects with HTTP 400 Bad Request</text>
+<text x="445" y="124" fill="#a9b7cb">100% checkout failure; revenue lost until emergency manual rollback</text>
+
+<!-- Corrected Path -->
+<text x="445" y="194" fill="#34d399" font-weight="700">[CORRECTED PATH: Branch Protection, Pull Request &amp; Automated CI Gate]</text>
+<text x="445" y="210" fill="#fce7f3">Developer commits to feature/order-schema; opens Pull Request</text>
+<text x="445" y="226" fill="#34d399">CORRECTED CONTROL: CI schema compatibility test detects breaking field rename</text>
+<text x="445" y="242" fill="#34d399">Peer reviewer requires backward-compatible field alias before approval</text>
+<text x="445" y="258" fill="#34d399">Branch protection enforces 2 approvals + green CI before squash merge</text>
+<text x="445" y="274" fill="#a9b7cb">Order Invariant: Uninterrupted order acceptance with &lt;= 1 fulfillment</text>
+
+<!-- Verification Boundary -->
+<text x="815" y="136">VERIFICATION BOUNDARY</text>
+<text x="815" y="154" fill="#34d399" font-weight="700">Zero Schema Break</text>
+<text x="815" y="170" fill="#34d399">HTTP 200 / 201 OK</text>
+<text x="815" y="186" fill="#a9b7cb">100% Checkout Uptime</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 135 L210 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day14-fail-arrow-1)"/>
+<path d="M680 85 L710 135" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day14-fail-arrow-1)"/>
+<path d="M180 175 L210 230" stroke="#34d399" marker-end="url(#day14-ok-arrow-1)"/>
+<path d="M680 230 L710 175" stroke="#34d399" marker-end="url(#day14-ok-arrow-1)"/>
+</g>
+<text x="460" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed red line (--&gt;) = Unprotected direct commit failure · Solid green line (—&gt;) = Protected PR review gate</text>
+</svg>
+<figcaption>Figure 14.3: Supplied facts: An unreviewed commit pushed directly to main broke production JSON order validation and halted checkout. Architectural inference: Unprotected trunk branches permit untested regressions to trigger continuous deployment pipelines automatically. Expected post-fix behavior: Branch protection requiring automated CI schema validation and peer reviews prevents breaking changes from reaching production.</figcaption>
+</figure>
+        <p><strong>Verification and residual risk:</strong> Submit synthetic checkout requests using both legacy and updated JSON schemas; verify that both return HTTP 201 Created; attempt a direct a direct push to <code>main</code> from a developer workstation and verify that the remote Git server rejects the push with an error enforcing branch protection; verify that retried orders hit the database primary key and never generate duplicate warehouse fulfillment. Residual risk: While branch protection guards against unauthorized trunk pushes, emergency "hotfixes" during live production outages can tempt engineers to request temporary bypasses; emergency break-glass procedures must require post-incident auditing and mandatory peer reconciliation within 24 hours.</p>
+      </article>
+
+      <article class="topic-card" id="topic-02-problem">
+        <h3>Incident exercise · Unhandled JSON error schema causes duplicate billing</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf's Order API integrates with an external third-party payment gateway to authorize customer credit card charges during checkout. Under standard operating conditions, the gateway returns a <code>200 OK</code> JSON payload containing <code>{"status": "APPROVED", "transaction_id": "TX-9901"}</code> or a <code>400 Bad Request</code> JSON payload containing <code>{"status": "DECLINED", "error_code": 104}</code>. However, during a high-concurrency flash sale, the payment gateway's front-facing reverse proxy became saturated. When the Order API dispatched an authorization request, the gateway's proxy timed out and returned an HTTP 502 Bad Gateway response with an HTML body (<code>&lt;html&gt;&lt;head&gt;&lt;title&gt;502 Bad Gateway&lt;/title&gt;...</code>) and a <code>Content-Type: text/html</code> header. The Order API's payment integration client, having assumed all responses would be JSON, immediately executed <code>json.loads(response.text)</code> without checking status codes or content types. The Python runtime raised an unhandled <code>json.decoder.JSONDecodeError</code> exception, terminating the request thread and causing the Order API to emit an HTTP 500 Internal Server Error to the shopper's browser. Believing the order had failed, the shopper clicked the checkout button a second time. Because the Order API did not supply a client-generated <code>Idempotency-Key</code> header to the gateway, and because the first payment attempt had actually succeeded in the gateway's backend before the proxy timeout, the gateway processed the second request as a completely new charge. The customer's credit card was billed twice for a single order of bread, while the Order API only recorded one confirmation in its database.</p>
+        <p><strong>Constraints and operational invariants:</strong> Third-party network responses cannot be assumed to be healthy or valid JSON; network timeouts and upstream 5xx errors are routine operational occurrences; under all conditions of network retry, proxy timeout, or gateway malfunction, Brightloaf must strictly preserve the duplicate fulfillment invariant: a customer purchase must never result in duplicate physical shipments or unauthorized duplicate financial billing (&lt;= 1 fulfillment per unique order ID).</p>
+        <p><strong>Evidence and root cause:</strong> Application error logs in Cloud Logging revealed unhandled <code>JSONDecodeError: Expecting value: line 1 column 1 (char 0)</code> exceptions coinciding with outgoing payment calls. Payment gateway settlement statements showed duplicate transaction authorizations for the same order UUID within 45 seconds. The root cause was two-fold: (1) fragile, unvalidated JSON deserialization that blindly attempted to parse non-JSON responses without inspecting HTTP status codes or the <code>Content-Type</code> response header; and (2) absence of header-based idempotency keys on payment authorization calls, converting routine network timeouts and user retries into duplicate financial transactions.</p>
+        <p><strong>Diagnostic sequence:</strong></p>
+        <ol>
+          <li>Query Cloud Logging for <code>severity &gt;= ERROR</code> entries containing <code>JSONDecodeError</code> across all Order API microservice instances.</li>
+          <li>Inspect HTTP response headers returned by the upstream payment gateway during the error period, specifically examining <code>Content-Type</code> and status codes.</li>
+          <li>Correlate application exception timestamps with payment gateway merchant transaction logs to identify unacknowledged yet captured payments.</li>
+          <li>Audit the payment client source code to verify whether HTTP response status codes are checked prior to payload deserialization.</li>
+          <li>Inspect payment API request payloads to determine whether unique idempotency tokens (such as <code>Idempotency-Key</code>) are transmitted with outgoing payment authorizations.</li>
+        </ol>
+        <p><strong>Defensible solution:</strong> Implement a robust, defensive REST client protocol: First, update the payment integration client to inspect the HTTP response status code and verify that the <code>Content-Type</code> header contains <code>application/json</code> before attempting deserialization; wrap all parsing logic in defensive exception handling that captures <code>json.JSONDecodeError</code> and converts upstream 502/504 errors into a standardized, retryable internal error object. Second, implement strict idempotency handling: generate a unique client idempotency token (e.g. <code>Idempotency-Key: BL-14-ORD-&lt;uuid&gt;</code>) derived from the order session and transmit it as an HTTP header on every payment authorization call, ensuring the gateway's deduplication engine treats retried calls as idempotent queries. Third, reconcile unacknowledged payments via an asynchronous worker that polls the gateway transaction status before allowing secondary checkout attempts.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day14-rest-incident-title day14-rest-incident-desc" viewBox="0 0 940 320">
+<title id="day14-rest-incident-title">Malformed JSON Error Handling Failure and Idempotent REST Gateway Remediation</title>
+<desc id="day14-rest-incident-desc">Incident diagram showing an upstream HTML 502 response crashing a fragile JSON parser and leading to customer double-billing on retry, contrasted with the corrected defensive REST client and idempotency control.</desc>
+<defs>
+<marker id="day14-ok-arrow-2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day14-fail-arrow-2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="160" height="90" rx="8" stroke="#38bdf8"/>
+<rect x="210" y="25" width="470" height="115" rx="8" stroke="#f43f5e" stroke-dasharray="7 5"/>
+<rect x="210" y="175" width="470" height="115" rx="8" stroke="#34d399"/>
+<rect x="710" y="110" width="210" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="600" text-anchor="middle">
+<text x="100" y="136">Payment Gateway</text>
+<text x="100" y="152" fill="#eab308">Upstream 502 Timeout</text>
+<text x="100" y="168" fill="#a9b7cb">Returns text/html</text>
+<text x="100" y="184" fill="#38bdf8">Network Surge</text>
+
+<!-- Failed Path -->
+<text x="445" y="44" fill="#f43f5e" font-weight="700">[FAILED PATH: Blind JSON Parsing &amp; Non-Idempotent Retries]</text>
+<text x="445" y="60" fill="#fce7f3">Order API invokes json.loads() without verifying Content-Type header</text>
+<text x="445" y="76" fill="#f43f5e">EXACT FAILURE POINT: Unhandled JSONDecodeError crashes worker process</text>
+<text x="445" y="92" fill="#f43f5e">Root Cause: Shopper receives 500 error; retries checkout without Idempotency-Key</text>
+<text x="445" y="108" fill="#f43f5e">Upstream payment had already succeeded; customer billed twice for one order!</text>
+<text x="445" y="124" fill="#a9b7cb">Duplicate charge dispute; support queues overwhelmed with refund claims</text>
+
+<!-- Corrected Path -->
+<text x="445" y="194" fill="#34d399" font-weight="700">[CORRECTED PATH: Defensive REST Client &amp; Idempotency Header]</text>
+<text x="445" y="210" fill="#fce7f3">Client inspects HTTP status and Content-Type before parsing JSON payload</text>
+<text x="445" y="226" fill="#34d399">CORRECTED CONTROL: Graceful fallback handles non-JSON 502; emits alert</text>
+<text x="445" y="242" fill="#34d399">All payment requests supply client-generated Idempotency-Key header</text>
+<text x="445" y="258" fill="#34d399">Payment gateway deduplicates retried request; acknowledges original charge</text>
+<text x="445" y="274" fill="#a9b7cb">Order Invariant: Exactly 1 payment captured &amp; &lt;= 1 physical fulfillment</text>
+
+<!-- Verification Boundary -->
+<text x="815" y="136">VERIFICATION BOUNDARY</text>
+<text x="815" y="154" fill="#34d399" font-weight="700">Zero Double Billing</text>
+<text x="815" y="170" fill="#34d399">100% Parser Resilience</text>
+<text x="815" y="186" fill="#a9b7cb">Fulfillments: 1 per Order</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 135 L210 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day14-fail-arrow-2)"/>
+<path d="M680 85 L710 135" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day14-fail-arrow-2)"/>
+<path d="M180 175 L210 230" stroke="#34d399" marker-end="url(#day14-ok-arrow-2)"/>
+<path d="M680 230 L710 175" stroke="#34d399" marker-end="url(#day14-ok-arrow-2)"/>
+</g>
+<text x="460" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed red line (--&gt;) = Unhandled JSON crash &amp; double billing · Solid green line (—&gt;) = Defensive client &amp; idempotency key</text>
+</svg>
+<figcaption>Figure 14.4: Supplied facts: An upstream non-JSON 502 response crashed an API parser, causing an unacknowledged payment retry and duplicate customer billing. Architectural inference: Blindly deserializing HTTP payloads without verifying Content-Type and HTTP status creates brittle failure modes under partial network outages. Expected post-fix behavior: Defensive content-type checking combined with header-based idempotency keys prevents parser crashes and eliminates duplicate billing.</figcaption>
+</figure>
+        <p><strong>Verification and residual risk:</strong> Execute synthetic API integration tests supplying: (a) a valid 200 JSON payload, (b) an upstream HTML 502 error page, and (c) a malformed JSON payload; verify that the client parses valid responses cleanly and handles HTML/malformed payloads gracefully without crashing; verify that submitting identical requests with the same <code>Idempotency-Key</code> returns the original authorization without generating a second charge; verify that duplicate fulfillment events are suppressed. Residual risk: Upstream third-party payment gateways maintain their own internal idempotency cache TTL (typically 24 hours); if a client retry occurs after the gateway cache expires, the gateway may fail to detect the duplicate, requiring secondary reconciliation via daily bank settlement batches.</p>
+      </article>
+    </section>
+
+    <section class="part" id="part-4" aria-labelledby="part-4-title">
+      <h2 id="part-4-title">Part 4 · Step-by-step labs</h2>
+      <p><strong>Lab mode:</strong> Local Linux terminal with Git and Python 3. No Google Cloud credentials, cloud sandbox project, or external network connectivity are required for this foundational exercise.</p>
+      
+      <article class="topic-card lab" id="topic-01-lab">
+        <h3>Lab 14.1 · Git branch workflows, atomic commits, and merge history</h3>
+        <p><strong>Goal and expected result.</strong> Initialize a local Git repository, configure author metadata, commit a baseline Order API JSON model on <code>main</code>, branch to implement a schema enhancement, review the working diff, and execute a non-fast-forward merge to create an audited history graph. The final log graph should clearly display the divergent branch and clean merge commit.</p>
+        <p><strong>Mode.</strong> Local terminal with Git. <strong>Preflight checklist.</strong> Confirm Git is installed and check its version. Initialize an isolated temporary workspace directory.</p>
+        
+        <div class="step">
+          <h4>1. Preflight environment and create isolated workspace</h4>
+          <pre><code class="language-bash">git --version
+python3 --version
+LAB_DIR="$(mktemp -d -t gcp-day14.XXXXXX)"
+export LAB_DIR
+cd "$LAB_DIR"
+printf 'Isolated workspace created at: %s
+' "$LAB_DIR"</code></pre>
+          <p><strong>Expected output.</strong> Git and Python 3 versions are displayed, and a temporary directory path (e.g. <code>/tmp/gcp-day14.XXXXXX</code>) is confirmed.</p>
+        </div>
+
+        <div class="step">
+          <h4>2. Initialize Git repository and commit baseline schema on main</h4>
+          <pre><code class="language-bash">git init -b main
+git config user.name "Learner Architect"
+git config user.email "learner@brightloaf.example.com"
+
+cat &gt; order_request.json &lt;&lt;'EOF'
+{
+  "order_id": "BL-14-1001",
+  "customer_id": "CUST-8802",
+  "item": "Sourdough Boule",
+  "quantity": 2,
+  "unit_price": 7.50
+}
+EOF
+
+cat &gt; order_response.json &lt;&lt;'EOF'
+{
+  "order_id": "BL-14-1001",
+  "status": "CONFIRMED",
+  "total": 15.00,
+  "fulfillment_status": "QUEUED"
+}
+EOF
+
+git add order_request.json order_response.json
+git commit -m "feat(api): baseline order request and response JSON schemas"
+git status</code></pre>
+          <p><strong>Expected output.</strong> Git reports a clean working tree on branch <code>main</code> with root commit created containing two files.</p>
+        </div>
+
+        <div class="step">
+          <h4>3. Create feature branch, apply schema enhancement, and inspect diff</h4>
+          <pre><code class="language-bash">git checkout -b feature/order-tax
+
+cat &gt; order_response.json &lt;&lt;'EOF'
+{
+  "order_id": "BL-14-1001",
+  "status": "CONFIRMED",
+  "subtotal": 15.00,
+  "tax": 1.20,
+  "total": 16.20,
+  "fulfillment_status": "QUEUED"
+}
+EOF
+
+git diff order_response.json
+git commit -am "feat(api): add subtotal and tax fields to order response"</code></pre>
+          <p><strong>Expected output.</strong> The <code>diff</code> output displays added lines (<code>+  "subtotal": 15.00,</code> and <code>+  "tax": 1.20,</code>) and modified total. The commit succeeds on branch <code>feature/order-tax</code>.</p>
+        </div>
+
+        <div class="step">
+          <h4>4. Merge feature branch into main and inspect Git DAG history</h4>
+          <pre><code class="language-bash">git checkout main
+git merge --no-ff -m "merge: integrate feature/order-tax branch" feature/order-tax
+git log --graph --oneline --decorate -n 5</code></pre>
+          <p><strong>Expected output.</strong> The terminal displays an ASCII commit graph showing the divergence and merge: <code>*   [hash] (HEAD -&gt; main) merge: integrate feature/order-tax branch</code> with branch pointer references.</p>
+        </div>
+
+        <div class="callout success">
+          <strong>Verification and acceptance</strong>
+          <p>Confirm that branch <code>main</code> contains the merge commit, both JSON schema files are updated with tax fields, and the <code>status</code> command confirms a clean working tree.</p>
+        </div>
+        <div class="callout caution">
+          <strong>Troubleshooting</strong>
+          <p>If switching to branch <code>main</code> fails with <code>pathspec 'main' did not match</code>, verify that the repository was initialized with <code>-b main</code>; check the current branch using the <code>branch</code> inspection command.</p>
+        </div>
+        <p><strong>Cleanup.</strong> Keep the directory active for Lab 14.2; all resources reside within <code>$LAB_DIR</code>.</p>
+      </article>
+
+      <article class="topic-card lab" id="topic-02-lab">
+        <h3>Lab 14.2 · REST API contracts, JSON parsing, and defensive error handling</h3>
+        <p><strong>Goal and expected result.</strong> Implement a robust Python REST client function that validates response headers, parses valid JSON payloads, catches malformed syntax, and handles upstream non-JSON 502 responses gracefully. Verify that duplicate submissions preserve the $\le 1$ fulfillment invariant.</p>
+        <p><strong>Mode.</strong> Local terminal with Python 3 standard library (<code>json</code> module).</p>
+
+        <div class="step">
+          <h4>1. Author the defensive REST API parsing engine</h4>
+          <pre><code class="language-bash">cat &gt; "$LAB_DIR/day14_api.py" &lt;&lt;'PY'
+import json
+import sys
+
+def parse_api_response(raw_payload, content_type="application/json"):
+    """
+    Defensively parses API responses, checking Content-Type header
+    before attempting JSON deserialization.
+    """
+    if "application/json" not in content_type:
+        return {
+            "status": "ERROR",
+            "http_code": 502,
+            "error_type": "InvalidContentType",
+            "message": f"Expected application/json but received: {content_type}",
+            "snippet": raw_payload[:60]
+        }
+    try:
+        data = json.loads(raw_payload)
+        return {
+            "status": "SUCCESS",
+            "http_code": 200,
+            "data": data
+        }
+    except json.JSONDecodeError as err:
+        return {
+            "status": "ERROR",
+            "http_code": 400,
+            "error_type": "MalformedJSON",
+            "message": f"Syntax error at line {err.lineno}, col {err.colno}: {err.msg}"
+        }
+
+# Simulated test fixtures
+TEST_1_VALID = '{"order_id": "BL-14-1001", "status": "CONFIRMED", "total": 16.20}'
+TEST_2_MALFORMED = '{"order_id": "BL-14-1001", status: UNQUOTED_VAL}'
+TEST_3_GATEWAY_HTML = '&lt;html&gt;&lt;head&gt;&lt;title&gt;502 Bad Gateway&lt;/title&gt;&lt;/head&gt;&lt;body&gt;Gateway Timeout&lt;/body&gt;&lt;/html&gt;'
+
+print("=== Running REST API Defensive Parser Tests ===")
+r1 = parse_api_response(TEST_1_VALID, "application/json")
+print(f"Test 1 (Valid 200):     Status={r1['status']}, Code={r1['http_code']}, OrderID={r1['data']['order_id']}")
+
+r2 = parse_api_response(TEST_2_MALFORMED, "application/json")
+print(f"Test 2 (Malformed 400): Status={r2['status']}, Code={r2['http_code']}, Error={r2['error_type']}")
+
+r3 = parse_api_response(TEST_3_GATEWAY_HTML, "text/html")
+print(f"Test 3 (Non-JSON 502):  Status={r3['status']}, Code={r3['http_code']}, Error={r3['error_type']}")
+
+# Verify Invariant: Idempotent duplicate check
+order_cache = set()
+def process_order(order_id, idempotency_key):
+    if idempotency_key in order_cache:
+        return {"order_id": order_id, "new_fulfillment": False, "status": "ALREADY_PROCESSED"}
+    order_cache.add(idempotency_key)
+    return {"order_id": order_id, "new_fulfillment": True, "status": "FULFILLMENT_DISPATCHED"}
+
+p1 = process_order("BL-14-1001", "key-7b8f")
+p2 = process_order("BL-14-1001", "key-7b8f") # Duplicate retry
+print(f"\n=== Idempotency Invariant Check ===")
+print(f"First Submission:  new_fulfillment={p1['new_fulfillment']} ({p1['status']})")
+print(f"Second Submission: new_fulfillment={p2['new_fulfillment']} ({p2['status']})")
+assert p1["new_fulfillment"] is True
+assert p2["new_fulfillment"] is False
+print("Fulfillment invariant strictly verified: &lt;= 1 fulfillment per order key.")
+PY
+python3 "$LAB_DIR/day14_api.py"</code></pre>
+          <p><strong>Expected terminal output.</strong></p>
+          <pre><code class="language-text">=== Running REST API Defensive Parser Tests ===
+Test 1 (Valid 200):     Status=SUCCESS, Code=200, OrderID=BL-14-1001
+Test 2 (Malformed 400): Status=ERROR, Code=400, Error=MalformedJSON
+Test 3 (Non-JSON 502):  Status=ERROR, Code=502, Error=InvalidContentType
+
+=== Idempotency Invariant Check ===
+First Submission:  new_fulfillment=True (FULFILLMENT_DISPATCHED)
+Second Submission: new_fulfillment=False (ALREADY_PROCESSED)
+Fulfillment invariant strictly verified: &lt;= 1 fulfillment per order key.</code></pre>
+        </div>
+
+        <div class="step">
+          <h4>2. Save daily evidence artifact and perform cleanup</h4>
+          <pre><code class="language-bash">cat &gt; "$LAB_DIR/day-014-evidence.md" &lt;&lt;'EOF'
+# Brightloaf Day 14 Evidence — Git, APIs and JSON
+
+## Repository History
+- Initialized local repository with protected trunk `main`.
+- Feature branch `feature/order-tax` created and merged via non-fast-forward merge.
+- Git graph shows clean commit ancestry and reproducible schema versioning.
+
+## REST API & JSON Contracts
+- Standardized on REST resource naming: POST /v1/orders.
+- Implemented defensive JSON parsing validating Content-Type header before deserialization.
+- Gracefully handled HTTP 400 (malformed syntax) and HTTP 502 (upstream HTML gateway error).
+- Idempotency-Key header verified to guarantee <= 1 physical fulfillment per unique purchase.
+EOF
+
+cat "$LAB_DIR/day-014-evidence.md"
+
+# Cleanup temporary lab directory
+rm -rf "$LAB_DIR"
+test ! -d "$LAB_DIR"
+printf 'Temporary workspace removed. Exit evidence recorded.
+'</code></pre>
+          <p><strong>Expected output.</strong> The evidence artifact prints to stdout, followed by confirmation that the temporary directory was cleanly deleted.</p>
+        </div>
+
+        <div class="callout success">
+          <strong>Verification and acceptance</strong>
+          <p>Confirm that all three parser tests exit with expected status codes (200, 400, 502) and that the idempotency check asserts <code>new_fulfillment == False</code> on re-submission. Confirm that cleanup completes without orphaned files.</p>
+        </div>
+        <div class="callout caution">
+          <strong>Troubleshooting</strong>
+          <p>If Python reports an <code>AssertionError</code>, verify that <code>order_cache</code> correctly tracks the <code>idempotency_key</code> string. If Git commands fail, verify that setting the Git author name and <code>email</code> were set locally in Step 1.</p>
+        </div>
+        <p><strong>Cleanup.</strong> All temporary directories are removed in reverse dependency order in Step 2.</p>
+      </article>
+    </section>
+
+    <section class="completion" aria-labelledby="exit-title">
+      <h2 id="exit-title">Daily evidence</h2>
+      <p>Submit the recorded Git log graph, the annotated JSON schema diff, and the test execution log demonstrating defensive JSON error handling and idempotency suppression. Confirm that the duplicate fulfillment invariant was strictly maintained.</p>
+    </section>
+
+    <nav class="pager" aria-label="Day pagination">
+      <a href="day-013.html">← Day 13<small>State, availability and recovery vocabulary</small></a>
+      <a href="../index.html">All 180 days<small>Roadmap index</small></a>
+      <a href="day-015.html">Day 15 →<small>Small application and architecture styles</small></a>
+    </nav>
+  </main>
+  <footer class="site-footer">GCP Architect · 180-day independent study · Day 14</footer>
+</body>
+</html>

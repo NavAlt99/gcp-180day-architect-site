@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Day 1: Local workspace and learning baseline · GCP 180 Days Architect</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <script defer src="../assets/site.js"></script>
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel: #121526;
+      --panel-hover: #191c32;
+      --line: #3b1d38;
+      --text: #fce7f3;
+      --muted: #a9b7cb;
+      --rose: #f43f5e;
+      --cyan: #38bdf8;
+      --orange: #f97316;
+      --good: #34d399;
+      --width: 1040px;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      margin: 0;
+      padding: 0;
+      line-height: 1.65;
+    }
+    .container {
+      max-width: var(--width);
+      margin: 0 auto;
+      padding: 24px 20px 80px;
+    }
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner {
+      max-width: var(--width);
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--rose);
+      text-decoration: none;
+      margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand span { color: var(--text); }
+    .nav-inner a {
+      color: var(--cyan);
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .nav-inner a:hover { color: var(--rose); }
+    .jump-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    #day-jump {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      max-width: 240px;
+    }
+    #theme-toggle {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    #theme-toggle:hover { border-color: var(--rose); }
+    .crumb {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 16px 0 24px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .crumb a { color: var(--cyan); text-decoration: none; }
+    .crumb a:hover { text-decoration: underline; }
+    .hero {
+      background: radial-gradient(circle at 90% 10%, rgba(244, 63, 94, 0.12), transparent 55%), var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 32px;
+      margin-bottom: 28px;
+    }
+    .pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      padding: 3px 10px;
+      color: var(--orange);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      background: rgba(249, 115, 22, 0.08);
+      font-weight: 700;
+    }
+    .pill.accent {
+      color: var(--rose);
+      border-color: rgba(244, 63, 94, 0.4);
+      background: rgba(244, 63, 94, 0.08);
+    }
+    h1 {
+      font-size: clamp(26px, 3.5vw, 38px);
+      margin: 0 0 16px;
+      line-height: 1.25;
+      color: var(--text);
+    }
+    .lead {
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .callout {
+      border-left: 3px solid var(--cyan);
+      padding: 14px 18px;
+      background: rgba(56, 189, 248, 0.06);
+      margin: 18px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .callout strong {
+      display: block;
+      color: var(--cyan);
+      margin-bottom: 4px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .callout.success {
+      border-color: var(--good);
+      background: rgba(52, 211, 153, 0.07);
+    }
+    .callout.success strong { color: var(--good); }
+    .callout.caution {
+      border-color: var(--orange);
+      background: rgba(249, 115, 22, 0.08);
+    }
+    .callout.caution strong { color: var(--orange); }
+    .toc {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 28px 0;
+      display: grid;
+      gap: 10px;
+    }
+    .toc strong { color: var(--rose); font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .toc-topic {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+      font-size: 13px;
+    }
+    .toc-topic span {
+      display: block;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .toc-topic a {
+      color: var(--cyan);
+      text-decoration: none;
+      margin-right: 8px;
+    }
+    .toc-topic a:hover { color: var(--rose); text-decoration: underline; }
+    .part {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 32px;
+      margin: 36px 0;
+    }
+    .part > h2 {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 16px;
+      color: var(--rose);
+      margin: 0 0 24px;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+    }
+    .topic-card {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 24px 0;
+      scroll-margin-top: 90px;
+    }
+    .topic-card h3 {
+      color: var(--cyan);
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+    .topic-card p { margin: 12px 0; }
+    .topic-card ul, .topic-card ol { padding-left: 24px; margin: 12px 0; }
+    .topic-card li { margin: 8px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 14px;
+      text-align: left;
+    }
+    th {
+      background: var(--panel);
+      color: var(--rose);
+      font-weight: 700;
+    }
+    tr:nth-child(even) td {
+      background: rgba(18, 21, 38, 0.4);
+    }
+    .diagram-figure {
+      margin: 24px 0;
+      padding: 18px;
+      background: #060911;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      text-align: center;
+      overflow-x: auto;
+    }
+    .diagram-figure svg {
+      max-width: 100%;
+      min-width: 700px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .diagram-figure figcaption {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+    .further {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin-top: 24px;
+    }
+    .further h4 {
+      margin: 0 0 10px;
+      color: var(--rose);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .further ul { margin: 0; padding-left: 20px; }
+    .further li { margin: 8px 0; font-size: 13px; }
+    .further .meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+    .code-block {
+      position: relative;
+      margin: 18px 0;
+    }
+    pre {
+      background: #04070f;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    code, .inline-command {
+      font-family: inherit;
+      color: var(--text);
+    }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .check input {
+      accent-color: var(--rose);
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .pager {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 36px 0;
+    }
+    .pager a {
+      display: block;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 18px 20px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+    }
+    .pager a:hover {
+      border-color: var(--rose);
+      background: var(--panel-hover);
+    }
+    .pager a.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .pager small {
+      display: block;
+      color: var(--muted);
+      font-weight: 400;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .shortcut {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 20px 0;
+    }
+    .site-footer {
+      border-top: 1px solid var(--line);
+      padding: 30px 20px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      max-width: var(--width);
+      margin: 0 auto;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 16px 12px 60px; }
+      .hero, .part { padding: 20px 16px; }
+      .crumb { display: block; line-height: 1.8; }
+      .topic-card table { display: block; overflow-x: auto; }
+      .pager { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="site-nav">
+    <nav class="nav-inner" aria-label="Site navigation">
+      <a class="brand" href="../index.html">◆ <span>GCP · 180 Days</span></a>
+      <a href="../index.html">Day Index</a>
+      <a href="../glossary.html">Glossary</a>
+      <a href="../sources.html">Sources</a>
+      <a href="../artifacts.html">Artifacts</a>
+      <a href="day-002.html" aria-label="Next day">Day 2 →</a>
+
+      <label class="jump-label" for="day-jump">Jump to day</label>
+      <select aria-label="Jump to day" id="day-jump"><option value="">Choose a day…</option><optgroup label="Foundations"><option selected="" value="day-001.html">Day 1: Local workspace and learning baseline</option><option value="day-002.html">Day 2: IP addressing and packet paths</option><option value="day-003.html">Day 3: DNS, sockets and transport</option><option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option><option value="day-005.html">Day 5: VPN, load balancers and firewalls</option><option value="day-006.html">Day 6: Shell, processes and services</option><option value="day-007.html">Day 7: SSH, scripts and process inspection</option><option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option><option value="day-009.html">Day 9: VM and container isolation</option><option value="day-010.html">Day 10: Images, filesystems and orchestration</option><option value="day-011.html">Day 11: Cloud service models and responsibility</option><option value="day-012.html">Day 12: Regions, scaling and economics</option><option value="day-013.html">Day 13: State, availability and recovery vocabulary</option><option value="day-014.html">Day 14: Git, APIs and JSON</option><option value="day-015.html">Day 15: Small application and architecture styles</option><option value="day-016.html">Day 16: SQL foundations and business outcomes</option><option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option></optgroup><optgroup label="Cloud environment and identity"><option value="day-018.html">Day 18: Cloud sandbox and cost controls</option><option value="day-019.html">Day 19: CLI configuration and identity checks</option><option value="day-020.html">Day 20: APIs, client libraries and emulators</option><option value="day-021.html">Day 21: Resource hierarchy and ownership</option><option value="day-022.html">Day 22: Inheritance, labels and tags</option><option value="day-023.html">Day 23: Organization policies and lifecycle</option><option value="day-024.html">Day 24: Principals and workforce identity</option><option value="day-025.html">Day 25: Roles and authorization decisions</option><option value="day-026.html">Day 26: Credentials, tokens and impersonation</option><option value="day-027.html">Day 27: Billing roles and budget ownership</option><option value="day-028.html">Day 28: Cost attribution and notifications</option><option value="day-029.html">Day 29: Cost exports, quota and capacity</option><option value="day-030.html">Day 30: Region and resource-scope decisions</option><option value="day-031.html">Day 31: Network tiers and delivery paths</option><option value="day-032.html">Day 32: Support, inventory and learning tracker</option><option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option><option value="day-034.html">Day 34: First controlled cloud resource operation</option><option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option></optgroup><optgroup label="Core services and integrated practice"><option value="day-036.html">Day 36: VM sizing and image choices</option><option value="day-037.html">Day 37: Disks, metadata and persistence</option><option value="day-038.html">Day 38: Templates, MIGs and scaling</option><option value="day-039.html">Day 39: Autohealing and deployment changes</option><option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option><option value="day-041.html">Day 41: VM operations and resource diagnosis</option><option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option><option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option><option value="day-044.html">Day 44: Service networking and persistent volumes</option><option value="day-045.html">Day 45: Probes, secrets and workload failures</option><option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option><option value="day-047.html">Day 47: Cloud Run and event-driven functions</option><option value="day-048.html">Day 48: Workflows and runtime selection</option><option value="day-049.html">Day 49: VPC address and route design</option><option value="day-050.html">Day 50: Firewall policy and private API access</option><option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option><option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option><option value="day-053.html">Day 53: Load-balancer architecture</option><option value="day-054.html">Day 54: Health checks, certificates and draining</option><option value="day-055.html">Day 55: CDN, WAF and traffic management</option><option value="day-056.html">Day 56: Hybrid topology and failure domains</option><option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option><option value="day-058.html">Day 58: Object storage and local durability</option><option value="day-059.html">Day 59: Transfers, block storage and restore</option><option value="day-060.html">Day 60: File systems and backup design</option><option value="day-061.html">Day 61: Relational databases and transactions</option><option value="day-062.html">Day 62: Distributed and nonrelational database choices</option><option value="day-063.html">Day 63: Caching, CDC and database selection</option><option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option><option value="day-065.html">Day 65: Integrate one order-service path</option><option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option><option value="day-067.html">Day 67: Gate 3 — Operate the core application</option></optgroup><optgroup label="Requirements, migration and architecture"><option value="day-068.html">Day 68: Requirements from observed behavior</option><option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option><option value="day-070.html">Day 70: Well-Architected review lenses</option><option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option><option value="day-072.html">Day 72: Application architecture patterns</option><option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option><option value="day-074.html">Day 74: Regional and tenant boundaries</option><option value="day-075.html">Day 75: Migration assessment and VMware fit</option><option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option><option value="day-077.html">Day 77: Migration waves and acceptance</option><option value="day-078.html">Day 78: Decision matrices grounded in experiments</option><option value="day-079.html">Day 79: ADRs, TCO and risk registers</option><option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option><option value="day-081.html">Day 81: First architecture defense</option><option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option></optgroup><optgroup label="Reliability and security"><option value="day-083.html">Day 83: Availability math and dependency risk</option><option value="day-084.html">Day 84: Failure domains and graceful degradation</option><option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option><option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option><option value="day-087.html">Day 87: Incidents, toil and capacity</option><option value="day-088.html">Day 88: Availability across infrastructure layers</option><option value="day-089.html">Day 89: Messaging, DNS and application health</option><option value="day-090.html">Day 90: Recovery targets and patterns</option><option value="day-091.html">Day 91: Backups and replication correctness</option><option value="day-092.html">Day 92: Failover and failback planning</option><option value="day-093.html">Day 93: Metrics, alerting and burn rates</option><option value="day-094.html">Day 94: Logs, traces and profiling</option><option value="day-095.html">Day 95: Central observability and audit evidence</option><option value="day-096.html">Day 96: Bounded failure experiment design</option><option value="day-097.html">Day 97: Run a recovery and overload experiment</option><option value="day-098.html">Day 98: Restore and failover acceptance</option><option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option><option value="day-100.html">Day 100: Workload federation and short-lived access</option><option value="day-101.html">Day 101: Workforce federation and remote access</option><option value="day-102.html">Day 102: Privileged access and break-glass</option><option value="day-103.html">Day 103: Defense in depth and network policy</option><option value="day-104.html">Day 104: Data perimeters and egress controls</option><option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option><option value="day-106.html">Day 106: Data classification and key lifecycle</option><option value="day-107.html">Day 107: Secrets and de-identification</option><option value="day-108.html">Day 108: Residency, confidentiality and data access</option><option value="day-109.html">Day 109: Compliance evidence and responsibility</option><option value="day-110.html">Day 110: Policy as code and audit retention</option><option value="day-111.html">Day 111: Regulated workload design</option><option value="day-112.html">Day 112: Threat detection and triage</option><option value="day-113.html">Day 113: Incident response and threat modelling</option><option value="day-114.html">Day 114: Artifact integrity and admission</option><option value="day-115.html">Day 115: Container and pipeline hardening</option><option value="day-116.html">Day 116: Integrate private access and key controls</option><option value="day-117.html">Day 117: Security handover and evidence repair</option><option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option></optgroup><optgroup label="Performance, delivery and operations"><option value="day-119.html">Day 119: Cost baseline and commitments</option><option value="day-120.html">Day 120: Storage, network and database costs</option><option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option><option value="day-122.html">Day 122: Unit economics and sensitivity</option><option value="day-123.html">Day 123: Caching correctness under load</option><option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option><option value="day-125.html">Day 125: Profiling and capacity evidence</option><option value="day-126.html">Day 126: Terraform baseline and state boundaries</option><option value="day-127.html">Day 127: Terraform testing, drift and recovery</option><option value="day-128.html">Day 128: Build and deployment pipeline</option><option value="day-129.html">Day 129: Release rollback and delivery measures</option><option value="day-130.html">Day 130: Service catalog and ownership</option><option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option><option value="day-132.html">Day 132: Customer success and platform outcomes</option><option value="day-133.html">Day 133: Operations integration and remediation</option></optgroup><optgroup label="Data, AI and distributed correctness"><option value="day-134.html">Day 134: Warehouse foundations and query costs</option><option value="day-135.html">Day 135: Warehouse security and reporting</option><option value="day-136.html">Day 136: Batch and streaming processing choices</option><option value="day-137.html">Day 137: Streaming correctness and CDC</option><option value="day-138.html">Day 138: Lakehouse and open table design</option><option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option><option value="day-140.html">Day 140: ML lifecycle and model selection</option><option value="day-141.html">Day 141: Build a small grounded-answer flow</option><option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option><option value="day-143.html">Day 143: AI security and evaluation</option><option value="day-144.html">Day 144: AI serving and infrastructure choices</option><option value="day-145.html">Day 145: Distributed state and regional correctness</option></optgroup><optgroup label="Discovery, cases and exam preparation"><option value="day-146.html">Day 146: Case analysis and discovery method</option><option value="day-147.html">Day 147: Extract facts and numeric requirements</option><option value="day-148.html">Day 148: Map requirements and conflicts</option><option value="day-149.html">Day 149: Discovery: business, load and recovery</option><option value="day-150.html">Day 150: Discovery: data, regulation and skills</option><option value="day-151.html">Day 151: Discovery: budget, risks and success</option><option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option><option value="day-153.html">Day 153: EHR Healthcare — defend the design</option><option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option><option value="day-155.html">Day 155: Altostrat Media — architecture defense</option><option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option><option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option><option value="day-158.html">Day 158: KnightMotives — modernization requirements</option><option value="day-159.html">Day 159: KnightMotives — architecture defense</option><option value="day-160.html">Day 160: Case synthesis and feedback</option><option value="day-161.html">Day 161: Changed-constraint design exercise</option><option value="day-162.html">Day 162: Exam domain mapping and sample questions</option><option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option><option value="day-164.html">Day 164: Readiness plan and remaining repairs</option></optgroup><optgroup label="Multi-team architecture and synthesis"><option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option><option value="day-166.html">Day 166: Production identity across teams</option><option value="day-167.html">Day 167: API contracts and compatibility</option><option value="day-168.html">Day 168: Sustainability and assisted operations</option><option value="day-169.html">Day 169: Capacity allocation and overload governance</option><option value="day-170.html">Day 170: Compute and database decision synthesis</option><option value="day-171.html">Day 171: Network decision synthesis</option><option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option><option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option></optgroup><optgroup label="Final gate and capstone defenses"><option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option><option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option><option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option><option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option><option value="day-178.html">Day 178: Capstone 4 — Migration defense</option><option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option></optgroup><optgroup label="Final review and rest"><option value="day-180.html">Day 180: Final review, logistics and rest</option></optgroup></select>
+      <button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+    </nav>
+  </header>
+
+  <main id="main" class="container day" data-day="1" data-prev="" data-next="day-002.html" data-index="../index.html">
+    <div class="crumb"><a href="../index.html">Roadmap Index</a> / <a href="../index.html#block-foundations">Days 1–17 — Foundations</a> / Day 1 of 180</div>
+    <section class="hero">
+      <div class="pills"><span class="pill accent">Day 1</span><span class="pill">2–3 hours</span><span class="pill">Local exercise</span><span class="pill">Topics 002 · 010</span></div>
+      <h1>Day 1 — Local workspace and learning baseline</h1>
+      <p class="lead"><strong>Outcome:</strong> Create a local evidence repository, record one command and its exit status, set a realistic study pace, and assign ownership for future lab spending and cleanup.</p>
+      <p><strong>Entry prerequisites:</strong> None. Begin with a local Linux shell, editor, Git, and Python 3. A Google Cloud account is not needed until Day 18.</p>
+      <div class="callout success"><strong>Exit artifact</strong><p>A versioned README with available study hours, environment, baseline skills, budget and cleanup owner. Keep the command observation and synthetic fixture in the same repository.</p></div>
+      <p class="small">This page uses local exercises and illustrative Brightloaf cases. A local result does not prove cloud configuration or production behavior.</p>
+    </section>
+
+    <aside class="toc" aria-label="On this page"><strong>On this page</strong>
+      <a href="#part-1">1 · Topics</a><a href="#part-2">2 · Technical discussion</a><a href="#part-3">3 · Problems and solutions</a><a href="#part-4">4 · Labs</a>
+      <div class="toc-topic"><span>Local workspace and evidence repository</span><a href="#workspace-repo-overview">overview</a> · <a href="#workspace-repo-technical">discussion</a> · <a href="#workspace-repo-problem">problem</a> · <a href="#workspace-repo-lab">lab</a></div>
+      <div class="toc-topic"><span>Study sessions and learning baseline</span><a href="#learning-baseline-overview">overview</a> · <a href="#learning-baseline-technical">discussion</a> · <a href="#learning-baseline-problem">problem</a> · <a href="#learning-baseline-lab">lab</a></div>
+      <div class="toc-topic"><span>Synthetic data, budget and cleanup ownership</span><a href="#budget-cleanup-overview">overview</a> · <a href="#budget-cleanup-technical">discussion</a> · <a href="#budget-cleanup-problem">problem</a> · <a href="#budget-cleanup-lab">lab</a></div>
+    </aside>
+
+    <section id="part-1" class="part"><h2>1 · Topics of the day</h2>
+      <article id="workspace-repo-overview" class="topic-card"><span id="topic-01-overview" aria-hidden="true"></span><h3>Local workspace and evidence repository</h3>
+        <p><strong>What it is:</strong> A local directory in which a shell runs commands, an editor changes files, and Git records selected snapshots. A command's exit status is evidence about that command's completion, while its output gives the observation needed to interpret the result.</p>
+        <p><strong>Why today and system location:</strong> Day 1 establishes the workstation-side evidence boundary before any cloud resource exists. Later labs can refer to committed commands and observations instead of reconstructed memories.</p>
+        <p><strong>Problem preview:</strong> An operator records that a setup command ran but omits its exit status and output. The next engineer cannot reproduce the baseline, delaying diagnosis of a Brightloaf release issue.</p>
+      </article>
+      <article id="learning-baseline-overview" class="topic-card"><span id="topic-02-overview" aria-hidden="true"></span><h3>Study sessions and learning baseline</h3>
+        <p><strong>What it is:</strong> A plan that distinguishes 180 study units from calendar days and records available hours and current skills. A skill marked demonstrated needs a specific observation or artifact, not a feeling of familiarity.</p>
+        <p><strong>Why today and system location:</strong> The plan lives in the learner's versioned README and informs when to repeat a lab or advance. It sets a realistic pace for the foundations block without assuming a fixed start date.</p>
+        <p><strong>Problem preview:</strong> A learner schedules 180 consecutive days despite having only a few study hours each week. Prerequisite gaps accumulate, and later Brightloaf design decisions are made without a defensible baseline.</p>
+      </article>
+      <article id="budget-cleanup-overview" class="topic-card"><span id="topic-03-overview" aria-hidden="true"></span><h3>Synthetic data, budget and cleanup ownership</h3>
+        <p><strong>What it is:</strong> A rule to use invented retailer records in exercises, choose a future lab spend target, and name the person responsible for finding and deleting created resources. An alerts-only Cloud Billing budget sends notifications but does not automatically stop usage.</p>
+        <p><strong>Why today and system location:</strong> These decisions belong in the local README before cloud setup on Day 18. Synthetic fixtures stay outside the production customer-data boundary; later sandbox resources will need an owner and a cleanup record.</p>
+        <p><strong>Problem preview:</strong> A sandbox exercise uses a real order export and assumes a budget alert will stop charges. Customer information crosses into an unmanaged environment while retained resources continue to accrue cost.</p>
+      </article>
+    </section>
+
+    <section id="part-2" class="part"><h2>2 · Technical discussion</h2>
+      <article id="workspace-repo-technical" class="topic-card"><span id="topic-01-technical" aria-hidden="true"></span><h3>Local workspace and evidence repository</h3>
+        <p>The shell resolves a command, starts a process or executes a builtin, connects its input and output streams, and reports an exit status. In Bash, zero means that the command considers itself successful; a nonzero status requires investigation. Capture <code>$?</code> immediately: any later command replaces it. A successful process can still print incomplete or wrong data, so preserve a relevant output sample as well.</p>
+        <p>The local filesystem owner controls the working directory and permissions. Git tracks only files that are staged and committed; it does not automatically record terminal output, secret redaction, or whether a claimed observation was truthful. A commit is a reproducible snapshot of selected files, not proof that a cloud service is healthy. Never commit credentials or real customer data.</p>
+        <table><caption>Day 1 evidence path</caption><thead><tr><th>Boundary</th><th>Owner</th><th>What to check</th><th>Limit</th></tr></thead><tbody>
+          <tr><td>Local shell</td><td>Learner</td><td>Working directory and command</td><td>A typed command may run in the wrong directory.</td></tr>
+          <tr><td>Process</td><td>Operating system and program</td><td>Exit status and output</td><td>Status zero does not prove downstream behavior.</td></tr>
+          <tr><td>Evidence file</td><td>Learner</td><td>Timestamp, command, status, output</td><td>A file can be edited before commit.</td></tr>
+          <tr><td>Git commit</td><td>Learner</td><td>Committed file list and clean status</td><td>Local history is not an independent backup.</td></tr>
+        </tbody></table>
+        <p>Path: terminal → shell → command → observation file → Git staging → commit. The lab runs a harmless print command and records exactly what it observed; it does not need a cloud account or elevated privileges.</p>
+        <figure class="diagram-figure">
+<svg aria-labelledby="svg1-title svg1-desc" role="img" viewbox="0 0 940 260">
+<title id="svg1-title">Typical external command and exit status flow</title>
+<desc id="svg1-desc">For a typical external command, the shell starts a child process, observes its completion, and exposes its exit status through the shell parameter question mark. Shell builtins can run without a child process.</desc>
+<defs>
+<marker id="arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4">
+<path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path>
+</marker>
+<marker id="arrow-rose" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4">
+<path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"></path>
+</marker>
+</defs>
+<g fill="#121526" stroke="#3b1d38" stroke-width="2">
+<rect height="90" rx="10" stroke="#f43f5e" width="180" x="20" y="80"></rect>
+<rect height="90" rx="10" stroke="#38bdf8" width="220" x="270" y="20"></rect>
+<rect height="90" rx="10" stroke="#f97316" width="220" x="270" y="145"></rect>
+<rect height="90" rx="10" stroke="#38bdf8" width="180" x="560" y="80"></rect>
+<rect height="90" rx="10" stroke="#34d399" width="130" x="790" y="80"></rect>
+</g>
+<g fill="#fce7f3" font-size="13" font-weight="600" text-anchor="middle">
+<text x="110" y="118">Parent Shell</text>
+<text fill="#a9b7cb" font-size="11" x="110" y="138">bash / zsh session</text>
+<text x="380" y="55">fork() &amp; execve()</text>
+<text fill="#a9b7cb" font-size="11" x="380" y="75">Child Process Active</text>
+<text x="380" y="180">Kernel File Descriptors</text>
+<text fill="#a9b7cb" font-size="11" x="380" y="200">0: stdin · 1: stdout · 2: stderr</text>
+<text x="650" y="118">Process Termination</text>
+<text fill="#a9b7cb" font-size="11" x="650" y="138">exit(code) / waitpid()</text>
+<text x="855" y="118">Shell Parameter</text>
+<text fill="#34d399" font-size="14" x="855" y="138">result=$?</text>
+</g>
+<g fill="none" marker-end="url(#arrow)" stroke="#38bdf8" stroke-width="2">
+<path d="M200 110 L270 65"></path>
+<path d="M200 135 L270 185"></path>
+<path d="M490 65 L560 110"></path>
+<path d="M490 185 L560 135"></path>
+<path d="M740 125 L790 125"></path>
+</g>
+</svg>
+<figcaption>Figure 1.1: Typical external command lifecycle. The shell observes the command exit status; builtins may run within the shell rather than a separate child process.</figcaption>
+</figure>
+        <div class="callout"><strong>Worked example to read before the lab</strong><p>This command prints a fixed marker. If it completes normally, capture its status before running another command; the observation is limited to this local process.</p><pre><code class="language-bash">python3 -c 'print("day-1-baseline")'
+status=$?
+printf 'exit_code: %s\n' "$status"</code></pre><p>Expected lines: <code>day-1-baseline</code> and <code>exit_code: 0</code>. A different status means stop and inspect the Python error.</p></div>
+        <div class="further"><h4>Further Study</h4><p><a href="https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html#Exit-Status" rel="noopener noreferrer">GNU Bash manual, §3.7.5 Exit Status</a> defines the shell's status rules. <a href="https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository" rel="noopener noreferrer">Pro Git, Committing Your Changes</a> explains the staging-to-commit boundary. No video timestamp is presented because the available captions did not allow the segment to be verified.</p></div>
+      </article>
+      <article id="learning-baseline-technical" class="topic-card"><span id="topic-02-technical" aria-hidden="true"></span><h3>Study sessions and learning baseline</h3>
+        <p>The roadmap's day number labels a unit of work, not an elapsed calendar day. Divide the roadmap's estimated total hours by hours actually available each week to obtain a planning range; add time for missed sessions and remediation. The result is an estimate, not a completion guarantee. Recalculate after a few sessions using observed effort instead of treating the initial estimate as a deadline.</p>
+        <p>Use three evidence states: <strong>new</strong> (not yet studied), <strong>familiar</strong> (can explain it), and <strong>demonstrated</strong> (can reproduce a relevant result and explain a failure). Day 1 can demonstrate local shell and Git basics after the lab. It cannot demonstrate GCP networking, IAM, or production readiness merely because those topics appear later in the roadmap.</p>
+        <table><caption>Planning and evidence flow</caption><thead><tr><th>Input</th><th>Decision owner</th><th>Output</th><th>Limit</th></tr></thead><tbody>
+          <tr><td>Available hours per week</td><td>Learner</td><td>Initial session schedule</td><td>Availability can change.</td></tr>
+          <tr><td>Roadmap hour range</td><td>Curriculum</td><td>Estimated calendar range</td><td>It is not an SLA.</td></tr>
+          <tr><td>Command and lab evidence</td><td>Learner</td><td>Skill status with a cited artifact</td><td>One local check supports only a narrow claim.</td></tr>
+          <tr><td>Periodic review</td><td>Learner or mentor</td><td>Repeat or advance decision</td><td>A review cannot substitute for missing evidence.</td></tr>
+        </tbody></table>
+        <p>Path: available hours → scheduled sessions → observed lab result → committed evidence → revised plan. Keep the plan in the README so the assumptions and later changes can be compared.</p>
+        <figure class="diagram-figure">
+<svg aria-labelledby="svg2-title svg2-desc" role="img" viewbox="0 0 940 220">
+<title id="svg2-title">Roadmap milestones and evidence review</title>
+<desc id="svg2-desc">Early foundation study reaches the Day 17 evidence gate; cloud sandbox study reaches the Day 35 gate. A missing artifact leads to review and practice before advancing.</desc>
+<g fill="#121526" stroke="#3b1d38" stroke-width="2">
+<rect height="80" rx="8" stroke="#38bdf8" width="130" x="20" y="60"></rect>
+<rect height="80" rx="8" stroke="#38bdf8" width="130" x="180" y="60"></rect>
+<rect fill="#1e0b1c" height="110" rx="8" stroke="#f43f5e" width="100" x="340" y="45"></rect>
+<rect height="80" rx="8" stroke="#38bdf8" width="130" x="470" y="60"></rect>
+<rect fill="#1e0b1c" height="110" rx="8" stroke="#f43f5e" width="100" x="630" y="45"></rect>
+<rect height="80" rx="8" stroke="#34d399" width="150" x="760" y="60"></rect>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">
+<text x="85" y="95">Days 1–16</text>
+<text fill="#a9b7cb" font-size="11" x="85" y="115">Foundations</text>
+<text x="245" y="95">Day 17</text>
+<text fill="#f43f5e" font-size="11" x="245" y="115">Gate 1 Audit</text>
+<text x="390" y="85">G1 Decision</text>
+<text fill="#34d399" font-size="10" x="390" y="105">Pass: Proceed</text>
+<text fill="#f43f5e" font-size="10" x="390" y="125">Fail: Remediate</text>
+<text x="535" y="95">Days 18–34</text>
+<text fill="#a9b7cb" font-size="11" x="535" y="115">Cloud Sandbox</text>
+<text x="680" y="85">Day 35</text>
+<text fill="#f43f5e" font-size="11" x="680" y="105">Gate 2 Audit</text>
+<text fill="#34d399" font-size="10" x="680" y="125">Identity Pass</text>
+<text x="835" y="95">Days 36–180</text>
+<text fill="#34d399" font-size="11" x="835" y="115">Core &amp; Capstones</text>
+</g>
+<g fill="none" marker-end="url(#arrow)" stroke="#38bdf8" stroke-width="2">
+<path d="M150 100 L180 100"></path>
+<path d="M310 100 L340 100"></path>
+<path d="M440 100 L470 100"></path>
+<path d="M600 100 L630 100"></path>
+<path d="M730 100 L760 100"></path>
+</g>
+
+<g fill="none" marker-end="url(#arrow-rose)" stroke="#f43f5e" stroke-dasharray="4" stroke-width="2">
+<path d="M390 155 L390 185 L245 185 L245 145"></path>
+</g>
+<text fill="#f43f5e" font-size="10" x="320" y="180">Missing Artifact Loop</text>
+</svg>
+<figcaption>Figure 1.2: Early roadmap milestones. Day 1 records an honest baseline; later gates review evidence before subsequent study units.</figcaption>
+</figure>
+        <div class="further"><h4>Further Study</h4><p><a href="https://docs.cloud.google.com/architecture/framework/operational-excellence#core_principles" rel="noopener noreferrer">Google Cloud Well-Architected Framework, Operational excellence: Core principles</a> discusses operational readiness and continuous improvement. This is context for evidence-based practice, not a prescribed 180-day schedule. No timestamped video segment is claimed without verification.</p></div>
+      </article>
+      <article id="budget-cleanup-technical" class="topic-card"><span id="topic-03-technical" aria-hidden="true"></span><h3>Synthetic data, budget and cleanup ownership</h3>
+        <p>A synthetic order has invented identifiers, items, amounts, and contact data. Its structure can exercise parsing without exposing a real customer. An <code>order_id</code> and stable replay key can describe a future deduplication contract, but a JSON fixture alone does not implement or prove exactly-once fulfillment. That behavior requires a durable business-side decision when the Fulfillment consumer is built.</p>
+        <p>A future sandbox budget needs an amount, scope, notification recipients, and an owner. An <em>alerts-only</em> Cloud Billing budget reports spending against thresholds; it does not automatically cap charges. Spend cap budgets are a separate, limited service feature and cannot be assumed to cover persistent resources. The Day 1 local lab creates no chargeable cloud resources, so cleanup is limited to retaining the evidence repository and confirming that no cloud project was touched.</p>
+        <table><caption>Lab boundary and later resource lifecycle</caption><thead><tr><th>Stage</th><th>Owner</th><th>Control or evidence</th><th>Limit</th></tr></thead><tbody>
+          <tr><td>Synthetic fixture</td><td>Learner</td><td>Inspect for invented data and valid JSON</td><td>Schema validity is not replay safety.</td></tr>
+          <tr><td>Future cloud sandbox</td><td>Named cleanup owner</td><td>Budget target and alert recipients</td><td>Alerts-only budgets do not stop spend.</td></tr>
+          <tr><td>Resource creation</td><td>Lab operator</td><td>Record project, region, names and dependencies</td><td>Day 1 creates none.</td></tr>
+          <tr><td>Resource cleanup</td><td>Named cleanup owner</td><td>Delete dependents before dependencies; verify inventory</td><td>Deletion steps vary by service.</td></tr>
+        </tbody></table>
+        <p>Path: invented order → local fixture review → versioned policy → later sandbox preflight → future resource inventory and teardown. Keep production exports and credentials outside the learning repository.</p>
+        <figure class="diagram-figure">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="day1-budget-title day1-budget-desc" viewBox="0 0 940 235">
+<title id="day1-budget-title">Day 1 local data and future sandbox controls</title>
+<desc id="day1-budget-desc">An invented order fixture is reviewed locally and committed to Git. For a later sandbox, a named owner sets a budget and alerts, records resources, and verifies cleanup. Alerts notify but do not automatically stop spending.</desc>
+<defs><marker id="day1-budget-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker></defs>
+<g fill="#121526" stroke-width="2">
+<rect x="15" y="45" width="195" height="112" rx="10" stroke="#34d399"></rect>
+<rect x="252" y="45" width="195" height="112" rx="10" stroke="#38bdf8"></rect>
+<rect x="489" y="45" width="195" height="112" rx="10" stroke="#f43f5e"></rect>
+<rect x="726" y="45" width="195" height="112" rx="10" stroke="#38bdf8"></rect>
+</g>
+<g fill="#fce7f3" font-size="14" font-weight="600" text-anchor="middle">
+<text x="112" y="80">Invented order</text><text x="112" y="103" fill="#a9b7cb" font-size="12">local JSON fixture</text><text x="112" y="125" fill="#34d399" font-size="12">no customer data</text>
+<text x="349" y="80">Review and commit</text><text x="349" y="103" fill="#a9b7cb" font-size="12">validate shape and IDs</text><text x="349" y="125" fill="#38bdf8" font-size="12">save policy in Git</text>
+<text x="586" y="80">Future sandbox</text><text x="586" y="103" fill="#a9b7cb" font-size="12">budget + alerts</text><text x="586" y="125" fill="#f43f5e" font-size="12">alerts do not cap spend</text>
+<text x="823" y="80">Cleanup owner</text><text x="823" y="103" fill="#a9b7cb" font-size="12">inventory resources</text><text x="823" y="125" fill="#38bdf8" font-size="12">delete and verify</text>
+</g>
+<g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day1-budget-arrow)"><path d="M210 101 L248 101"></path><path d="M447 101 L485 101"></path><path d="M684 101 L722 101"></path></g>
+<text x="470" y="198" fill="#a9b7cb" font-size="12" text-anchor="middle">Day 1 stops after the local Git policy; cloud resources belong to later supervised labs.</text>
+</svg>
+<figcaption>Figure 1.3: Day 1 fixture and cost-control boundary. Alerts are notifications; a named operator still owns resource inventory and teardown.</figcaption>
+</figure>
+        <div class="further"><h4>Further Study</h4><p><a href="https://docs.cloud.google.com/billing/docs/how-to/budgets#alert-thresholds" rel="noopener noreferrer">Google Cloud Billing, budget alerts</a> explains alerts-only behavior and its limits. <a href="https://docs.cloud.google.com/billing/docs/how-to/budgets-spend-caps#how-spend-cap-budgets-work" rel="noopener noreferrer">Spend cap budgets: How they work</a> explains the narrower service coverage. No timestamped video segment is claimed without verification.</p></div>
+      </article>
+    </section>
+    <section id="part-3" class="part"><h2>3 · Real-world problems and solutions</h2>
+      <article id="workspace-repo-problem" class="topic-card"><span id="topic-01-problem" aria-hidden="true"></span><h3>Case 1 · A release note without a result</h3>
+        <p><strong>Illustrative symptom and impact:</strong> Brightloaf's release checklist says “configuration check ran,” but the operator saved neither the command's exit status nor its output. When the Order API fails to start after deployment, responders cannot tell whether the check succeeded, failed, or ran from an old workspace; recovery is delayed while they repeat the step.</p>
+        <p><strong>Constraints and root cause:</strong> The team has only a local text note and a Git commit made after the incident. A commit proves what files were recorded, but the shell status was overwritten by a later command and the original output was never saved. No evidence supports a claim that the check passed.</p>
+        <p><strong>Defensible response:</strong> Stop asserting success. Re-run the read-only check from a known working directory with the exact versioned input; immediately capture its status and the relevant output with a timestamp. Compare the resulting file with the committed revision, have a second operator review the evidence, and only then decide whether to roll back or continue. Add a release gate that requires command, status, output summary and commit ID. A successful rerun supports the current environment only; it does not retroactively prove the missing historical result.</p>
+      </article>
+      <article id="learning-baseline-problem" class="topic-card"><span id="topic-02-problem" aria-hidden="true"></span><h3>Case 2 · Calendar dates mistaken for readiness</h3>
+        <p><strong>Illustrative symptom and impact:</strong> A Brightloaf team marks a prerequisite complete because its calendar says Day 17, although no one can show the local command and network worksheets. The later Order API migration review cannot establish who can diagnose a failed route, so the cutover date slips.</p>
+        <p><strong>Constraints and root cause:</strong> Engineers have different weekly availability and no recorded baseline. The schedule counted elapsed days rather than completed study units, and “familiar” was treated as equivalent to demonstrated skill.</p>
+        <p><strong>Defensible response:</strong> Record each person's available weekly hours and the artifact that supports each skill claim. Re-estimate the calendar range from actual capacity, reserve sessions for remediation, and review completed artifacts before moving to a dependency that uses them. A learner who cannot reproduce a result marks the skill familiar or new and repeats the relevant exercise. The review ends with an explicit advance-or-repeat decision and a revised date communicated to stakeholders.</p>
+      </article>
+      <article id="budget-cleanup-problem" class="topic-card"><span id="topic-03-problem" aria-hidden="true"></span><h3>Case 3 · An unsafe sandbox assumption</h3>
+        <p><strong>Illustrative symptom and impact:</strong> A Brightloaf analyst proposes copying a real order export into a training project and assumes a small alerts-only budget will stop charges. The plan risks disclosing customer records and leaves the cost of any retained resource without an accountable owner.</p>
+        <p><strong>Constraints and root cause:</strong> The exercise needs only field shapes and sample values; no production data or cloud resource is required. The plan confuses a billing notification with spend enforcement and has no cleanup inventory or named operator.</p>
+        <p><strong>Defensible response:</strong> Reject the production export and build a small invented JSON fixture. Review it for real identifiers, addresses, tokens and secrets before committing it. Write the future sandbox budget target, alert recipients, cleanup owner and resource-inventory procedure into the README. Before a later cloud lab, confirm the actual project, billing scope, permissions, resource dependencies and deletion commands. After that lab, delete dependents before dependencies and verify the project inventory. Keep the fulfillment contract explicit: a stable event key is part of the fixture, but a future consumer must store a durable deduplication decision before replay can be considered safe.</p>
+      </article>
+    </section>
+
+    <section id="part-4" class="part"><h2>4 · Step-by-step labs</h2>
+      <article id="workspace-repo-lab" class="topic-card lab"><span id="topic-01-lab" aria-hidden="true"></span><h3>Exercise 1 · Create a local evidence repository</h3>
+        <p><strong>Goal and expected result:</strong> Create an empty local Git repository, run one harmless command, record its exact result and commit the observation. <strong>Mode:</strong> local Linux shell; no Google Cloud account, emulator or Docker needed.</p>
+        <p><strong>Preflight:</strong> Read the worked example in Part 2. Confirm that Bash, Git and Python 3 are available. The exercise intentionally refuses to overwrite an existing <code>~/gcp-architect-learning</code> directory.</p>
+        <pre><code class="language-bash">command -v bash
+command -v git
+command -v python3
+git --version
+python3 --version</code></pre>
+        <p>Expected: three executable paths, a Git version and a Python 3 version. If a command is missing, use your operating system's documented installation method before continuing.</p>
+        <h4>1. Initialize, observe and commit</h4>
+        <pre><code class="language-bash">bash -e &lt;&lt;'SH'
+repo="$HOME/gcp-architect-learning"
+if [ -e "$repo" ]; then
+  printf 'Directory already exists: %s\nChoose a fresh workspace before running this exercise.\n' "$repo" &gt;&amp;2
+  exit 2
+fi
+mkdir "$repo"
+cd "$repo"
+git init
+python3 -c 'print("day-1-baseline")'
+status=$?
+printf 'command: python3 baseline print\nexit_code: %s\n' "$status" &gt; command-observation.txt
+printf '# Day 1 learning evidence\n\nEnvironment: %s\n' "$(uname -s)" &gt; README.md
+git add README.md command-observation.txt
+git -c user.name='Learner' -c user.email='learner@example.invalid' commit -m 'Record Day 1 local baseline'
+printf 'status after commit: '
+if [ -z "$(git status --porcelain)" ]; then printf 'clean\n'; else printf 'dirty\n'; exit 1; fi
+cat command-observation.txt
+git log -1 --format='%s'
+SH</code></pre>
+        <p><strong>Verification:</strong> Output includes <code>day-1-baseline</code>, <code>status after commit: clean</code>, <code>exit_code: 0</code>, and the commit subject <code>Record Day 1 local baseline</code>. Git's branch name and commit hash vary. Inspect the README in the directory; it records the actual OS family.</p>
+        <p><strong>Troubleshooting:</strong> If the directory exists, inspect it before choosing another location; do not run commands that overwrite its files. If Git reports an identity error, use the exact per-commit identity options in the block. A nonzero Python result stops the block before commit.</p>
+        <p><strong>Cleanup:</strong> Retain this local repository as Day 1 evidence. No cloud resource was created or needs deletion. <strong>Artifact acceptance:</strong> the committed README and observation file exist, the recorded status is zero, and Git status is clean.</p>
+        <label class="check"><input type="checkbox" data-progress="lab-1-topic-01"> I committed and verified the local observation</label>
+      </article>
+
+      <article id="learning-baseline-lab" class="topic-card lab"><span id="topic-02-lab" aria-hidden="true"></span><h3>Exercise 2 · Record an honest study baseline</h3>
+        <p><strong>Goal and expected result:</strong> Add your available weekly hours, an estimated calendar range and evidence-based skill ratings to the README. <strong>Mode:</strong> local calculation; no GCP configuration. <strong>Preflight:</strong> complete Exercise 1 and confirm the repository exists.</p>
+        <pre><code class="language-bash">test -d "$HOME/gcp-architect-learning/.git"
+git -C "$HOME/gcp-architect-learning" log -1 --format='%s'</code></pre>
+        <p>Expected commit subject: <code>Record Day 1 local baseline</code>. Set <code>WEEKLY_HOURS</code> below to your actual available hours before executing the next block; the shown value of 8 is a runnable example.</p>
+        <h4>1. Calculate and commit the plan</h4>
+        <pre><code class="language-bash">WEEKLY_HOURS=8
+python3 - "$HOME/gcp-architect-learning" "$WEEKLY_HOURS" &lt;&lt;'PY'
+from pathlib import Path
+import sys
+
+repo = Path(sys.argv[1])
+hours = float(sys.argv[2])
+if hours &lt;= 0:
+    raise SystemExit('Weekly hours must be greater than zero')
+plan = (
+    '\n## Study capacity and initial skills\n'
+    f'- Available study hours per week: {hours:g}\n'
+    f'- Estimated calendar range: {485.5 / hours:.1f} to {665.0 / hours:.1f} weeks, before missed sessions or remediation.\n'
+    '- Study days are units of work, not consecutive calendar dates.\n'
+    '- Local shell: demonstrated by command-observation.txt.\n'
+    '- Git commit: demonstrated by the Day 1 local commit.\n'
+    '- Google Cloud IAM and networking: new or unassessed; no cloud lab has run.\n'
+    '- Review this estimate after several actual study sessions.\n'
+)
+with (repo / 'README.md').open('a', encoding='utf-8') as stream:
+    stream.write(plan)
+print(f'weekly_hours={hours:g}; estimated_weeks={485.5 / hours:.1f}–{665.0 / hours:.1f}')
+PY
+git -C "$HOME/gcp-architect-learning" add README.md
+git -C "$HOME/gcp-architect-learning" -c user.name='Learner' -c user.email='learner@example.invalid' commit -m 'Record Day 1 study capacity'
+git -C "$HOME/gcp-architect-learning" status --short</code></pre>
+        <p><strong>Verification:</strong> At 8 hours per week, the printed range is <code>60.7–83.1</code> weeks. Your range changes with your input. An empty final short-status output means the README edit was committed.</p>
+        <p><strong>Troubleshooting:</strong> A zero or nonnumeric hours value stops the calculation. If the first preflight fails, finish Exercise 1 before editing the README. Mark a skill demonstrated only when you can name its artifact.</p>
+        <p><strong>Cleanup:</strong> Retain the README and commit; no remote resource exists. <strong>Artifact acceptance:</strong> weekly hours, estimated range, skill ratings and evidence references appear in the committed README.</p>
+        <label class="check"><input type="checkbox" data-progress="lab-1-topic-02"> I recorded my real hours and evidence-based skill baseline</label>
+      </article>
+
+      <article id="budget-cleanup-lab" class="topic-card lab"><span id="topic-03-lab" aria-hidden="true"></span><h3>Exercise 3 · Set the synthetic-data and cleanup charter</h3>
+        <p><strong>Goal and expected result:</strong> Save a valid invented order fixture and a future sandbox budget and cleanup rule without creating cloud resources. <strong>Mode:</strong> local JSON and Git. <strong>Preflight:</strong> verify the repository and Python's standard JSON module; no <code>gcloud</code> setup is appropriate on Day 1.</p>
+        <pre><code class="language-bash">test -d "$HOME/gcp-architect-learning/.git"
+python3 -c 'import json; print("json available")'</code></pre>
+        <p>Expected: <code>json available</code>. Set <code>LAB_BUDGET_USD</code> and <code>CLEANUP_OWNER</code> below to the future sandbox amount and actual responsible person before running; the shown values are runnable examples.</p>
+        <h4>1. Write and validate the fixture</h4>
+        <pre><code class="language-bash">repo="$HOME/gcp-architect-learning"
+mkdir -p "$repo/fixtures"
+cat &gt; "$repo/fixtures/synthetic-order.json" &lt;&lt;'JSON'
+{
+  "order_id": "BL-TRAINING-001",
+  "event_id": "BL-TRAINING-001-created-v1",
+  "customer_id": "SYNTHETIC-CUSTOMER-001",
+  "item_sku": "BREAD-001",
+  "quantity": 2,
+  "currency": "USD"
+}
+JSON
+python3 -m json.tool "$repo/fixtures/synthetic-order.json" &gt; /dev/null
+printf 'fixture_valid=true\n'</code></pre>
+        <p>Expected output: <code>fixture_valid=true</code>. These are invented identifiers. The stable <code>event_id</code> states a future replay key; this JSON check does not implement Fulfillment deduplication.</p>
+        <h4>2. Record ownership and commit</h4>
+        <pre><code class="language-bash">LAB_BUDGET_USD=50
+CLEANUP_OWNER='Learner'
+repo="$HOME/gcp-architect-learning"
+printf '\n## Future sandbox charter\n- Monthly planning target (USD): %s\n- Cleanup owner: %s\n- Day 1 cloud spend: 0; no cloud account or resource used.\n- Use synthetic data only; never commit credentials or production customer exports.\n- An alerts-only billing budget notifies; it does not stop usage.\n- Before each later cloud lab, record project, resource names, region, dependencies and expected cost.\n- After each lab, delete dependents before dependencies and verify the remaining inventory.\n- Fulfillment replay rule: a future consumer must durably reject a second fulfillment for the same business event.\n' "$LAB_BUDGET_USD" "$CLEANUP_OWNER" &gt;&gt; "$repo/README.md"
+git -C "$repo" add README.md fixtures/synthetic-order.json
+git -C "$repo" -c user.name='Learner' -c user.email='learner@example.invalid' commit -m 'Record Day 1 sandbox charter'
+git -C "$repo" status --short
+git -C "$repo" log -1 --format='%s'</code></pre>
+        <p><strong>Verification:</strong> final short status is empty, the commit subject is <code>Record Day 1 sandbox charter</code>, and the README contains your chosen amount and owner. Review the JSON manually for any real person or account data before sharing the repository.</p>
+        <p><strong>Troubleshooting:</strong> If JSON validation fails, correct its syntax before committing. If Git reports no changes, inspect the path and confirm you are using the Day 1 repository. If a real identifier entered the fixture, replace it with invented data before staging.</p>
+        <p><strong>Cleanup:</strong> Keep the repository and fixture as evidence. No cloud resource exists, so there are no deletion commands to run. <strong>Artifact acceptance:</strong> the versioned README includes hours, environment, skills, budget and cleanup owner; the synthetic JSON parses; all three lab commits exist; Git status is clean.</p>
+        <label class="check"><input type="checkbox" data-progress="lab-1-topic-03"> I committed the synthetic fixture and sandbox charter</label>
+      </article>
+    </section>
+
+    <section class="completion"><h2>Daily evidence</h2><p>Keep the README, command observation and synthetic fixture in the local Git repository. The fixture states a replay key but does not prove a live Fulfillment consumer is idempotent.</p><label class="check"><input type="checkbox" data-progress="read-1"> I reviewed all four parts</label><label class="check"><input type="checkbox" data-progress="artifact-1"> I saved and checked the Day 1 exit artifact</label></section>
+    <nav class="pager" aria-label="Day pagination"><a href="../index.html">Roadmap index<small>Browse all study days</small></a><a href="day-002.html">Day 2 →<small>IP addressing and packet paths</small></a></nav>
+    <p class="shortcut">Keyboard: N or ] next · I index</p>
+  </main>
+
+  <footer class="site-footer">
+    <p>Google Cloud Professional Cloud Architect — 180-Day Curriculum &amp; Production Architecture Reference.</p>
+    <p>Curriculum dated 2026-09-26. Local learning progress is preserved in this browser via localStorage.</p>
+  </footer>
+</body>
+</html>

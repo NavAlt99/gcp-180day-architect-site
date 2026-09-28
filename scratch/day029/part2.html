@@ -1,0 +1,517 @@
+    <section class="part" id="part-2" aria-labelledby="part-2-heading">
+      <h2 id="part-2-heading">Part 2 · Technical discussion</h2>
+      <p class="section-lead">Deep architectural exploration of Google Cloud cost telemetry interfaces, BigQuery billing export schemas, and the operational triad governing resource consumption: rate quotas, allocation quotas, and physical hardware capacity.</p>
+
+      <!-- Topic 01 Technical -->
+      <article class="card" id="topic-01-technical" aria-labelledby="t1-tech-heading">
+        <h3 id="t1-tech-heading">Topic 01 · Billing reports and cost table</h3>
+        <p>Google Cloud offers two built-in graphical tools within the Cloud Billing console for human operators: <strong>Cloud Billing Reports</strong> and the <strong>Cost Table</strong>. Understanding their structural differences, aggregation models, and telemetry latency is vital for operational FinOps.</p>
+
+        <h4>Cloud Billing Reports: Dynamic Trend Exploration</h4>
+        <p>Billing Reports provide interactive, visual time-series exploration of cloud expenditure. Administrators can plot spend across daily, monthly, or quarterly horizons, viewing costs as line charts, bar graphs, or stacked area diagrams.</p>
+        <p>Key architectural features of Cloud Billing Reports include:</p>
+        <ul>
+          <li><strong>Multi-Dimensional Filtering:</strong> Costs can be sliced simultaneously by Project ID, Google Cloud Service (e.g., Compute Engine, BigQuery), SKU Description, Geographic Region (e.g., <code>us-central1</code>), and Resource Label key-value pairs.</li>
+          <li><strong>Group-By Capabilities:</strong> Spend can be dynamically aggregated along single dimensions—such as grouping by Project to identify high-cost applications, or grouping by Label (e.g., <code>cost-center</code>) to assess departmental consumption.</li>
+          <li><strong>Credit Visibility:</strong> Toggling credit views reveals the precise impact of Sustained Use Discounts (SUDs), Committed Use Discounts (CUDs), and promotional coupons on net spend.</li>
+          <li><strong>Currency Normalization:</strong> Regardless of where multi-regional infrastructure resides, reports convert foreign currency charges into the billing account's designated contract currency.</li>
+        </ul>
+
+        <h4>The Cost Table: Invoice-Aligned Tabular Reconciliation</h4>
+        <p>While Billing Reports excel at visual trend identification, corporate finance and internal audit teams rely on the <strong>Cost Table</strong>. The Cost Table presents an itemized, tabular ledger of all accrued charges organized by invoice month.</p>
+        <p>Unlike trend charts, the Cost Table mirrors the official monthly PDF invoice down to the cent. It breaks down each line item into:</p>
+        <ul>
+          <li><strong>Gross Cost:</strong> Unadjusted list-price expenditure before applying discounts or promotional credits.</li>
+          <li><strong>Discounts &amp; Credits:</strong> Itemized subtractions, explicitly separating Committed Use Discounts, Sustained Use Discounts, free-tier allowances, and contractual price offsets.</li>
+          <li><strong>Net Cost:</strong> The post-discount amount payable by the organization.</li>
+          <li><strong>Taxes &amp; Surcharges:</strong> Applicable jurisdictional sales, VAT, or local regulatory taxes itemized per project and legal entity.</li>
+        </ul>
+
+        <h4>Telemetry Latency &amp; The "Real-Time" Fallacy</h4>
+        <p>A critical architectural trap is treating Cloud Billing console views as real-time dashboards. Google Cloud processes billing telemetry through an asynchronous metering pipeline:</p>
+        <ul>
+          <li><strong>Standard Usage Latency:</strong> Compute Engine core-hours, Cloud Storage byte-hours, and network egress telemetry typically reach the billing pipeline within <strong>1 to 4 hours</strong> of occurrence.</li>
+          <li><strong>Complex / Partner Service Latency:</strong> Marketplace partner solutions, specialized external APIs, and cross-region egress reconciliation may experience reporting delays of up to <strong>24 hours</strong>.</li>
+          <li><strong>End-of-Month Ledger Adjustments:</strong> Final invoicing calculations, enterprise commitment reconciliations, and tax adjustments continue running up to 5 business days following the calendar month close.</li>
+        </ul>
+
+        <div class="table-container">
+          <table>
+            <caption>Table 29.1: Architectural Comparison: Cloud Billing Reports vs. Cost Table vs. BigQuery Billing Export</caption>
+            <thead>
+              <tr>
+                <th scope="col">Dimension</th>
+                <th scope="col">Cloud Billing Reports</th>
+                <th scope="col">Cost Table</th>
+                <th scope="col">BigQuery Detailed Billing Export</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Primary Interface</th>
+                <td>Graphical interactive console charts</td>
+                <td>Tabular ledger view (downloadable CSV/Sheets)</td>
+                <td>SQL query engine &amp; Looker Studio dashboards</td>
+              </tr>
+              <tr>
+                <th scope="row">Target Audience</th>
+                <td>Engineering managers, squad leads</td>
+                <td>Corporate accounting, invoice auditors</td>
+                <td>FinOps engineers, data analysts, automated tooling</td>
+              </tr>
+              <tr>
+                <th scope="row">Granularity</th>
+                <td>Aggregated project, service, SKU level</td>
+                <td>Invoice SKU line items with credit subtractions</td>
+                <td>Individual resource IDs, zones, labels, and tags</td>
+              </tr>
+              <tr>
+                <th scope="row">Invoice Reconciliation</th>
+                <td>Approximate trend (usage date alignment)</td>
+                <td><strong>Exact.</strong> Matches monthly PDF invoice cent-for-cent</td>
+                <td>Reconcilable via SQL grouping on <code>invoice.month</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Custom Joins &amp; Automation</th>
+                <td>None; fixed console filters</td>
+                <td>Manual spreadsheet manipulation</td>
+                <td>Full SQL JOINs against CMDB, ERP, and traffic logs</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Insert Figure 29.1 -->
+        <figure class="architecture-diagram" id="fig-29-1">
+          <svg viewBox="0 0 980 440" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-29-1-title fig-29-1-desc">
+            <title id="fig-29-1-title">Figure 29.1: Cloud Billing Console Reports &amp; Cost Table Exploration Architecture</title>
+            <desc id="fig-29-1-desc">Architecture diagram showing how usage telemetry from projects feeds the Cloud Billing Data Engine, powering interactive Billing Reports for trend exploration and the itemized Cost Table for invoice reconciliation.</desc>
+            <defs>
+              <linearGradient id="bg-grad-29-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#090d16"/>
+                <stop offset="100%" stop-color="#121526"/>
+              </linearGradient>
+              <linearGradient id="panel-grad-29-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#161b30"/>
+                <stop offset="100%" stop-color="#1e243d"/>
+              </linearGradient>
+              <marker id="arrow-cyan-29-1" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8"/>
+              </marker>
+              <marker id="arrow-green-29-1" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+              <marker id="arrow-amber-29-1" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f59e0b"/>
+              </marker>
+            </defs>
+
+            <!-- Background Canvas -->
+            <rect width="980" height="440" rx="12" fill="url(#bg-grad-29-1)" stroke="#1e293b" stroke-width="1.5"/>
+
+            <!-- Banner Header -->
+            <text x="30" y="38" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Cloud Billing Console Reports &amp; Cost Table Data Architecture</text>
+            <text x="30" y="58" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Raw usage telemetry &rarr; Cloud Billing aggregation engine &rarr; Trend analysis &amp; invoice-matched ledger</text>
+
+            <!-- Box 1: Resource Telemetry Generation -->
+            <rect x="30" y="90" width="220" height="320" rx="8" fill="url(#panel-grad-29-1)" stroke="#38bdf8" stroke-width="1.5"/>
+            <rect x="42" y="102" width="130" height="20" rx="4" fill="#0284c7" fill-opacity="0.25"/>
+            <text x="107" y="116" fill="#38bdf8" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">USAGE EMISSION</text>
+            <text x="42" y="142" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Linked Projects</text>
+            <text x="42" y="162" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Emits metering records:</text>
+
+            <rect x="42" y="176" width="196" height="52" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="52" y="196" fill="#f8fafc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Compute Engine (vCPU/RAM)</text>
+            <text x="52" y="214" fill="#38bdf8" font-size="10" font-family="system-ui, sans-serif">Granular core-hour usage</text>
+
+            <rect x="42" y="238" width="196" height="52" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="52" y="258" fill="#f8fafc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Cloud Storage &amp; BigQuery</text>
+            <text x="52" y="276" fill="#38bdf8" font-size="10" font-family="system-ui, sans-serif">Byte-hours &amp; query slots</text>
+
+            <rect x="42" y="300" width="196" height="52" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="52" y="320" fill="#f8fafc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Network Egress &amp; APIs</text>
+            <text x="52" y="338" fill="#38bdf8" font-size="10" font-family="system-ui, sans-serif">Inter-region / internet transfer</text>
+
+            <text x="42" y="380" fill="#94a3b8" font-size="10" font-style="italic" font-family="system-ui, sans-serif">Hourly billing collection pipeline</text>
+
+            <!-- Arrow 1: Telemetry -> Billing Engine -->
+            <line x1="250" y1="250" x2="294" y2="250" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan-29-1)"/>
+            <text x="272" y="240" fill="#38bdf8" font-size="10" font-weight="600" font-family="system-ui, sans-serif" text-anchor="middle">Stream</text>
+
+            <!-- Box 2: Cloud Billing Aggregation Engine -->
+            <rect x="300" y="90" width="260" height="320" rx="8" fill="url(#panel-grad-29-1)" stroke="#a855f7" stroke-width="1.5"/>
+            <rect x="312" y="102" width="120" height="20" rx="4" fill="#9333ea" fill-opacity="0.25"/>
+            <text x="372" y="116" fill="#c084fc" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">BILLING CORE</text>
+            <text x="312" y="142" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Cloud Billing Data Engine</text>
+            <text x="312" y="162" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Processes &amp; calculates gross/net spend</text>
+
+            <rect x="312" y="176" width="236" height="66" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="322" y="196" fill="#f8fafc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Pricing &amp; Contract Engine</text>
+            <text x="322" y="214" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Multiplies usage units &times; SKU rate</text>
+            <text x="322" y="230" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Applies CUDs &amp; Sustained Use</text>
+
+            <rect x="312" y="252" width="236" height="66" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="322" y="272" fill="#f8fafc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Credit &amp; Discount Engine</text>
+            <text x="322" y="290" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Promotional vouchers &amp; offsets</text>
+            <text x="322" y="306" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Multi-tier volume discounts</text>
+
+            <rect x="312" y="328" width="236" height="68" rx="4" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+            <text x="322" y="348" fill="#818cf8" font-size="11" font-weight="700" font-family="system-ui, sans-serif">Data Ingestion Latency</text>
+            <text x="322" y="366" fill="#c7d2fe" font-size="10" font-family="system-ui, sans-serif">Lag: 1 to 4 hours (sometimes &le;24h)</text>
+            <text x="322" y="382" fill="#c7d2fe" font-size="9" font-style="italic" font-family="system-ui, sans-serif">Console reports are NOT instantaneous</text>
+
+            <!-- Arrows to outputs -->
+            <path d="M 560 170 L 610 170" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan-29-1)"/>
+            <path d="M 560 330 L 610 330" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-29-1)"/>
+
+            <!-- Box 3A: Cloud Billing Reports -->
+            <rect x="620" y="90" width="330" height="150" rx="8" fill="url(#panel-grad-29-1)" stroke="#38bdf8" stroke-width="1.5"/>
+            <rect x="632" y="102" width="100" height="20" rx="4" fill="#0284c7" fill-opacity="0.25"/>
+            <text x="682" y="116" fill="#38bdf8" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">BILLING REPORTS</text>
+            <text x="632" y="142" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Interactive Visual Explorer</text>
+            <text x="632" y="162" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Time-series line &amp; stacked bar charts</text>
+            <text x="632" y="180" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Slicing by: Project, Service, SKU, Region, Label</text>
+            <text x="632" y="198" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Group-by dimensions &amp; currency conversion</text>
+            <text x="632" y="222" fill="#38bdf8" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Primary tool for human trend triage</text>
+
+            <!-- Box 3B: Cost Table -->
+            <rect x="620" y="260" width="330" height="150" rx="8" fill="url(#panel-grad-29-1)" stroke="#22c55e" stroke-width="1.5"/>
+            <rect x="632" y="272" width="85" height="20" rx="4" fill="#16a34a" fill-opacity="0.25"/>
+            <text x="674" y="286" fill="#4ade80" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">COST TABLE</text>
+            <text x="632" y="312" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Itemized Invoice Reconciler</text>
+            <text x="632" y="332" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Matches official monthly PDF invoice</text>
+            <text x="632" y="350" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Columns: Gross Cost, Credits, Net Cost, Taxes</text>
+            <text x="632" y="368" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• CSV / Sheets export for corporate accounting</text>
+            <text x="632" y="392" fill="#4ade80" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Mathematical source of invoice truth</text>
+          </svg>
+          <figcaption>Figure 29.1: Cloud Billing Console Reports &amp; Cost Table Exploration Architecture. Metered telemetry from linked projects flows into the Cloud Billing Data Engine with a 1-to-4 hour calculation latency. It populates interactive Billing Reports for graphical trend analysis and the tabular Cost Table for SKU-level invoice reconciliation and accounting chargebacks.</figcaption>
+        </figure>
+      </article>
+
+      <!-- Topic 02 Technical -->
+      <article class="card" id="topic-02-technical" aria-labelledby="t2-tech-heading">
+        <h3 id="t2-tech-heading">Topic 02 · Billing export to BigQuery</h3>
+        <p>For automated FinOps, anomaly alerting, and granular chargebacks, relying on the console is insufficient. Google Cloud enables automated streaming of billing records into a customer-owned BigQuery dataset across three complementary export streams:</p>
+
+        <h4>1. Standard Usage Cost Export (`gcp_billing_export_v1_*`)</h4>
+        <p>The Standard export streams aggregate account, project, service, and SKU-level cost metrics. It records usage start/end times, cost in account currency, and credit structures. However, it <strong>omits individual resource IDs</strong>. It is designed for macro-level financial reporting, monthly forecasting, and lightweight Looker Studio dashboards where resource-level granularity is unnecessary.</p>
+
+        <h4>2. Detailed Usage Cost Export (`gcp_billing_export_resource_v1_*`)</h4>
+        <p>The Detailed export is the cornerstone of enterprise FinOps. It contains every field present in the Standard export, plus:</p>
+        <ul>
+          <li><code>resource.name</code>: The fully qualified Google Cloud Resource URI (e.g., <code>//compute.googleapis.com/projects/brightloaf/zones/us-central1-a/instances/order-api-01</code>).</li>
+          <li><code>resource.global_name</code>: Global identifier for cross-project tracking.</li>
+          <li><code>location.zone</code>: The precise availability zone (e.g., <code>us-central1-b</code>) hosting the resource.</li>
+          <li><code>labels</code>: The full repeated array of attached key-value structs (<code>ARRAY&lt;STRUCT&lt;key STRING, value STRING&gt;&gt;</code>).</li>
+        </ul>
+        <p>Detailed export is strictly required whenever teams need to detect orphaned Persistent Disks, attribute shared GKE cluster workloads, or identify the single virtual machine responsible for a bandwidth spike.</p>
+
+        <h4>3. Pricing Export (`cloud_pricing_export`)</h4>
+        <p>The Pricing export streams the organization's comprehensive SKU pricing catalog. It exposes list prices, tiered volume rates, pricing units (e.g., gibibyte-months, core-hours), and negotiated enterprise contract discounts. By joining the Detailed Usage table with the Pricing table, architects can perform "what-if" simulations—such as modeling the exact financial impact of migrating 500 Compute Engine instances from On-Demand to 3-Year Flexible Committed Use Discounts.</p>
+
+        <h4>BigQuery Partitioning &amp; Query Optimization</h4>
+        <p>Billing export tables grow continuously and can accumulate billions of rows in enterprise environments. To prevent runaway BigQuery analysis bills, Google Cloud automatically partitions billing tables by ingestion date (<code>_PARTITIONDATE</code>) or usage start date.</p>
+        <p>Best practice mandates always filtering queries on <code>_PARTITIONDATE</code> and clustering by <code>project.id</code> and <code>service.id</code>:</p>
+
+        <pre><code class="language-sql">-- Cost aggregation by project and service with partition pruning
+SELECT
+  project.id AS project_id,
+  service.description AS service_name,
+  ROUND(SUM(cost), 2) AS gross_cost_usd,
+  ROUND(SUM((SELECT SUM(c.amount) FROM UNNEST(credits) AS c)), 2) AS total_credits_usd,
+  ROUND(SUM(cost + IFNULL((SELECT SUM(c.amount) FROM UNNEST(credits) AS c), 0)), 2) AS net_cost_usd
+FROM
+  `brightloaf-billing.billing_export.gcp_billing_export_resource_v1_01A2B3_4C5D6E_7F8G9H`
+WHERE
+  _PARTITIONDATE BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE()
+GROUP BY
+  project_id, service_name
+ORDER BY
+  net_cost_usd DESC;</code></pre>
+
+        <!-- Insert Figure 29.2 -->
+        <figure class="architecture-diagram" id="fig-29-2">
+          <svg viewBox="0 0 980 440" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-29-2-title fig-29-2-desc">
+            <title id="fig-29-2-title">Figure 29.2: BigQuery Billing Export Multi-Stream Pipeline &amp; Schema Hierarchy</title>
+            <desc id="fig-29-2-desc">Architecture diagram detailing the three BigQuery Cloud Billing export streams—Standard, Detailed, and Pricing—along with their structural schemas and downstream analytical destinations.</desc>
+            <defs>
+              <linearGradient id="bg-grad-29-2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#090d16"/>
+                <stop offset="100%" stop-color="#121526"/>
+              </linearGradient>
+              <linearGradient id="panel-grad-29-2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#161b30"/>
+                <stop offset="100%" stop-color="#1e243d"/>
+              </linearGradient>
+              <marker id="arrow-cyan-29-2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8"/>
+              </marker>
+              <marker id="arrow-purple-29-2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#c084fc"/>
+              </marker>
+            </defs>
+
+            <!-- Background Canvas -->
+            <rect width="980" height="440" rx="12" fill="url(#bg-grad-29-2)" stroke="#1e293b" stroke-width="1.5"/>
+
+            <!-- Banner Header -->
+            <text x="30" y="38" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">BigQuery Billing Export Streams &amp; Schema Specialization</text>
+            <text x="30" y="58" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Three distinct export streams: Standard daily SKU costs, Detailed resource-level tracking, and Enterprise Pricing</text>
+
+            <!-- Box 1: Stream A - Standard Usage Export -->
+            <rect x="30" y="90" width="280" height="320" rx="8" fill="url(#panel-grad-29-2)" stroke="#38bdf8" stroke-width="1.5"/>
+            <rect x="42" y="102" width="105" height="20" rx="4" fill="#0284c7" fill-opacity="0.25"/>
+            <text x="94" y="116" fill="#38bdf8" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">STANDARD EXPORT</text>
+            <text x="42" y="142" fill="#f8fafc" font-size="13" font-weight="700" font-family="monospace">gcp_billing_export_v1_*</text>
+            <text x="42" y="162" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Daily service-level cost rollups</text>
+
+            <rect x="42" y="176" width="256" height="150" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="52" y="196" fill="#cbd5e1" font-size="11" font-family="monospace">• billing_account_id: STRING</text>
+            <text x="52" y="214" fill="#cbd5e1" font-size="11" font-family="monospace">• service: STRUCT&lt;id, desc&gt;</text>
+            <text x="52" y="232" fill="#cbd5e1" font-size="11" font-family="monospace">• sku: STRUCT&lt;id, desc&gt;</text>
+            <text x="52" y="250" fill="#cbd5e1" font-size="11" font-family="monospace">• project: STRUCT&lt;id, name&gt;</text>
+            <text x="52" y="268" fill="#cbd5e1" font-size="11" font-family="monospace">• cost: FLOAT64 | currency: STRING</text>
+            <text x="52" y="286" fill="#cbd5e1" font-size="11" font-family="monospace">• credits: ARRAY&lt;STRUCT&gt;</text>
+            <text x="52" y="306" fill="#f87171" font-size="10" font-family="system-ui, sans-serif">&#10006; No individual resource IDs</text>
+
+            <text x="42" y="348" fill="#38bdf8" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Best for: Macro budgets &amp; invoice totals</text>
+            <text x="42" y="366" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">Low storage footprint &amp; fast scans</text>
+
+            <!-- Box 2: Stream B - Detailed Usage Export -->
+            <rect x="330" y="90" width="320" height="320" rx="8" fill="url(#panel-grad-29-2)" stroke="#22c55e" stroke-width="1.5"/>
+            <rect x="342" y="102" width="105" height="20" rx="4" fill="#16a34a" fill-opacity="0.25"/>
+            <text x="394" y="116" fill="#4ade80" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">DETAILED EXPORT</text>
+            <text x="342" y="142" fill="#f8fafc" font-size="13" font-weight="700" font-family="monospace">gcp_billing_export_resource_v1_*</text>
+            <text x="342" y="162" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Resource-level granularity with labels</text>
+
+            <rect x="342" y="176" width="296" height="150" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="352" y="196" fill="#4ade80" font-size="11" font-weight="700" font-family="monospace">• resource.name: STRING</text>
+            <text x="352" y="214" fill="#cbd5e1" font-size="11" font-family="monospace">  (e.g., //compute/instances/prod-01)</text>
+            <text x="352" y="232" fill="#4ade80" font-size="11" font-weight="700" font-family="monospace">• resource.global_name: STRING</text>
+            <text x="352" y="250" fill="#cbd5e1" font-size="11" font-family="monospace">• location: STRUCT&lt;region, zone&gt;</text>
+            <text x="352" y="268" fill="#4ade80" font-size="11" font-weight="700" font-family="monospace">• labels: ARRAY&lt;STRUCT&lt;k, v&gt;&gt;</text>
+            <text x="352" y="286" fill="#cbd5e1" font-size="11" font-family="monospace">• cost: FLOAT64 | usage: STRUCT</text>
+            <text x="352" y="306" fill="#86efac" font-size="10" font-family="system-ui, sans-serif">&#10004; Pinpoints exact VMs, disks &amp; buckets</text>
+
+            <text x="342" y="348" fill="#4ade80" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Essential for: FinOps chargeback &amp; waste audit</text>
+            <text x="342" y="366" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">Requires date partition filters to limit query cost</text>
+
+            <!-- Box 3: Stream C - Pricing Export -->
+            <rect x="670" y="90" width="280" height="320" rx="8" fill="url(#panel-grad-29-2)" stroke="#a855f7" stroke-width="1.5"/>
+            <rect x="682" y="102" width="105" height="20" rx="4" fill="#9333ea" fill-opacity="0.25"/>
+            <text x="734" y="116" fill="#c084fc" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">PRICING EXPORT</text>
+            <text x="682" y="142" fill="#f8fafc" font-size="13" font-weight="700" font-family="monospace">cloud_pricing_export</text>
+            <text x="682" y="162" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Contract SKU rates &amp; tiered discounts</text>
+
+            <rect x="682" y="176" width="256" height="150" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="692" y="196" fill="#cbd5e1" font-size="11" font-family="monospace">• sku.id: STRING</text>
+            <text x="692" y="214" fill="#cbd5e1" font-size="11" font-family="monospace">• service: STRUCT&lt;id, desc&gt;</text>
+            <text x="692" y="232" fill="#cbd5e1" font-size="11" font-family="monospace">• pricing_expression: STRUCT</text>
+            <text x="692" y="250" fill="#cbd5e1" font-size="11" font-family="monospace">• tiered_rates: ARRAY&lt;STRUCT&gt;</text>
+            <text x="692" y="268" fill="#cbd5e1" font-size="11" font-family="monospace">• list_price: STRUCT</text>
+            <text x="692" y="286" fill="#cbd5e1" font-size="11" font-family="monospace">• effective_price: STRUCT</text>
+            <text x="692" y="306" fill="#c084fc" font-size="10" font-family="system-ui, sans-serif">&#10004; Captures custom enterprise terms</text>
+
+            <text x="682" y="348" fill="#c084fc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Used for: Cost modeling &amp; what-if simulations</text>
+            <text x="682" y="366" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">Replaces public pricing calculator tables</text>
+          </svg>
+          <figcaption>Figure 29.2: BigQuery Billing Export Multi-Stream Pipeline &amp; Schema Hierarchy. Cloud Billing feeds three distinct BigQuery streams: Standard Export (macro project/SKU costs), Detailed Export (granular resource identifiers, regional zones, and repeated label structs for root-cause cost attribution), and Pricing Export (contractual SKU rates and tiered discount structures).</figcaption>
+        </figure>
+      </article>
+
+      <!-- Topic 03 Technical -->
+      <article class="card" id="topic-03-technical" aria-labelledby="t3-tech-heading">
+        <h3 id="t3-tech-heading">Topic 03 · Understanding quotas (rate quotas vs allocation quotas) and how to request increases</h3>
+        <p>A fundamental requirement of cloud systems engineering is distinguishing between <em>software-enforced boundary limits</em> and <em>physical infrastructure availability</em>. In Google Cloud, resource consumption is governed by the <strong>Capacity Triad</strong>: Rate Quotas, Allocation Quotas, and Physical Hardware Inventory.</p>
+
+        <h4>1. Rate Quotas (Velocity Boundaries)</h4>
+        <p>Rate quotas restrict the frequency of API calls or operations within a sliding time window (typically measured in requests per 100 seconds or operations per minute). They protect Google Cloud's control plane APIs and customer database frontends from distributed denial-of-service spikes and accidental client retry storms.</p>
+        <ul>
+          <li><strong>Common Examples:</strong> Compute Engine API Read/Write requests per minute, Cloud Pub/Sub publish throughput per region, Secret Manager access calls per second, and BigQuery query submission rate.</li>
+          <li><strong>Failure Mechanics:</strong> When an application breaches a rate quota, Google Cloud's API gateway rejects requests immediately with <code>HTTP 429 Too Many Requests</code> or <code>RESOURCE_EXHAUSTED</code>.</li>
+          <li><strong>Architectural Handling:</strong> Rate quota exhaustion must be handled in application code using <strong>exponential backoff with full jitter</strong>. Rate quotas reset automatically as soon as the rolling time window passes.</li>
+        </ul>
+
+        <h4>2. Allocation Quotas (Resource Ceilings)</h4>
+        <p>Allocation quotas restrict the total number of physical or virtual resources an organization can provision simultaneously inside a project or regional boundary. They safeguard projects from runaway provisioning scripts and manage capacity distribution across tenants.</p>
+        <ul>
+          <li><strong>Common Examples:</strong> Total vCPUs per region (e.g., <code>CPUS_ALL_REGIONS</code> or <code>N2_CPUS</code> in <code>us-central1</code>), Persistent Disk SSD gigabytes, external static IP addresses, and Cloud SQL instances per project.</li>
+          <li><strong>Failure Mechanics:</strong> Provisioning operations (e.g., VM insertion, MIG auto-scaling, Kubernetes cluster enlargement) fail with <code>QUOTA_EXCEEDED</code> (e.g., <code>Quota 'CPUS' exceeded. Limit: 100.0 in region us-central1</code>). Running workloads continue unaffected, but all scale-out events halt.</li>
+          <li><strong>Architectural Handling:</strong> Allocation quotas do not replenish over time; they only free up when active resources are terminated or when an administrator requests and receives an approved quota increase.</li>
+        </ul>
+
+        <h4>3. Physical Hardware Capacity (Datacenter Inventory)</h4>
+        <p>The most dangerous operational misconception is assuming that an approved allocation quota guarantees physical resource availability. <strong>A quota limit is merely administrative permission to consume, not a reservation of physical hardware.</strong></p>
+        <ul>
+          <li><strong>Failure Mechanics:</strong> If Google Cloud experiences an unexpected regional run on hardware (such as high-demand GPU clusters or specialized bare-metal instances) in a specific zone, attempting to launch an instance will return <code>ZONE_RESOURCE_POOL_EXHAUSTED</code> or <code>ZONE_RESOURCE_POOL_EXHAUSTED_WITH_DETAILS</code>. This occurs even if the project's allocation quota shows 10,000 available vCPUs!</li>
+          <li><strong>Architectural Handling:</strong>
+            <ul>
+              <li><strong>Multi-Zonal MIGs:</strong> Deploy workloads across regional Managed Instance Groups spanning at least three availability zones with proactive instance redistribution.</li>
+              <li><strong>Capacity Reservations:</strong> For mission-critical production workloads, purchase <strong>Compute Engine Capacity Reservations</strong>. Reservations physically lock hardware in a specific zone, guaranteeing that <code>ZONE_RESOURCE_POOL_EXHAUSTED</code> will never block provisioning.</li>
+            </ul>
+          </li>
+        </ul>
+
+        <div class="table-container">
+          <table>
+            <caption>Table 29.2: The Capacity Triad: Rate Quotas vs. Allocation Quotas vs. Physical Hardware Capacity</caption>
+            <thead>
+              <tr>
+                <th scope="col">Dimension</th>
+                <th scope="col">Rate Quota</th>
+                <th scope="col">Allocation Quota</th>
+                <th scope="col">Physical Hardware Capacity</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Controlled Plane</th>
+                <td>API velocity &amp; request throughput</td>
+                <td>Cumulative provisioned infrastructure inventory</td>
+                <td>Physical server racks &amp; hypervisors in zone</td>
+              </tr>
+              <tr>
+                <th scope="row">Evaluation Window</th>
+                <td>Rolling 60 or 100 seconds</td>
+                <td>Continuous static threshold</td>
+                <td>Real-time datacenter physical inventory</td>
+              </tr>
+              <tr>
+                <th scope="row">Failure Error Code</th>
+                <td><code>HTTP 429 Too Many Requests</code></td>
+                <td><code>QUOTA_EXCEEDED</code></td>
+                <td><code>ZONE_RESOURCE_POOL_EXHAUSTED</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Auto-Recovery?</th>
+                <td><strong>Yes.</strong> Automatically resets after window</td>
+                <td><strong>No.</strong> Requires teardown or quota increase</td>
+                <td><strong>No.</strong> Requires zone reallocation or capacity shift</td>
+              </tr>
+              <tr>
+                <th scope="row">Remediation Path</th>
+                <td>Truncated backoff + jitter; batching</td>
+                <td>Request quota increase via Console/API</td>
+                <td>Regional MIGs; purchase Capacity Reservations</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Requesting Quota Increases &amp; Quota Adjuster</h4>
+        <p>To request quota increases before seasonal campaigns or planned scale-up events:</p>
+        <ol>
+          <li>Navigate to <strong>IAM &amp; Admin &gt; Quotas &amp; System Limits</strong> in the Google Cloud Console or use the Cloud Quotas API.</li>
+          <li>Select the specific quota (e.g., <code>compute.googleapis.com/cpus</code> in <code>us-central1</code>) and submit a justification describing workload requirements and expected duration.</li>
+          <li><strong>Approval Lead Times:</strong> Modest increases are evaluated and approved automatically by machine-learning capacity models within minutes. Significant increases (e.g., requesting 5,000 vCPUs or H100 GPUs) undergo human review by Google Capacity Engineering, requiring 2 to 5 business days lead time.</li>
+          <li><strong>Cloud Quota Adjuster:</strong> For supported services, enable the Google Cloud Quota Adjuster. It monitors usage trends and submits automated increase requests proactively before consumption hits 85% of existing limits.</li>
+        </ol>
+
+        <!-- Insert Figure 29.3 -->
+        <figure class="architecture-diagram" id="fig-29-3">
+          <svg viewBox="0 0 980 440" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-29-3-title fig-29-3-desc">
+            <title id="fig-29-3-title">Figure 29.3: Quota Hierarchy &amp; The Capacity Triad</title>
+            <desc id="fig-29-3-desc">Architectural diagram contrasting Rate Quotas (API frequency limits), Allocation Quotas (provisioned resource ceilings), and Physical Hardware Capacity (actual datacenter inventory), along with their distinct failure modes.</desc>
+            <defs>
+              <linearGradient id="bg-grad-29-3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#090d16"/>
+                <stop offset="100%" stop-color="#121526"/>
+              </linearGradient>
+              <linearGradient id="panel-grad-29-3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#161b30"/>
+                <stop offset="100%" stop-color="#1e243d"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Background Canvas -->
+            <rect width="980" height="440" rx="12" fill="url(#bg-grad-29-3)" stroke="#1e293b" stroke-width="1.5"/>
+
+            <!-- Banner Header -->
+            <text x="30" y="38" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">The Capacity Triad: Rate Quotas, Allocation Quotas &amp; Physical Inventory</text>
+            <text x="30" y="58" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Understanding the three independent failure boundaries governing Google Cloud workload execution</text>
+
+            <!-- Column 1: Rate Quotas -->
+            <rect x="30" y="85" width="280" height="325" rx="8" fill="url(#panel-grad-29-3)" stroke="#f59e0b" stroke-width="1.5"/>
+            <rect x="42" y="97" width="100" height="20" rx="4" fill="#d97706" fill-opacity="0.25"/>
+            <text x="92" y="111" fill="#f59e0b" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">RATE QUOTAS</text>
+            <text x="42" y="136" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">API Frequency Limits</text>
+            <text x="42" y="154" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Velocity boundary: calls per minute</text>
+
+            <rect x="42" y="168" width="256" height="74" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="52" y="186" fill="#f8fafc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Scope Examples:</text>
+            <text x="52" y="204" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">• Read/Write requests per 100 sec</text>
+            <text x="52" y="220" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">• Cloud Pub/Sub publish bytes/sec</text>
+            <text x="52" y="234" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">• Secret Manager access QPS</text>
+
+            <rect x="42" y="248" width="256" height="74" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="52" y="266" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, sans-serif">Failure Signal:</text>
+            <text x="52" y="284" fill="#f87171" font-size="11" font-weight="600" font-family="monospace">HTTP 429 Too Many Requests</text>
+            <text x="52" y="302" fill="#cbd5e1" font-size="10" font-family="monospace">RESOURCE_EXHAUSTED</text>
+            <text x="52" y="316" fill="#fca5a5" font-size="9" font-style="italic" font-family="system-ui, sans-serif">Client throttled immediately</text>
+
+            <rect x="42" y="328" width="256" height="66" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="52" y="346" fill="#f59e0b" font-size="11" font-weight="700" font-family="system-ui, sans-serif">Remediation Architecture:</text>
+            <text x="52" y="364" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Exponential backoff with full jitter</text>
+            <text x="52" y="380" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Batch requests / client-side caching</text>
+
+            <!-- Column 2: Allocation Quotas -->
+            <rect x="330" y="85" width="310" height="325" rx="8" fill="url(#panel-grad-29-3)" stroke="#38bdf8" stroke-width="1.5"/>
+            <rect x="342" y="97" width="130" height="20" rx="4" fill="#0284c7" fill-opacity="0.25"/>
+            <text x="407" y="111" fill="#38bdf8" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">ALLOCATION QUOTAS</text>
+            <text x="342" y="136" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Provisioned Resource Caps</text>
+            <text x="342" y="154" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Inventory boundary: aggregate resources</text>
+
+            <rect x="342" y="168" width="286" height="74" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="352" y="186" fill="#f8fafc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Scope Examples:</text>
+            <text x="352" y="204" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">• CPUs per region (e.g. 500 vCPUs in us-east1)</text>
+            <text x="352" y="220" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">• Persistent Disk SSD (GB per region)</text>
+            <text x="352" y="234" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">• Static external IP addresses</text>
+
+            <rect x="342" y="248" width="286" height="74" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="352" y="266" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, sans-serif">Failure Signal:</text>
+            <text x="352" y="284" fill="#f87171" font-size="11" font-weight="600" font-family="monospace">QUOTA_EXCEEDED</text>
+            <text x="352" y="302" fill="#cbd5e1" font-size="10" font-family="monospace">Quota 'CPUS' exceeded. Limit: 100.0</text>
+            <text x="352" y="316" fill="#fca5a5" font-size="9" font-style="italic" font-family="system-ui, sans-serif">Creation/Autoscaling blocked</text>
+
+            <rect x="342" y="328" width="286" height="66" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="352" y="346" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, sans-serif">Remediation Architecture:</text>
+            <text x="352" y="364" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Submit quota increase via Console/API</text>
+            <text x="352" y="380" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Clean idle instances / unattached disks</text>
+
+            <!-- Column 3: Physical Capacity -->
+            <rect x="660" y="85" width="290" height="325" rx="8" fill="url(#panel-grad-29-3)" stroke="#ef4444" stroke-width="1.5"/>
+            <rect x="672" y="97" width="130" height="20" rx="4" fill="#b91c1c" fill-opacity="0.25"/>
+            <text x="737" y="111" fill="#f87171" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">PHYSICAL CAPACITY</text>
+            <text x="672" y="136" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Datacenter Inventory</text>
+            <text x="672" y="154" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Physical hardware in specific zone</text>
+
+            <rect x="672" y="168" width="266" height="74" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="682" y="186" fill="#f8fafc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Scope Examples:</text>
+            <text x="682" y="204" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">• Physical server slots in zone us-central1-b</text>
+            <text x="682" y="220" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">• GPU inventory (NVIDIA H100 / A100)</text>
+            <text x="682" y="234" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">• Specific machine families (e.g. C3/M2)</text>
+
+            <rect x="672" y="248" width="266" height="74" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="682" y="266" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, sans-serif">Failure Signal:</text>
+            <text x="682" y="284" fill="#f87171" font-size="11" font-weight="600" font-family="monospace">ZONE_RESOURCE_POOL_EXHAUSTED</text>
+            <text x="682" y="302" fill="#cbd5e1" font-size="10" font-family="system-ui, sans-serif">Occurs EVEN IF quota limit is 10,000!</text>
+            <text x="682" y="316" fill="#fca5a5" font-size="9" font-style="italic" font-family="system-ui, sans-serif">Google has no physical server free</text>
+
+            <rect x="672" y="328" width="266" height="66" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="682" y="346" fill="#ef4444" font-size="11" font-weight="700" font-family="system-ui, sans-serif">Remediation Architecture:</text>
+            <text x="682" y="364" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Regional MIGs across multiple zones</text>
+            <text x="682" y="380" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">• Compute Engine Capacity Reservations</text>
+          </svg>
+          <figcaption>Figure 29.3: Quota Hierarchy &amp; The Capacity Triad. Architectural comparison of the three failure planes in Google Cloud resource provisioning. Rate Quotas throttle request velocity with <code>HTTP 429</code>; Allocation Quotas cap maximum provisioned resource quantities with <code>QUOTA_EXCEEDED</code>; Physical Capacity reflects actual physical datacenter hardware availability, failing with <code>ZONE_RESOURCE_POOL_EXHAUSTED</code> even when approved quotas are abundant.</figcaption>
+        </figure>
+
+        <h4>Further Study &amp; Official References</h4>
+        <ul>
+          <li><a href="https://cloud.google.com/billing/docs/how-to/reports" target="_blank" rel="noopener noreferrer">Google Cloud Billing: View billing reports and cost trends</a></li>
+          <li><a href="https://cloud.google.com/billing/docs/how-to/cost-table" target="_blank" rel="noopener noreferrer">Google Cloud Billing: View and download cost table</a></li>
+          <li><a href="https://cloud.google.com/billing/docs/how-to/export-data-bigquery" target="_blank" rel="noopener noreferrer">Google Cloud Billing: Export billing data to BigQuery</a></li>
+          <li><a href="https://cloud.google.com/docs/quotas/overview" target="_blank" rel="noopener noreferrer">Google Cloud Quotas: Overview of quotas and system limits</a></li>
+          <li><a href="https://cloud.google.com/docs/quotas/view-manage" target="_blank" rel="noopener noreferrer">Google Cloud Quotas: View and manage quotas</a></li>
+        </ul>
+      </article>
+    </section>

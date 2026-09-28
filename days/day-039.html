@@ -1,0 +1,1253 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 39: Autohealing and deployment changes · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+</style>
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-038.html" aria-label="Previous day">← Day 38</a>
+<a href="day-040.html" aria-label="Next day">Day 40 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html" selected>Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="39" data-prev="day-038.html" data-next="day-040.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 39 of 180</div>
+
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 39</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">tabletop / cloud design</span>
+<span class="pill">Topic 013</span>
+</div>
+<h1>Day 39 — Autohealing and deployment changes</h1>
+<p class="lead"><strong>Outcome:</strong> Configure autohealing policies with calibrated health check delays, orchestrate zero-downtime rolling updates with max-surge and max-unavailable constraints, evaluate stateful MIG disk preservation, and contrast managed vs unmanaged groups.</p>
+<div>
+<strong>Entry prerequisites:</strong>
+<p><a href="day-038.html">Day 38</a> (templates, MIGs and scaling); bring its exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A recovery and update timeline document (<code>day-039-recovery.md</code>) with explicit application readiness thresholds, max-surge and unavailability constraints, stateful disk preservation rules, and an unmanaged group evaluation matrix.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-27; autohealing, rolling updates, and stateful MIG specifications sourced from GCP Compute Engine documentation. Figures and calculations represent architectural models rather than production benchmarks.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Autohealing with health checks</span>
+<a href="#topic-01-overview">overview</a> ·
+<a href="#topic-01-technical">discussion</a> ·
+<a href="#topic-01-problem">problem</a> ·
+<a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Rolling updates: max surge, max unavailable, canary rollouts</span>
+<a href="#topic-02-overview">overview</a> ·
+<a href="#topic-02-technical">discussion</a> ·
+<a href="#topic-02-problem">problem</a> ·
+<a href="#topic-02-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Stateful MIGs</span>
+<a href="#topic-03-overview">overview</a> ·
+<a href="#topic-03-technical">discussion</a> ·
+<a href="#topic-03-problem">problem</a> ·
+<a href="#topic-03-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Unmanaged instance groups</span>
+<a href="#topic-04-overview">overview</a> ·
+<a href="#topic-04-technical">discussion</a> ·
+<a href="#topic-04-problem">problem</a> ·
+<a href="#topic-04-lab">lab</a>
+</div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════ PART 1 ══ -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Autohealing with health checks</h3>
+<p>
+  <strong>Autohealing</strong> is an automated control loop in Managed Instance Groups that detects and replaces failing, frozen, or corrupted virtual machines. While Cloud Load Balancing health checks dictate whether an instance should receive ingress network packets, an autohealing health check dictates whether the underlying VM should live or be destroyed and recreated from scratch.
+</p>
+<p>
+  A foundational element of autohealing is the <strong>initial delay</strong> (grace period). The autohealing controller ignores failed probes until this duration expires, providing the guest operating system, container runtime, and application caches adequate time to boot and pass readiness probes before facing recreation.
+</p>
+<p class="small"><em>Problem preview:</em> A DevOps engineer attaches an autohealing health check with an aggressive 15-second initial delay to the Order API MIG, but the Java application requires 50 seconds to warm up its database connection pools. Every newly provisioned VM is marked unhealthy and killed before it can ever finish booting, plunging the entire service into a perpetual recreation death spiral with zero live instances.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Rolling updates: max surge, max unavailable, canary rollouts</h3>
+<p>
+  Compute Engine enables zero-downtime application deployments across a MIG through declarative <strong>rolling update policies</strong>. By specifying <code>maxSurge</code> (the number of additional instances created above the target size) and <code>maxUnavailable</code> (the number of instances allowed to be offline or draining during the update), teams can balance deployment speed against capacity guarantees.
+</p>
+<p>
+  Canary deployments allow validating a new instance template version against a small percentage of production traffic before committing the entire fleet. When misconfigured, aggressive unavailability limits can strip serving headroom during peak hours, degrading latency and triggering cascading backend timeouts.
+</p>
+<p class="small"><em>Problem preview:</em> An operator initiates a rolling update for the Order API with <code>maxUnavailable: 50%</code> and <code>maxSurge: 0</code> during peak checkout hours on a group sized at 4 instances. Half of the serving capacity is immediately terminated, overloading the surviving two instances to 100% CPU and causing gateway timeout spikes (HTTP 504) for online shoppers.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Stateful MIGs</h3>
+<p>
+  While standard MIGs are strictly stateless and treat instances as identical, disposable cattle, <strong>Stateful MIGs</strong> preserve individual instance identities and state across automated restarts, autohealing, and rolling updates. This includes preserving specific persistent disk attachments, static internal/external IP addresses, and custom metadata keys tied to deterministic instance names (e.g., <code>kafka-node-0</code>).
+</p>
+<p>
+  Stateful MIGs bridge the gap between automated fleet management and stateful architectures such as databases, distributed streaming brokers, and local transactional ledgers. A stateful policy defines which disks are preserved when an instance is recreated, ensuring customer transactional data is not destroyed during operating system patching.
+</p>
+<p class="small"><em>Problem preview:</em> An engineer mounts an auxiliary persistent disk for the local order audit ledger onto a MIG instance but fails to configure a stateful policy for that disk. During an automated OS security update, the MIG recreates the VM, detaches and silently deletes the unmanaged auxiliary disk, resulting in permanent loss of local audit records.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-04-overview" class="topic-card">
+<h3>Unmanaged instance groups</h3>
+<p>
+  An <strong>Unmanaged Instance Group</strong> is a heterogeneous collection of virtual machines grouped together solely to serve as backend targets for Cloud Load Balancing. Unlike MIGs, unmanaged groups provide no instance templates, no automated health recreation, no rolling update coordination, and no autoscaling capabilities.
+</p>
+<p>
+  Unmanaged groups are strictly reserved for legacy monoliths, specialized appliance pairs, or third-party clustered applications with bespoke failover controllers. Relying on an unmanaged group for high-traffic microservices shifts all operational toil and failure recovery back onto manual human intervention.
+</p>
+<p class="small"><em>Problem preview:</em> A team deploys three legacy order gateways in an unmanaged instance group behind an internal load balancer; when one VM crashes due to an out-of-memory kernel panic over the weekend, no autohealing controller exists to restart or replace it. The remaining two VMs absorb traffic until Monday morning when a traffic surge crashes the second instance, leaving only one degraded node to handle the entire enterprise load.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 2 ══ -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Autohealing with health checks</h3>
+
+<h4>Load balancing vs autohealing health checks</h4>
+<p>
+  In Google Cloud Compute Engine, health checks serve two distinct architectural roles that must not be conflated:
+</p>
+<ul>
+  <li><strong>Load Balancing Health Check:</strong> Probes the service endpoint (e.g. <code>/healthz</code>) to determine traffic eligibility. If probes fail, the load balancer marks the backend as <code>UNHEALTHY</code> and stops routing new connections to it. The VM remains alive and running to allow debugging or recovery.</li>
+  <li><strong>Autohealing Health Check:</strong> Configured directly on the Managed Instance Group. If probes consistently fail beyond the unhealthy threshold, the MIG controller issues an API command to forcefully stop, destroy, and recreate the VM from the template.</li>
+</ul>
+
+<h4>The initial delay requirement</h4>
+<p>
+  When an instance boots, it must execute OS initialization, initialize background daemons, launch the application runtime, warm local caches, and establish database connection pools. The autohealing policy parameter <code>initialDelaySec</code> tells the MIG manager how long to withhold judgment. Probes are ignored until <code>initialDelaySec</code> has elapsed.
+</p>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Recommended Setting</th>
+<th>Impact of Misconfiguration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Check Interval</strong></td>
+<td>5–10 seconds</td>
+<td>Too frequent: unnecessary CPU/network overhead; Too infrequent: slow detection</td>
+</tr>
+<tr>
+<td><strong>Healthy Threshold</strong></td>
+<td>2 consecutive successes</td>
+<td>Ensures service is truly operational before admitting traffic</td>
+</tr>
+<tr>
+<td><strong>Unhealthy Threshold</strong></td>
+<td>3 consecutive failures</td>
+<td>Prevents recreation on momentary network blips</td>
+</tr>
+<tr>
+<td><strong>Initial Delay</strong></td>
+<td>Measured Boot Time + 30–60s margin</td>
+<td>Too short: permanent recreation death spiral; Too long: broken instances linger</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/instance-groups/autohealing-instances-in-migs" rel="noopener noreferrer">Autohealing instances in MIGs</a> — Official GCP reference on configuring autohealing health checks, probe intervals, and recreation policies. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Rolling updates: max surge, max unavailable, canary rollouts</h3>
+
+<h4>Update parameters and capacity guarantees</h4>
+<p>
+  When rolling out a new Instance Template, the MIG manager executes an automated rolling update. Two mathematical levers govern the rollout curve:
+</p>
+<ul>
+  <li><code>maxSurge</code>: The number (or percentage) of extra instances created above the target capacity. Specifying <code>maxSurge: 2</code> (or <code>25%</code>) allows the MIG to provision 2 new version instances and verify health before terminating old ones.</li>
+  <li><code>maxUnavailable</code>: The number (or percentage) of instances that can be offline simultaneously during the update. Specifying <code>maxUnavailable: 0</code> guarantees that serving capacity never drops below 100% of the target size.</li>
+</ul>
+
+<h4>Canary rollout deployment shape</h4>
+<p>
+  A canary deployment distributes traffic across two instance templates simultaneously within the same MIG. By specifying a <code>targetSize</code> fraction for Template B (e.g., 10%), the MIG updates only 1 or 2 instances to the canary template while keeping 90% on the stable version. After verifying application metrics and error budgets in Cloud Monitoring, the operator increases the target size to 100% to complete the rollout.
+</p>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>maxSurge</th>
+<th>maxUnavailable</th>
+<th>Capacity Floor</th>
+<th>Quota Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>High Availability (Recommended)</strong></td>
+<td>25% (or 1+)</td>
+<td>0</td>
+<td>100%</td>
+<td>Requires temporary surplus regional vCPU quota</td>
+</tr>
+<tr>
+<td><strong>Quota Constrained</strong></td>
+<td>0</td>
+<td>1</td>
+<td>N - 1</td>
+<td>Fits within exact quota; reduces total serving headroom</td>
+</tr>
+<tr>
+<td><strong>Aggressive / Unsafe</strong></td>
+<td>0</td>
+<td>50%</td>
+<td>50%</td>
+<td>High risk of overload and cascading gateway 504 errors</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/instance-groups/rolling-out-updates-to-managed-instance-groups" rel="noopener noreferrer">Rolling updates in MIGs</a> — Documentation covering rolling action parameters, canary target sizing, and rollback procedures. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Stateful MIGs</h3>
+
+<h4>Preserving disks, IPs, and metadata across recreations</h4>
+<p>
+  In a standard stateless MIG, instance recreation discards all local root and attached persistent disks, recreating fresh empty disks from the template image. In a <strong>Stateful MIG</strong>, you define a per-instance configuration or group-level stateful policy:
+</p>
+<ul>
+  <li><strong>Stateful Persistent Disks:</strong> Disks marked as stateful are detached when an instance is stopped or recreated, preserved without data loss, and reattached to the replacement VM upon reboot.</li>
+  <li><strong>Stateful IP Addresses:</strong> Specific static internal or external IP addresses remain bound to deterministic VM names (e.g. <code>backend-01</code> always retains <code>10.0.1.5</code>).</li>
+  <li><strong>Stateful Metadata:</strong> Custom metadata keys (e.g. cluster node role, shard ID) persist across instance updates.</li>
+</ul>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/instance-groups/stateful-migs" rel="noopener noreferrer">Configuring stateful MIGs</a> — Details on configuring stateful disks, autohealing with preserved data, and non-destructive rolling updates. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-04-technical" class="topic-card">
+<h3>Unmanaged instance groups</h3>
+
+<h4>Architectural boundaries and operational comparison</h4>
+<p>
+  An Unmanaged Instance Group is simply a logical container for existing Compute Engine VMs. The group does not manage lifecycle, does not monitor health, and cannot scale.
+</p>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Capability</th>
+<th>Managed Instance Group (MIG)</th>
+<th>Unmanaged Instance Group</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Instance Homogeneity</strong></td>
+<td>Identical (derived from single template)</td>
+<td>Heterogeneous (different sizes, OS, configs)</td>
+</tr>
+<tr>
+<td><strong>Autohealing</strong></td>
+<td>Automated restart &amp; recreation on failure</td>
+<td>None (manual intervention required)</td>
+</tr>
+<tr>
+<td><strong>Autoscaling</strong></td>
+<td>Dynamic expansion/contraction via metrics</td>
+<td>None (static instance list)</td>
+</tr>
+<tr>
+<td><strong>Rolling Updates</strong></td>
+<td>Canary, maxSurge, maxUnavailable automated</td>
+<td>Manual per-VM reconfiguration</td>
+</tr>
+<tr>
+<td><strong>Load Balancer Integration</strong></td>
+<td>Native backend service target</td>
+<td>Native backend service target</td>
+</tr>
+</tbody>
+</table>
+
+<!-- Part 2 Architecture SVG -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d39-arch-title d39-arch-desc">
+<title id="d39-arch-title">Managed Instance Group autohealing lifecycle and rolling update mechanics</title>
+<desc id="d39-arch-desc">A detailed architectural visual showing the MIG Controller managing autohealing probes and rolling update progression. On the left, autohealing evaluates probes against the initial delay window, choosing between normal traffic serving or VM destruction/recreation. On the right, a rolling update coordinates max-surge and max-unavailable limits, demonstrating how a canary instance template v2 is phased in while preserving stateful disk attachments.</desc>
+<defs>
+<marker id="d39-a-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#38bdf8"/>
+</marker>
+<marker id="d39-g-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#4ade80"/>
+</marker>
+<marker id="d39-r-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Left Section: Autohealing Control Loop -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="24" y="30" width="440" height="380" rx="8"/>
+<text fill="#38bdf8" font-size="12" font-weight="700" x="244" y="56" text-anchor="middle">AUTOHEALING CONTROL LOOP</text>
+
+<rect class="box" x="44" y="80" width="180" height="70" rx="6"/>
+<text font-size="11" font-weight="700" x="134" y="104" text-anchor="middle">VM Initial Boot</text>
+<text class="small-label" x="134" y="124" text-anchor="middle">OS boot &amp; runtime start</text>
+<text class="small-label" x="134" y="138" text-anchor="middle">Takes ~45 seconds</text>
+
+<rect fill="#1e293b" stroke="#facc15" stroke-width="1.5" x="260" y="80" width="180" height="70" rx="6"/>
+<text fill="#facc15" font-size="11" font-weight="700" x="350" y="104" text-anchor="middle">Initial Delay Window</text>
+<text class="small-label" x="350" y="124" text-anchor="middle">Configured: 60s grace period</text>
+<text class="small-label" x="350" y="138" text-anchor="middle">Probes IGNORED by MIG</text>
+
+<path class="path" marker-end="url(#d39-a-arr)" d="M224 115 H260"/>
+
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="1.5" x="150" y="180" width="190" height="70" rx="6"/>
+<text fill="#38bdf8" font-size="11" font-weight="700" x="245" y="206" text-anchor="middle">Health Check Probes</text>
+<text class="small-label" x="245" y="226" text-anchor="middle">Endpoint: /healthz (every 5s)</text>
+<text class="small-label" x="245" y="240" text-anchor="middle">Threshold: 3 failures</text>
+
+<path class="path" marker-end="url(#d39-a-arr)" d="M350 150 V180"/>
+
+<!-- Decision branches -->
+<rect fill="#052e16" stroke="#22c55e" stroke-width="1.5" x="44" y="290" width="170" height="90" rx="6"/>
+<text fill="#4ade80" font-size="11" font-weight="700" x="129" y="316" text-anchor="middle">Healthy (HTTP 200)</text>
+<text class="small-label" x="129" y="336" text-anchor="middle">Instance kept in service</text>
+<text class="small-label" x="129" y="352" text-anchor="middle">Traffic routed normally</text>
+
+<rect fill="#450a0a" stroke="#f43f5e" stroke-width="1.5" x="270" y="290" width="170" height="90" rx="6"/>
+<text fill="#fda4af" font-size="11" font-weight="700" x="355" y="316" text-anchor="middle">Unhealthy (&gt;3 Failures)</text>
+<text class="small-label" x="355" y="336" text-anchor="middle">MIG controller recreates VM</text>
+<text class="small-label" x="355" y="352" text-anchor="middle">Clean boot from template</text>
+
+<path stroke="#22c55e" stroke-width="2" marker-end="url(#d39-g-arr)" fill="none" d="M210 250 Q160 270 140 290"/>
+<path stroke="#f43f5e" stroke-width="2" marker-end="url(#d39-r-arr)" fill="none" d="M280 250 Q330 270 350 290"/>
+
+<!-- Right Section: Rolling Update & Stateful Preservation -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="490" y="30" width="466" height="380" rx="8"/>
+<text fill="#4ade80" font-size="12" font-weight="700" x="723" y="56" text-anchor="middle">ROLLING UPDATE &amp; STATEFUL PRESERVATION</text>
+
+<!-- Templates -->
+<rect class="box" x="510" y="80" width="190" height="60" rx="6"/>
+<text font-size="10" font-weight="700" x="605" y="102" text-anchor="middle">Template v1 (Stable)</text>
+<text class="small-label" x="605" y="122" text-anchor="middle">Target Size: 75% fleet</text>
+
+<rect fill="#161b30" stroke="#4ade80" stroke-width="1.5" x="740" y="80" width="196" height="60" rx="6"/>
+<text fill="#4ade80" font-size="10" font-weight="700" x="838" y="102" text-anchor="middle">Template v2 (Canary)</text>
+<text class="small-label" x="838" y="122" text-anchor="middle">Target Size: 25% fleet (Canary)</text>
+
+<!-- Update policy box -->
+<rect fill="#121526" stroke="#38bdf8" stroke-width="1" x="510" y="160" width="426" height="80" rx="6"/>
+<text fill="#38bdf8" font-size="11" font-weight="700" x="723" y="184" text-anchor="middle">Rolling Action Policy: maxSurge=1, maxUnavailable=0</text>
+<text class="small-label" x="723" y="204" text-anchor="middle">• Provisions v2 VM first (Surge +1)</text>
+<text class="small-label" x="723" y="222" text-anchor="middle">• Waits for Healthy status → Drains &amp; deletes v1 VM (Serving capacity 100%)</text>
+
+<!-- Stateful Disk Preservation strip -->
+<rect fill="#161b30" stroke="#facc15" stroke-width="1.5" x="510" y="260" width="426" height="130" rx="6"/>
+<text fill="#facc15" font-size="11" font-weight="700" x="723" y="284" text-anchor="middle">Stateful Policy: Preserved Data Disks</text>
+
+<rect class="box" x="530" y="300" width="170" height="70" rx="4"/>
+<text font-size="10" font-weight="700" x="615" y="322" text-anchor="middle">Old VM: order-db-1</text>
+<text class="small-label" x="615" y="340" text-anchor="middle">OS Disk: Ephemeral (Replaced)</text>
+<text fill="#facc15" font-size="10" x="615" y="356" text-anchor="middle">Data Disk: Detached</text>
+
+<path stroke="#facc15" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#d39-a-arr)" fill="none" d="M700 335 H740"/>
+
+<rect fill="#052e16" stroke="#22c55e" stroke-width="1.5" x="750" y="300" width="166" height="70" rx="4"/>
+<text fill="#4ade80" font-size="10" font-weight="700" x="833" y="322" text-anchor="middle">New VM: order-db-1</text>
+<text class="small-label" x="833" y="340" text-anchor="middle">OS Disk: Fresh from v2</text>
+<text fill="#4ade80" font-size="10" x="833" y="356" text-anchor="middle">Data Disk: Reattached</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> Autohealing health check validation incorporating an initial delay grace period (left) alongside rolling update execution using max-surge and canary splits while preserving stateful disks (right). <strong>What it does not prove:</strong> Sub-second TCP connection draining behavior under high connection counts, live database file-system consistency without application flush, or unannounced cloud infrastructure preemptions.
+</figcaption>
+</figure>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/instance-groups/creating-groups-of-unmanaged-instances" rel="noopener noreferrer">Unmanaged instance groups</a> — Official GCP reference on unmanaged group limitations, backend service association, and manual configuration. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 3 ══ -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problems and solutions</h2>
+<p class="small"><em>The scenarios below represent realistic production engineering incidents involving GCP Managed Instance Group lifecycle management. Values, traces, and metrics are architectural models.</em></p>
+
+<!-- ── Problem 1 ── -->
+<article id="topic-01-problem" class="topic-card">
+<h3>Topic 1 field case — Premature initial delay triggers autohealing death spiral</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  A Brightloaf operations team enables an autohealing health check on the production Order API Managed Instance Group. They reuse the HTTP health check from the External HTTP(S) Load Balancer (interval 5s, unhealthy threshold 2) and set the autohealing <code>initialDelaySec</code> to 15 seconds. The Order API is a containerized Java service that takes 45 seconds to boot, establish connection pools to Cloud SQL, and register its endpoints.
+</p>
+<p>
+  Immediately after applying the policy, the autohealing controller checks instances at second 16. Because the applications are still initializing, the probes return connection refused. By second 26, the unhealthy threshold of 2 failures is reached. The MIG controller marks all instances unhealthy, issues a terminate command, and provisions new VMs. The new VMs also take 45 seconds to boot and are similarly terminated at second 26. The entire 8-node fleet enters an unbroken cycle of recreation, producing 100% downtime for order processing.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Autohealing must accurately detect true frozen or deadlocked application runtimes.</li>
+  <li>Must not prematurely execute VM termination during normal initialization.</li>
+  <li>Preserve the invariant that replaying an order event never triggers a duplicate fulfillment.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  The autohealing initial delay (15s) was significantly shorter than the application's actual cold-boot readiness time (45s). The controller mistook normal initialization for application failure.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Inspect MIG operation history: <kbd>gcloud compute instance-groups managed list-errors --region=us-central1</kbd> displays non-stop <code>Instance autohealing triggered</code> events.</li>
+  <li>Check instance uptime: Instances show uptimes of less than 40 seconds before being shut down.</li>
+  <li>Measure cold-boot duration: Start a standalone test instance from the template and time the duration until <code>/healthz</code> returns HTTP 200 (measured at 44.8 seconds).</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Update the autohealing policy to provide adequate headroom: set <code>initialDelaySec</code> to 90 seconds (45s boot + 45s safety buffer). Increase the unhealthy threshold to 3 consecutive failures.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Apply the updated autohealing policy (<kbd>gcloud compute instance-groups managed set-autohealing order-api-rmig --initial-delay=90s</kbd>). Observe instance stabilization: all 8 instances boot, survive past second 50, transition to <code>HEALTHY</code>, and remain running continuously with zero unexpected recreations.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  If a genuine deadlock occurs during application boot (e.g., database connection pool exhaustion), autohealing will wait the full 90 seconds before taking corrective action.
+</p>
+
+<!-- Incident SVG 1 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d39-i1-title d39-i1-desc">
+<title id="d39-i1-title">Autohealing initial delay shorter than boot time causing recreation loop</title>
+<desc id="d39-i1-desc">A comparative diagram showing the failed path where a 15-second initial delay triggers false unhealthiness during a 45-second boot, causing an infinite recreation death spiral. The corrected path uses a 90-second initial delay, allowing instances to complete initialization and achieve healthy running status.</desc>
+<defs>
+<marker id="d39-i1-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d39-i1-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · INITIAL DELAY (15s) &lt; BOOT TIME (45s) TRIGGERS ENDLESS RECREATION</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">VM Boots</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">App requires 45s</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">to initialize pools</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Delay Expires at 15s</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: probes start too early</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Marked Unhealthy</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">Failed 2 probes at T=25s</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">MIG issues kill command</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">Death Spiral</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">100% fleet cycling</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d39-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d39-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d39-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · CALIBRATED INITIAL DELAY (90s) ALLOWS COMPLETE CLEAN BOOT</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">VM Boots</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">App requires 45s</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">to initialize pools</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">initialDelaySec: 90s</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Probes held until T=90s</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Ready at T=45s</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">First probe at T=90s</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Returns HTTP 200 OK</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Fleet Stable</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">0 false recreations</text>
+
+<path class="corrected" marker-end="url(#d39-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d39-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d39-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The Order API requires 45 seconds to boot; the autohealing initial delay was configured at 15 seconds; instances failed probes at second 25 and were immediately terminated; the fleet entered continuous recreation loops. <strong>Architectural inference:</strong> Autohealing probes must not evaluate instances before their documented startup and warmup completion; initial delay must account for runtime cold-boot and connection establishment. <strong>Expected post-fix behavior:</strong> Setting initial delay to 90 seconds allows instances to fully initialize, respond with HTTP 200 on first evaluation, and remain healthy without recreation.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 2 ── -->
+<article id="topic-02-problem" class="topic-card">
+<h3>Topic 2 field case — Aggressive maxUnavailable policy strips capacity during midday deployment</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  During a 1:00 PM peak ordering window, a software update is dispatched to the 6-instance Order API Managed Instance Group. The rolling update policy specifies <code>maxUnavailable: 3</code> (50% of the fleet) and <code>maxSurge: 0</code> to prevent exceeding regional project vCPU quota.
+</p>
+<p>
+  The MIG manager immediately stops and drains 3 instances simultaneously. Peak order traffic (normally distributed across 6 instances) slams into the 3 surviving instances. Their vCPU utilization hits 100%, request queues back up, and the frontend load balancer begins returning HTTP 504 Gateway Timeout errors to hundreds of online customers. Cart conversion drops by 35% before the new instances pass health checks 5 minutes later.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Deployments must guarantee 100% serving capacity (zero capacity reduction) at all times.</li>
+  <li>Must prevent regional vCPU quota exhaustion during surge provisioning.</li>
+  <li>Rollback must be possible within 60 seconds if the new version exhibits unexpected errors.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Setting <code>maxUnavailable</code> to 50% on a production group operating near baseline capacity. Halving active capacity during peak traffic guarantees severe CPU overload on surviving nodes.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  Enforce a zero-downtime rolling update policy: set <code>maxUnavailable: 0</code> and <code>maxSurge: 2</code> (or 25%). The MIG provisions surplus instances from the new template first, waits for them to become healthy, and only then drains and deletes the old instances.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Simulate a rolling update in staging under 100% simulated load: verify that the total healthy instance count never drops below 6, and HTTP latency remains flat throughout the rollout.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  <code>maxSurge: 2</code> requires temporary extra vCPU quota. If regional quota is at 100%, the surge instances will fail to schedule.
+</p>
+
+<!-- Incident SVG 2 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d39-i2-title d39-i2-desc">
+<title id="d39-i2-title">Aggressive maxUnavailable policy causing peak-traffic capacity collapse</title>
+<desc id="d39-i2-desc">A comparative diagram showing the failed path where maxUnavailable 50% immediately drops 3 of 6 instances, overloading surviving nodes and triggering HTTP 504 timeouts. The corrected path uses maxUnavailable 0 and maxSurge 2, provisioning new instances ahead of draining old ones to preserve full serving capacity.</desc>
+<defs>
+<marker id="d39-i2-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d39-i2-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · maxUnavailable: 50% REDUCES CAPACITY MID-PEAK → CPU SATURATION &amp; 504 ERRORS</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Midday Peak</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">6 VMs serving load</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">Deploy triggered</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">maxUnavailable: 3 (50%)</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: capacity stripped ahead</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Surviving 3 Overloaded</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">CPU spikes to 100%</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">Queue depth explodes</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">HTTP 504 Spikes</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">Gateway timeouts</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d39-i2-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d39-i2-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d39-i2-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · maxUnavailable: 0 + maxSurge: 2 GUARANTEES 100% SERVING HEADROOM</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Midday Peak</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">6 VMs serving load</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">Deploy triggered</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">maxUnavailable: 0</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">maxSurge: 2 (Provisions first)</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">8 VMs Active</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">New VMs pass health check</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Old VMs drained gracefully</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Zero Latency Spike</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">100% capacity preserved</text>
+
+<path class="corrected" marker-end="url(#d39-i2-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d39-i2-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d39-i2-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The Order API group of 6 instances had a rolling update executed with <code>maxUnavailable: 3</code> (50%) and <code>maxSurge: 0</code> during peak traffic; 3 instances were terminated immediately; remaining instances reached 100% CPU; the load balancer generated HTTP 504 timeouts. <strong>Architectural inference:</strong> Production services with tight latency SLOs cannot absorb artificial capacity cuts during active traffic; rolling updates must provision replacement capacity before taking existing backends out of rotation. <strong>Expected post-fix behavior:</strong> Setting <code>maxUnavailable: 0</code> and <code>maxSurge: 2</code> preserves 100% serving capacity throughout the deployment with zero latency or error spikes.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 3 ── -->
+<article id="topic-03-problem" class="topic-card">
+<h3>Topic 3 field case — Auxiliary audit disk deleted during stateless rolling update</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  To satisfy financial audit compliance, each fulfillment worker instance writes raw order event payloads to an attached 100GB secondary Persistent Disk (<code>audit-log-disk</code>). The team operates the fulfillment workers inside a Managed Instance Group. When creating the group, the team assumed that attached disks would naturally persist across updates.
+</p>
+<p>
+  During a security update to the instance template (updating the base OS patch), the MIG initiates an automated rolling replacement. The MIG controller deletes the old instance, terminates its attached secondary persistent disk (because it was declared as an ephemeral disk in the template rather than a stateful disk), and provisions a new blank disk. The local un-replicated audit event logs for the past 14 days are completely erased, violating financial data retention regulations.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Local compliance logs must survive automated instance updates and autohealing recreations.</li>
+  <li>The architecture must maintain automated rolling update capabilities for security patching.</li>
+  <li>Audit event persistence must not require building custom manual VM management scripts.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  The secondary disk was managed as a standard stateless disk inside the template instead of being registered under the MIG's <strong>Stateful Policy</strong>. In a stateless MIG, instance recreation destroys all attached disks not explicitly protected by a stateful preservation policy.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  Configure the Managed Instance Group with a <strong>Stateful Policy</strong> for the audit disk: designate device name <code>audit-log-disk</code> under <code>--stateful-disk</code> with <code>auto-delete=never</code>. When the MIG replaces a VM, it cleanly detaches the disk, recreates the VM with the new template OS, and reattaches the exact same disk without data loss.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Write a test marker file to the stateful disk (<kbd>/mnt/audit/test-marker.txt</kbd>). Trigger a rolling instance replacement (<kbd>gcloud compute instance-groups managed rolling-action restart</kbd>). Confirm upon reboot that the replacement VM mounts the exact same disk volume and the marker file is intact.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Stateful MIGs cannot be automatically downsized by autoscalers without explicit per-instance un-managing commands, as the autoscaler cannot know which stateful disk is safe to discard.
+</p>
+
+<!-- Incident SVG 3 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d39-i3-title d39-i3-desc">
+<title id="d39-i3-title">Stateless update destroys attached audit disk vs Stateful MIG preservation</title>
+<desc id="d39-i3-desc">A comparative diagram showing the failed path where a rolling update deletes an attached audit disk because it lacked stateful policy declaration, resulting in compliance data loss. The corrected path declares a Stateful Policy, detaching and safely reattaching the disk across instance recreation.</desc>
+<defs>
+<marker id="d39-i3-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d39-i3-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · STATELESS MIG RECREATION DESTROYS ATTACHED SECONDARY AUDIT DISK</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Worker VM</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">Audit disk attached</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">14 days of logs</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">No Stateful Policy Set</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: disk marked ephemeral</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Disk Destroyed</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">MIG wipes disk on recreate</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">New blank disk formatted</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">Data Loss</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">Audit logs erased</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d39-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d39-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d39-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · STATEFUL POLICY PRESERVES DISK AND REATTACHES TO REPLACEMENT VM</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Worker VM</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Audit disk attached</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">14 days of logs</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">MIG Stateful Policy</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">stateful-disk: auto-delete=never</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Detached &amp; Reattached</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">Disk retained during update</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Mounted on replacement VM</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">100% Logs Intact</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Compliance satisfied</text>
+
+<path class="corrected" marker-end="url(#d39-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d39-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d39-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Fulfillment instances maintained a secondary 100GB audit persistent disk; the disk was not registered in a stateful policy; an OS rolling update recreated the instances, deleting the secondary disks; 14 days of audit payloads were lost. <strong>Architectural inference:</strong> Compute Engine stateless MIGs assume all non-boot disks in the template are ephemeral during full recreation unless a stateful policy binds the disk device name. <strong>Expected post-fix behavior:</strong> Declaring the disk in a Stateful Policy ensures the volume is detached, preserved, and reattached without loss across VM updates and autohealing events.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 4 ── -->
+<article id="topic-04-problem" class="topic-card">
+<h3>Topic 4 field case — Silent weekend VM crash in unmanaged instance group</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  A legacy partner order translation component was deployed into an <strong>Unmanaged Instance Group</strong> consisting of three custom-configured virtual machines (<code>gateway-1</code>, <code>gateway-2</code>, <code>gateway-3</code>) behind an Internal TCP/UDP Load Balancer. At 02:14 AM on Sunday, <code>gateway-2</code> suffered a guest kernel panic triggered by an out-of-memory memory leak.
+</p>
+<p>
+  Because unmanaged instance groups lack autohealing and automated lifecycle management, Google Cloud took no action. The dead VM remained completely offline for over 30 hours. On Monday morning at 08:30 AM, business traffic doubled. The two surviving instances rapidly saturated their CPU, and <code>gateway-1</code> crashed under memory pressure at 08:45 AM, leaving only one degraded node to process all enterprise partner orders, resulting in severe order backlogs and missed delivery SLAs.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Enterprise partner order processing must auto-recover from VM crashes without human paging.</li>
+  <li>Eliminate single points of failure in gateway routing fleets.</li>
+  <li>Preserve the invariant that replaying an order event never triggers a duplicate fulfillment.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Using an Unmanaged Instance Group for a production service. Unmanaged groups provide zero automated recreation, leaving dead instances offline indefinitely until an operator manually intervenes.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  Migrate the gateway fleet from an Unmanaged Instance Group to a <strong>Managed Instance Group (MIG)</strong> backed by an Instance Template and an autohealing health check. If an instance experiences a kernel crash, the MIG autohealing controller detects probe failure and automatically recreates a healthy instance within 2 minutes.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Simulate a kernel crash on a gateway VM (<kbd>sudo echo c > /proc/sysrq-trigger</kbd>). Verify that within 120 seconds, the MIG controller registers the failure, provisions a clean replacement instance, and restores the group to its full 3-node capacity automatically.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Moving to a MIG requires encapsulating all gateway configuration into the instance template and automated startup scripts; any remaining pet-like manual configuration will be lost during recreation.
+</p>
+
+<!-- Incident SVG 4 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d39-i4-title d39-i4-desc">
+<title id="d39-i4-title">Unmanaged instance group silent failure vs MIG autohealing recovery</title>
+<desc id="d39-i4-desc">A comparative diagram showing the failed path where an unmanaged instance group leaves a crashed VM dead for 30 hours until cascading failures take down the service on Monday. The corrected path uses a Managed Instance Group with autohealing, detecting the failure and recreating the instance in under 2 minutes.</desc>
+<defs>
+<marker id="d39-i4-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d39-i4-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · UNMANAGED INSTANCE GROUP LEAVES CRASHED VM DEAD FOR 30 HOURS</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Sunday 02:14 AM</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">gateway-2 kernel panic</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">VM dies completely</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Unmanaged Group: No Controller</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: zero autohealing capability</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">30h Silent Outage</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">VM stays offline</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">Monday surge hits 2 nodes</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">Cascading Failure</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">Node 1 crashes at 8:45</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d39-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d39-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d39-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · MANAGED INSTANCE GROUP DETECTS CRASH &amp; AUTOHEALS IN &lt;120s</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Sunday 02:14 AM</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">gateway-2 kernel panic</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">VM dies completely</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Managed Instance Group</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Autohealing health check active</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Autohealing Recreate</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">Detects failure at 02:15</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Provisions clean replacement</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Full Fleet at 02:16</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Monday surge absorbed</text>
+
+<path class="corrected" marker-end="url(#d39-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d39-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d39-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Three gateway instances operated in an Unmanaged Instance Group; gateway-2 crashed on Sunday at 02:14 AM; the instance remained offline for 30 hours; Monday morning peak traffic overloaded surviving nodes, causing cascading failure. <strong>Architectural inference:</strong> Unmanaged instance groups contain no control-plane intelligence for lifecycle management; relying on unmanaged groups for production workloads introduces severe manual single points of failure. <strong>Expected post-fix behavior:</strong> Migrating to a Managed Instance Group with autohealing ensures failed VMs are detected and replaced within 120 seconds automatically without human intervention.
+</figcaption>
+</figure>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 4 ══ -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1 — Autohealing health check configuration and initial delay calibration</h3>
+<p><strong>Goal:</strong> Formulate an autohealing health check policy with verified application readiness delays and validate recreation behavior.</p>
+<p><strong>Mode:</strong> tabletop design / sandbox · <strong>Prerequisites:</strong> Day 38 Instance Template definition.</p>
+
+<div class="callout">
+<strong>Preflight</strong>
+<p>Open <code>day-039-recovery.md</code>. Document baseline application characteristics: Cold boot time = 45 seconds; Target port = 8080; Path = <code>/healthz</code>.</p>
+</div>
+
+<ol>
+<li><strong>Define the autohealing health check.</strong> Author the command specification:
+<pre><code>gcloud compute health-checks create http order-api-autoheal-check \
+  --project=PROJECT_ID \
+  --port=8080 \
+  --request-path=/healthz \
+  --check-interval=10s \
+  --timeout=5s \
+  --unhealthy-threshold=3 \
+  --healthy-threshold=2</code></pre>
+</li>
+<li><strong>Calibrate the initial delay.</strong> Calculate the required grace period:
+  <p><code>initialDelaySec = measured_boot_time (45s) + safety_buffer (45s) = 90s</code>.</p>
+  Document why setting this value to 15s creates a recreation death spiral.
+</li>
+<li><strong>Apply to the Managed Instance Group.</strong>
+<pre><code>gcloud compute instance-groups managed set-autohealing order-api-rmig \
+  --project=PROJECT_ID \
+  --region=us-central1 \
+  --http-health-check=order-api-autoheal-check \
+  --initial-delay=90s</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A calibrated autohealing specification recorded in <code>day-039-recovery.md</code> proving that initial delay encloses application startup time.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-39-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2 — Rolling update execution with maxSurge and zero unavailability</h3>
+<p><strong>Goal:</strong> Design and model a zero-downtime rolling update deployment curve with canary validation.</p>
+<p><strong>Mode:</strong> tabletop / design · <strong>Prerequisites:</strong> Exercise 1 autohealing configuration.</p>
+
+<ol>
+<li><strong>Formulate the zero-downtime update policy.</strong> Define the update command for a 6-node fleet:
+<pre><code>gcloud compute instance-groups managed rolling-action start-update order-api-rmig \
+  --project=PROJECT_ID \
+  --region=us-central1 \
+  --version=template=order-api-template-v2 \
+  --max-surge=2 \
+  --max-unavailable=0 \
+  --min-ready=60s</code></pre>
+</li>
+<li><strong>Calculate the capacity timeline.</strong> In <code>day-039-recovery.md</code>, map the instance states during rollout:
+  <ul>
+    <li>T = 0: 6 instances on v1 (100% capacity).</li>
+    <li>T = 1m: 2 surge instances provisioned on v2 (8 total instances, 133% capacity).</li>
+    <li>T = 2m: Surge instances pass health check (60s min-ready). MIG drains and deletes 2 v1 instances (6 instances, 100% capacity).</li>
+    <li>T = 3m: Process repeats until all 6 instances run v2. Active capacity never drops below 6.</li>
+  </ul>
+</li>
+<li><strong>Evaluate canary alternative.</strong> Model a 15% canary split using two template versions simultaneously in the same MIG.</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A deployment timeline table in <code>day-039-recovery.md</code> demonstrating 100% serving capacity preservation throughout the update cycle.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-39-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3 — Stateful MIG policy authoring for persistent data volumes</h3>
+<p><strong>Goal:</strong> Author a stateful disk policy to preserve compliance audit volumes across automated VM recreations.</p>
+<p><strong>Mode:</strong> tabletop / design · <strong>Prerequisites:</strong> Day 37 block storage concepts.</p>
+
+<ol>
+<li><strong>Define the stateful policy.</strong> Author the command attaching device <code>audit-log-disk</code> as stateful:
+<pre><code>gcloud compute instance-groups managed update order-api-rmig \
+  --project=PROJECT_ID \
+  --region=us-central1 \
+  --stateful-disk=device-name=audit-log-disk,auto-delete=never</code></pre>
+</li>
+<li><strong>Document the disk lifecycle.</strong> Detail in <code>day-039-recovery.md</code> what happens during an autohealing recreation:
+  <p>OS root disk is wiped and rebuilt from template; <code>audit-log-disk</code> is detached, held in <code>us-central1-a</code>, and reattached to the newly created VM with filesystem data fully preserved.</p>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A verified stateful policy definition documenting disk detachment, retention, and reattachment semantics.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-39-topic-03"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-04-lab" class="topic-card lab">
+<h3>Exercise 4 — Managed vs Unmanaged Instance Group decision matrix</h3>
+<p><strong>Goal:</strong> Construct an architectural decision matrix defining when an unmanaged instance group is defensible versus when a MIG is required.</p>
+<p><strong>Mode:</strong> architectural analysis · <strong>Prerequisites:</strong> Exercises 1–3.</p>
+
+<ol>
+<li><strong>Create the comparison matrix.</strong> In <code>day-039-recovery.md</code>, compare MIGs vs Unmanaged groups across: failure recovery time (MTTR), operational toil, scaling elasticity, and configuration drift risk.</li>
+<li><strong>Document the bright-line rule.</strong> State the architectural constraint: "Stateless HTTP APIs and microservices must never run in unmanaged instance groups; unmanaged groups are restricted to legacy stateful appliances requiring heterogeneous VM configurations."</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A completed <code>day-039-recovery.md</code> exit artifact with all four exercise outputs, explicit capacity calculations, and operational ownership boundaries.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>If run in a live cloud sandbox, clean up all test resources:</p>
+<pre><code>gcloud compute instance-groups managed delete order-api-rmig --region=us-central1 --quiet
+gcloud compute health-checks delete order-api-autoheal-check --quiet</code></pre>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-39-topic-04"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-039-recovery.md</code> containing: (1) autohealing health check specification with calibrated 90s initial delay, (2) zero-downtime rolling update timeline (maxSurge=2, maxUnavailable=0), (3) stateful MIG disk preservation policy, (4) managed vs unmanaged group decision matrix. Label tabletop calculations clearly.</p>
+<label class="check"><input type="checkbox" data-progress="read-39"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-39"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-038.html">← Day 38<small>Templates, MIGs and scaling</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-040.html">Day 40 →<small>Spot, tenancy and secure VM access</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

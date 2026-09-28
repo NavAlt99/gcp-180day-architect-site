@@ -1,0 +1,1480 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 49: VPC address and route design · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-048.html" aria-label="Previous day">← Day 48</a>
+<a href="day-050.html" aria-label="Next day">Day 50 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and shared responsibility</option>
+<option value="day-012.html">Day 12: Resource hierarchy and inheritance</option>
+<option value="day-013.html">Day 13: Cloud Identity, accounts and directory sync</option>
+<option value="day-014.html">Day 14: IAM principals, roles and bindings</option>
+<option value="day-015.html">Day 15: Service accounts, keys and delegation</option>
+<option value="day-016.html">Day 16: Billing accounts, budgets and cost attribution</option>
+<option value="day-017.html">Day 17: Gate 1 review: Foundations and identity</option>
+</optgroup>
+<optgroup label="Governance, network and security">
+<option value="day-018.html">Day 18: Organization policies and constraints</option>
+<option value="day-019.html">Day 19: Custom roles and least-privilege analysis</option>
+<option value="day-020.html">Day 20: Audit logs, Access Transparency and admin tracking</option>
+<option value="day-021.html">Day 21: VPC design, subnets and private IP spaces</option>
+<option value="day-022.html">Day 22: Hierarchical and VPC firewall policy rules</option>
+<option value="day-023.html">Day 23: Cloud NAT, Cloud Router and dynamic routing</option>
+<option value="day-024.html">Day 24: Private Google Access and PSC fundamentals</option>
+<option value="day-025.html">Day 25: Cloud DNS zones, routing and DNSSEC</option>
+<option value="day-026.html">Day 26: Cloud Armor policies and DDoS mitigation</option>
+<option value="day-027.html">Day 27: Cloud KMS, CMEK and envelope encryption</option>
+<option value="day-028.html">Day 28: Secret Manager and runtime injection</option>
+<option value="day-029.html">Day 29: Workload Identity Federation</option>
+<option value="day-030.html">Day 30: VPC Service Controls perimeter design</option>
+<option value="day-031.html">Day 31: VPC SC troubleshooting and ingress/egress rules</option>
+<option value="day-032.html">Day 32: Security Command Center and threat posture</option>
+<option value="day-033.html">Day 33: Cloud Monitoring workspace and alert policies</option>
+<option value="day-034.html">Day 34: Cloud Logging sinks, storage and exports</option>
+<option value="day-035.html">Day 35: Gate 2 review: Governance and security</option>
+</optgroup>
+<optgroup label="Compute, storage and databases">
+<option value="day-036.html">Day 36: Compute Engine sizing, vCPU and memory models</option>
+<option value="day-037.html">Day 37: Persistent disks, Hyperdisk, snapshots and IOPS</option>
+<option value="day-038.html">Day 38: Managed instance groups and autoscaling algorithms</option>
+<option value="day-039.html">Day 39: VM rolling updates, instance templates and health checks</option>
+<option value="day-040.html">Day 40: Spot VMs, sole-tenant nodes and reservations</option>
+<option value="day-041.html">Day 41: VM Manager, OS login and patch governance</option>
+<option value="day-042.html">Day 42: GKE cluster architecture and Autopilot vs Standard</option>
+<option value="day-043.html">Day 43: GKE workload primitives, Pods, Deployments and Jobs</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html" selected>Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: Dedicated Interconnect, Partner and MACsec</option>
+<option value="day-058.html">Day 58: Cloud Storage classes, lifecycle and autotiering</option>
+<option value="day-059.html">Day 59: Storage security, signed URLs and object retention</option>
+<option value="day-060.html">Day 60: Cloud SQL high availability, replicas and scaling</option>
+<option value="day-061.html">Day 61: Cloud SQL maintenance, backups and recovery</option>
+<option value="day-062.html">Day 62: AlloyDB architecture and columnar accelerator</option>
+<option value="day-063.html">Day 63: Spanner architecture, TrueTime and schema design</option>
+<option value="day-064.html">Day 64: Bigtable rowkey design and replication topology</option>
+<option value="day-065.html">Day 65: Firestore data modeling and security rules</option>
+<option value="day-066.html">Day 66: Memorystore Redis/Memcached caching strategies</option>
+<option value="day-067.html">Day 67: Gate 3 review: Core infrastructure</option>
+</optgroup>
+<optgroup label="Integration, analytics and automation">
+<option value="day-068.html">Day 68: Pub/Sub architecture, schemas and ordering</option>
+<option value="day-069.html">Day 69: Pub/Sub dead-letter topics and push/pull modes</option>
+<option value="day-070.html">Day 70: Cloud Tasks and Cloud Scheduler orchestration</option>
+<option value="day-071.html">Day 71: Eventarc trigger topologies and audit routing</option>
+<option value="day-072.html">Day 72: BigQuery storage, partition and cluster layout</option>
+<option value="day-073.html">Day 73: BigQuery SQL, views and materialized view design</option>
+<option value="day-074.html">Day 74: BigQuery reservations, BI Engine and slot pricing</option>
+<option value="day-075.html">Day 75: Dataproc clusters, autoscaling and serverless</option>
+<option value="day-076.html">Day 76: Cloud Dataflow pipeline design and windowing</option>
+<option value="day-077.html">Day 77: Dataflow streaming, watermarks and checkpoints</option>
+<option value="day-078.html">Day 78: Dataplex governance, lakes and data discovery</option>
+<option value="day-079.html">Day 79: Cloud Composer orchestration and DAG lifecycle</option>
+<option value="day-080.html">Day 80: Data Fusion and visual pipeline integration</option>
+<option value="day-081.html">Day 81: Looker studio, Looker platform and semantic layers</option>
+<option value="day-082.html">Day 82: Gate 4 review: Data and analytics</option>
+</optgroup>
+<optgroup label="DevOps, SRE and multi-cloud">
+<option value="day-083.html">Day 83: Cloud Build triggers, pools and pipeline security</option>
+<option value="day-084.html">Day 84: Artifact Registry layout, cleanup and remote repos</option>
+<option value="day-085.html">Day 85: Cloud Deploy delivery pipelines and canaries</option>
+<option value="day-086.html">Day 86: Terraform GCP provider, state and remote backend</option>
+<option value="day-087.html">Day 87: Terraform module patterns and refactoring</option>
+<option value="day-088.html">Day 88: Cloud Monitoring SLI, SLO and error budget design</option>
+<option value="day-089.html">Day 89: Cloud Trace, Profiler and distributed diagnostics</option>
+<option value="day-090.html">Day 90: Incident management, alerting and runbook hygiene</option>
+<option value="day-091.html">Day 91: Disaster recovery strategies: cold, warm and hot</option>
+<option value="day-092.html">Day 92: Cross-region replication and failover validation</option>
+<option value="day-093.html">Day 93: Backup and recovery testing regimens</option>
+<option value="day-094.html">Day 94: Hybrid identity, ADFS, Okta and directory sync</option>
+<option value="day-095.html">Day 95: Anthos/GKE Enterprise multi-cloud architecture</option>
+<option value="day-096.html">Day 96: Migration center, assessment and cost models</option>
+<option value="day-097.html">Day 97: Database Migration Service and schema conversion</option>
+<option value="day-098.html">Day 98: Transfer Appliance, Storage Transfer Service</option>
+<option value="day-099.html">Day 99: FinOps foundation, labels and commit discounts</option>
+<option value="day-100.html">Day 100: CUD optimization, flexible vs standard</option>
+<option value="day-101.html">Day 101: Re-architecting legacy monoliths for cloud</option>
+<option value="day-102.html">Day 102: Strangler fig pattern and API facade design</option>
+<option value="day-103.html">Day 103: Container migration with Migrate for Anthos</option>
+<option value="day-104.html">Day 104: Zero-trust architecture with BeyondCorp</option>
+<option value="day-105.html">Day 105: Regulatory compliance: HIPAA, PCI and GDPR</option>
+<option value="day-106.html">Day 106: Data residency, sovereign controls and Assured Workloads</option>
+<option value="day-107.html">Day 107: Cloud Armor advanced WAF rules and ML defense</option>
+<option value="day-108.html">Day 108: Network security: Cloud IDS, IPS and inspection</option>
+<option value="day-109.html">Day 109: Secret lifecycle and hardware security modules</option>
+<option value="day-110.html">Day 110: Threat detection, Event Threat Detection</option>
+<option value="day-111.html">Day 111: Chaos engineering and resilience testing</option>
+<option value="day-112.html">Day 112: Canary, blue-green and A/B release mechanics</option>
+<option value="day-113.html">Day 113: Observability at scale: multi-project metrics</option>
+<option value="day-114.html">Day 114: Secure software supply chain with SLSA</option>
+<option value="day-115.html">Day 115: Binary Authorization in enterprise delivery</option>
+<option value="day-116.html">Day 116: Infrastructure as code governance and Sentinel</option>
+<option value="day-117.html">Day 117: Operational runbooks, game days and blameless postmortems</option>
+<option value="day-118.html">Day 118: Gate 5 review: Delivery, SRE and operations</option>
+</optgroup>
+<optgroup label="Architecture defense and case studies">
+<option value="day-119.html">Day 119: Enterprise multi-tenant SaaS architecture</option>
+<option value="day-120.html">Day 120: Global real-time gaming platform design</option>
+<option value="day-121.html">Day 121: Healthcare data platform with FHIR/HIPAA</option>
+<option value="day-122.html">Day 122: Global financial clearing and settlement</option>
+<option value="day-123.html">Day 123: IoT telemetry ingest and stream analytics</option>
+<option value="day-124.html">Day 124: Media streaming and transcoding at scale</option>
+<option value="day-125.html">Day 125: Retail e-commerce flash sale architecture</option>
+<option value="day-126.html">Day 126: Modernizing mainframe workloads on GCP</option>
+<option value="day-127.html">Day 127: Autonomous vehicle sensor data platform</option>
+<option value="day-128.html">Day 128: Disaster recovery design across three clouds</option>
+<option value="day-129.html">Day 129: Multi-region active-active database patterns</option>
+<option value="day-130.html">Day 130: Zero-trust enterprise workforce architecture</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="49" data-prev="day-048.html" data-next="day-050.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 49 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 49</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">networking / design</span>
+<span class="pill">Topics 016</span>
+</div>
+<h1>Day 49 — VPC address and route design</h1>
+<p class="lead"><strong>Outcome:</strong> Allocate non-overlapping subnet and secondary ranges; build a custom VPC or validate a supplied plan and evaluate route selection.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-035.html">Day 35</a>, <a href="day-002.html">Day 2</a>, <a href="day-004.html">Day 4</a>, <a href="day-044.html">Day 44</a>; bring their exit artifacts.</p></div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>An IP plan and forward/return packet path with route priorities (day-049-ip-plan.md) documenting global Andromeda SDN routing, regional custom subnet allocation, GKE primary and secondary CIDR calculations, route precedence evaluation (longest prefix match vs. administrative priority vs. ECMP), and conflict resolution for hybrid on-premises connectivity.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>VPC global scope</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>Subnets as regional resources</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+<div class="toc-topic"><span>Auto vs custom mode VPCs</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+<div class="toc-topic"><span>Subnet IP ranges &amp; GKE secondary ranges</span><a href="#topic-04-overview">overview</a> · <a href="#topic-04-technical">discussion</a> · <a href="#topic-04-problem">problem</a> · <a href="#topic-04-lab">lab</a></div>
+<div class="toc-topic"><span>Routes &amp; route priorities</span><a href="#topic-05-overview">overview</a> · <a href="#topic-05-technical">discussion</a> · <a href="#topic-05-problem">problem</a> · <a href="#topic-05-lab">lab</a></div>
+</aside>
+
+<!-- ================= PART 1 ================= -->
+<section id="part-1" class="part">
+<h2>Part 1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>VPC as a global resource: Andromeda SDN and cross-region private backbones</h3>
+<p>In Google Cloud, a Virtual Private Cloud (VPC) network is a globally scoped software-defined network (SDN) powered by Google's Andromeda virtualization stack. Unlike traditional cloud providers where virtual networks are bound to a single physical data center or geographic region, a GCP VPC spans all Google Cloud regions worldwide without requiring inter-region VPN tunnels, public internet routing, or external gateway peering. Compute instances, GKE nodes, and serverless runtimes deployed in disparate continents communicate securely across Google's private, encrypted global fiber-optic backbone using private RFC 1918 IP addresses. This global scope enables centralized network policy administration, global Application Load Balancing backends across multiple continents, and simplified disaster recovery topologies.</p>
+<p>This capability belongs on Day 49 because Days 36–48 covered compute engines, Kubernetes clusters, and serverless runtimes; we now construct the underlying enterprise networking foundation that connects all distributed compute assets. In the complete Google Cloud architecture, the global VPC serves as the foundational data plane interconnecting all project services and hybrid enterprise links.</p>
+<p>When an architect assumes inter-region communication requires public internet egress or complex gateway peering, they inadvertently provision unnecessary VPN tunnels that add 25ms of packet encapsulation latency and expose internal traffic to public routing risks. Production cross-region database replication stalls under peak shopping traffic, generating replica lag alerts and inconsistent customer order histories.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Subnets as regional resources: zonal spanning, MTU configurations and IP boundaries</h3>
+<p>While the VPC itself is global, subnets inside a VPC are strictly regional resources. A subnet is defined within a single Google Cloud region (e.g. <code>us-central1</code>) and automatically spans all availability zones within that region (e.g. <code>us-central1-a</code>, <code>us-central1-b</code>, <code>us-central1-c</code>, <code>us-central1-f</code>). VMs in distinct zones of the same region attach to the same subnet, sharing a unified IP address space and broadcast domain without requiring inter-zone routing gateways. Subnets support configurable Maximum Transmission Unit (MTU) sizes—including standard 1460 bytes (Google default), 1500 bytes (standard Ethernet), and 8896 bytes (jumbo frames for high-bandwidth analytics)—and enforce strict address allocation boundaries where Google reserves four host addresses in every primary subnet range (network, gateway, second-to-last, and broadcast).</p>
+<p>This topic belongs on Day 49 because designing multi-zone, highly available compute architectures requires understanding that zone failures do not isolate subnets. In production networks, subnets establish the regional failure containment and IP grouping boundary for security firewalls and compute provisioning.</p>
+<p>When a cloud team sizes a regional subnet too small under the misconception that each availability zone requires a distinct subnet, the subnet exhausts available IP addresses during a single-zone maintenance event. Automated zonal MIG scaling fails immediately with resource exhaustion errors, dropping checkout traffic during a regional hardware migration.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Auto mode vs custom mode VPCs and controlled enterprise IP planning</h3>
+<p>Google Cloud offers two network provisioning modes: Auto mode VPCs and Custom mode VPCs. Auto mode automatically creates a pre-determined <code>/20</code> subnet in every Google Cloud region using a fixed global allocation within the <code>10.128.0.0/9</code> CIDR block, expanding automatically as Google introduces new global regions. While convenient for rapid prototyping and sandboxes, Auto mode is strictly prohibited in enterprise production environments because its rigid <code>10.128.0.0/9</code> range inevitably collides with on-premises corporate data center networks, partner connections, and other peered VPCs. Custom mode VPCs provide zero default subnets, granting architects total declarative control over IP address blocks, region selections, and subnet expansion, ensuring full compatibility with corporate IP allocation registries (IPAM).</p>
+<p>This topic belongs on Day 49 because enterprise cloud adoption fails if initial cloud networks collide with existing corporate address spaces, requiring painful, multi-month re-IP migrations. In enterprise landing zones, custom mode VPCs are an absolute mandatory baseline enforced by organizational policies.</p>
+<p>When a development team spins up a default Auto mode VPC and attempts to peer with the on-premises corporate inventory database, the peering handshake fails instantly due to overlapping 10.128.0.0/9 CIDR blocks. Engineers are forced to tear down production databases and re-provision infrastructure from scratch, delaying the planned retail platform migration by six weeks.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-04-overview" class="topic-card">
+<h3>Subnet IP ranges, secondary ranges for GKE pods and services, and non-disruptive range expansion</h3>
+<p>Google Cloud subnets support one primary IP address range (used for Compute Engine VM network interfaces, internal load balancers, and GKE worker nodes) and multiple alias secondary IP ranges (dedicated to GKE Pod CIDRs and ClusterIP Service CIDRs). Unlike legacy networking where changing subnet boundaries requires tearing down infrastructure, Google Cloud allows expanding the primary CIDR range of an existing subnet non-disruptively, provided the new range has a shorter prefix length (e.g. expanding <code>/24</code> to <code>/22</code>) and does not overlap with existing subnets. However, secondary ranges cannot be modified or expanded once created; expanding GKE Pod capacity requires provisioning new secondary ranges and creating multi-pod CIDR node pools.</p>
+<p>This capability belongs on Day 49 because Day 42–45 GKE clusters rely on VPC-native IP alias routing; inadequate subnet planning leads to catastrophic IP exhaustion during cluster growth. In container platforms, secondary ranges define the ultimate scaling ceiling of containerized microservices.</p>
+<p>When an architect allocates a narrow <code>/20</code> secondary range for GKE Pods on a high-density cluster, a rolling node pool surge upgrade exhausts all available pod IP addresses mid-deployment. The GKE control plane freezes, unable to schedule new pods while draining old nodes, halting application delivery across the primary retail cluster.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-05-overview" class="topic-card">
+<h3>Routes: system-generated, custom static, dynamic BGP routing, and route selection priority</h3>
+<p>Routing in Google Cloud is fully distributed across the Andromeda SDN, eliminating physical router bottlenecks and single points of failure. Every VPC contains system-generated default routes: a default internet gateway route (<code>0.0.0.0/0</code>, priority 1000) and local subnet routes (priority 0) matching each subnet's primary and secondary CIDRs. Administrators configure custom static routes (with user-defined priority 0–65535, next-hop instances, or next-hop VPNs) and dynamic routes exchanged automatically via Border Gateway Protocol (BGP) between Google Cloud Routers and on-premises routers. The Andromeda packet processing engine resolves forwarding using an exact hierarchical evaluation order: 1) Longest Prefix Match (most specific destination CIDR wins), 2) Lowest Priority Value (e.g. priority 100 beats priority 1000), and 3) Equal-Cost Multi-Path (ECMP) hashing across identical priority paths.</p>
+<p>This topic belongs on Day 49 because hybrid cloud connectivity, security inspection firewalls, and multi-region failover depend entirely on deterministic route prioritization. In production networks, routes dictate the exact physical journey of every packet entering or leaving the cloud environment.</p>
+<p>When a custom static route with priority 100 is left active after a maintenance drill, it silently overrides dynamic BGP failover routes advertised by the primary Cloud Router during an on-premises WAN link failure. Network traffic blackholes into an inactive gateway, cutting off all retail store point-of-sale registers from the central order processing API.</p>
+<p><a href="#topic-05-technical">Technical discussion →</a> <a href="#topic-05-problem">Real-world problem →</a> <a href="#topic-05-lab">Topic lab →</a></p>
+</article>
+
+</section>
+
+<!-- ================= PART 2 ================= -->
+<section id="part-2" class="part">
+<h2>Part 2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>VPC as a Global Resource: Andromeda SDN Architecture and Data Plane Routing</h3>
+<p>Google Cloud VPC networks are global software-defined constructs. When a packet originates from a Compute Engine VM or GKE Pod in <code>us-central1</code> destined for an internal IP in <code>europe-west1</code>, the packet never traverses public internet transit providers or third-party exchanges. Instead, the packet is processed by <strong>Andromeda</strong>—Google's distributed network virtualization stack:</p>
+
+<ul>
+<li><strong>Host-Level Open vSwitch / Flow Processing:</strong> Andromeda programming operates directly on the Linux host hypervisors. When a VM transmits an IP packet, Andromeda intercepts the packet at the virtual NIC (virtio-net or gVNIC), looks up the global VPC routing and firewall tables cached in host memory, and encapsulates the packet in a proprietary Google network encapsulation header.</li>
+<li><strong>Jupiter Fabric Transmission:</strong> The encapsulated packet enters Google's private global fiber network (Jupiter datacenter fabric and B4 global WAN). It travels over dedicated transatlantic/transpacific optical paths with multi-terabit bandwidth and sub-millisecond switching latency.</li>
+<li><strong>Destination Decapsulation:</strong> Upon reaching the destination host hypervisor in Europe, Andromeda verifies firewall egress/ingress state, strips the encapsulation header, and injects the raw IP packet directly into the destination VM's virtual interface.</li>
+</ul>
+
+<p>Because the network is entirely virtualized, <strong>cross-region communication within a VPC requires zero VPN gateways, zero NAT instances, and zero peering overhead</strong>. The only distinction between intra-region and inter-region traffic is the physical speed-of-light propagation latency and standard Google Cloud inter-region data transfer egress fees ($0.01 to $0.02 per GB).</p>
+
+<div class="table-wrap">
+<table>
+<caption>Table 49.1: GCP Global VPC vs. Traditional Regional Virtual Cloud Networks</caption>
+<thead>
+<tr>
+<th scope="col">Architectural Dimension</th>
+<th scope="col">Google Cloud Global VPC</th>
+<th scope="col">Traditional Regional Cloud Network</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Network Scope</strong></td>
+<td>Global across all GCP regions worldwide.</td>
+<td>Bound strictly to a single geographic region.</td>
+</tr>
+<tr>
+<td><strong>Cross-Region Communication</strong></td>
+<td>Native private routing over Google fiber backbone; no configuration required.</td>
+<td>Requires explicit inter-region VPC peering or transit gateway provisioning.</td>
+</tr>
+<tr>
+<td><strong>Firewall Policy Scope</strong></td>
+<td>Global rules applied across all regions using uniform network tags and service accounts.</td>
+<td>Regional firewall rules configured independently per region.</td>
+</tr>
+<tr>
+<td><strong>Load Balancing Integration</strong></td>
+<td>Single Global Anycast IP routes traffic to backends in any region.</td>
+<td>Requires regional load balancers tied together with external DNS latency routing.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<!-- Part 2 Architecture SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d49-arch-title d49-arch-desc" viewBox="0 0 1000 580" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d49-arch-title">Google Cloud Global VPC, Regional Subnets, GKE Secondary Ranges, Dynamic BGP and Andromeda Precedence Engine</title>
+<desc id="d49-arch-desc">Comprehensive architecture diagram showing a global VPC spanning us-central1 and us-east1 over Jupiter and B4 private fiber, regional subnets with primary and secondary IP ranges, Cloud Router dynamic BGP peering with on-premises networks, and the 3-tier Andromeda route selection precedence hierarchy.</desc>
+<defs>
+<marker id="d49-arch-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d49-arch-g-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d49-arch-amb-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+</defs>
+
+<!-- Global VPC Outer Container -->
+<rect x="20" y="20" width="960" height="540" rx="8" fill="#0d111f" stroke="#1e293b" stroke-width="2"/>
+<text x="35" y="42" fill="#38bdf8" font-size="13" font-weight="700">GLOBAL VPC NETWORK: brightloaf-enterprise-vpc (Custom Mode, Andromeda SDN Fabric, Global Control Plane)</text>
+
+<!-- Region 1: us-central1 -->
+<rect x="35" y="60" width="445" height="270" rx="6" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="50" y="82" fill="#38bdf8" font-size="12" font-weight="700">REGION: us-central1 (Iowa — Spans Zones a, b, c, f)</text>
+
+<!-- Subnet us-central1 -->
+<rect x="50" y="95" width="415" height="220" rx="4" fill="#0d111f" stroke="#1e293b" stroke-width="1"/>
+<text x="65" y="115" fill="#fce7f3" font-size="11" font-weight="700">Subnet: prod-us-central1-app (Regional Blast Radius)</text>
+<text x="65" y="132" fill="#22c55e" font-size="10">Primary CIDR: 10.10.0.0/22 (1,020 usable VM &amp; Node IPs)</text>
+
+<!-- Primary allocation details -->
+<rect x="65" y="142" width="385" height="42" rx="3" fill="#161b33" stroke="#1e293b" stroke-width="1"/>
+<text x="75" y="158" fill="#a9b7cb" font-size="9">GCP Reserved: .0 (Net), .1 (GW), .3.254 (Google Reserved), .3.255 (Brdcst)</text>
+<text x="75" y="174" fill="#fce7f3" font-size="9">Usable Pool: 10.10.0.2 – 10.10.3.253 (Worker VMs, Internal LBs, Proxies)</text>
+
+<!-- Secondary ranges -->
+<rect x="65" y="192" width="385" height="110" rx="3" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="75" y="210" fill="#22c55e" font-size="10" font-weight="700">GKE IP Alias Secondary Ranges (0 Reserved IPs!)</text>
+<text x="75" y="228" fill="#fce7f3" font-size="9">• Pod CIDR: 10.20.0.0/16 (65,536 Pod IPs, /24 per node for 110 pods)</text>
+<text x="75" y="246" fill="#fce7f3" font-size="9">• Service CIDR: 10.30.0.0/20 (4,096 ClusterIP Service addresses)</text>
+<text x="75" y="264" fill="#a9b7cb" font-size="9">VPC-native routing: direct pod-to-pod packet encapsulation</text>
+<text x="75" y="282" fill="#38bdf8" font-size="9">Cloud Router: cr-us-central1 (Google ASN 65001, Global Routing Mode)</text>
+
+<!-- Region 2: us-east1 -->
+<rect x="520" y="60" width="445" height="270" rx="6" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="535" y="82" fill="#38bdf8" font-size="12" font-weight="700">REGION: us-east1 (S. Carolina — Spans Zones b, c, d)</text>
+
+<!-- Subnet us-east1 -->
+<rect x="535" y="95" width="415" height="220" rx="4" fill="#0d111f" stroke="#1e293b" stroke-width="1"/>
+<text x="550" y="115" fill="#fce7f3" font-size="11" font-weight="700">Subnet: prod-us-east1-dr (Regional Blast Radius)</text>
+<text x="550" y="132" fill="#22c55e" font-size="10">Primary CIDR: 10.11.0.0/22 (1,020 usable DR &amp; DB IPs)</text>
+
+<!-- Primary allocation details -->
+<rect x="550" y="142" width="385" height="42" rx="3" fill="#161b33" stroke="#1e293b" stroke-width="1"/>
+<text x="560" y="158" fill="#a9b7cb" font-size="9">GCP Reserved: .0 (Net), .1 (GW), .3.254 (Google Reserved), .3.255 (Brdcst)</text>
+<text x="560" y="174" fill="#fce7f3" font-size="9">Usable Pool: 10.11.0.2 – 10.11.3.253 (DR Compute, Replica DBs)</text>
+
+<!-- Secondary ranges -->
+<rect x="550" y="192" width="385" height="110" rx="3" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="560" y="210" fill="#22c55e" font-size="10" font-weight="700">GKE IP Alias Secondary Ranges (DR Cluster)</text>
+<text x="560" y="228" fill="#fce7f3" font-size="9">• Pod CIDR: 10.21.0.0/16 (65,536 Pod IPs, /24 per node)</text>
+<text x="560" y="246" fill="#fce7f3" font-size="9">• Service CIDR: 10.31.0.0/20 (4,096 ClusterIP addresses)</text>
+<text x="560" y="264" fill="#a9b7cb" font-size="9">Non-overlapping with us-central1; enables active-active failover</text>
+<text x="560" y="282" fill="#38bdf8" font-size="9">Cloud Router: cr-us-east1 (Google ASN 65001, Global Routing Mode)</text>
+
+<!-- Center WAN Backbone Connection -->
+<path d="M 480 180 L 520 180" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#d49-arch-arr)"/>
+<path d="M 520 200 L 480 200" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#d49-arch-arr)"/>
+<rect x="470" y="215" width="60" height="25" rx="3" fill="#0d111f" stroke="#38bdf8" stroke-width="1"/>
+<text x="475" y="231" fill="#38bdf8" font-size="8" font-weight="700">B4 WAN</text>
+
+<!-- Hybrid BGP Peering (Bottom Left) -->
+<rect x="35" y="345" width="445" height="200" rx="6" fill="#161b33" stroke="#f59e0b" stroke-width="1.2"/>
+<text x="50" y="365" fill="#f59e0b" font-size="11" font-weight="700">HYBRID CLOUD ROUTER BGP PEERING (Global Dynamic Routing Mode)</text>
+<rect x="50" y="375" width="415" height="155" rx="4" fill="#0d111f" stroke="#1e293b" stroke-width="1"/>
+<text x="60" y="393" fill="#fce7f3" font-size="10" font-weight="700">Cloud Router cr-us-central1 (ASN 65001) ⇄ On-Premises Core (ASN 65010)</text>
+<text x="60" y="411" fill="#22c55e" font-size="9">• Primary Path: Dedicated Cloud Interconnect (10 Gbps, BGP Base Priority 100)</text>
+<text x="60" y="427" fill="#f59e0b" font-size="9">• Backup Path: Cloud HA VPN Tunnel (IPsec 3 Gbps, BGP Base Priority 200)</text>
+<text x="60" y="445" fill="#a9b7cb" font-size="9">Dynamic Route Advertisement: Advertises all VPC subnets (10.10.0.0/22, 10.11.0.0/22)</text>
+<text x="60" y="463" fill="#a9b7cb" font-size="9">Learned Dynamic Route: 192.168.0.0/16 learned from on-premises datacenter</text>
+<text x="60" y="481" fill="#38bdf8" font-size="9">Global Propagation: Remote region us-east1 receives 192.168.0.0/16 with latency metric</text>
+<text x="60" y="499" fill="#fce7f3" font-size="9">Failover Mechanism: BGP withdrawal of Interconnect triggers instant VPN failover (&lt;3s)</text>
+
+<!-- Andromeda Route Precedence Engine (Bottom Right) -->
+<rect x="520" y="345" width="445" height="200" rx="6" fill="#161b33" stroke="#22c55e" stroke-width="1.2"/>
+<text x="535" y="365" fill="#22c55e" font-size="11" font-weight="700">ANDROMEDA DETERMINISTIC ROUTE SELECTION HIERARCHY</text>
+<rect x="535" y="375" width="415" height="155" rx="4" fill="#0d111f" stroke="#1e293b" stroke-width="1"/>
+<text x="545" y="393" fill="#38bdf8" font-size="10" font-weight="700">1. Longest Prefix Match (LPM) — Most Specific Destination Mask Always Wins</text>
+<text x="555" y="409" fill="#fce7f3" font-size="9">10.10.1.50/32 (Host) &gt; 10.10.0.0/22 (Subnet) &gt; 10.0.0.0/8 (Summary) &gt; 0.0.0.0/0</text>
+<text x="545" y="431" fill="#f59e0b" font-size="10" font-weight="700">2. Lowest Numerical Priority (Admin Distance) — Resolves Prefix Length Ties</text>
+<text x="555" y="447" fill="#fce7f3" font-size="9">Local Subnet (Prio 0) &gt; Interconnect (Prio 100) &gt; VPN (Prio 200) &gt; Internet (Prio 1000)</text>
+<text x="545" y="469" fill="#22c55e" font-size="10" font-weight="700">3. Equal-Cost Multi-Path (ECMP) — 5-Tuple Packet Flow Hashing</text>
+<text x="555" y="485" fill="#fce7f3" font-size="9">Hashed across src/dst IP, src/dst port, protocol when prefixes and priorities match</text>
+<text x="545" y="507" fill="#a9b7cb" font-size="9">Deterministic Resolution: Eliminates routing loops and nondeterministic path selection</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> Enterprise Google Cloud Global VPC architecture. Two regional subnets (<code>us-central1</code> and <code>us-east1</code>) span availability zones within their respective regions, supporting primary host allocations and non-overlapping GKE secondary IP ranges for Pods and Services; Cloud Routers establish hybrid dynamic BGP peering with on-premises data centers under Global Dynamic Routing mode; and Andromeda's distributed routing engine evaluates longest prefix match, administrative priority, and ECMP hashing to enforce deterministic packet forwarding across Google's private optical B4 WAN.<br>
+<strong>Scope:</strong> Global VPC networking, regional subnetting boundaries, GKE IP alias calculation, Cloud Router BGP configuration, and Andromeda route resolution hierarchy.<br>
+<strong>What it does not prove:</strong> It does not prove that inter-region network latency meets sub-5ms SLAs during transatlantic subsea fiber disruptions, nor does it configure Cloud Armor edge DDoS protection.
+</figcaption>
+</figure>
+
+<p><strong>Further study:</strong> <a href="https://cloud.google.com/vpc/docs/overview">Google Cloud VPC Network Overview</a> and <a href="https://cloud.google.com/vpc/docs/subnets">Subnets Overview</a> provide primary Google Cloud networking documentation; cross-reference <a href="../sources.html#topic-016">Topic 016 references</a> for enterprise IP planning standards.</p>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Subnets as Regional Resources: Address Reservation and Zonal Resiliency</h3>
+<p>In Google Cloud, subnets are regional constructs rather than zonal constructs. A subnet defined with primary range <code>10.10.0.0/24</code> in <code>us-central1</code> automatically spans all zones in that region. When a VM is created in zone <code>us-central1-a</code>, it draws an IP address from that subnet (e.g. <code>10.10.0.4</code>). When a second VM is created in zone <code>us-central1-b</code>, it draws an IP from the exact same subnet (e.g. <code>10.10.0.5</code>). Both VMs communicate directly as Layer 3 neighbors without any inter-zone gateway devices.</p>
+
+<p><strong>Google Cloud Subnet Reserved IP Addresses:</strong></p>
+<p>Every subnet primary range reserves exactly four IP addresses for internal network infrastructure operations:</p>
+<ol>
+<li><strong>Network Address (First IP, e.g. <code>.0</code>):</strong> Base network identifier.</li>
+<li><strong>Default Gateway (Second IP, e.g. <code>.1</code>):</strong> Local subnet default gateway for outbound routing.</li>
+<li><strong>Reserved Address (Second-to-last IP, e.g. <code>.254</code> in a <code>/24</code>):</strong> Reserved by Google Cloud for future expansion and DHCP server bindings.</li>
+<li><strong>Broadcast Address (Last IP, e.g. <code>.255</code> in a <code>/24</code>):</strong> RFC standard broadcast address (though Andromeda does not flood broadcast frames).</li>
+</ol>
+<p>Consequently, the usable host capacity for any subnet primary range is calculated as: $$\text{Usable Hosts} = 2^{(32 - \text{prefix})} - 4$$</p>
+
+<div class="table-wrap">
+<table>
+<caption>Table 49.2: Subnet Reserved IP Allocation Table (Primary vs. Secondary &amp; GCP vs. AWS VPC Comparison)</caption>
+<thead>
+<tr>
+<th scope="col">Address Offset / Role</th>
+<th scope="col">Example (/24 Subnet)</th>
+<th scope="col">Example (/22 Subnet)</th>
+<th scope="col">Andromeda SDN Function</th>
+<th scope="col">Assignable to Host?</th>
+<th scope="col">Secondary Range Behavior</th>
+<th scope="col">AWS VPC Comparison</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>First IP (Offset .0)</strong></td>
+<td><code>10.10.0.0</code></td>
+<td><code>10.10.0.0</code></td>
+<td>Network identifier / base subnet address.</td>
+<td>No</td>
+<td><strong>Usable!</strong> (0 reserved IPs)</td>
+<td>Reserved (Network address)</td>
+</tr>
+<tr>
+<td><strong>Second IP (Offset .1)</strong></td>
+<td><code>10.10.0.1</code></td>
+<td><code>10.10.0.1</code></td>
+<td>Local subnet default gateway; virtualized by Andromeda (does not consume VM NIC or respond to ICMP ping).</td>
+<td>No</td>
+<td><strong>Usable!</strong> (0 reserved IPs)</td>
+<td>Reserved (VPC router gateway)</td>
+</tr>
+<tr>
+<td><strong>Third IP (Offset .2)</strong></td>
+<td><code>10.10.0.2</code></td>
+<td><code>10.10.0.2</code></td>
+<td><strong>Fully usable</strong> for Compute Engine VMs and GKE worker nodes.</td>
+<td>Yes</td>
+<td><strong>Usable!</strong> (0 reserved IPs)</td>
+<td>Reserved (AWS DNS resolver)</td>
+</tr>
+<tr>
+<td><strong>Fourth IP (Offset .3)</strong></td>
+<td><code>10.10.0.3</code></td>
+<td><code>10.10.0.3</code></td>
+<td><strong>Fully usable</strong> for Compute Engine VMs and GKE worker nodes.</td>
+<td>Yes</td>
+<td><strong>Usable!</strong> (0 reserved IPs)</td>
+<td>Reserved (Future expansion)</td>
+</tr>
+<tr>
+<td><strong>Second-to-Last IP</strong></td>
+<td><code>10.10.0.254</code></td>
+<td><code>10.10.3.254</code></td>
+<td>Reserved by Google Cloud for DHCP lease server coordination and internal platform capabilities.</td>
+<td>No</td>
+<td><strong>Usable!</strong> (0 reserved IPs)</td>
+<td>Assignable host IP</td>
+</tr>
+<tr>
+<td><strong>Last IP (Broadcast)</strong></td>
+<td><code>10.10.0.255</code></td>
+<td><code>10.10.3.255</code></td>
+<td>RFC standard broadcast address; Andromeda drops layer 2 broadcast frames.</td>
+<td>No</td>
+<td><strong>Usable!</strong> (0 reserved IPs)</td>
+<td>Reserved (Broadcast address)</td>
+</tr>
+<tr>
+<td><strong>Summary Capacity</strong></td>
+<td>252 usable hosts</td>
+<td>1,020 usable hosts</td>
+<td>Formula: 2^(32 &minus; prefix) &minus; 4 for primary ranges.</td>
+<td>&mdash;</td>
+<td>2^(32 &minus; prefix) (100% usable)</td>
+<td>Formula: 2^(32 &minus; prefix) &minus; 5</td>
+</tr>
+</tbody>
+</table>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Auto Mode vs. Custom Mode VPCs: Enterprise IP Governance</h3>
+<p>When a Google Cloud project is created without organizational policy constraints, Google offers to provision a "default" Auto mode VPC. Understanding why enterprises mandate Custom mode is foundational to landing zone architecture:</p>
+
+<div class="table-wrap">
+<table>
+<caption>Table 49.3: Comparison: Auto Mode vs. Custom Mode VPCs (Enterprise IP Governance &amp; Risk Matrix)</caption>
+<thead>
+<tr>
+<th scope="col">Feature</th>
+<th scope="col">Auto Mode VPC</th>
+<th scope="col">Custom Mode VPC (Enterprise Standard)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Initial Subnets</strong></td>
+<td>Automatically creates one <code>/20</code> subnet in every Google Cloud region.</td>
+<td>Zero subnets created; architect creates subnets explicitly where required.</td>
+</tr>
+<tr>
+<td><strong>CIDR Address Space</strong></td>
+<td>Fixed predefined allocation strictly within <code>10.128.0.0/9</code>.</td>
+<td>Fully customizable RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) or RFC 6598 (100.64.0.0/10).</td>
+</tr>
+<tr>
+<td><strong>Expansion Behavior</strong></td>
+<td>Automatically provisions a new <code>/20</code> subnet whenever Google launches a new cloud region.</td>
+<td>Controlled exclusively by infrastructure-as-code (Terraform) pipelines.</td>
+</tr>
+<tr>
+<td><strong>On-Premises Peering</strong></td>
+<td>Frequently collides with corporate IP spaces, blocking Cloud Interconnect / VPN peering.</td>
+<td>Designed around enterprise IPAM reservation sheets with zero IP overlap.</td>
+</tr>
+<tr>
+<td><strong>Organizational Policy</strong></td>
+<td>Restricted via <code>constraints/compute.skipDefaultNetworkCreation</code>.</td>
+<td>Enforced globally across all production and development folders.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</article>
+
+<article id="topic-04-technical" class="topic-card">
+<h3>Secondary Ranges &amp; GKE IP Alias Allocation Calculations</h3>
+<p>GKE clusters running in VPC-native mode allocate IP addresses directly from the VPC subnet fabric rather than using overlay network encapsulation (e.g. Flannel or Calico IP-in-IP). This requires allocating three distinct IP address spaces per cluster:</p>
+
+<ol>
+<li><strong>Node CIDR (Subnet Primary Range):</strong> Provides IP addresses for GKE worker VM host interfaces. Sized according to expected maximum worker node count.</li>
+<li><strong>Pod CIDR (Subnet Secondary Range):</strong> Sized according to maximum pods. GKE allocates a contiguous <code>/24</code> block (256 addresses, accommodating up to 110 pods per node) to each worker node by default. Therefore, a cluster supporting up to 256 nodes requires a <code>/16</code> Pod secondary range (65,536 addresses).</li>
+<li><strong>Service CIDR (Subnet Secondary Range):</strong> Sized according to internal Kubernetes ClusterIP Service objects. A <code>/20</code> range provides 4,096 Service IPs.</li>
+</ol>
+
+<p><strong>Subnet Range Expansion Rules:</strong></p>
+<ul>
+<li>Primary subnet ranges can be expanded to a shorter prefix (e.g., <code>10.10.0.0/24</code> can expand to <code>10.10.0.0/22</code>) non-disruptively without rebooting VMs.</li>
+<li>Primary ranges can NEVER be shrunk, shifted, or modified to a longer prefix.</li>
+<li>Secondary ranges CANNOT be modified or expanded after creation; if pod IP space is exhausted, administrators must add an additional secondary range and configure a new GKE node pool mapped to the new range.</li>
+</ul>
+</article>
+
+<article id="topic-05-technical" class="topic-card">
+<h3>Routes, Priority Precedence, and BGP Dynamic Routing</h3>
+<p>Every routing lookup in Google Cloud follows Andromeda's strict deterministic evaluation order:</p>
+
+<ol>
+<li><strong>Step 1: Longest Prefix Match (LPM):</strong> The most specific destination subnet mask always wins. For example, a route destined for <code>10.10.1.0/24</code> always takes precedence over a route to <code>10.10.0.0/16</code> or <code>0.0.0.0/0</code>, regardless of priority integer values.</li>
+<li><strong>Step 2: Lowest Priority Integer (Administrative Distance):</strong> If two routes have identical destination CIDRs, Andromeda selects the route with the lowest numerical priority (0 is highest priority; 65535 is lowest priority). Default system routes have priority 0 (local subnets) and 1000 (default internet gateway).</li>
+<li><strong>Step 3: Equal-Cost Multi-Path (ECMP):</strong> If two or more routes share the exact same destination CIDR and identical priority, Andromeda hashes traffic flows across all available next-hops using 5-tuple packet hashing (source IP, destination IP, protocol, source port, destination port).</li>
+</ol>
+
+<div class="table-wrap">
+<table>
+<caption>Table 49.4: GCP System vs. Static vs. Dynamic Routes &amp; Next-Hop Selection Matrix</caption>
+<thead>
+<tr>
+<th scope="col">Route Category</th>
+<th scope="col">Destination Prefix</th>
+<th scope="col">Next-Hop Target Type</th>
+<th scope="col">Default Priority</th>
+<th scope="col">Dynamic Routing Scope</th>
+<th scope="col">Andromeda Resolution Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Default Subnet Route (System)</strong></td>
+<td>Primary &amp; Secondary Subnet CIDRs</td>
+<td>Local VPC network fabric (Andromeda SDN)</td>
+<td>0 (Fixed)</td>
+<td>Global across all regions</td>
+<td>Always preferred over static and dynamic routes for intra-subnet and cross-subnet communication within the VPC.</td>
+</tr>
+<tr>
+<td><strong>Default Internet Gateway (System)</strong></td>
+<td><code>0.0.0.0/0</code></td>
+<td><code>default-internet-gateway</code></td>
+<td>1000</td>
+<td>Global across all regions</td>
+<td>Provides direct outbound internet egress; overridden by any custom route to <code>0.0.0.0/0</code> with priority &lt; 1000.</td>
+</tr>
+<tr>
+<td><strong>Custom Static Route (Next-Hop Instance)</strong></td>
+<td>Configured CIDR (e.g. <code>192.168.0.0/16</code>)</td>
+<td>Specific Compute Engine VM instance / NIC</td>
+<td>User-defined (0–65535)</td>
+<td>Global or filtered by network tags</td>
+<td>Directs traffic to a single Network Virtual Appliance (NVA). If VM fails, traffic blackholes unless managed by external scripts.</td>
+</tr>
+<tr>
+<td><strong>Custom Static Route (Next-Hop IP)</strong></td>
+<td>Configured CIDR</td>
+<td>Internal IP address in the subnet</td>
+<td>User-defined (0–65535)</td>
+<td>Global or network tagged</td>
+<td>Routes to an IP within the VPC; useful for third-party virtual appliance interfaces and secondary IP addresses.</td>
+</tr>
+<tr>
+<td><strong>Custom Static Route (Next-Hop ILB)</strong></td>
+<td>Configured CIDR</td>
+<td>Internal Passthrough Network Load Balancer (VIP)</td>
+<td>User-defined (0–65535)</td>
+<td>Regional (ILB VIP scope)</td>
+<td><strong>Enterprise Best Practice:</strong> Routes traffic across a pool of health-checked NVA firewalls with automatic health-based failover.</td>
+</tr>
+<tr>
+<td><strong>Custom Static Route (Next-Hop VPN)</strong></td>
+<td>Configured CIDR</td>
+<td>Cloud Classic / HA VPN Tunnel</td>
+<td>User-defined (0–65535)</td>
+<td>Regional or Global</td>
+<td>Routes traffic into an IPsec tunnel; static failover requires managing route priorities across redundant tunnels.</td>
+</tr>
+<tr>
+<td><strong>Dynamic BGP Route (Cloud Router — Regional Mode)</strong></td>
+<td>Learned from on-premise BGP peer</td>
+<td>Cloud Interconnect / Cloud VPN attachment</td>
+<td>BGP MED + Base Priority (e.g. 100)</td>
+<td><strong>Regional dynamic mode</strong></td>
+<td>Only subnets in the Cloud Router's local region learn the route. Workloads in remote regions cannot reach on-prem without regional transit.</td>
+</tr>
+<tr>
+<td><strong>Dynamic BGP Route (Cloud Router — Global Mode)</strong></td>
+<td>Learned from on-premise BGP peer</td>
+<td>Cloud Interconnect / Cloud VPN attachment</td>
+<td>BGP MED + Base Priority (+ metric for remote)</td>
+<td><strong>Global dynamic mode</strong></td>
+<td><strong>Enterprise Standard:</strong> All subnets across all global regions learn the route. Remote regions automatically add latency metric (typically 200).</td>
+</tr>
+</tbody>
+</table>
+</div>
+</article>
+
+</section>
+
+<!-- ================= PART 3 ================= -->
+<section id="part-3" class="part">
+<h2>Part 3 · Real-world problem and solution for each topic</h2>
+
+<article id="topic-01-problem" class="topic-card">
+<h3>Global VPC Cross-Region Asymmetric Routing and Hairpin Outage · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf established a primary production environment in <code>us-central1</code> and a disaster recovery site in <code>us-east1</code> within the same VPC. During an automated database snapshot replication test, cross-region bandwidth plummeted to less than 2 Mbps, and replication alerts fired continuously. Simultaneously, inter-region network egress billing showed an unexpected $4,800 surge over a 48-hour testing period.</p>
+
+<p><strong>Constraints:</strong> Must preserve low-latency database replication between regions; must route all traffic across private Google networks without public internet hops; and must stay within monthly data transfer budgets.</p>
+
+<p><strong>Diagnosis and solution:</strong> Network topology inspection via Cloud Logging and Network Intelligence Center revealed that an engineer had created a custom static route for <code>10.11.0.0/22</code> pointing to an intermediate legacy NAT virtual appliance in <code>us-central1</code> (priority 500) intended for deep packet inspection. Rather than allowing Andromeda to route directly across Google's private backbone to <code>us-east1</code>, packets were forced into a single-threaded virtual machine appliance that became CPU-bound and dropped 82% of packets. The solution was removing the redundant custom static route, allowing Andromeda's native priority 0 local subnet route to handle forwarding directly across regions at line rate.</p>
+
+<!-- Incident 1 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d49-i1-title d49-i1-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d49-i1-title">Incident 1: Cross-Region Hairpin Appliance Bottleneck vs Native Andromeda Routing</title>
+<desc id="d49-i1-desc">Incident diagram showing failed path where inter-region traffic was hairpinned through a saturated VM appliance, followed by corrected path utilizing native Andromeda private backbone routing.</desc>
+<defs>
+<marker id="d49-i1-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d49-i1-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Cross-Region DB Sync</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">us-central1 -&gt; us-east1</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">Snapshot replication</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Target: 10.11.0.50</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i1-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Hairpin Route</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">Static route overrides local</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">Forced through VM appliance</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Appliance CPU at 100%</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i1-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Severe Packet Drop</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">82% packet loss on sync</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">Bandwidth drops to 2 Mbps</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: unneeded next-hop</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i1-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">DR Sync Lag</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">$4.8k Waste</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i1-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Delete custom static route</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Use Andromeda priority 0 route</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Direct hypervisor-to-hypervisor</text>
+
+<line x1="480" y1="192" x2="560" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i1-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Throughput: 940 Mbps</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Zero packet drop</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Latency: 18ms speed-of-light</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i1-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">Sync Passed</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">RPO Met</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Cross-region database replication throughput dropped to 2 Mbps; packet loss reached 82%; inter-region egress billing increased by $4,800 over 48 hours.<br>
+<strong>Architectural inference:</strong> An unnecessary custom static route intercepted cross-region traffic and hairpinned it through an undersized virtual machine inspection appliance, bypassing native Andromeda hardware routing.<br>
+<strong>Expected post-fix behavior:</strong> Removing the static route restores Andromeda direct SDN transmission across Google's private fiber, achieving 940 Mbps throughput with zero packet loss.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> If corporate regulatory standards strictly mandate Layer 7 deep packet inspection on all inter-region traffic, the inspection appliances must be deployed behind an internal load balancer with autoscaling and multi-NIC interfaces rather than a single static next-hop VM.</p>
+</article>
+
+<article id="topic-02-problem" class="topic-card">
+<h3>Subnet Zonal Misunderstanding and Address Fragmentation Exhaustion · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's operations team prepared for high-volume Thanksgiving bakery orders by provisioning a new managed instance group in <code>us-central1</code>. Believing that subnets were zonal constructs like Compute Engine VMs, the engineer created four separate <code>/28</code> subnets (one per zone) with only 12 usable IPs each. During a zonal maintenance drain, instances in <code>us-central1-a</code> were terminated and rescheduled in <code>us-central1-b</code>, which immediately failed with <code>ZONE_RESOURCE_POOL_EXHAUSTED: IP space exhausted in subnet</code>. Fifty order processing workers failed to boot, dropping 3,200 online pie orders.</p>
+
+<p><strong>Constraints:</strong> Must maintain high availability across all four zones of <code>us-central1</code>; must support autoscaling up to 80 instances during holiday peaks; and must avoid frequent manual IP modifications.</p>
+
+<p><strong>Diagnosis and solution:</strong> The incident root cause was a fundamental misunderstanding of Google Cloud subnet boundaries. Instead of fragmenting address space across multiple narrow zonal subnets, Google Cloud subnets are regional and naturally encompass all zones. The resolution involved consolidating the fragmented <code>/28</code> blocks into a single regional <code>/22</code> subnet (1,020 usable hosts) in <code>us-central1</code>. The single subnet dynamically allocates IP addresses to worker instances in zones a, b, c, and f seamlessly, enabling unrestricted cross-zonal autoscaling.</p>
+
+<!-- Incident 2 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d49-i2-title d49-i2-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d49-i2-title">Incident 2: Zonal Subnet Fragmentation vs Regional Subnet Consolidation</title>
+<desc id="d49-i2-desc">Incident diagram showing failed path where fragmented /28 zonal subnets exhausted IP addresses during a zonal shift, followed by corrected path consolidating into a single /22 regional subnet.</desc>
+<defs>
+<marker id="d49-i2-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d49-i2-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Zonal Shift Event</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">Maintenance in zone a</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">MIG fails over to zone b</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">50 VMs rescheduling</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i2-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Zonal /28s</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">Fragmented /28 per zone</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">Only 12 usable IPs in zone b</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Instant pool exhaustion</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i2-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">VM Creation Error</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">ZONE_RESOURCE_POOL_EXHAUSTED</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">38 VMs fail to schedule</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: artificial isolation</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i2-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">MIG Crash</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">3.2k Pie Drops</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i2-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Consolidate to regional /22</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">1,020 usable shared IPs</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Natural cross-zone pooling</text>
+
+<line x1="480" y1="192" x2="560" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i2-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Zero Failures on Shift</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">All 50 VMs boot in zone b</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">970 IP addresses spare</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i2-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">100% Availability</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> A zonal shift in us-central1 caused instances to fail over from zone a to zone b; 38 instances failed with ZONE_RESOURCE_POOL_EXHAUSTED errors; 3,200 customer pie orders dropped.<br>
+<strong>Architectural inference:</strong> Creating artificial /28 subnets per zone fragmented the IP address space into 12-host silos, preventing instances from leveraging unused capacity in adjacent availability zones.<br>
+<strong>Expected post-fix behavior:</strong> Consolidating into a single regional /22 subnet creates an elastic 1,020-host pool across all zones, permitting seamless instance migration without address exhaustion.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Consolidating into a single regional subnet requires managing network firewall rules via network tags or service accounts rather than subnet CIDR filters, since all zones share the same primary IP range.</p>
+</article>
+
+<article id="topic-03-problem" class="topic-card">
+<h3>Auto Mode Default CIDR Overlap with On-Premises Data Center · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf established a dedicated Cloud Interconnect link to connect its on-premises bakery ERP database (IP range <code>10.128.0.0/16</code>) with a newly provisioned Google Cloud analytics project. The cloud network was created in default Auto mode. When network engineers attempted to establish BGP peering, the Cloud Router logged fatal BGP peering errors: <code>PEERING_ROUTE_OVERLAP: Advertised prefixes conflict with local subnet 10.128.0.0/20 in us-central1</code>. The entire hybrid connection was blocked, halting the ERP data migration.</p>
+
+<p><strong>Constraints:</strong> Cannot re-IP the legacy on-premises ERP database; must establish hybrid connectivity over Cloud Interconnect; and must enforce organizational policy prohibiting Auto mode VPCs.</p>
+
+<p><strong>Diagnosis and solution:</strong> Auto mode VPCs automatically provision subnets across the entire <code>10.128.0.0/9</code> CIDR block. Because the on-premises corporate network occupied <code>10.128.0.0/16</code>, BGP could not exchange routes due to conflicting subnet ranges. The solution required deleting the Auto mode VPC, enforcing the organization policy <code>constraints/compute.skipDefaultNetworkCreation</code>, and provisioning a Custom mode VPC using an allocated, non-overlapping enterprise block: <code>172.16.0.0/20</code>. BGP peering established immediately, enabling sub-millisecond database queries.</p>
+
+<!-- Incident 3 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d49-i3-title d49-i3-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d49-i3-title">Incident 3: Auto Mode 10.128.0.0/9 CIDR Conflict vs Custom Mode Resolution</title>
+<desc id="d49-i3-desc">Incident diagram showing failed path where Auto mode default subnet collided with corporate on-premise IP space, followed by corrected path enforcing custom mode with non-overlapping RFC 1918 CIDRs.</desc>
+<defs>
+<marker id="d49-i3-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d49-i3-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Cloud Interconnect</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">On-prem ERP Sync</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">On-prem: 10.128.0.0/16</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Target: BGP Peering</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i3-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Auto Mode</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">Default 10.128.0.0/20 in VPC</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">Direct overlap with on-prem</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">BGP rejects route advertisement</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i3-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">PEERING_ROUTE_OVERLAP</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">BGP session down</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">Zero packets forwarded</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: Auto mode CIDRs</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i3-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">Peering Block</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">6-Wk Delay</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i3-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Enforce Custom Mode VPC</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Allocate 172.16.0.0/20 block</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Org policy: skipDefaultNetwork</text>
+
+<line x1="480" y1="192" x2="560" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i3-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">BGP State: ESTABLISHED</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Dynamic prefixes learned</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Zero CIDR collision</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i3-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">Hybrid Up</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">ERP Synced</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> BGP session over Cloud Interconnect failed with PEERING_ROUTE_OVERLAP errors; on-premises ERP subnet (10.128.0.0/16) overlapped with default Auto mode subnet (10.128.0.0/20).<br>
+<strong>Architectural inference:</strong> Auto mode VPCs allocate rigid 10.128.0.0/9 subnets globally that inevitably collide with established enterprise private address schemes.<br>
+<strong>Expected post-fix behavior:</strong> Rebuilding the network as a Custom mode VPC with an allocated 172.16.0.0/20 subnet resolved the conflict, transitioning BGP state to ESTABLISHED and unblocking ERP data replication.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> If an organization cannot immediately migrate off Auto mode, Private NAT or Cloud NAT with customized IP mappings can translate overlapping ranges, though it introduces NAT processing latency and eliminates end-to-end IP auditability.</p>
+</article>
+
+<article id="topic-04-problem" class="topic-card">
+<h3>GKE Pod Secondary Range Exhaustion During Surge Upgrade · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's primary production GKE cluster in <code>us-central1</code> initiated an automated node pool surge upgrade (configured with <code>maxSurge=1, maxUnavailable=0</code>). The cluster contained 60 worker nodes. Mid-upgrade, the GKE cluster entered a deadlocked state: new surge nodes registered as <code>NotReady</code> with Kubelet error <code>Failed to allocate Pod CIDR: out of addresses in secondary range gke-pods</code>. The upgrade halted, node drains timed out, and checkout pods were evicted without replacements, causing intermittent 503 errors on 15% of checkout traffic.</p>
+
+<p><strong>Constraints:</strong> Must upgrade cluster nodes to patched Kubernetes versions; cannot destroy and recreate the production cluster; and must support cluster expansion up to 100 worker nodes.</p>
+
+<p><strong>Diagnosis and solution:</strong> The cluster was originally provisioned with a <code>/18</code> secondary range for Pods (16,384 addresses). With GKE's default <code>/24</code> allocation per node (256 addresses per node), the secondary range can only support a maximum of 64 nodes ($16384 / 256 = 64$). When the surge upgrade provisioned additional temporary surge nodes, total nodes exceeded 64, immediately exhausting the Pod CIDR. Because secondary ranges cannot be resized, the solution required adding a new secondary range (<code>gke-pods-expansion: 10.40.0.0/16</code>) to the VPC subnet and provisioning a new node pool mapped to the new pod range using multi-pod CIDR allocation, allowing the old node pool to be safely drained and retired.</p>
+
+<!-- Incident 4 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d49-i4-title d49-i4-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d49-i4-title">Incident 4: GKE Pod Secondary CIDR Exhaustion and Multi-Range Resolution</title>
+<desc id="d49-i4-desc">Incident diagram showing failed path where a GKE surge upgrade exceeded the 64-node ceiling of a /18 secondary range, followed by corrected path adding a new secondary CIDR and multi-pod node pool.</desc>
+<defs>
+<marker id="d49-i4-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d49-i4-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Surge Upgrade</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">60 Node Cluster</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">maxSurge=1</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">GKE Node Pool</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i4-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: /18 Pod Range</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">Max 64 nodes (/24 per node)</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">Surge nodes push count to 65</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Pod CIDR allocation failure</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i4-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Upgrade Deadlock</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">Surge nodes stuck NotReady</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">Old nodes drained &amp; evicted</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: /18 secondary limit</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i4-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">503 Errors</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">15% Drop</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i4-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Add secondary: 10.40.0.0/16</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Provision multi-pod node pool</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Support 256 additional nodes</text>
+
+<line x1="480" y1="192" x2="560" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i4-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Nodes Ready: 65/65</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Surge upgrade completes</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Zero pod scheduling drop</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i4-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">Upgrade Done</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> GKE node pool upgrade locked up during surge provisioning; Kubelet reported out-of-addresses in secondary range gke-pods; 15% of checkout traffic experienced 503 errors.<br>
+<strong>Architectural inference:</strong> A /18 secondary range caps cluster capacity at exactly 64 nodes when allocating standard /24 CIDRs per node; surge nodes pushed the node count to 65, breaching the secondary allocation boundary.<br>
+<strong>Expected post-fix behavior:</strong> Adding an expansive /16 secondary range to the subnet and binding a new node pool provided 256 node allocations, allowing the surge upgrade to complete with zero pod evictions.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> For large-scale GKE clusters, architects should reduce <code>--max-pods-per-node</code> (e.g. from 110 to 32), which allows GKE to allocate a more compact <code>/26</code> CIDR per node, quadrupling the node capacity of any given secondary IP range.</p>
+</article>
+
+<article id="topic-05-problem" class="topic-card">
+<h3>Static Route Shadowing BGP Dynamic Cloud Router Failover · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf operates a hybrid retail architecture where cloud-based order APIs communicate with on-premises point-of-sale inventory databases over Cloud Interconnect with Cloud VPN backup. During an unexpected fiber cut on the physical Interconnect, the Cloud Router successfully detected BGP link failure within 3 seconds and began advertising routes over the backup Cloud VPN tunnel. However, all retail store inventory queries blackholed, cutting off live stock tracking across all 250 bakeries for 45 minutes.</p>
+
+<p><strong>Constraints:</strong> Must achieve automated failover in under 10 seconds during WAN link disruptions; cannot introduce manual routing intervention; and must adhere to strict deterministic route priorities.</p>
+
+<p><strong>Diagnosis and solution:</strong> Routing table analysis revealed that during a legacy migration, an engineer had configured a custom static route: <code>destination=192.168.10.0/24, next-hop=interconnect-gateway, priority=100</code>. When BGP dynamically advertised <code>192.168.10.0/24</code> over the backup Cloud VPN tunnel with base priority 200, Andromeda evaluated the two identical destination prefixes and selected the custom static route because priority 100 numerically beats priority 200. Consequently, packets continued forwarding into the dead physical Interconnect interface. The resolution was deleting the static route and configuring dynamic BGP routes exclusively on both Cloud Interconnect (base priority 100) and Cloud VPN (base priority 200). Upon physical cut, BGP withdrew the priority 100 route, allowing the priority 200 VPN route to take over within 3 seconds.</p>
+
+<!-- Incident 5 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d49-i5-title d49-i5-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d49-i5-title">Incident 5: Custom Static Route Shadowing BGP Dynamic Failover Resolution</title>
+<desc id="d49-i5-desc">Incident diagram showing failed path where a priority 100 static route shadowed BGP dynamic VPN failover during an Interconnect cut, followed by corrected path utilizing dynamic BGP priorities.</desc>
+<defs>
+<marker id="d49-i5-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d49-i5-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">WAN Fiber Cut</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">Cloud Interconnect severed</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">BGP triggers VPN failover</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Target: 192.168.10.0/24</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i5-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Shadow Route</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">Static route prio 100 remains</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">Beats dynamic BGP prio 200</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Packets route to dead link</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i5-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Blackhole Drop</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">Traffic dropped at interface</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">VPN tunnel sits 100% idle</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: unwithdrawn static</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d49-i5-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">POS Outage</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">45m Blind</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i5-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Delete custom static route</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Pure BGP dynamic peering</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Interconnect 100 / VPN 200</text>
+
+<line x1="480" y1="192" x2="560" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i5-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Failover: 2.8 seconds</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">VPN takes traffic instantly</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Zero manual intervention</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d49-i5-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">99.99% SLA</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Physical Cloud Interconnect was severed; Cloud Router detected link loss, but POS inventory traffic was blackholed for 45 minutes; backup Cloud VPN remained idle.<br>
+<strong>Architectural inference:</strong> A lingering custom static route (priority 100) matched the on-premises prefix and took precedence over the dynamic BGP VPN route (priority 200), forwarding packets into a disconnected physical interface.<br>
+<strong>Expected post-fix behavior:</strong> Removing the static route allows Cloud Router BGP to automatically withdraw the failed Interconnect path, transitioning traffic to the backup Cloud VPN tunnel in 2.8 seconds.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> BGP failover timing depends on BGP keepalive and hold timers (typically 20s/60s). For sub-second failover, Bidirectional Forwarding Detection (BFD) should be enabled on the BGP sessions.</p>
+</article>
+
+</section>
+
+<!-- ================= PART 4 ================= -->
+<section id="part-4" class="part">
+<h2>Part 4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Custom Enterprise VPC Subnet and Multi-Region Network Deployment</h3>
+<p><strong>Goal:</strong> Formulate and deploy a custom-mode enterprise VPC network with regional subnets across <code>us-central1</code> and <code>us-east1</code>, verifying zero IP collisions.</p>
+<p><strong>Expected Result:</strong> An active Custom mode VPC with validated regional subnets and verified Andromeda private cross-region routing.</p>
+<p><strong>Mode:</strong> Declarative CLI &amp; tabletop routing verification · <strong>Prerequisite:</strong> Day 48 exit artifact.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Set project and network variables:
+<pre><code>export PROJECT_ID="brightloaf-prod"
+export VPC_NAME="brightloaf-enterprise-vpc"
+export REGION_PRIMARY="us-central1"
+export REGION_DR="us-east1"</code></pre>
+</li>
+
+<li><strong>Create Custom Mode VPC Network.</strong> Provision the global network with auto-subnetting disabled:
+<pre><code>gcloud compute networks create ${VPC_NAME} \
+    --subnet-mode=custom \
+    --bgp-routing-mode=global \
+    --mtu=1460</code></pre>
+</li>
+
+<li><strong>Create Primary Regional Subnet.</strong> Provision the production subnet in <code>us-central1</code>:
+<pre><code>gcloud compute networks subnets create prod-${REGION_PRIMARY}-app \
+    --network=${VPC_NAME} \
+    --region=${REGION_PRIMARY} \
+    --range=10.10.0.0/22 \
+    --enable-private-ip-google-access</code></pre>
+</li>
+
+<li><strong>Create Disaster Recovery Regional Subnet.</strong> Provision the DR subnet in <code>us-east1</code>:
+<pre><code>gcloud compute networks subnets create prod-${REGION_DR}-dr \
+    --network=${VPC_NAME} \
+    --region=${REGION_DR} \
+    --range=10.11.0.0/22 \
+    --enable-private-ip-google-access</code></pre>
+</li>
+
+<li><strong>Verify Subnet Allocations.</strong> Inspect created subnets and gateway IPs:
+<pre><code>gcloud compute networks subnets list --network=${VPC_NAME} --format="table(name,region,range,gatewayAddress)"</code></pre>
+<p>Expected output:</p>
+<pre><code>NAME                 REGION       RANGE         GATEWAY_ADDRESS
+prod-us-central1-app us-central1  10.10.0.0/22  10.10.0.1
+prod-us-east1-dr     us-east1    10.11.0.0/22  10.11.0.1</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> Both subnets validate with clean non-overlapping <code>/22</code> address spaces and Private Google Access enabled for secure API communication.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Delete the subnets and network:
+<pre><code>gcloud compute networks subnets delete prod-us-central1-app --region=${REGION_PRIMARY} --quiet
+gcloud compute networks subnets delete prod-us-east1-dr --region=${REGION_DR} --quiet
+gcloud compute networks delete ${VPC_NAME} --quiet</code></pre>
+</div>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: GKE Secondary Range Allocation and Subnet Expansion Calculations</h3>
+<p><strong>Goal:</strong> Formulate GKE primary and secondary IP ranges for pods and services, and execute a non-disruptive primary subnet expansion.</p>
+<p><strong>Expected Result:</strong> Subnet created with secondary ranges and non-disruptively expanded from <code>/24</code> to <code>/22</code>.</p>
+<p><strong>Mode:</strong> CIDR subnetting &amp; CLI execution · <strong>Prerequisite:</strong> Exercise 1.</p>
+
+<ol>
+<li><strong>Create Subnet with Secondary Ranges.</strong> Provision subnet with dedicated pod and service ranges:
+<pre><code>gcloud compute networks subnets create gke-us-central1 \
+    --network=default \
+    --region=us-central1 \
+    --range=10.10.0.0/24 \
+    --secondary-range=gke-pods=10.20.0.0/16,gke-services=10.30.0.0/20</code></pre>
+</li>
+
+<li><strong>Calculate Capacity Boundaries.</strong> Verify host and container allocation ceilings:
+<pre><code>python3 -c "
+import ipaddress
+primary = ipaddress.IPv4Network('10.10.0.0/24')
+pods = ipaddress.IPv4Network('10.20.0.0/16')
+services = ipaddress.IPv4Network('10.30.0.0/20')
+
+print(f'Primary Node Capacity: {primary.num_addresses - 4} usable VMs')
+print(f'Pod Capacity: {pods.num_addresses} Pod IPs ({pods.num_addresses // 256} nodes at /24 per node)')
+print(f'Service Capacity: {services.num_addresses} ClusterIP Services')
+"</code></pre>
+<p>Expected output:</p>
+<pre><code>Primary Node Capacity: 252 usable VMs
+Pod Capacity: 65536 Pod IPs (256 nodes at /24 per node)
+Service Capacity: 4096 ClusterIP Services</code></pre>
+</li>
+
+<li><strong>Execute Non-Disruptive Subnet Expansion.</strong> Expand the primary range from <code>/24</code> to <code>/22</code> to support additional worker node interfaces:
+<pre><code>gcloud compute networks subnets expand-ip-range gke-us-central1 \
+    --region=us-central1 \
+    --prefix-length=22</code></pre>
+<p>Expected output:</p>
+<pre><code>Updated [https://www.googleapis.com/compute/v1/projects/brightloaf-prod/regions/us-central1/subnetworks/gke-us-central1].</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> Primary range expanded from <code>10.10.0.0/24</code> to <code>10.10.0.0/22</code> (1,020 usable nodes) without interrupting secondary pod ranges or existing instances.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Delete the test subnet:
+<pre><code>gcloud compute networks subnets delete gke-us-central1 --region=us-central1 --quiet</code></pre>
+</div>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Cloud Router BGP Dynamic Route Configuration and Priority Evaluation</h3>
+<p><strong>Goal:</strong> Deploy a Cloud Router, configure BGP peering with custom advertised route priorities, and verify dynamic route propagation.</p>
+<p><strong>Expected Result:</strong> An active Cloud Router with configured BGP peer and verified route advertisement parameters.</p>
+<p><strong>Mode:</strong> BGP routing configuration · <strong>Prerequisite:</strong> Exercise 2.</p>
+
+<ol>
+<li><strong>Deploy Cloud Router.</strong> Provision Cloud Router with Google ASN 65001:
+<pre><code>gcloud compute routers create cr-us-central1 \
+    --network=default \
+    --region=us-central1 \
+    --asn=65001</code></pre>
+</li>
+
+<li><strong>Configure BGP Peering Interface and Custom Advertisement.</strong> Configure BGP peering with base route priority 100:
+<pre><code>gcloud compute routers add-interface cr-us-central1 \
+    --interface-name=if-interconnect-primary \
+    --region=us-central1 \
+    --ip-address=169.254.10.1 \
+    --mask-length=30
+
+gcloud compute routers add-bgp-peer cr-us-central1 \
+    --peer-name=bgp-onprem-primary \
+    --region=us-central1 \
+    --interface=if-interconnect-primary \
+    --peer-ip-address=169.254.10.2 \
+    --peer-asn=65010 \
+    --advertised-route-priority=100</code></pre>
+</li>
+
+<li><strong>Inspect Cloud Router Status.</strong> Verify BGP router configuration:
+<pre><code>gcloud compute routers describe cr-us-central1 --region=us-central1 --format="yaml(bgp,bgpPeers)"</code></pre>
+<p>Expected output:</p>
+<pre><code>bgp:
+  advertiseMode: DEFAULT
+  asn: 65001
+bgpPeers:
+- advertisedRoutePriority: 100
+  interfaceName: if-interconnect-primary
+  name: bgp-onprem-primary
+  peerAsn: 65010
+  peerIpAddress: 169.254.10.2</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> Cloud Router is configured with BGP ASN 65001 and advertises routes with priority 100 over the primary interface.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Delete the Cloud Router:
+<pre><code>gcloud compute routers delete cr-us-central1 --region=us-central1 --quiet</code></pre>
+</div>
+</article>
+
+<article id="topic-04-lab" class="topic-card lab">
+<h3>Exercise 4: Route Shadowing Conflict Emulation and Priority Resolution</h3>
+<p><strong>Goal:</strong> Model a route conflict where an overlapping static route shadows a dynamic route, and resolve it using priority tuning.</p>
+<p><strong>Expected Result:</strong> Mathematical proof and route table verification demonstrating that Longest Prefix Match overrides priority, and lower numerical priority resolves identical destination ties.</p>
+<p><strong>Mode:</strong> Python routing simulation · <strong>Prerequisite:</strong> Exercise 3.</p>
+
+<ol>
+<li><strong>Author Routing Simulation Script.</strong> Create <code>route-simulator.py</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; route-simulator.py
+import ipaddress
+
+routes = [
+    {"name": "Local Subnet", "dest": "10.10.0.0/22", "prio": 0, "next_hop": "VPC Fabric"},
+    {"name": "Default Internet GW", "dest": "0.0.0.0/0", "prio": 1000, "next_hop": "Internet Gateway"},
+    {"name": "Custom Static Route", "dest": "192.168.10.0/24", "prio": 100, "next_hop": "Old-Appliance-VM"},
+    {"name": "BGP Dynamic Failover", "dest": "192.168.10.0/24", "prio": 200, "next_hop": "Cloud-VPN-Gateway"},
+    {"name": "Specific Host Route", "dest": "192.168.10.50/32", "prio": 500, "next_hop": "Direct-PSC-Endpoint"}
+]
+
+def resolve_packet(target_ip_str):
+    target = ipaddress.IPv4Address(target_ip_str)
+    matching = [r for r in routes if target in ipaddress.IPv4Network(r["dest"])]
+    if not matching:
+        return None
+    # 1. Longest Prefix Match (max prefixlen)
+    max_prefix = max(ipaddress.IPv4Network(r["dest"]).prefixlen for r in matching)
+    lpm_routes = [r for r in matching if ipaddress.IPv4Network(r["dest"]).prefixlen == max_prefix]
+    # 2. Lowest Priority Number
+    winner = min(lpm_routes, key=lambda x: x["prio"])
+    return winner
+
+test_ips = ["10.10.1.25", "192.168.10.10", "192.168.10.50", "8.8.8.8"]
+print("=== ANDROMEDA ROUTE SELECTION SIMULATION ===")
+for ip in test_ips:
+    r = resolve_packet(ip)
+    print(f"Target: {ip:<15} -&gt; Matched: {r['name']} ({r['dest']}), Next-Hop: {r['next_hop']} (Prio: {r['prio']})")
+EOF
+python3 route-simulator.py</code></pre>
+<p>Expected output:</p>
+<pre><code>=== ANDROMEDA ROUTE SELECTION SIMULATION ===
+Target: 10.10.1.25      -&gt; Matched: Local Subnet (10.10.0.0/22), Next-Hop: VPC Fabric (Prio: 0)
+Target: 192.168.10.10   -&gt; Matched: Custom Static Route (192.168.10.0/24), Next-Hop: Old-Appliance-VM (Prio: 100)
+Target: 192.168.10.50   -&gt; Matched: Specific Host Route (192.168.10.50/32), Next-Hop: Direct-PSC-Endpoint (Prio: 500)
+Target: 8.8.8.8         -&gt; Matched: Default Internet GW (0.0.0.0/0), Next-Hop: Internet Gateway (Prio: 1000)</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> The simulation demonstrates that <code>192.168.10.50/32</code> wins via Longest Prefix Match despite priority 500, and <code>192.168.10.10</code> routes to <code>Old-Appliance-VM</code> via priority 100, proving the shadowing condition.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Remove the simulation script:
+<pre><code>rm -f route-simulator.py</code></pre>
+</div>
+</article>
+
+<article id="topic-05-lab" class="topic-card lab">
+<h3>Exercise 5: Enterprise VPC IP Plan Assembly and Exit Evidence Verification</h3>
+<p><strong>Goal:</strong> Formulate the complete enterprise IP allocation sheet and forward/return packet path documentation, assembling <code>day-049-ip-plan.md</code>.</p>
+<p><strong>Expected Result:</strong> An authored and validated daily exit artifact documenting all subnet allocations, routing priorities, and cross-references.</p>
+<p><strong>Mode:</strong> Technical documentation &amp; architectural defense · <strong>Prerequisite:</strong> Exercises 1–4.</p>
+
+<ol>
+<li><strong>Assemble the IP Plan Artifact.</strong> Create <code>day-049-ip-plan.md</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; day-049-ip-plan.md
+# Enterprise VPC IP Address &amp; Route Design Plan (Day 49)
+
+## 1. Enterprise IP Allocation Sheet
+| Environment / Purpose | Region | Primary CIDR | Secondary Pod CIDR | Secondary Service CIDR | Usable Nodes / Pods |
+|---|---|---|---|---|---|
+| **Production App (Primary)** | `us-central1` | `10.10.0.0/22` | `10.20.0.0/16` | `10.30.0.0/20` | 1,020 Nodes / 65k Pods |
+| **Production DR (Secondary)** | `us-east1` | `10.11.0.0/22` | `10.21.0.0/16` | `10.31.0.0/20` | 1,020 Nodes / 65k Pods |
+| **Serverless Egress Subnet** | `us-central1` | `10.128.0.0/24` | N/A | N/A | 252 Cloud Run Instances |
+| **On-Premises Data Center** | On-Prem | `192.168.0.0/16` | N/A | N/A | Corporate ERP &amp; POS |
+
+## 2. Forward and Return Packet Paths
+```
+[Client in us-central1: 10.10.1.15]
+       |
+       | 1. Evaluates Andromeda Host Routing Table
+       |    - Destination: 10.11.0.50 (us-east1 DR Database)
+       |    - Match: Local Subnet Route (10.11.0.0/22, Priority 0)
+       v
+[Andromeda Hypervisor Encapsulation]
+       |
+       | 2. Google Private Optical WAN (B4 Backbone)
+       |    - Direct datacenter interconnect; zero internet traversal
+       v
+[Andromeda Hypervisor Decapsulation in us-east1]
+       |
+       v
+[Destination DR Database: 10.11.0.50]
+       |
+       | 3. Symmetric Return Path
+       |    - Destination: 10.10.1.15 (us-central1 Client)
+       |    - Match: Local Subnet Route (10.10.0.0/22, Priority 0)
+       v
+[Client Receives Reply with ~18ms RTT]
+```
+
+## 3. Route Precedence &amp; Failover Policy
+- **Rule 1 (LPM):** Longest Prefix Match overrides all priority values.
+- **Rule 2 (Tie-breaking):** For identical destination prefixes, lowest numerical priority wins.
+- **Rule 3 (Failover):** Cloud Interconnect routes advertised with base priority 100; Cloud VPN backup advertised with priority 200. BGP withdrawal of Interconnect dynamically activates VPN in &lt; 3 seconds.
+
+## 4. Cross-Links to Prior Infrastructure Evidence
+- GKE IP Alias &amp; Container-Native NEGs: `days/day-044.html#topic-01-technical`
+- Cloud Run Direct VPC Egress Subnets: `days/day-047.html#topic-01-technical`
+- VPC Firewall Rules &amp; Tiered Evaluation: `days/day-022.html#topic-01-technical`
+EOF</code></pre>
+</li>
+
+<li><strong>Verify Artifact Structure.</strong> Verify markdown headers:
+<pre><code>grep -E "^## " day-049-ip-plan.md</code></pre>
+<p>Expected output:</p>
+<pre><code>## 1. Enterprise IP Allocation Sheet
+## 2. Forward and Return Packet Paths
+## 3. Route Precedence &amp; Failover Policy
+## 4. Cross-Links to Prior Infrastructure Evidence</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Artifact Acceptance:</strong> <code>day-049-ip-plan.md</code> is assembled with complete IP allocation sheets, packet flow diagrams, and deterministic routing precedence proofs.
+</div>
+</article>
+
+</section>
+
+<!-- ================= COMPLETION ================= -->
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-049-ip-plan.md</code> containing: (1) Enterprise IP allocation sheet with primary and secondary GKE subnet CIDRs, (2) forward and return packet path diagrams across Google's private global fiber network, (3) route evaluation precedence rules detailing Longest Prefix Match and BGP dynamic failover, (4) cross-links to Days 22, 44, and 47 networking and container evidence. Label tabletop models clearly.</p>
+<label class="check"><input type="checkbox" data-progress="read-49"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-49"> I saved the exit artifact</label>
+</section>
+
+<!-- ================= PAGER ================= -->
+<nav class="pager" aria-label="Page navigation">
+<a href="day-048.html">← Day 48<small>Workflows and runtime selection</small></a>
+<a href="../index.html">Index<small>180-day roadmap</small></a>
+<a href="day-050.html">Day 50 →<small>Firewall policy and private API access</small></a>
+</nav>
+
+<footer class="site-footer">
+<p>GCP Professional Cloud Architect 180-Day Comprehensive Roadmap · Tabletop architecture and production readiness curriculum.</p>
+</footer>
+</main>
+</body>
+</html>

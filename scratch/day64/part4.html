@@ -1,0 +1,412 @@
+<section id="part-4" class="part"><h2>4 · Step-by-step labs for each topic</h2>
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Pub/Sub messaging architecture, delivery semantics, and GCP integration stack</h3>
+<p><strong>Goal:</strong> Implement and verify an end-to-end Google Cloud Pub/Sub messaging architecture featuring message ordering keys, dead letter topic quarantine for poison-pill payloads, retry backoff policies, seek-to-snapshot replay, and verification of transport-level EOD limitations against producer retries.</p>
+<p><strong>Mode:</strong> local exercise · <strong>Prerequisite:</strong> <a href="day-063.html">Day 63</a>, <a href="day-020.html">Day 20</a>; bring their exit artifacts.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Verify Python 3.9+ and SQLite 3.25+ are available in your local shell. Create an isolated workspace directory named <code>day-064-lab</code>.
+<pre><code>mkdir -p day-064-lab &amp;&amp; cd day-064-lab</code></pre>
+</li>
+
+<li><strong>Review Production Google Cloud CLI Configuration.</strong> In an active Google Cloud environment or the Google Cloud Pub/Sub Emulator, topics with schemas, dead-letter policies, and ordering keys are provisioned using CLI commands. Review the exact command syntax required to configure dead letter topics, retry backoffs, and ordering:
+<pre><code># 1. Create primary and dead-letter topics
+gcloud pubsub topics create orders-topic-v1
+gcloud pubsub topics create orders-dlt-v1
+
+# 2. Create ordered subscription with dead-letter policy and exponential backoff
+gcloud pubsub subscriptions create orders-fulfillment-sub \
+    --topic=orders-topic-v1 \
+    --enable-message-ordering \
+    --dead-letter-topic=orders-dlt-v1 \
+    --max-delivery-attempts=5 \
+    --min-retry-delay=10s \
+    --max-retry-delay=600s \
+    --ack-deadline=30
+
+# 3. Create dead-letter inspection subscription
+gcloud pubsub subscriptions create orders-dlt-sub \
+    --topic=orders-dlt-v1 \
+    --ack-deadline=60</code></pre>
+</li>
+
+<li><strong>Author the Pub/Sub Semantics &amp; Dead Letter Simulator.</strong> Create a script named <code>verify_pubsub_semantics.py</code> that simulates the complete internal mechanics of Pub/Sub: ordering key partition queues, delivery attempts tracking, dead-letter routing upon reaching <code>maxDeliveryAttempts = 5</code>, seek replay, and producer publish retry duplication.
+<pre><code>cat &lt;&lt; 'EOF' &gt; verify_pubsub_semantics.py
+import json
+import time
+from collections import defaultdict
+
+class MockPubSubBroker:
+    def __init__(self, max_delivery_attempts=5):
+        self.max_delivery_attempts = max_delivery_attempts
+        self.partitions = defaultdict(list)  # ordering_key -> list of messages
+        self.dead_letter_topic = []
+        self.acknowledged_messages = set()
+        self.delivery_attempts = defaultdict(int) # message_id -> count
+        self.snapshots = {}
+
+    def publish(self, topic, payload, ordering_key="default", message_id=None):
+        if not message_id:
+            message_id = f"msg-{len(self.partitions[ordering_key]) + 1}-{int(time.time()*1000)}"
+        message = {
+            "id": message_id,
+            "topic": topic,
+            "data": payload,
+            "ordering_key": ordering_key,
+            "published_at": time.time()
+        }
+        self.partitions[ordering_key].append(message)
+        return message_id
+
+    def create_snapshot(self, snapshot_id):
+        self.snapshots[snapshot_id] = set(self.acknowledged_messages)
+        print(f"[Broker] Snapshot '{snapshot_id}' created with {len(self.acknowledged_messages)} acked messages.")
+
+    def seek_snapshot(self, snapshot_id):
+        if snapshot_id in self.snapshots:
+            self.acknowledged_messages = set(self.snapshots[snapshot_id])
+            print(f"[Broker] Seek executed: cursor reset to snapshot '{snapshot_id}'.")
+
+    def pull_ordered(self, ordering_key):
+        queue = self.partitions[ordering_key]
+        for msg in queue:
+            msg_id = msg["id"]
+            if msg_id in self.acknowledged_messages:
+                continue
+            self.delivery_attempts[msg_id] += 1
+            if self.delivery_attempts[msg_id] &gt; self.max_delivery_attempts:
+                # Forward to Dead Letter Topic
+                print(f"[Broker-DLT] Message {msg_id} exceeded {self.max_delivery_attempts} attempts. Quarantining to DLT!")
+                self.dead_letter_topic.append(msg)
+                self.acknowledged_messages.add(msg_id)  # Auto-ack on primary
+                continue
+            return msg  # Head-of-line: return first unacked message
+        return None
+
+    def acknowledge(self, message_id):
+        self.acknowledged_messages.add(message_id)
+
+# SIMULATION EXECUTION
+broker = MockPubSubBroker(max_delivery_attempts=5)
+
+print("=== SCENARIO 1: ORDERED DELIVERY &amp; POISON PILL HEAD-OF-LINE BLOCKING ===")
+# Publish 3 valid messages and 1 poison pill under ordering_key='store-chi-042'
+broker.publish("orders.v1", {"order_id": "ord-101", "items": ["bagel"], "valid": True}, "store-chi-042")
+broker.publish("orders.v1", "MALFORMED_UNPARSEABLE_POISON_PILL_PAYLOAD", "store-chi-042")
+broker.publish("orders.v1", {"order_id": "ord-103", "items": ["sourdough"], "valid": True}, "store-chi-042")
+broker.publish("orders.v1", {"order_id": "ord-104", "items": ["croissant"], "valid": True}, "store-chi-042")
+
+processed_orders = []
+
+for step in range(1, 12):
+    msg = broker.pull_ordered("store-chi-042")
+    if not msg:
+        print(f"Step {step}: No unacknowledged messages ready in queue.")
+        break
+    
+    msg_id = msg["id"]
+    data = msg["data"]
+    print(f"Step {step}: Pulled message {msg_id}, payload: {data}")
+    
+    # Consumer Deserialization &amp; Processing
+    if isinstance(data, dict) and data.get("valid"):
+        processed_orders.append(data["order_id"])
+        broker.acknowledge(msg_id)
+        print(f"   - Successfully processed and ACKed {msg_id} ({data['order_id']})")
+    else:
+        print(f"   - DESERIALIZATION FAILED: Poison pill detected! Nacking message {msg_id} (Attempt {broker.delivery_attempts[msg_id]}).")
+        # Do not acknowledge; Pub/Sub ordering holds this key
+
+print(f"\\nProcessed Orders: {processed_orders}")
+print(f"Dead Letter Topic Count: {len(broker.dead_letter_topic)}")
+assert "ord-101" in processed_orders
+assert "ord-103" in processed_orders
+assert "ord-104" in processed_orders
+assert len(broker.dead_letter_topic) == 1
+print("[Verification 1 Passed] Poison pill quarantined after 5 attempts; subsequent orders unblocked!\\n")
+
+print("=== SCENARIO 2: PRODUCER PUBLISH RETRY &amp; EOD BOUNDARY ===")
+# Demonstrate why transport EOD does not prevent producer duplicates
+tx_token = "pos-tx-998811"
+msg_id_1 = broker.publish("orders.v1", {"tx_token": tx_token, "amount": 45.00}, "store-chi-042")
+print(f"Producer published message 1: ID = {msg_id_1}, Token = {tx_token}")
+
+# Simulate network drop: Publisher client timed out waiting for ACK from Pub/Sub, retries publish
+msg_id_2 = broker.publish("orders.v1", {"tx_token": tx_token, "amount": 45.00}, "store-chi-042")
+print(f"Producer retry published message 2: ID = {msg_id_2}, Token = {tx_token}")
+
+print(f"Broker has two distinct message IDs: {msg_id_1} != {msg_id_2}")
+assert msg_id_1 != msg_id_2
+print("[Verification 2 Passed] Confirmed broker cannot detect producer retry duplication without business token!\\n")
+EOF
+python3 verify_pubsub_semantics.py</code></pre>
+</li>
+
+<li><strong>Execute and Verify Output.</strong> Execute the script in terminal:
+<pre><code>python3 verify_pubsub_semantics.py</code></pre>
+Inspect the terminal output. Notice how the poison pill is nacked 5 consecutive times while blocking subsequent orders, and upon the 5th failure, is automatically routed to <code>orders.v1.deadletter</code>, immediately unlocking <code>ord-103</code> and <code>ord-104</code>.
+</li>
+</ol>
+
+<div class="callout success"><strong>Expected result / acceptance</strong>
+<p>The verification script must confirm that (1) messages under an ordering key remain blocked until poison pills reach the <code>maxDeliveryAttempts</code> threshold; (2) Dead Letter Topic forwarding restores stream throughput; and (3) producer publish retries produce distinct message IDs that bypass broker transport EOD.</p>
+</div>
+
+<div class="callout caution"><strong>Troubleshooting</strong>
+<p>If messages fail to process in order, check that <code>ordering_key</code> is identical across all related payloads. If the poison pill is never sent to the dead-letter queue, verify that <code>delivery_attempts</code> increments on each pull cycle.</p>
+</div>
+
+<div class="callout"><strong>Cleanup and cost</strong>
+<p>All operations execute entirely in-memory using local Python. No cloud charges or project resources are incurred.</p>
+</div>
+
+<label class="check"><input type="checkbox" data-progress="lab-64-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Transactional Outbox, consumer deduplication, and crash/ack boundary invariants</h3>
+<p><strong>Goal:</strong> Implement a production-grade Transactional Outbox pattern, Outbox Relay worker, and Idempotent Consumer engine using Python and SQLite. Verify that Crash-Before-Ack preserves exact business state via deduplication, while Crash-After-Ack causes catastrophic silent data loss.</p>
+<p><strong>Mode:</strong> local exercise · <strong>Prerequisite:</strong> <a href="day-063.html">Day 63</a>, <a href="day-020.html">Day 20</a>; bring their exit artifacts.</p>
+
+<ol>
+<li><strong>Author the Transactional Outbox &amp; Crash/Ack Engine.</strong> Create a Python script named <code>verify_outbox_and_crash_boundaries.py</code> that implements the atomic transactional outbox, outbox relay polling, deduplication table, and both crash boundary scenarios.
+<pre><code>cat &lt;&lt; 'EOF' &gt; verify_outbox_and_crash_boundaries.py
+import sqlite3
+import json
+import uuid
+import sys
+
+def init_databases():
+    # Producer DB (Cloud SQL Order Service)
+    prod_conn = sqlite3.connect(":memory:")
+    prod_conn.execute("""
+        CREATE TABLE orders (
+            order_id TEXT PRIMARY KEY,
+            customer_id TEXT NOT NULL,
+            amount REAL NOT NULL,
+            status TEXT NOT NULL
+        );
+    """)
+    prod_conn.execute("""
+        CREATE TABLE outbox_events (
+            event_id TEXT PRIMARY KEY,
+            aggregate_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            status TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    # Consumer DB (Cloud SQL Fulfillment Service)
+    cons_conn = sqlite3.connect(":memory:")
+    cons_conn.execute("""
+        CREATE TABLE fulfillments (
+            fulfillment_id TEXT PRIMARY KEY,
+            order_id TEXT NOT NULL,
+            customer_id TEXT NOT NULL,
+            amount REAL NOT NULL,
+            dispatched INTEGER DEFAULT 0
+        );
+    """)
+    cons_conn.execute("""
+        CREATE TABLE processed_events (
+            event_id TEXT PRIMARY KEY,
+            consumer_name TEXT NOT NULL,
+            processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    return prod_conn, cons_conn
+
+print("=== PART 1: ATOMIC TRANSACTIONAL OUTBOX INSERTION ===")
+prod_conn, cons_conn = init_databases()
+
+def create_order_with_outbox(conn, order_id, customer_id, amount):
+    event_id = str(uuid.uuid4())
+    payload = json.dumps({"order_id": order_id, "customer_id": customer_id, "amount": amount})
+    
+    cur = conn.cursor()
+    try:
+        cur.execute("BEGIN TRANSACTION;")
+        cur.execute(
+            "INSERT INTO orders (order_id, customer_id, amount, status) VALUES (?, ?, ?, 'PENDING')",
+            (order_id, customer_id, amount)
+        )
+        cur.execute(
+            "INSERT INTO outbox_events (event_id, aggregate_id, event_type, payload, status) VALUES (?, ?, 'OrderCreated', ?, 'UNPUBLISHED')",
+            (event_id, order_id, payload)
+        )
+        conn.commit()
+        print(f"[Producer] Order {order_id} + Outbox Event {event_id} committed atomically!")
+        return event_id
+    except Exception as e:
+        conn.rollback()
+        print(f"[Producer] Transaction failed, rolled back: {e}")
+        raise
+
+evt_id_1 = create_order_with_outbox(prod_conn, "ord-8801", "cust-42", 129.99)
+
+# Verify atomic state in producer DB
+order_count = prod_conn.execute("SELECT count(*) FROM orders").fetchone()[0]
+outbox_count = prod_conn.execute("SELECT count(*) FROM outbox_events WHERE status='UNPUBLISHED'").fetchone()[0]
+assert order_count == 1 and outbox_count == 1
+print(f"[Verification 1 Passed] Producer database holds 1 order and 1 unpublished outbox event.\\n")
+
+print("=== PART 2: OUTBOX RELAY PUBLISHER POLLING ===")
+class MockPubSubQueue:
+    def __init__(self):
+        self.messages = []
+        self.acked_ids = set()
+
+    def publish(self, event_id, payload, ordering_key):
+        self.messages.append({"event_id": event_id, "payload": payload, "ordering_key": ordering_key})
+
+pubsub_broker = MockPubSubQueue()
+
+def outbox_relay_worker(conn, broker):
+    cur = conn.cursor()
+    cur.execute("SELECT event_id, aggregate_id, payload FROM outbox_events WHERE status='UNPUBLISHED'")
+    rows = cur.fetchall()
+    for event_id, aggregate_id, payload in rows:
+        broker.publish(event_id, payload, ordering_key=aggregate_id)
+        cur.execute("UPDATE outbox_events SET status='PUBLISHED' WHERE event_id=?", (event_id,))
+    conn.commit()
+    print(f"[Outbox Relay] Polled and published {len(rows)} events to Pub/Sub.")
+
+outbox_relay_worker(prod_conn, pubsub_broker)
+assert len(pubsub_broker.messages) == 1
+print("[Verification 2 Passed] Outbox relay successfully published event to Pub/Sub!\\n")
+
+print("=== PART 3: CONSUMER CRASH-BEFORE-ACK (SAFE REPLAY) ===")
+def process_consumer_message(conn, message, simulate_crash_before_ack=False, simulate_crash_after_ack=False):
+    event_id = message["event_id"]
+    data = json.loads(message["payload"])
+    order_id = data["order_id"]
+    customer_id = data["customer_id"]
+    amount = data["amount"]
+    
+    if simulate_crash_after_ack:
+        print("   [Consumer] Executing premature message.ack()...")
+        pubsub_broker.acked_ids.add(event_id)
+        print("   [CRASH] Pod killed (OOMKilled) BEFORE database commit!")
+        return "CRASHED_AFTER_ACK"
+
+    cur = conn.cursor()
+    try:
+        cur.execute("BEGIN TRANSACTION;")
+        cur.execute(
+            "INSERT INTO processed_events (event_id, consumer_name) VALUES (?, 'FulfillmentService') ON CONFLICT (event_id) DO NOTHING;",
+            (event_id,)
+        )
+        rows_inserted = cur.rowcount
+        
+        if rows_inserted == 1:
+            print(f"   [Consumer] New event {event_id}. Executing warehouse dispatch for order {order_id}...")
+            cur.execute(
+                "INSERT INTO fulfillments (fulfillment_id, order_id, customer_id, amount, dispatched) VALUES (?, ?, ?, ?, 1)",
+                (f"ful-{order_id}", order_id, customer_id, amount)
+            )
+        else:
+            print(f"   [Consumer] Duplicate event {event_id} detected in processed_events! Skipping warehouse dispatch.")
+            
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+
+    if simulate_crash_before_ack:
+        print("   [CRASH] Pod killed (Node Preempted) AFTER DB commit, BEFORE message.ack()!")
+        return "CRASHED_BEFORE_ACK"
+
+    pubsub_broker.acked_ids.add(event_id)
+    print(f"   [Consumer] message.ack() sent successfully for event {event_id}.")
+    return "SUCCESS"
+
+# 1. First delivery attempt: crashes before ACK
+msg = pubsub_broker.messages[0]
+print("Attempt 1: Processing message with simulated Crash-Before-Ack...")
+status1 = process_consumer_message(cons_conn, msg, simulate_crash_before_ack=True)
+assert status1 == "CRASHED_BEFORE_ACK"
+assert msg["event_id"] not in pubsub_broker.acked_ids
+
+# 2. Broker redelivers unacknowledged message to replacement worker
+print("\\nAttempt 2: Broker redelivery to surviving worker...")
+status2 = process_consumer_message(cons_conn, msg, simulate_crash_before_ack=False)
+assert status2 == "SUCCESS"
+assert msg["event_id"] in pubsub_broker.acked_ids
+
+# Verify business correctness
+fulfillment_count = cons_conn.execute("SELECT count(*) FROM fulfillments WHERE order_id='ord-8801'").fetchone()[0]
+print(f"Fulfillments created for ord-8801: {fulfillment_count}")
+assert fulfillment_count == 1
+print("[Verification 3 Passed] Crash-Before-Ack safely recovered: Exactly 1 fulfillment created!\\n")
+
+print("=== PART 4: CONSUMER CRASH-AFTER-ACK (CATASTROPHIC DATA LOSS) ===")
+evt_id_2 = create_order_with_outbox(prod_conn, "ord-8802", "cust-99", 250.00)
+outbox_relay_worker(prod_conn, pubsub_broker)
+msg2 = pubsub_broker.messages[1]
+
+print("Processing message with Crash-After-Ack anti-pattern...")
+status_loss = process_consumer_message(cons_conn, msg2, simulate_crash_after_ack=True)
+assert status_loss == "CRASHED_AFTER_ACK"
+assert msg2["event_id"] in pubsub_broker.acked_ids
+
+# Verify that the order was lost from the consumer datastore
+lost_order_count = cons_conn.execute("SELECT count(*) FROM fulfillments WHERE order_id='ord-8802'").fetchone()[0]
+print(f"Fulfillments created for ord-8802: {lost_order_count}")
+assert lost_order_count == 0
+print("[Verification 4 Passed] Crash-After-Ack resulted in permanent, silent data loss!")
+print("PROVEN INVARIANT: NEVER call message.ack() before persistent database commit!\\n")
+EOF
+python3 verify_outbox_and_crash_boundaries.py</code></pre>
+</li>
+
+<li><strong>Execute and Verify Output.</strong> Execute the script in terminal:
+<pre><code>python3 verify_outbox_and_crash_boundaries.py</code></pre>
+Verify that:
+<ol>
+<li>The Transactional Outbox commits both the order and event envelope atomically.</li>
+<li>The Outbox Relay extracts and transitions unpublished events to published.</li>
+<li>The Crash-Before-Ack redelivery creates exactly 1 fulfillment record in the consumer database, proving end-to-end idempotency.</li>
+<li>The Crash-After-Ack scenario creates 0 fulfillment records despite the message being acknowledged, proving catastrophic data loss.</li>
+</ol>
+</li>
+</ol>
+
+<div class="callout success"><strong>Expected result / acceptance</strong>
+<p>Execution of the verification script passes all four assertion milestones, validating atomic outbox persistence, safe at-least-once crash-before-ack recovery via the <code>processed_events</code> deduplication table, and empirical proof of the crash-after-ack invariant.</p>
+</div>
+
+<div class="callout caution"><strong>Troubleshooting</strong>
+<p>If SQLite raises <code>OperationalError: database is locked</code>, ensure all transactions explicitly commit or roll back. Verify that <code>ON CONFLICT (event_id) DO NOTHING</code> is supported by your SQLite version (3.24+).</p>
+</div>
+
+<div class="callout"><strong>Cleanup and cost</strong>
+<p>All operations execute entirely in-memory using SQLite and local Python. No cloud charges or project resources are incurred.</p>
+</div>
+
+<label class="check"><input type="checkbox" data-progress="lab-64-topic-02"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion"><h2>Daily evidence</h2>
+<p>Assemble your three foundational artifacts into your study repository as <code>day-064-messaging-outbox.md</code>:</p>
+<ol>
+<li><strong>Repeatable Invariant Check &amp; Verification Script:</strong> The complete, tested Python script and execution log demonstrating the Transactional Outbox pattern, outbox relay polling, and consumer deduplication table preventing duplicate state mutations under repeated message delivery.</li>
+<li><strong>Crash-Before-Ack vs Crash-After-Ack Invariant Timeline:</strong> A structured architectural timeline and state transition matrix detailing the lifecycle of a message, contrasting the safe at-least-once replay of crash-before-ack against the catastrophic silent data loss of crash-after-ack, accompanied by the mathematical proof of why distributed 2PC cannot be applied across microservices.</li>
+<li><strong>Transport Exactly-Once vs End-to-End Business Idempotency Architectural Analysis:</strong> An Architectural Decision Record (ADR) analyzing the exact boundary of Cloud Pub/Sub's transport-level Exactly-Once Delivery (EOD), articulating why producer publish retries bypass broker-level deduplication, and establishing standard integration boundaries across Google Cloud messaging services (Pub/Sub, Tasks, Eventarc, Workflows, Application Integration, API Gateway).</li>
+</ol>
+<label class="check"><input type="checkbox" data-progress="read-64"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-64"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-063.html">← Day 63<small>Caching, CDC and database selection</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-065.html">Day 65 →<small>Integrate one order-service path</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

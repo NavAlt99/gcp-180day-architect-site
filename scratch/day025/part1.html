@@ -1,0 +1,33 @@
+    <section class="part" id="part-1" aria-labelledby="part-1-heading">
+      <h2 id="part-1-heading">Part 1 · Topics of the day</h2>
+      <p class="section-lead">Mastering Google Cloud IAM role models, policy schema versioning, Common Expression Language (CEL) conditions, and ancestral inheritance calculations required to enforce absolute least privilege.</p>
+
+      <div class="topic-grid">
+        <article class="card" id="topic-01-overview" aria-labelledby="t1-title">
+          <span class="badge">Topic 01</span>
+          <h3 id="t1-title">Roles: basic (Owner/Editor/Viewer, avoid in production), predefined, custom</h3>
+          <p><strong>What it is:</strong> Google Cloud IAM categorizes access into three distinct role tiers: legacy Basic (primitive) roles (<code>roles/owner</code>, <code>roles/editor</code>, <code>roles/viewer</code>) that predate granular IAM; Predefined roles curated and maintained by Google Cloud service teams (e.g., <code>roles/pubsub.publisher</code>, <code>roles/cloudsql.client</code>); and Custom roles authored by platform administrators to bundle exact API permissions at the project or organization level.</p>
+          <p><strong>Why today:</strong> Basic roles violate the principle of least privilege by bundling thousands of destructive permissions across every API surface, creating massive blast radiuses where a single compromised key or operational mistake can destroy an entire environment. Predefined roles offer balanced convenience, while custom roles provide surgical least-privilege boundaries despite their maintenance overhead.</p>
+          <p><strong>Where it sits:</strong> Role definitions specify the collection of fine-grained API permissions (such as <code>storage.buckets.get</code> or <code>spanner.databases.select</code>) that can be granted. They serve as the functional capability payload before identity bindings, resource scopes, and runtime conditions are evaluated.</p>
+          <p>An engineer granted the legacy <code>roles/editor</code> role on a shared production project accidentally destroyed a primary Cloud SQL database instance while attempting to clean up a staging replica. The resulting database outage halted order ingestion across seven regional fulfillment hubs for forty-two minutes, violating corporate availability SLAs and stalling physical bakery dispatch queues.</p>
+        </article>
+
+        <article class="card" id="topic-02-overview" aria-labelledby="t2-title">
+          <span class="badge">Topic 02</span>
+          <h3 id="t2-title">IAM policy structure: bindings, members, roles, conditions</h3>
+          <p><strong>What it is:</strong> An IAM policy is a declarative JSON/YAML document attached to a Google Cloud resource, folder, or organization. Schema version 3 introduces support for conditional role bindings, where an array of members is bound to a specific role only when an embedded Common Expression Language (CEL) expression evaluates to <code>true</code> based on resource attributes, request time, caller IP, or tag values.</p>
+          <p><strong>Why today:</strong> Static, unconditional IAM bindings leave administrative privileges permanently active, increasing risk exposure during off-hours or outside dedicated change windows. CEL conditions enable temporal windows (e.g., maintenance access expiring after two hours), network perimeter boundaries, and resource attribute filters without managing out-of-band proxy infrastructure.</p>
+          <p><strong>Where it sits:</strong> The IAM policy is the core data contract evaluated by Cloud IAM during every API RPC call. The policy evaluation engine checks the resource's attached policy, decodes the bindings, inspects member identity, and executes CEL logic against the incoming request context.</p>
+          <p>A malformed Common Expression Language (CEL) condition relying on local wall-clock time rather than UTC caused an automated deployment pipeline to evaluate all IAM role bindings as false during the midnight production release. The false-negative authorization lock blocked mission-critical hotfix rollouts across all microservices for three hours, forcing manual failovers and delaying overnight bakery dispatch schedules.</p>
+        </article>
+
+        <article class="card" id="topic-03-overview" aria-labelledby="t3-title">
+          <span class="badge">Topic 03</span>
+          <h3 id="t3-title">Policy inheritance and the effective policy</h3>
+          <p><strong>What it is:</strong> Google Cloud IAM enforces a strict hierarchical inheritance model across the resource tree: Organization &rarr; Folder &rarr; Project &rarr; Resource. Policy bindings are strictly additive (unioned); permissions granted at a parent node cannot be restricted, revoked, or subtracted at a lower child node by standard IAM policies.</p>
+          <p><strong>Why today:</strong> Engineers frequently inspect only the project-level IAM policy and mistakenly conclude that access is tightly constrained, unaware that broad administrative bindings attached at an ancestral folder grant expansive privileges. Calculating the true <em>effective policy</em> requires traversing the entire ancestral chain to evaluate cumulative bindings and conditions.</p>
+          <p><strong>Where it sits:</strong> Effective policy evaluation occurs in the IAM control plane before authorizing any resource interaction. Tools like IAM Policy Troubleshooter and Cloud Asset Inventory query the ancestral graph to compute whether the union of all ancestral grants satisfies the requested permission.</p>
+          <p>An inherited <code>roles/pubsub.admin</code> binding attached at a parent root folder inadvertently granted junior developers permission to purge production order topics despite strict project-level restrictions. The resulting unauthenticated topic purge deleted queued bakery orders and corrupted delivery pipeline tracking, directly threatening Brightloaf's duplicate fulfillment invariant.</p>
+        </article>
+      </div>
+    </section>

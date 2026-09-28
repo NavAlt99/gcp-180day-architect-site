@@ -1,0 +1,106 @@
+
+<figure class="diagram-figure" id="fig-19-4">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig19-4-title fig19-4-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig19-4-title">Incident 19.2: Environment Variable Precedence Override in Multi-Project gcloud CLI Execution</title>
+      <desc id="fig19-4-desc">Incident flow depicting how an ambient CLOUDSDK_CORE_PROJECT environment variable silently overrode an active named configuration, triggering an accidental production bucket deletion.</desc>
+      <defs>
+        <linearGradient id="p19-f4-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p19-f4-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p19-f4-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p19-f4-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 19.4: Incident Flow · Ambient Environment Variable Silent Override</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Tier 2 Env Variable vs. Tier 3 Named Profile · Cross-Project Blast Radius · Idempotency Invariant Check</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: Shell Reuse</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">09:15 UTC Shell Session</text>
+      <text x="42" y="146" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Morning CI test ran:</text>
+      <text x="42" y="164" fill="#f59e0b" font-family="monospace" font-size="9">export CLOUDSDK_CORE_PROJECT</text>
+      <text x="42" y="180" fill="#f59e0b" font-family="monospace" font-size="9">=brightloaf-prod</text>
+      <text x="42" y="204" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Operator activates bl-dev</text>
+      <text x="42" y="222" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">and runs cleanup script</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Silent Tier 2 Override Routes to Prod]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Active profile set to: config_brightloaf-dev</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Script runs storage bucket cleanup without flags</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. CLI evaluates: Tier 2 (Env Var) beats Tier 3 (Profile)!</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: Production order replay archive bucket purged!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. Backup worker triggered order replay from secondary log</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">Database UNIQUE constraint halted duplicate fulfillment.</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Environment Purge &amp; Assertion Guard]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Wrapper script executes: unset CLOUDSDK_CORE_PROJECT</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Assert: target == expected</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Script passes explicit --project=brightloaf-dev</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Tier 1 flag guarantees target regardless of env vars</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. Production buckets remain completely untouched</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Cleanup dispatches strictly to development sandbox.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p19-f4-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p19-f4-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed State Inspection:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">$ printenv | grep CLOUDSDK</text>
+        <text x="25" y="90" fill="#fca5a5" font-family="monospace" font-size="9">CLOUDSDK_CORE_PROJECT=prod</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">Active profile bypassed silently!</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected State Inspection:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">$ ./gcloud-safe-exec.sh</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">[PASS] No CLOUDSDK env leak</text>
+        <text x="25" y="206" fill="#86efac" font-family="monospace" font-size="9">[PASS] Target: brightloaf-dev</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">[PASS] Exit Code: 0</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">Zero production impact</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Replay check: 0 duplicates</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Fulfillment count &le; 1 maintained</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p19-f4-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p19-f4-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Never rely solely on named configuration activation in automated scripts.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Always pass explicit Tier 1 flags (--project) or sanitize the execution environment before mutating cloud state.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 19.4: Incident Flow · Ambient Environment Variable Silent Override.</strong>
+    Traces how an inherited shell environment variable subverted the active named configuration profile, directing destructive deletions to production.
+    <br><strong>Supplied facts:</strong> <code>CLOUDSDK_CORE_PROJECT</code> occupies Tier 2 in the precedence engine; active named profiles occupy Tier 3; unhandled environment exports silently supersede profile activation.
+    <br><strong>Architectural inference:</strong> Destructive infrastructure scripts that omit explicit <code>--project</code> parameters will execute against whatever ambient project is exported in the shell, bypassing named profile intentions.
+    <br><strong>Expected post-fix behavior:</strong> Automation wrappers scrub <code>CLOUDSDK_*</code> variables and explicitly assert project target identity before running commands, while database uniqueness constraints protect against replay fulfillment duplication.
+  </figcaption>
+</figure>

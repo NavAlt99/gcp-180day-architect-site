@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 48: Workflows and runtime selection · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-047.html" aria-label="Previous day">← Day 47</a>
+<a href="day-049.html" aria-label="Next day">Day 49 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and shared responsibility</option>
+<option value="day-012.html">Day 12: Resource hierarchy and inheritance</option>
+<option value="day-013.html">Day 13: Cloud Identity, accounts and directory sync</option>
+<option value="day-014.html">Day 14: IAM principals, roles and bindings</option>
+<option value="day-015.html">Day 15: Service accounts, keys and delegation</option>
+<option value="day-016.html">Day 16: Billing accounts, budgets and cost attribution</option>
+<option value="day-017.html">Day 17: Gate 1 review: Foundations and identity</option>
+</optgroup>
+<optgroup label="Governance, network and security">
+<option value="day-018.html">Day 18: Organization policies and constraints</option>
+<option value="day-019.html">Day 19: Custom roles and least-privilege analysis</option>
+<option value="day-020.html">Day 20: Audit logs, Access Transparency and admin tracking</option>
+<option value="day-021.html">Day 21: VPC design, subnets and private IP spaces</option>
+<option value="day-022.html">Day 22: Hierarchical and VPC firewall policy rules</option>
+<option value="day-023.html">Day 23: Cloud NAT, Cloud Router and dynamic routing</option>
+<option value="day-024.html">Day 24: Private Google Access and PSC fundamentals</option>
+<option value="day-025.html">Day 25: Cloud DNS zones, routing and DNSSEC</option>
+<option value="day-026.html">Day 26: Cloud Armor policies and DDoS mitigation</option>
+<option value="day-027.html">Day 27: Cloud KMS, CMEK and envelope encryption</option>
+<option value="day-028.html">Day 28: Secret Manager and runtime injection</option>
+<option value="day-029.html">Day 29: Workload Identity Federation</option>
+<option value="day-030.html">Day 30: VPC Service Controls perimeter design</option>
+<option value="day-031.html">Day 31: VPC SC troubleshooting and ingress/egress rules</option>
+<option value="day-032.html">Day 32: Security Command Center and threat posture</option>
+<option value="day-033.html">Day 33: Cloud Monitoring workspace and alert policies</option>
+<option value="day-034.html">Day 34: Cloud Logging sinks, storage and exports</option>
+<option value="day-035.html">Day 35: Gate 2 review: Governance and security</option>
+</optgroup>
+<optgroup label="Compute, storage and databases">
+<option value="day-036.html">Day 36: Compute Engine sizing, vCPU and memory models</option>
+<option value="day-037.html">Day 37: Persistent disks, Hyperdisk, snapshots and IOPS</option>
+<option value="day-038.html">Day 38: Managed instance groups and autoscaling algorithms</option>
+<option value="day-039.html">Day 39: VM rolling updates, instance templates and health checks</option>
+<option value="day-040.html">Day 40: Spot VMs, sole-tenant nodes and reservations</option>
+<option value="day-041.html">Day 41: VM Manager, OS login and patch governance</option>
+<option value="day-042.html">Day 42: GKE cluster architecture and Autopilot vs Standard</option>
+<option value="day-043.html">Day 43: GKE workload primitives, Pods, Deployments and Jobs</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html" selected>Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: Dedicated Interconnect, Partner and MACsec</option>
+<option value="day-058.html">Day 58: Cloud Storage classes, lifecycle and autotiering</option>
+<option value="day-059.html">Day 59: Storage security, signed URLs and object retention</option>
+<option value="day-060.html">Day 60: Cloud SQL high availability, replicas and scaling</option>
+<option value="day-061.html">Day 61: Cloud SQL maintenance, backups and recovery</option>
+<option value="day-062.html">Day 62: AlloyDB architecture and columnar accelerator</option>
+<option value="day-063.html">Day 63: Spanner architecture, TrueTime and schema design</option>
+<option value="day-064.html">Day 64: Bigtable rowkey design and replication topology</option>
+<option value="day-065.html">Day 65: Firestore data modeling and security rules</option>
+<option value="day-066.html">Day 66: Memorystore Redis/Memcached caching strategies</option>
+<option value="day-067.html">Day 67: Gate 3 review: Core infrastructure</option>
+</optgroup>
+<optgroup label="Integration, analytics and automation">
+<option value="day-068.html">Day 68: Pub/Sub architecture, schemas and ordering</option>
+<option value="day-069.html">Day 69: Pub/Sub dead-letter topics and push/pull modes</option>
+<option value="day-070.html">Day 70: Cloud Tasks and Cloud Scheduler orchestration</option>
+<option value="day-071.html">Day 71: Eventarc trigger topologies and audit routing</option>
+<option value="day-072.html">Day 72: BigQuery storage, partition and cluster layout</option>
+<option value="day-073.html">Day 73: BigQuery SQL, views and materialized view design</option>
+<option value="day-074.html">Day 74: BigQuery reservations, BI Engine and slot pricing</option>
+<option value="day-075.html">Day 75: Dataproc clusters, autoscaling and serverless</option>
+<option value="day-076.html">Day 76: Cloud Dataflow pipeline design and windowing</option>
+<option value="day-077.html">Day 77: Dataflow streaming, watermarks and checkpoints</option>
+<option value="day-078.html">Day 78: Dataplex governance, lakes and data discovery</option>
+<option value="day-079.html">Day 79: Cloud Composer orchestration and DAG lifecycle</option>
+<option value="day-080.html">Day 80: Data Fusion and visual pipeline integration</option>
+<option value="day-081.html">Day 81: Looker studio, Looker platform and semantic layers</option>
+<option value="day-082.html">Day 82: Gate 4 review: Data and analytics</option>
+</optgroup>
+<optgroup label="DevOps, SRE and multi-cloud">
+<option value="day-083.html">Day 83: Cloud Build triggers, pools and pipeline security</option>
+<option value="day-084.html">Day 84: Artifact Registry layout, cleanup and remote repos</option>
+<option value="day-085.html">Day 85: Cloud Deploy delivery pipelines and canaries</option>
+<option value="day-086.html">Day 86: Terraform GCP provider, state and remote backend</option>
+<option value="day-087.html">Day 87: Terraform module patterns and refactoring</option>
+<option value="day-088.html">Day 88: Cloud Monitoring SLI, SLO and error budget design</option>
+<option value="day-089.html">Day 89: Cloud Trace, Profiler and distributed diagnostics</option>
+<option value="day-090.html">Day 90: Incident management, alerting and runbook hygiene</option>
+<option value="day-091.html">Day 91: Disaster recovery strategies: cold, warm and hot</option>
+<option value="day-092.html">Day 92: Cross-region replication and failover validation</option>
+<option value="day-093.html">Day 93: Backup and recovery testing regimens</option>
+<option value="day-094.html">Day 94: Hybrid identity, ADFS, Okta and directory sync</option>
+<option value="day-095.html">Day 95: Anthos/GKE Enterprise multi-cloud architecture</option>
+<option value="day-096.html">Day 96: Migration center, assessment and cost models</option>
+<option value="day-097.html">Day 97: Database Migration Service and schema conversion</option>
+<option value="day-098.html">Day 98: Transfer Appliance, Storage Transfer Service</option>
+<option value="day-099.html">Day 99: FinOps foundation, labels and commit discounts</option>
+<option value="day-100.html">Day 100: CUD optimization, flexible vs standard</option>
+<option value="day-101.html">Day 101: Re-architecting legacy monoliths for cloud</option>
+<option value="day-102.html">Day 102: Strangler fig pattern and API facade design</option>
+<option value="day-103.html">Day 103: Container migration with Migrate for Anthos</option>
+<option value="day-104.html">Day 104: Zero-trust architecture with BeyondCorp</option>
+<option value="day-105.html">Day 105: Regulatory compliance: HIPAA, PCI and GDPR</option>
+<option value="day-106.html">Day 106: Data residency, sovereign controls and Assured Workloads</option>
+<option value="day-107.html">Day 107: Cloud Armor advanced WAF rules and ML defense</option>
+<option value="day-108.html">Day 108: Network security: Cloud IDS, IPS and inspection</option>
+<option value="day-109.html">Day 109: Secret lifecycle and hardware security modules</option>
+<option value="day-110.html">Day 110: Threat detection, Event Threat Detection</option>
+<option value="day-111.html">Day 111: Chaos engineering and resilience testing</option>
+<option value="day-112.html">Day 112: Canary, blue-green and A/B release mechanics</option>
+<option value="day-113.html">Day 113: Observability at scale: multi-project metrics</option>
+<option value="day-114.html">Day 114: Secure software supply chain with SLSA</option>
+<option value="day-115.html">Day 115: Binary Authorization in enterprise delivery</option>
+<option value="day-116.html">Day 116: Infrastructure as code governance and Sentinel</option>
+<option value="day-117.html">Day 117: Operational runbooks, game days and blameless postmortems</option>
+<option value="day-118.html">Day 118: Gate 5 review: Delivery, SRE and operations</option>
+</optgroup>
+<optgroup label="Architecture defense and case studies">
+<option value="day-119.html">Day 119: Enterprise multi-tenant SaaS architecture</option>
+<option value="day-120.html">Day 120: Global real-time gaming platform design</option>
+<option value="day-121.html">Day 121: Healthcare data platform with FHIR/HIPAA</option>
+<option value="day-122.html">Day 122: Global financial clearing and settlement</option>
+<option value="day-123.html">Day 123: IoT telemetry ingest and stream analytics</option>
+<option value="day-124.html">Day 124: Media streaming and transcoding at scale</option>
+<option value="day-125.html">Day 125: Retail e-commerce flash sale architecture</option>
+<option value="day-126.html">Day 126: Modernizing mainframe workloads on GCP</option>
+<option value="day-127.html">Day 127: Autonomous vehicle sensor data platform</option>
+<option value="day-128.html">Day 128: Disaster recovery design across three clouds</option>
+<option value="day-129.html">Day 129: Multi-region active-active database patterns</option>
+<option value="day-130.html">Day 130: Zero-trust enterprise workforce architecture</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="48" data-prev="day-047.html" data-next="day-049.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 48 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 48</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">architecture / lab</span>
+<span class="pill">Topics 015</span>
+</div>
+<h1>Day 48 — Workflows and runtime selection</h1>
+<p class="lead"><strong>Outcome:</strong> Use a small local workflow or supplied Workflows sample to coordinate two steps and handle one failure; compare App Engine, Tasks, Scheduler and Eventarc roles.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-047.html">Day 47</a>, <a href="day-020.html">Day 20</a>; bring their exit artifacts.</p></div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A retry/failure diagram and runtime decision matrix grounded in the earlier VM/container/serverless evidence (day-048-runtime-matrix.md) documenting legacy App Engine constraints vs. Cloud Run modernization paths, Eventarc vs. Cloud Scheduler vs. Cloud Tasks vs. Cloud Workflows orchestration roles, and a defensible multi-tier compute selection matrix.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>App Engine</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>Serverless Orchestration</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+<div class="toc-topic"><span>Runtime Selection</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+</aside>
+
+<!-- ================= PART 1 ================= -->
+<section id="part-1" class="part">
+<h2>Part 1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>App Engine: Standard vs Flexible, services and versions, traffic splitting and modern alternatives</h3>
+<p>Google App Engine represents Google Cloud's original Platform as a Service (PaaS), offering two distinct runtime models: App Engine Standard, which executes pre-configured language runtimes in sandboxed environments with sub-second scale-to-zero capabilities but strict networking, filesystem, and background thread restrictions; and App Engine Flexible, which executes custom Docker containers on managed Compute Engine virtual machines with persistent disk support and root access but slow (5–10 minute) VM-based autoscaling and continuous baseline VM billing. While App Engine pioneered multi-service architectures (default, dispatch routing), immutable versions, and percentage-based traffic splitting (cookie-based vs. IP-based), modern enterprise architects evaluate it primarily as a legacy maintenance and migration target rather than a platform for greenfield builds. Google Cloud officially recommends Cloud Run for all new stateless web applications and APIs, delivering the container flexibility of App Engine Flexible with the sub-second scale-to-zero speed, lower cost, Direct VPC Egress, and multi-region project support of modern serverless infrastructure.</p>
+<p>This topic belongs on Day 48 because enterprise architects frequently inherit legacy App Engine applications and must formulate defensible modernization roadmaps or justify why new workloads should not be built on App Engine. In the enterprise landscape, understanding App Engine's constraints clarifies the architectural leap represented by Cloud Run and GKE.</p>
+<p>When an outdated App Engine Flexible deployment suffers an unexpected morning traffic spike, its underlying VM provisioning takes over 8 minutes to scale up additional instance capacity. Inbound HTTP requests queue up at the App Engine front end and exhaust client connection timeouts, leading to widespread HTTP 502 Bad Gateway outages across retail store logistics.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Eventarc, Cloud Scheduler, Cloud Tasks, and Cloud Workflows: serverless orchestration primitives</h3>
+<p>Serverless architectures require specialized orchestration primitives to coordinate decoupled services across time, events, and failure boundaries without introducing brittle, point-to-point network coupling or monolithic shared state. Cloud Scheduler provides a fully managed, enterprise-grade distributed cron service that triggers HTTP/S endpoints, Pub/Sub topics, or Workflows executions on precise UTC schedules with configurable retry limits; Cloud Tasks acts as a targeted asynchronous task queue offering programmatic token-bucket rate limiting (<code>max_dispatches_per_second</code>), concurrency clamping, and scheduled delay execution to protect downstream databases from connection pool exhaustion; Eventarc acts as a centralized CloudEvents 1.0 broker normalizing system events from Cloud Audit Logs, Cloud Storage, and custom Pub/Sub topics into standardized JSON envelopes; and Cloud Workflows acts as a low-latency, declarative YAML/JSON state machine orchestrator that executes multi-step business logic across microservices with built-in retries, parallel branches, built-in connectors, and compensating transactions (the Saga pattern).</p>
+<p>This capability belongs on Day 48 because individual compute runtimes (Cloud Run, Functions, GKE) cannot manage distributed transaction lifecycles or coordinate asynchronous retries independently without brittle network coupling. In production systems, these four tools form the distributed control backbone governing asynchronous order processing, batch reconciliations, and payment fulfillment.</p>
+<p>When an asynchronous order processing pipeline floods an unbuffered payment microservice without Cloud Tasks rate limiting, the downstream service exhausts its database connection pool and crashes. In-flight orders are dropped mid-transaction, leaving customer payment authorizations hanging without corresponding order fulfillment records.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Choosing between Compute Engine, GKE, Cloud Run, Cloud Run Functions, and App Engine</h3>
+<p>Selecting the optimal Google Cloud compute runtime is one of the most critical responsibilities of a Principal Cloud Architect, requiring a rigorous trade-off evaluation across operational overhead, containerization flexibility, statefulness, GPU/TPU accelerator needs, networking control, and pricing dynamics. Compute Engine offers complete kernel and hardware control for legacy OS images, licensed third-party software, and persistent clustered filesystems, but burdens operations with OS patching and VM management; GKE provides industry-standard Kubernetes orchestration for complex multi-container microservice meshes, stateful distributed databases, and high-performance ML training clusters; Cloud Run delivers the ideal balance for modern stateless HTTP APIs, web apps, and batch jobs with zero cluster management and instant scaling; Cloud Run functions provide lightweight, event-driven reactive compute for micro-integrations; and App Engine remains legacy infrastructure maintained solely for backward compatibility.</p>
+<p>This topic belongs on Day 48 because it synthesizes all compute foundations established across Days 36–48 into a unified architectural decision framework. In enterprise architecture reviews, architects must defend runtime choices against concrete technical and financial constraints rather than organizational habit.</p>
+<p>When an engineering team deploys a stateful WebSocket IoT telemetry streaming service onto serverless Cloud Run with default 60-minute request timeouts, the platform abruptly severs active client connections at the timeout boundary. The sudden reconnection storm from 2,500 bakery ovens creates a thundering herd that crashes the telemetry ingestion gateway and leaves bakery operations blind.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Topic lab →</a></p>
+</article>
+
+</section>
+
+<!-- ================= PART 2 ================= -->
+<section id="part-2" class="part">
+<h2>Part 2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>App Engine Deep Dive: Standard vs. Flexible Runtime Internals, Routing, and Modernization</h3>
+<p>Google App Engine organizes applications around three hierarchical levels: Application (one per GCP project, permanently locked to a single geographical region upon creation), Services (independent microservices, historically called "modules", with a required <code>default</code> service), and Versions (immutable deployments within each service supporting traffic allocation). To make informed modernization decisions, architects must master the internal differences between App Engine Standard and App Engine Flexible, as well as the operational mechanics of traffic splitting and routing:</p>
+
+<h4>1. Runtime Architecture and Sandboxing</h4>
+<ul>
+<li><strong>App Engine Standard:</strong> Operates in lightweight, Google-managed container sandboxes (second-generation runtimes run in Linux cgroups/gVisor sandboxes). Instances scale from zero to hundreds within milliseconds. However, the sandbox imposes strict architectural constraints: the local filesystem is read-only (with only an in-memory <code>/tmp</code> RAM disk that consumes instance memory); background threads and goroutines cannot execute after the HTTP response has been flushed; raw socket listening is blocked; and accessing private VPC resources requires configuring a Serverless VPC Access connector VM pool. Pricing is calculated per instance-hour across instance classes (F1–F4_1G for automatic scaling, B1–B8 for basic/manual scaling), dropping to $0 when scaled to zero.</li>
+<li><strong>App Engine Flexible:</strong> Executes custom Docker containers directly on managed Compute Engine virtual machines (running a customized Debian base OS with Docker daemon) provisioned within the customer's project VPC. It supports arbitrary programming languages, custom native C-extensions, root container access, and persistent disk volume attachments. However, autoscaling requires provisioning and booting full Compute Engine VMs, taking 5 to 10 minutes to react to traffic spikes. Furthermore, App Engine Flexible requires a minimum of 1 VM running 24/7 (2 VMs across zones for high availability), incurring continuous baseline compute, RAM, and persistent disk costs even at 0 QPS.</li>
+</ul>
+
+<h4>2. Service Routing and Traffic Splitting Mechanics</h4>
+<p>App Engine routes inbound traffic through global Google Front Ends (GFE). Routing across microservices is configured via a global <code>dispatch.yaml</code> file, which maps incoming hostname and URL path patterns to designated services (e.g., routing <code>example.com/api/*</code> to the <code>api</code> service, and <code>auth.example.com/*</code> to the <code>auth</code> service). Within a service, traffic splitting enables zero-downtime deployments and canary testing across multiple active versions:</p>
+<ul>
+<li><strong>Cookie-Based Splitting (<code>--split-by=cookie</code>):</strong> The GFE sets a <code>GOOGAPPUID</code> HTTP response cookie containing a numeric hash. Subsequent requests containing this cookie are deterministically routed to the identical version. This ensures seamless session stickiness for interactive browser users, preventing mid-session version hopping during A/B rollouts. However, cookie-based splitting is ineffective for REST API clients, mobile native apps, or background daemons that do not persist or transmit HTTP cookies.</li>
+<li><strong>IP-Based Splitting (<code>--split-by=ip</code>):</strong> The GFE hashes the client IPv4 or IPv6 address to assign requests to a version. While this works with all HTTP clients without requiring cookie handling, it introduces severe traffic skew in enterprise environments. When client requests originate from corporate forward proxies, VPN concentrators, or Carrier-Grade NAT (CGNAT) gateways, thousands of distinct end users present the identical public IP address. Consequently, an entire branch office or corporate campus is routed to a single version, distorting canary sample sizes and potentially overwhelming a canary version.</li>
+<li><strong>Random Splitting (<code>--split-by=random</code>):</strong> Requests are distributed purely statelessly according to specified percentages without session affinity.</li>
+</ul>
+
+<div class="table-wrap">
+<table>
+<caption>Table 48.1: Architectural Deep Dive: App Engine Standard vs. Flexible vs. Cloud Run</caption>
+<thead>
+<tr>
+<th scope="col">Dimension</th>
+<th scope="col">App Engine Standard</th>
+<th scope="col">App Engine Flexible</th>
+<th scope="col">Modern Alternative: Cloud Run</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Underlying Infrastructure</strong></td>
+<td>Bespoke Google sandboxes (gVisor or second-gen Linux containers).</td>
+<td>Managed Compute Engine virtual machines in customer VPC.</td>
+<td>gVisor sandboxed OCI containers on Google fleet infrastructure.</td>
+</tr>
+<tr>
+<td><strong>Scaling Speed</strong></td>
+<td>Sub-second (milliseconds to scale from 0 to N instances).</td>
+<td>Slow: 5 to 10 minutes (requires VM provisioning and boot).</td>
+<td>Sub-second (typically 100ms to 2s cold starts; 0ms warm).</td>
+</tr>
+<tr>
+<td><strong>Scale-to-Zero &amp; Idle Cost</strong></td>
+<td>Yes (0 instances = $0 compute cost).</td>
+<td>No (minimum 1 VM running 24/7; continuous compute cost).</td>
+<td>Yes (0 instances = $0 compute cost).</td>
+</tr>
+<tr>
+<td><strong>Cold-Start Behavior</strong></td>
+<td>Minimal (&lt;100ms to 1s on pre-warmed sandbox pool).</td>
+<td>Severe: 5–10 minutes during VM boot and container pull.</td>
+<td>Low: 200ms–2s; eliminated via <code>min-instances</code>.</td>
+</tr>
+<tr>
+<td><strong>Deployment Speed</strong></td>
+<td>Fast (30–90 seconds code push).</td>
+<td>Slow (8–18 minutes VM blue-green swap &amp; healthchecks).</td>
+<td>Instant (typically 15–45 seconds revision rollout).</td>
+</tr>
+<tr>
+<td><strong>Custom Runtimes &amp; Packaging</strong></td>
+<td>Restricted to approved runtimes (Python, Java, Node, Go, PHP, Ruby).</td>
+<td>Custom Dockerfile supported; root access inside container.</td>
+<td>Any standard OCI container image listening on <code>$PORT</code>.</td>
+</tr>
+<tr>
+<td><strong>Local Filesystem</strong></td>
+<td>Read-only (with temporary <code>/tmp</code> in-memory scratch space).</td>
+<td>Ephemeral disk write access; optional persistent disk attachment.</td>
+<td>In-memory <code>/tmp</code> filesystem (backed by container RAM).</td>
+</tr>
+<tr>
+<td><strong>VPC Networking</strong></td>
+<td>Requires Serverless VPC Access connector for private VPC routing.</td>
+<td>Direct VM network interfaces in customer VPC.</td>
+<td>Direct VPC Egress directly into subnets (zero connector VMs).</td>
+</tr>
+<tr>
+<td><strong>Maximum Request Timeout</strong></td>
+<td>Automatic scaling: 10 minutes; Basic/Manual: 24 hours.</td>
+<td>60 minutes (3,600 seconds) for HTTP requests.</td>
+<td>60 minutes (3,600 seconds) for HTTP; 24 hours for Jobs.</td>
+</tr>
+<tr>
+<td><strong>Project Region Flexibility</strong></td>
+<td>Locked: 1 region per project permanently (cannot be altered).</td>
+<td>Locked: 1 region per project permanently (cannot be altered).</td>
+<td>Multi-region: deploy services to any region in same project.</td>
+</tr>
+<tr>
+<td><strong>Traffic Splitting Mechanics</strong></td>
+<td>Cookie, IP, or random splitting across immutable versions.</td>
+<td>Cookie, IP, or random splitting across immutable versions.</td>
+<td>Tag-based revisions and percentage traffic splitting via GFE.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<h4>3. Legacy Maintenance Reality vs. Cloud Run Modernization</h4>
+<p>App Engine was Google Cloud's revolutionary first product in 2008, but architectural patterns have evolved. App Engine applications suffer from foundational limitations: project-level region lock-in (an organization cannot deploy an App Engine service in Europe if the project App Engine region was set to <code>us-central1</code>), non-portable proprietary configuration files (<code>app.yaml</code>, <code>cron.yaml</code>, <code>queue.yaml</code>), and higher operational overhead when debugging legacy runtime bundles. Google Cloud officially designates <strong>Cloud Run</strong> as the modern successor for all containerized web applications and stateless APIs. Cloud Run unifies the container flexibility of App Engine Flexible with the instantaneous scale-to-zero economics, lower cost, and high concurrency of App Engine Standard, while adding native Direct VPC Egress, multi-region project deployments, and OpenTelemetry instrumentation.</p>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Serverless Orchestration Primitives: State Machines, Rate Limiting, and Event Routing</h3>
+<p>Production distributed systems cannot rely on direct, point-to-point HTTP calls between microservices without risking cascading failures, unhandled timeouts, and lost transaction state. Google Cloud provides four specialized serverless orchestration primitives, each addressing a distinct distributed coordination challenge:</p>
+
+<h4>1. Cloud Workflows: Declarative State Machine and Distributed Sagas</h4>
+<p>Cloud Workflows coordinates multi-step business logic across heterogeneous microservices using a declarative YAML or JSON definition. Workflows is serverless, low-latency, and charges strictly per step executed (with a generous free tier of 5,000 steps per month), maintaining execution state durably in Google's managed state store across hours or days. Key architectural capabilities include:</p>
+<ul>
+<li><strong>Deterministic Retry Logic:</strong> Workflows allows fine-grained retry policies on any step using <code>try / retry / except</code> blocks. Engineers can define custom retry predicates, exponential backoff with multipliers, and random jitter to avoid thundering-herd problems against downstream services.</li>
+<li><strong>The Saga Pattern and Compensation Logic:</strong> In distributed microservice architectures, traditional two-phase commit (2PC) ACID transactions are unfeasible. Workflows acts as the Saga orchestrator: if Step 3 (Payment Capture) fails after Step 1 (Validate Order) and Step 2 (Inventory Reservation) have succeeded, the workflow's <code>except</code> block executes compensating reverse actions—calling the inventory service to release the reservation lock and emitting an alert before failing cleanly.</li>
+<li><strong>Parallel Step Execution:</strong> Using the <code>parallel:</code> construct, workflows can execute concurrent branches simultaneously (e.g., executing credit verification and fraud scoring in parallel) and synchronize using join policies before advancing to the dispatch step.</li>
+<li><strong>Native Built-In Connectors:</strong> Workflows provides pre-built, IAM-authenticated connectors for Cloud Run, Cloud Functions, BigQuery (e.g., <code>googleapis.bigquery.v2.jobs.query</code>), Cloud Tasks, Secret Manager, and Pub/Sub. Connectors handle token exchange, automatic polling for asynchronous Long-Running Operations (LROs), and JSON payload extraction natively without boilerplate code.</li>
+</ul>
+
+<h4>2. Cloud Tasks: Targeted Asynchronous Queueing and Rate Limiting</h4>
+<p>Cloud Tasks provides managed asynchronous task queues designed to buffer requests and throttle execution rates against downstream targets (such as Cloud Run, Cloud Functions, GKE, or on-premises endpoints). Unlike a pub/sub event bus, Cloud Tasks is an explicit, point-to-point dispatch mechanism offering granular flow control:</p>
+<ul>
+<li><strong>Token-Bucket Rate Limiting:</strong> Queues enforce strict traffic smoothing via <code>--max-dispatches-per-second</code> (controlling sustained delivery rate), <code>--max-burst-size</code> (controlling transient spikes), and <code>--max-concurrent-dispatches</code> (clamping total in-flight requests). This prevents sudden request surges from overwhelming downstream relational databases or exceeding third-party API rate limits.</li>
+<li><strong>Queue Lifecycle Controls:</strong> Queues can be paused (via queue pause controls), resumed, or completely purged in real time during downstream outages to prevent crash loops.</li>
+<li><strong>Exponential Backoff Retries:</strong> Configured via <code>--max-attempts</code>, <code>--min-backoff</code>, <code>--max-backoff</code>, and <code>--max-doublings</code>, tasks automatically retry upon target 5xx or 429 response codes.</li>
+<li><strong>Task Deduplication:</strong> Naming a task explicitly (<code>projects/.../queues/.../tasks/[task-id]</code>) prevents duplicate execution within a configurable deduplication window, ensuring idempotent queueing even if the enqueuing client retries network requests.</li>
+<li><strong>Workflows vs. Tasks:</strong> Cloud Tasks is a single-step dispatch buffer optimized for rate limiting and scheduled future execution (delay dispatch); Cloud Workflows is a multi-step state machine orchestrating complex branching, data transformation, and distributed error compensation across multiple services.</li>
+</ul>
+
+<h4>3. Cloud Scheduler and Eventarc</h4>
+<ul>
+<li><strong>Cloud Scheduler:</strong> Fully managed distributed enterprise cron service. It dispatches HTTP/S requests, Pub/Sub messages, or App Engine commands on deterministic UTC cron schedules (e.g., <code>0 6 * * *</code>). Scheduler automatically attaches cryptographically signed OpenID Connect (OIDC) or OAuth 2.0 bearer tokens generated from an IAM Service Account, providing secure authentication to private Cloud Run services and Workflows executions.</li>
+<li><strong>Eventarc:</strong> Standardized event routing engine that captures events from over 130 Google Cloud services via Cloud Audit Logs, direct Cloud Storage mutations, custom Pub/Sub topics, or third-party providers. Eventarc delivers events to Cloud Run, Cloud Functions, GKE, or Workflows formatted according to the open CloudEvents 1.0 specification. Eventarc operates as an asynchronous, reactive event router (fire-and-forget event filtering), whereas Cloud Workflows operates as a synchronous orchestrator that waits for step results, evaluates conditional branches, and coordinates downstream state.</li>
+</ul>
+
+<div class="table-wrap">
+<table>
+<caption>Table 48.2: Serverless Messaging and Orchestration: Cloud Workflows vs. Cloud Tasks vs. Cloud Pub/Sub</caption>
+<thead>
+<tr>
+<th scope="col">Dimension</th>
+<th scope="col">Cloud Workflows</th>
+<th scope="col">Cloud Tasks</th>
+<th scope="col">Cloud Pub/Sub</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Primary Purpose &amp; Pattern</strong></td>
+<td>Multi-step state machine orchestration and distributed saga coordination.</td>
+<td>Point-to-point asynchronous task buffer and target rate limiter.</td>
+<td>Many-to-many asynchronous event bus and decoupled streaming ingest.</td>
+</tr>
+<tr>
+<td><strong>Invocation Model</strong></td>
+<td>Synchronous step execution; waits for step responses before advancing.</td>
+<td>Targeted push dispatch to specific HTTP/S or App Engine endpoints.</td>
+<td>Fan-out push or pull delivery to multiple independent subscribers.</td>
+</tr>
+<tr>
+<td><strong>Rate Limiting &amp; Flow Control</strong></td>
+<td>Workflow concurrency execution limits (platform quotas).</td>
+<td>Token bucket rate limiting: <code>max-dispatches-per-sec</code> and concurrent limits.</td>
+<td>Subscriber flow control (lease management, max outstanding messages/bytes).</td>
+</tr>
+<tr>
+<td><strong>State Tracking &amp; Transitions</strong></td>
+<td>Built-in state machine; variable passing, conditionals, and parallel forks.</td>
+<td>Single task payload; no intermediate state or inter-task dependency tracking.</td>
+<td>Stateless message payload; no state tracking between individual messages.</td>
+</tr>
+<tr>
+<td><strong>Deduplication &amp; Idempotency</strong></td>
+<td>Execution ID uniqueness prevents duplicate workflow instances.</td>
+<td>Task name uniqueness window prevents duplicate task enqueuing.</td>
+<td>Message ID deduplication within ordering keys (or at subscriber level).</td>
+</tr>
+<tr>
+<td><strong>Error Handling &amp; Retries</strong></td>
+<td>Declarative <code>try/retry/except</code>, custom backoff, and compensating sagas.</td>
+<td>Configurable HTTP backoff retries with dead-letter queue routing.</td>
+<td>Subscription retry policy (immediate or backoff) and Dead-Letter Topics (DLT).</td>
+</tr>
+<tr>
+<td><strong>Execution / Retention Limits</strong></td>
+<td>Up to 1 year execution duration via callbacks and pause steps.</td>
+<td>Tasks can be scheduled up to 30 days in advance; retention up to 30 days.</td>
+<td>Messages retained up to 7 days (or 31 days with retain acked messages).</td>
+</tr>
+<tr>
+<td><strong>Ideal Enterprise Use Case</strong></td>
+<td>E-commerce order fulfillment, multi-service fraud checks, batch ETL DAGs.</td>
+<td>Buffering requests to protect relational databases; delayed user emails.</td>
+<td>Telemetry streaming, cross-microservice domain event broadcast, CDC feeds.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<!-- Part 2 Architecture SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d48-arch-title d48-arch-desc" viewBox="0 0 1000 520" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d48-arch-title">Enterprise Serverless Orchestration and Runtime Boundaries Architecture</title>
+<desc id="d48-arch-desc">Architectural diagram detailing Cloud Scheduler triggering Cloud Workflows, coordinating parallel Cloud Run services, Cloud Tasks token-bucket queueing protecting Cloud SQL, and Saga compensation rollback paths.</desc>
+<defs>
+<marker id="d48-a-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d48-g-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d48-r-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d48-amb-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+</defs>
+
+<!-- Boundary 1: Triggers & Ingress -->
+<rect x="20" y="20" width="220" height="480" rx="6" fill="#0d111f" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="45" fill="#38bdf8" font-size="12" font-weight="700">TRIGGERS &amp; INGRESS</text>
+
+<!-- Cloud Scheduler -->
+<rect x="35" y="65" width="190" height="95" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="45" y="87" fill="#fce7f3" font-size="11" font-weight="700">Cloud Scheduler</text>
+<text x="45" y="105" fill="#a9b7cb" font-size="10">Cron: 0 6 * * * (Daily)</text>
+<text x="45" y="121" fill="#38bdf8" font-size="9">OIDC Bearer Auth Token</text>
+<text x="45" y="137" fill="#a9b7cb" font-size="9">Triggers morning batch</text>
+
+<!-- Eventarc -->
+<rect x="35" y="180" width="190" height="95" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="45" y="202" fill="#fce7f3" font-size="11" font-weight="700">Eventarc (CloudEvents)</text>
+<text x="45" y="220" fill="#a9b7cb" font-size="10">Source: GCS Object Finalize</text>
+<text x="45" y="236" fill="#38bdf8" font-size="9">Pub/Sub / Audit Filter</text>
+<text x="45" y="252" fill="#a9b7cb" font-size="9">Routes order batch event</text>
+
+<!-- Ingress Gateway -->
+<rect x="35" y="295" width="190" height="95" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="45" y="317" fill="#fce7f3" font-size="11" font-weight="700">Order API Gateway</text>
+<text x="45" y="335" fill="#a9b7cb" font-size="10">Cloud Run Ingress (HTTPS)</text>
+<text x="45" y="351" fill="#38bdf8" font-size="9">Executes Workflow API</text>
+<text x="45" y="367" fill="#a9b7cb" font-size="9">Synchronous client ack</text>
+
+<!-- Boundary 2: Cloud Workflows State Machine Engine -->
+<rect x="260" y="20" width="410" height="480" rx="6" fill="#0d111f" stroke="#1e293b" stroke-width="1.5"/>
+<text x="275" y="45" fill="#22c55e" font-size="12" font-weight="700">CLOUD WORKFLOWS STATE MACHINE (order-saga-v1)</text>
+
+<!-- Step 1: Validate -->
+<rect x="275" y="65" width="380" height="55" rx="5" fill="#161b33" stroke="#22c55e" stroke-width="1.2"/>
+<text x="290" y="87" fill="#fce7f3" font-size="11" font-weight="700">Step 1: Validate Order &amp; Identity</text>
+<text x="290" y="105" fill="#a9b7cb" font-size="10">Calls Auth Service via OIDC · Try / Retry on 503</text>
+
+<!-- Step 2: Parallel Execution -->
+<rect x="275" y="130" width="380" height="110" rx="5" fill="#161b33" stroke="#22c55e" stroke-width="1.2"/>
+<text x="290" y="150" fill="#22c55e" font-size="11" font-weight="700">Step 2: Parallel Execution Branches (parallel:)</text>
+<!-- Branch A -->
+<rect x="285" y="160" width="170" height="68" rx="4" fill="#0d111f" stroke="#38bdf8" stroke-width="1"/>
+<text x="295" y="180" fill="#fce7f3" font-size="10" font-weight="700">Branch A: Reserve Stock</text>
+<text x="295" y="196" fill="#a9b7cb" font-size="9">Cloud Run: /reserve</text>
+<text x="295" y="212" fill="#22c55e" font-size="9">Locks bakery flour inventory</text>
+<!-- Branch B -->
+<rect x="475" y="160" width="170" height="68" rx="4" fill="#0d111f" stroke="#38bdf8" stroke-width="1"/>
+<text x="485" y="180" fill="#fce7f3" font-size="10" font-weight="700">Branch B: Assess Fraud</text>
+<text x="485" y="196" fill="#a9b7cb" font-size="9">Cloud Run: /risk-score</text>
+<text x="485" y="212" fill="#22c55e" font-size="9">ML model scoring</text>
+
+<!-- Step 3: Cloud Tasks Enqueue -->
+<rect x="275" y="250" width="380" height="70" rx="5" fill="#161b33" stroke="#f59e0b" stroke-width="1.2"/>
+<text x="290" y="272" fill="#f59e0b" font-size="11" font-weight="700">Step 3: Enqueue Fulfillment via Cloud Tasks</text>
+<text x="290" y="290" fill="#a9b7cb" font-size="10">Connector: googleapis.cloudtasks.v2.projects.locations.queues.tasks</text>
+<text x="290" y="306" fill="#f59e0b" font-size="9">Rate-limited buffering to protect downstream Cloud SQL</text>
+
+<!-- Step 4: Compensation / Saga Rollback -->
+<rect x="275" y="330" width="380" height="155" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="290" y="352" fill="#f43f5e" font-size="11" font-weight="700">Step 4: Exception &amp; Saga Compensation (except:)</text>
+<text x="290" y="370" fill="#fce7f3" font-size="10">Catches: PaymentDeclined, InventoryExhausted, Timeout</text>
+<!-- Sub-box Compensation Action -->
+<rect x="285" y="380" width="360" height="92" rx="4" fill="#1c1117" stroke="#f43f5e" stroke-width="1"/>
+<text x="295" y="400" fill="#f43f5e" font-size="10" font-weight="700">Compensating Rollback Sequence:</text>
+<text x="295" y="416" fill="#fce7f3" font-size="9">1. Call Cloud Run: /release-inventory-lock (release flour)</text>
+<text x="295" y="432" fill="#fce7f3" font-size="9">2. BigQuery Connector: Log audit trail to failure_events table</text>
+<text x="295" y="448" fill="#fce7f3" font-size="9">3. Pub/Sub Connector: Publish alert to order-dead-letter-topic</text>
+<text x="295" y="462" fill="#f43f5e" font-size="9">Returns HTTP 422 Unprocessable Entity with error payload</text>
+
+<!-- Boundary 3: Target Runtimes & Persistence -->
+<rect x="690" y="20" width="290" height="480" rx="6" fill="#0d111f" stroke="#1e293b" stroke-width="1.5"/>
+<text x="705" y="45" fill="#38bdf8" font-size="12" font-weight="700">TARGET RUNTIMES &amp; PERSISTENCE</text>
+
+<!-- Cloud Run Services -->
+<rect x="705" y="65" width="260" height="105" rx="5" fill="#161b33" stroke="#22c55e" stroke-width="1.2"/>
+<text x="715" y="87" fill="#fce7f3" font-size="11" font-weight="700">Cloud Run Services</text>
+<text x="715" y="105" fill="#a9b7cb" font-size="10">• Stateless microservices (Auth, Stock, Fraud)</text>
+<text x="715" y="121" fill="#a9b7cb" font-size="10">• Auto-scales 0..1000 containers in seconds</text>
+<text x="715" y="137" fill="#22c55e" font-size="9">Direct VPC Egress to Cloud SQL</text>
+<text x="715" y="153" fill="#a9b7cb" font-size="9">Billed per 100ms request execution</text>
+
+<!-- Cloud Tasks Queue -->
+<rect x="705" y="180" width="260" height="110" rx="5" fill="#161b33" stroke="#f59e0b" stroke-width="1.2"/>
+<text x="715" y="202" fill="#fce7f3" font-size="11" font-weight="700">Cloud Tasks: order-processing-queue</text>
+<text x="715" y="220" fill="#f59e0b" font-size="10">Token Bucket Rate Limiting:</text>
+<text x="715" y="236" fill="#a9b7cb" font-size="9">• max-dispatches-per-second: 40</text>
+<text x="715" y="250" fill="#a9b7cb" font-size="9">• max-concurrent-dispatches: 20</text>
+<text x="715" y="264" fill="#a9b7cb" font-size="9">• min-backoff: 1s, max-backoff: 30s</text>
+<text x="715" y="278" fill="#22c55e" font-size="9">Guarantees DB connection ceiling &lt;= 20</text>
+
+<!-- Cloud SQL Backend -->
+<rect x="705" y="300" width="260" height="90" rx="5" fill="#161b33" stroke="#a855f7" stroke-width="1.2"/>
+<text x="715" y="322" fill="#fce7f3" font-size="11" font-weight="700">Cloud SQL (PostgreSQL)</text>
+<text x="715" y="340" fill="#a9b7cb" font-size="10">Private Service Access (10.128.0.50)</text>
+<text x="715" y="356" fill="#a855f7" font-size="9">max_connections: 100</text>
+<text x="715" y="372" fill="#22c55e" font-size="9">Protected from connection pool exhaustion</text>
+
+<!-- BigQuery & DLQ Pub/Sub -->
+<rect x="705" y="400" width="260" height="85" rx="5" fill="#161b33" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="715" y="422" fill="#fce7f3" font-size="11" font-weight="700">Dead-Letter Topic &amp; BigQuery</text>
+<text x="715" y="440" fill="#a9b7cb" font-size="10">Audit table: bakery_ops.failure_log</text>
+<text x="715" y="456" fill="#f43f5e" font-size="9">Pub/Sub Dead-Letter Topic: order-dlq</text>
+<text x="715" y="470" fill="#a9b7cb" font-size="9">Alerts SRE on failed Sagas</text>
+
+<!-- Edge Connections -->
+<!-- Scheduler to Workflows -->
+<line x1="225" y1="110" x2="275" y2="92" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#d48-a-arr)"/>
+<!-- Eventarc to Workflows -->
+<line x1="225" y1="225" x2="275" y2="150" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#d48-a-arr)"/>
+<!-- Workflows Step 1 to Cloud Run -->
+<line x1="655" y1="92" x2="705" y2="92" stroke="#22c55e" stroke-width="1.5" marker-end="url(#d48-g-arr)"/>
+<!-- Workflows Parallel to Cloud Run -->
+<line x1="655" y1="185" x2="705" y2="135" stroke="#22c55e" stroke-width="1.5" marker-end="url(#d48-g-arr)"/>
+<!-- Workflows Step 3 to Cloud Tasks -->
+<line x1="655" y1="285" x2="705" y2="235" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#d48-amb-arr)"/>
+<!-- Cloud Tasks to Cloud SQL (via worker) -->
+<line x1="835" y1="290" x2="835" y2="300" stroke="#22c55e" stroke-width="1.5" marker-end="url(#d48-g-arr)"/>
+<!-- Workflows Compensation to BigQuery/PubSub -->
+<line x1="655" y1="440" x2="705" y2="440" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#d48-r-arr)"/>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> Enterprise serverless orchestration and compute runtime boundary architecture. Cloud Scheduler and Eventarc initiate Cloud Workflows; Workflows coordinates step execution across parallel Cloud Run microservices; Cloud Tasks enforces token-bucket rate limiting (40 dispatches/sec, max 20 concurrent) to protect downstream Cloud SQL connection pools; and the Saga compensation block rolls back partial state and logs audit trails upon step failure.<br>
+<strong>Scope:</strong> Serverless orchestration mechanisms, flow control, state machine coordination, Saga compensation rollback, and runtime boundaries.<br>
+<strong>What it does not prove:</strong> It does not prove that external third-party payment gateways will maintain zero latency under peak loads, nor does it guarantee idempotency without database check-and-set tokens.
+</figcaption>
+</figure>
+
+<p><strong>Further study:</strong> <a href="https://cloud.google.com/workflows/docs/overview">Cloud Workflows Overview</a> and <a href="https://cloud.google.com/tasks/docs/dual-overview">Cloud Tasks Overview</a> provide primary Google Cloud architecture documentation; cross-reference <a href="../sources.html#topic-015">Topic 015 references</a> for serverless integration standards.</p>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Comprehensive 5-Way Compute Runtime Decision Framework</h3>
+<p>Selecting the correct compute runtime requires balancing operational maintenance overhead against required infrastructure control, connection lifetime, scaling dynamics, and hardware accelerators. Google Cloud offers five primary compute options:</p>
+<ol>
+<li><strong>Compute Engine (GCE):</strong> Infrastructure as a Service (IaaS). Provides raw virtual machines with custom operating systems, custom kernels, specialized hypervisor flags, local NVMe SSDs, and full NVIDIA GPU/TPU slice attachments. Best for legacy commercial off-the-shelf software (COTS), Windows Active Directory domain-joined machines, and stateful clustered filesystems. Requires the highest operational overhead (OS patching, backup scripts, kernel maintenance).</li>
+<li><strong>Google Kubernetes Engine (GKE):</strong> Container Orchestration as a Service. Industry-standard Kubernetes supporting multi-container Pod topologies, daemonsets, service meshes (Istio/Anthos Service Mesh), dynamic PersistentVolumeClaim storage, and stateful streaming architectures (WebSockets, MQTT, gRPC bi-directional streaming) with indefinite connection lifetimes. Autopilot eliminates node pool management; Standard provides deep cluster customization and multi-GPU scheduling.</li>
+<li><strong>Cloud Run:</strong> Fully Managed Serverless Containers. The default standard for all modern containerized HTTP microservices, webhooks, lightweight APIs, and batch processing jobs. Provides sub-second scale-to-zero, 100ms billing granularity, native Direct VPC Egress, and up to 1,000 concurrent requests per container instance. Bounded by a 60-minute maximum request execution ceiling.</li>
+<li><strong>Cloud Run Functions (2nd Gen):</strong> Event-Driven Serverless Functions. Built on Cloud Run and Google Cloud Buildpacks. Best for lightweight event handlers reacting directly to Cloud Storage object uploads, Pub/Sub messages, or Cloud Audit Logs via Eventarc without maintaining a custom Dockerfile or HTTP router. Shares Cloud Run's 60-minute execution limit and scale-to-zero economics.</li>
+<li><strong>App Engine (Standard / Flexible):</strong> Legacy PaaS. Provided early serverless and container hosting prior to the release of Cloud Run. Kept in maintenance mode for legacy workloads; greenfield builds should not be deployed to App Engine due to project-level region locks and proprietary configuration patterns.</li>
+</ol>
+
+<div class="table-wrap">
+<table>
+<caption>Table 48.3: Principal Cloud Architect 5-Way Compute Runtime Decision Matrix</caption>
+<thead>
+<tr>
+<th scope="col">Selection Dimension</th>
+<th scope="col">Compute Engine (GCE)</th>
+<th scope="col">GKE (Autopilot / Standard)</th>
+<th scope="col">Cloud Run</th>
+<th scope="col">Cloud Run Functions (Gen 2)</th>
+<th scope="col">App Engine (Standard / Flex)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workload Type</strong></td>
+<td>Legacy monolithic apps, Windows COTS, custom kernel modules.</td>
+<td>Containerized microservice fleets, stateful databases, complex pods.</td>
+<td>Stateless web APIs, microservices, asynchronous batch jobs.</td>
+<td>Event handlers, glue code, webhook responders, lightweight ETL.</td>
+<td>Legacy web applications and APIs; maintenance mode only.</td>
+</tr>
+<tr>
+<td><strong>Portability &amp; Packaging</strong></td>
+<td>VM images (Compute Images, OVA, Packer).</td>
+<td>OCI container images, Helm charts, Kubernetes YAML.</td>
+<td>Standard OCI container images (Docker, Buildpacks).</td>
+<td>Source code (Node, Python, Go, Java) compiled via Buildpacks.</td>
+<td>Source code (Standard) or custom Dockerfile (Flexible).</td>
+</tr>
+<tr>
+<td><strong>Scaling Latency</strong></td>
+<td>Slow: Minutes (VM provisioning and OS boot).</td>
+<td>Moderate: Seconds for Pods; minutes for node autoscaling.</td>
+<td>Sub-second (100ms – 2s cold starts; 0ms warm).</td>
+<td>Sub-second (100ms – 1s cold starts; 0ms warm).</td>
+<td>Standard: Sub-second (&lt;1s); Flex: Slow (5–10 minutes).</td>
+</tr>
+<tr>
+<td><strong>Cold-Start Behavior</strong></td>
+<td>None once booted; full OS boot latency on startup.</td>
+<td>Pod image pull (2–15s); mitigated by node image caching.</td>
+<td>Low: 200ms–2s; eliminated with <code>min-instances</code>.</td>
+<td>Low: 150ms–1s; eliminated with <code>min-instances</code>.</td>
+<td>Standard: Minimal (&lt;1s); Flex: Severe (5–10 minutes).</td>
+</tr>
+<tr>
+<td><strong>Operational Overhead</strong></td>
+<td>High: OS patching, security hardening, agent lifecycle.</td>
+<td>Low (Autopilot manages nodes) to Moderate (Standard node pools).</td>
+<td>Zero: Fully managed serverless infrastructure.</td>
+<td>Zero: Fully managed serverless infrastructure.</td>
+<td>Low: Managed platform, but carries legacy configuration debt.</td>
+</tr>
+<tr>
+<td><strong>Cost Curves &amp; Scale-to-Zero</strong></td>
+<td>Continuous VM billing; Spot VM discounts; no scale-to-zero.</td>
+<td>Autopilot bills per Pod resource; scale-to-zero via KEDA/HPA; Standard bills cluster + VMs.</td>
+<td>True scale-to-zero ($0 idle cost); billed per 100ms vCPU/RAM.</td>
+<td>True scale-to-zero ($0 idle cost); billed per 100ms vCPU/RAM.</td>
+<td>Standard: Scales to zero on F/B tiers; Flex: Min 1 VM 24/7 continuous cost.</td>
+</tr>
+<tr>
+<td><strong>Protocol Support</strong></td>
+<td>Full TCP/UDP, HTTP/2, gRPC, WebSockets, custom protocols.</td>
+<td>Full TCP/UDP, HTTP/2, gRPC, WebSockets, custom protocols.</td>
+<td>HTTP/1.1, HTTP/2, gRPC, WebSockets (capped at 60m).</td>
+<td>HTTP/1.1, HTTP/2; no WebSockets or persistent streaming.</td>
+<td>Standard: HTTP/1.1, HTTP/2; Flex: TCP/HTTP/WebSockets.</td>
+</tr>
+<tr>
+<td><strong>Connection Longevity</strong></td>
+<td>Infinite: Unbounded persistent TCP sessions.</td>
+<td>Infinite: Unbounded persistent TCP/WebSocket sessions.</td>
+<td>Hard ceiling: Max 60 minutes (3,600s) per request.</td>
+<td>Hard ceiling: Max 60 minutes (3,600s) per invocation.</td>
+<td>Standard: 10m auto, 24h manual; Flex: 60 minutes.</td>
+</tr>
+<tr>
+<td><strong>Filesystem &amp; State</strong></td>
+<td>Persistent Disks, Hyperdisk, Local NVMe SSD, Filestore NFS.</td>
+<td>Dynamic CSI PersistentVolumes, StatefulSets, Filestore NFS.</td>
+<td>Stateless; in-memory <code>/tmp</code>; GCS FUSE / Filestore mounts.</td>
+<td>Stateless; in-memory <code>/tmp</code> RAM disk only.</td>
+<td>Standard: Read-only + <code>/tmp</code>; Flex: Ephemeral/PD.</td>
+</tr>
+<tr>
+<td><strong>Hardware Acceleration</strong></td>
+<td>Full NVIDIA GPU passthrough (H100, A100, L4) and TPU slices.</td>
+<td>Native Kubernetes GPU scheduling (L4, A100, H100, TPU v4/v5e).</td>
+<td>NVIDIA L4 GPUs available (serverless AI inference).</td>
+<td>CPU only; no GPU or hardware acceleration.</td>
+<td>CPU only; no GPU or hardware acceleration.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<h4>Architectural Decision Framework (Rules of Thumb)</h4>
+<ol>
+<li><strong>Default to Cloud Run:</strong> For all greenfield containerized HTTP microservices, public web applications, webhooks, and asynchronous batch jobs. It provides maximum developer velocity, zero infrastructure maintenance, instant scaling, and the lowest total cost of ownership (TCO).</li>
+<li><strong>Escalate to GKE:</strong> When the application requires stateful persistent storage (StatefulSets with dynamic PVCs), persistent WebSocket or TCP streaming connections exceeding 60 minutes, complex multi-container Pod topologies (sidecar proxies, log shippers), custom Kubernetes operators, or large-scale multi-GPU training clusters.</li>
+<li><strong>Use Cloud Run Functions:</strong> When building single-purpose event handlers that react directly to cloud mutations (e.g., resizing an image dropped into Cloud Storage, ingesting a Pub/Sub message, processing a Cloud Audit Log event via Eventarc) where authoring a full container image is unnecessary.</li>
+<li><strong>Fall back to Compute Engine:</strong> Only when software constraints demand full operating system or kernel control (e.g., legacy Windows enterprise applications, custom Linux kernel modules, specialized networking drivers) or commercial COTS licenses tied to physical CPU hardware IDs.</li>
+<li><strong>Migrate Away from App Engine:</strong> Do not initiate greenfield developments on App Engine. For existing App Engine Flexible applications, containerize code into standard OCI images and migrate directly to Cloud Run to eliminate baseline VM costs and accelerate deployments from 15 minutes to under 60 seconds.</li>
+</ol>
+</article>
+
+</section>
+
+<!-- ================= PART 3 ================= -->
+<section id="part-3" class="part">
+<h2>Part 3 · Real-world problem and solution for each topic</h2>
+
+<article id="topic-01-problem" class="topic-card">
+<h3>App Engine Flexible Deployment Freeze and VM Cold-Start Stall · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's legacy bakery inventory tracking application operates on App Engine Flexible. During a morning delivery rush at 05:30 UTC, an automated CI/CD pipeline triggered a version deployment. Because App Engine Flexible provisions new Compute Engine virtual machines, installs the Docker daemon, pulls container layers, and awaits sequential OS health checks, the deployment took 18 minutes to initialize. During this rollout window, an unexpected morning surge of barcode scans from 40 bakery retail stores overwhelmed the existing single VM instance. Because App Engine Flexible autoscaling takes 6 to 10 minutes to spin up extra VM capacity, inbound requests queued at the Google Front End (GFE) and exhausted the client gateway timeout, returning widespread HTTP 502 Bad Gateway errors. Store managers were unable to log flour, yeast, and butter deliveries, delaying morning baking operations across all 40 retail locations.</p>
+
+<p><strong>Constraints:</strong> Must preserve the existing Python 3 code base with its custom native C-extension libraries; must maintain private, secure connectivity to the backend Cloud SQL PostgreSQL database; must eliminate baseline 24/7 idle VM charges; and must reduce deployment rollout duration from 18 minutes to under 2 minutes.</p>
+
+<p><strong>Diagnosis and solution:</strong> Examination of Cloud Build and App Engine deployment logs confirmed that App Engine Flexible was provisioning two new <code>e2-standard-2</code> virtual machines in the customer VPC and waiting for slow OS-level systemd initialization probes. Concurrently, Cloud Monitoring metrics revealed that the active Flex VM hit 100% CPU utilization, causing the GFE to queue requests until the 60-second client timeout expired. The architectural solution consisted of packaging the existing application container into an OCI image and deploying it to Cloud Run with Direct VPC Egress configured to the Cloud SQL subnet. Cloud Run eliminated the VM boot overhead, reducing version deployment rollouts to 42 seconds, enabling instant sub-second autoscaling from 1 to 20 instances during scan spikes, and cutting monthly baseline compute costs by 68% by eliminating idle 24/7 VMs.</p>
+
+<!-- Incident 1 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d48-i1-title d48-i1-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d48-i1-title">Incident 1: App Engine Flexible VM Provisioning Freeze vs Cloud Run Modernization</title>
+<desc id="d48-i1-desc">Incident diagram showing failed path where App Engine Flexible VM provisioning took 18 minutes causing 502 Bad Gateway errors, followed by corrected path migrating to Cloud Run for 42-second deployments.</desc>
+<defs>
+<marker id="d48-i1-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d48-i1-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Morning Deploy</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">App Engine Flex</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">Inventory Tracker</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">40 Bakery Stores</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d48-i1-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Slow VM Boot</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">App Engine Flex spins up VMs</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">18-minute deployment rollout</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Autoscale lag &gt; 6 minutes</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d48-i1-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Request Head-of-Line Stall</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">Inbound scans queue at edge</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">GFE proxy timeout reached</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: Flex VM overhead</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d48-i1-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">HTTP 502</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">Logistics Halt</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d48-i1-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Migrate container to Cloud Run</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Direct VPC Egress to Cloud SQL</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Instant gVisor sandbox boot</text>
+
+<line x1="480" y1="192" x2="560" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d48-i1-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY: Probe Point</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Deploy: 42 seconds</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Sub-second auto-scaling</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">68% monthly cost reduction</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d48-i1-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">Zero Downtime</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Morning deployment of App Engine Flexible inventory service took 18 minutes; incoming inventory barcode scans timed out with HTTP 502 Bad Gateway; store operations across 40 bakeries were stalled.<br>
+<strong>Architectural inference:</strong> App Engine Flexible scales by provisioning new Compute Engine virtual machines and waiting for complete operating system boots and Docker daemon initialization, creating severe deployment and autoscaling delays during high load.<br>
+<strong>Expected post-fix behavior:</strong> Migrating the container image to Cloud Run reduces deployment rollouts to 42 seconds, enables sub-second autoscaling, and eliminates 502 Gateway errors.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> If an application requires persistent local filesystems or background cron daemons running continuously without HTTP triggers, Cloud Run requires decoupling those into Cloud Run Jobs or Cloud Storage buckets.</p>
+</article>
+
+<article id="topic-02-problem" class="topic-card">
+<h3>Unbuffered Asynchronous Task Flooding and Database Pool Starvation · field case</h3>
+<p><strong>Situation and impact:</strong> During a seasonal marketing push, Brightloaf's order placement API published 18,000 asynchronous loyalty point reward tasks directly to a downstream Cloud Run worker service. Because the tasks queue was provisioned with default parameters, Cloud Tasks dispatched all 18,000 requests within 12 seconds. The sudden surge spawned 200 concurrent Cloud Run container instances, which simultaneously opened connections to the backend Cloud SQL PostgreSQL database. The database immediately hit its <code>max_connections</code> ceiling (100), rejecting subsequent connection attempts and crashing both the loyalty reward service and the primary online checkout database. Customers attempting to finalize online bread orders received HTTP 500 internal server errors, aborting checkout transactions across all digital channels.</p>
+
+<p><strong>Constraints:</strong> Must process all 18,000 loyalty rewards without dropping any customer points; cannot resize the Cloud SQL database instance due to budget caps; and must smooth traffic delivery over a controlled time window without exceeding 20 concurrent database connections.</p>
+
+<p><strong>Diagnosis and solution:</strong> Inspection of Cloud Monitoring database connection metrics showed immediate saturation of PostgreSQL backend worker processes with <code>FATAL: remaining connection slots are reserved for non-replication superuser connections</code>. The Cloud Tasks queue was configured with default settings (unlimited dispatches per second and up to 1,000 concurrent dispatches). The architectural solution involved reconfiguring the Cloud Tasks queue with strict token-bucket rate limits: <code>--max-dispatches-per-second=40</code> and <code>--max-concurrent-dispatches=20</code>, alongside exponential backoff retries (<code>--min-backoff=1s --max-backoff=30s --max-doublings=4</code>). This bounded concurrent database connections to a safe maximum of 20, processing all 18,000 loyalty tasks smoothly across 7.5 minutes without dropping a single database query or impacting online checkout.</p>
+
+<!-- Incident 2 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d48-i2-title d48-i2-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d48-i2-title">Incident 2: Cloud Tasks Unbounded Dispatch Surge and Rate Limiting Resolution</title>
+<desc id="d48-i2-desc">Incident diagram showing failed path where unbuffered Cloud Tasks flooded Cloud SQL connection pools, followed by corrected path using token bucket rate limiting to smooth database throughput.</desc>
+<defs>
+<marker id="d48-i2-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d48-i2-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Promo Marketing</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">18,000 Reward Tasks</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">Cloud Tasks Enqueued</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Target: loyalty-worker</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d48-i2-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Unbounded Queue</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">18k tasks fired in 12 seconds</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">Cloud Run scales to 200 pods</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Simultaneous DB connect flood</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d48-i2-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">DB Connection Exhaustion</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">Postgres max_conn (100) hit</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">Connection refused errors</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: unbuffered dispatch</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d48-i2-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">DB Crash</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">Checkout Down</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d48-i2-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">max-dispatches-per-sec: 40</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">max-concurrent-dispatches: 20</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Token bucket traffic smoothing</text>
+
+<line x1="480" y1="192" x2="560" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d48-i2-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY: Probe Point</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">DB Conn Clamped: &lt;= 20</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Smoothed over 7.5 minutes</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">100% of tasks completed</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d48-i2-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">18k Buffered</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Inbound marketing promotion generated 18,000 asynchronous tasks; Cloud Tasks dispatched all tasks in 12 seconds; PostgreSQL connection pool limit (100) was breached, halting online checkout.<br>
+<strong>Architectural inference:</strong> Unbounded concurrent task dispatching spawned 200 concurrent Cloud Run containers, each opening dedicated database sessions that overwhelmed backend database limits.<br>
+<strong>Expected post-fix behavior:</strong> Configuring Cloud Tasks rate limiting (40 dispatches/sec, max 20 concurrent) smoothed task execution across 7.5 minutes, clamping database connections safely to 20 and eliminating database errors.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Rate limiting increases end-to-end task completion latency for the last tasks in the queue. For urgent alerts (e.g. password resets), separate high-priority queues with dedicated concurrency budgets must be used.</p>
+</article>
+
+<article id="topic-03-problem" class="topic-card">
+<h3>Serverless Timeout Severance on Long-Lived WebSocket Connections · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf implemented an industrial IoT telemetry service connecting 2,500 commercial automated bread ovens to a central monitoring dashboard. The engineering team deployed the ingestion backend on Cloud Run. Exactly every 60 minutes, all 2,500 active WebSocket connections were simultaneously terminated by the platform, causing ovens to reconnect in a synchronized thundering herd that crashed the Cloud Run frontend and dropped baking temperature alerts.</p>
+
+<p><strong>Constraints:</strong> Must support persistent, stateful bidirectional TCP/WebSocket connections lasting 12+ hours; must alert bakery operators within 5 seconds if an oven overheats; and must avoid re-architecting oven firmware.</p>
+
+<p><strong>Diagnosis and solution:</strong> Analysis of Cloud Run service specifications showed that the request timeout was set to its absolute platform maximum of 3,600 seconds (60 minutes). By design, Cloud Run does not support infinite persistent connections; it terminates HTTP and WebSocket requests at the 60-minute ceiling. The architectural resolution entailed moving the stateful WebSocket connection tier from Cloud Run to a GKE Autopilot cluster configured with a Network Load Balancer (passthrough NLB) and WebSocket-aware Envoy gateway. GKE maintains long-lived TCP sessions indefinitely without platform-imposed timeout resets, resolving the thundering herd reconnect storms.</p>
+
+<!-- Incident 3 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d48-i3-title d48-i3-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d48-i3-title">Incident 3: Cloud Run 60-Minute Timeout Severance vs GKE Stateful WebSocket Routing</title>
+<desc id="d48-i3-desc">Incident diagram showing failed path where Cloud Run 60-minute request ceiling severed 2,500 industrial IoT WebSocket connections, followed by corrected path migrating to GKE Autopilot for persistent long-lived streaming.</desc>
+<defs>
+<marker id="d48-i3-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d48-i3-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">IoT Oven Sockets</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">2,500 Smart Ovens</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">WebSocket telemetry</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Target: telemetry-api</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d48-i3-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Cloud Run 60m</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">Platform hard timeout: 3600s</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">GFE terminates open sockets</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Synchronized disconnect</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d48-i3-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Thundering Herd Surge</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">2,500 simultaneous reconnects</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">TCP SYN flood &amp; auth crash</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: runtime mismatch</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d48-i3-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">Telemetry Drop</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">Oven Safety Blind</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d48-i3-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Migrate sockets to GKE Autopilot</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Passthrough Network Load Balancer</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Indefinite TCP session duration</text>
+
+<line x1="480" y1="192" x2="560" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d48-i3-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY: Probe Point</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Persistent Streaming</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Zero timeout disconnections</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Alert latency: 1.2 seconds</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d48-i3-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">100% Uptime</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> 2,500 industrial IoT bread ovens experienced synchronized connection resets exactly every 60 minutes on Cloud Run; reconnect storm overwhelmed authentication systems and dropped telemetry alerts.<br>
+<strong>Architectural inference:</strong> Cloud Run enforces a non-negotiable 60-minute maximum request execution limit, making it fundamentally incompatible with persistent, stateful long-lived WebSocket streaming.<br>
+<strong>Expected post-fix behavior:</strong> Migrating the WebSocket gateway to GKE Autopilot behind a passthrough Network Load Balancer permits indefinite TCP connection persistence, eliminating the hourly disconnection cycle.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Running long-lived WebSocket connections on GKE requires managing connection drain timeouts during node pool upgrades. Pods must implement graceful shutdown handlers that advise clients to reconnect over a staggered jitter window during rolling maintenance.</p>
+</article>
+
+</section>
+
+<!-- ================= PART 4 ================= -->
+<section id="part-4" class="part">
+<h2>Part 4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Legacy App Engine to Cloud Run Modernization and Manifest Generation</h3>
+<p><strong>Goal:</strong> Translate a legacy App Engine Flexible application manifest with dispatch routing into a production-grade Cloud Run service specification with Direct VPC Egress, CPU/RAM limits, and traffic splitting.</p>
+<p><strong>Expected Result:</strong> A verified Cloud Run YAML service specification achieving feature parity with App Engine Flexible while eliminating baseline VM idle costs and accelerating deployment rollouts.</p>
+<p><strong>Mode:</strong> Declarative YAML modeling &amp; dry-run verification · <strong>Prerequisite:</strong> Day 47 exit artifact.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Verify environment variables:
+<pre><code>export PROJECT_ID="brightloaf-prod"
+export REGION="us-central1"
+export APP_NAME="bakery-inventory-tracker"</code></pre>
+</li>
+
+<li><strong>Author Legacy App Engine Flex Configuration.</strong> Inspect the legacy <code>app.yaml</code> configuration:
+<pre><code>cat &lt;&lt;'EOF' &gt; app-legacy.yaml
+runtime: custom
+env: flex
+service: inventory
+manual_scaling:
+  instances: 2
+resources:
+  cpu: 2
+  memory_gb: 4
+  disk_size_gb: 10
+env_variables:
+  DB_HOST: "10.128.0.50"
+  DB_NAME: "inventory"
+EOF</code></pre>
+</li>
+
+<li><strong>Author Modernized Cloud Run Service Specification.</strong> Translate the legacy configuration into modern Cloud Run YAML (<code>cloudrun-inventory.yaml</code>) with Direct VPC Egress:
+<pre><code>cat &lt;&lt;'EOF' &gt; cloudrun-inventory.yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: bakery-inventory-tracker
+  labels:
+    cloud.googleapis.com/location: us-central1
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/network-interfaces: '[{"network":"brightloaf-vpc","subnetwork":"serverless-subnet"}]'
+        run.googleapis.com/vpc-egress: private-ranges-only
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "10"
+    spec:
+      containerConcurrency: 40
+      timeoutSeconds: 300
+      containers:
+      - image: us-central1-docker.pkg.dev/brightloaf-prod/bakery-apps/inventory:v2.0
+        resources:
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        env:
+        - name: DB_HOST
+          value: "10.128.0.50"
+        - name: DB_NAME
+          value: "inventory"
+EOF</code></pre>
+</li>
+
+<li><strong>Verify Cloud Run Specification Validity.</strong> Perform client-side dry-run validation using <code>gcloud</code>:
+<pre><code>gcloud run services replace cloudrun-inventory.yaml     --region=${REGION}     --dry-run     --format="value(metadata.name)"</code></pre>
+<p>Expected output:</p>
+<pre><code>bakery-inventory-tracker</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> The Cloud Run YAML evaluates without schema errors, preserves CPU/memory allocations (2 vCPU, 4Gi RAM), establishes Direct VPC Egress, and configures minScale=1 to avoid cold-start delays.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Remove temporary YAML manifests:
+<pre><code>rm -f app-legacy.yaml cloudrun-inventory.yaml</code></pre>
+</div>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Multi-Step Serverless Workflow Orchestration and Cloud Tasks Rate Limiting</h3>
+<p><strong>Goal:</strong> Formulate a Cloud Workflows definition coordinating an order validation step with automatic retries, parallel branches, and Saga compensation logic, alongside a rate-limited Cloud Tasks queue.</p>
+<p><strong>Expected Result:</strong> Validated Cloud Workflows YAML definition and a production-grade Cloud Tasks queue rate limit configuration.</p>
+<p><strong>Mode:</strong> Orchestration modeling &amp; CLI verification · <strong>Prerequisite:</strong> Exercise 1.</p>
+
+<ol>
+<li><strong>Author Cloud Workflows Definition.</strong> Create <code>order-saga.yaml</code> with parallel branches, error handling, and Saga compensation:
+<pre><code>cat &lt;&lt;'EOF' &gt; order-saga.yaml
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - order_id: ${args.order_id}
+          - customer_id: ${args.customer_id}
+          - amount: ${args.amount}
+          - inventory_reserved: false
+    - validate_order:
+        try:
+          call: http.post
+          args:
+            url: https://order-validator-xyz-uc.a.run.app/validate
+            auth:
+              type: OIDC
+            body:
+              order_id: ${order_id}
+              amount: ${amount}
+          result: validation_result
+        retry:
+          predicate: ${http.default_retry_predicate}
+          max_retries: 5
+          backoff:
+            initial_delay: 2
+            max_delay: 60
+            multiplier: 2
+    - parallel_processing:
+        parallel:
+          shared: [inventory_reserved]
+          branches:
+            - reserve_inventory:
+                steps:
+                  - call_reserve:
+                      call: http.post
+                      args:
+                        url: https://inventory-service-xyz-uc.a.run.app/reserve
+                        auth:
+                          type: OIDC
+                        body:
+                          order_id: ${order_id}
+                      result: reserve_result
+                  - update_flag:
+                      assign:
+                        - inventory_reserved: true
+            - assess_fraud:
+                steps:
+                  - call_fraud:
+                      call: http.post
+                      args:
+                        url: https://fraud-service-xyz-uc.a.run.app/score
+                        auth:
+                          type: OIDC
+                        body:
+                          order_id: ${order_id}
+                          customer_id: ${customer_id}
+                      result: fraud_result
+    - dispatch_fulfillment_task:
+        try:
+          call: http.post
+          args:
+            url: https://cloudtasks.googleapis.com/v2/projects/brightloaf-prod/locations/us-central1/queues/order-processing-queue/tasks
+            auth:
+              type: OAuth2
+            body:
+              task:
+                httpRequest:
+                  httpMethod: POST
+                  url: https://fulfillment-worker-xyz-uc.a.run.app/process
+                  oidcToken:
+                    serviceAccountEmail: workflows-sa@brightloaf-prod.iam.gserviceaccount.com
+                  body: ${base64.encode(json.encode({"order_id": order_id}))}
+          result: task_result
+        except:
+          as: e
+          steps:
+            - compensate_inventory:
+                switch:
+                  - condition: ${inventory_reserved}
+                    call: http.post
+                    args:
+                      url: https://inventory-service-xyz-uc.a.run.app/release
+                      auth:
+                        type: OIDC
+                      body:
+                        order_id: ${order_id}
+            - raise_error:
+                raise: ${e}
+    - return_result:
+        return:
+          order_id: ${order_id}
+          status: "DISPATCHED"
+          validation_code: ${validation_result.body.code}
+EOF</code></pre>
+</li>
+
+<li><strong>Author Cloud Tasks Rate-Limited Queue Creation Command.</strong> Configure queue with token-bucket flow control:
+<pre><code>cat &lt;&lt;'EOF' &gt; create-queue.sh
+#!/usr/bin/env bash
+gcloud tasks queues create order-processing-queue     --location=us-central1     --max-dispatches-per-second=40     --max-concurrent-dispatches=20     --max-attempts=5     --min-backoff=1s     --max-backoff=30s     --max-doublings=4
+EOF
+chmod +x create-queue.sh</code></pre>
+</li>
+
+<li><strong>Validate Workflow Syntax.</strong> Validate the workflow YAML structure using Python:
+<pre><code>python3 -c "
+import yaml
+with open('order-saga.yaml') as f:
+    data = yaml.safe_load(f)
+assert 'main' in data
+assert 'steps' in data['main']
+print('Cloud Workflows YAML syntax valid; contains', len(data['main']['steps']), 'orchestration steps.')
+"</code></pre>
+<p>Expected output:</p>
+<pre><code>Cloud Workflows YAML syntax valid; contains 5 orchestration steps.</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> The workflow definition validates cleanly, implementing OIDC authenticated calls, parallel branches, automatic HTTP retries with exponential backoff, Saga compensation logic, and a rate-limited Cloud Tasks queue specification.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Remove local workflow files:
+<pre><code>rm -f order-saga.yaml create-queue.sh</code></pre>
+</div>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Compute Runtime Decision Matrix and Daily Exit Artifact Assembly</h3>
+<p><strong>Goal:</strong> Synthesize compute platform selection rules into a comprehensive Architecture Decision Record (ADR) and assemble the Day 48 exit artifact.</p>
+<p><strong>Expected Result:</strong> A verified <code>day-048-runtime-matrix.md</code> exit artifact documenting runtime trade-offs, retry diagrams, and cross-references to prior infrastructure evidence.</p>
+<p><strong>Mode:</strong> Technical documentation &amp; architectural defense · <strong>Prerequisite:</strong> Exercises 1 and 2.</p>
+
+<ol>
+<li><strong>Assemble the Runtime Decision Matrix Artifact.</strong> Generate <code>day-048-runtime-matrix.md</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; day-048-runtime-matrix.md
+# Architecture Decision Record (ADR 048): Google Cloud Compute Runtime &amp; Orchestration Selection
+
+## 1. Executive Summary &amp; Core Principles
+Brightloaf establishes a tier-based compute runtime selection policy across all software development teams:
+- **Default Tier (Tier 1): Cloud Run.** All stateless HTTP microservices, webhooks, customer-facing web apps, and batch ETL jobs MUST deploy to Cloud Run.
+- **Micro-Integration Tier (Tier 2): Cloud Run Functions (Gen 2).** Event-driven reactive tasks triggered by Cloud Storage, Pub/Sub, or Eventarc without custom routing.
+- **Complex &amp; Stateful Tier (Tier 3): GKE (Autopilot preferred).** Workloads requiring persistent disk volumes (StatefulSets), long-lived WebSocket streaming connections exceeding 60 minutes, multi-container pod sidecars, or dedicated GPU/TPU machine learning clusters.
+- **Legacy &amp; OS-Controlled Tier (Tier 4): Compute Engine (GCE).** Legacy commercial software requiring custom Windows/Linux kernels or non-containerizable architectures.
+- **Deprecation Policy:** App Engine (Standard and Flexible) is designated as DEPRECATED; no new projects may be provisioned on App Engine.
+
+## 2. Serverless Orchestration Decision Matrix
+| Orchestration Need | Selected Service | Rationale &amp; Guarantees |
+|---|---|---|
+| **Scheduled Batch Trigger** | Cloud Scheduler | Managed cron; executes HTTP targets with OIDC authentication tokens. |
+| **Rate-Limited Task Buffer** | Cloud Tasks | Prevents downstream database connection saturation via token-bucket dispatch. |
+| **System Event Routing** | Eventarc | Standardized CloudEvents broker; captures GCS and Cloud Audit Log mutations. |
+| **Multi-Service Workflow** | Cloud Workflows | State machine orchestration with built-in retries, backoff, and compensating actions. |
+
+## 3. Comprehensive 5-Way Runtime Decision Matrix
+| Selection Dimension | Compute Engine (GCE) | GKE (Autopilot / Standard) | Cloud Run | Cloud Run Functions (Gen 2) | App Engine (Standard / Flex) |
+|---|---|---|---|---|---|
+| **Workload Type** | Legacy VMs, Windows COTS | Container fleets, StatefulSets | Stateless HTTP APIs, batch jobs | Event handlers, glue code | Legacy web apps (maintenance) |
+| **Scaling Latency** | Minutes (VM boot) | Seconds (pods) to minutes (nodes) | Sub-second (100ms–2s) | Sub-second (100ms–1s) | Standard: &lt;1s; Flex: 5–10m |
+| **Operational Overhead** | High (OS patching) | Low (Autopilot) to Moderate (Standard) | Zero (Fully managed) | Zero (Fully managed) | Low (Managed, legacy debt) |
+| **Cost Curve / Idle** | Continuous hourly; no scale-to-zero | Resource per pod; cluster fees | Scale-to-zero ($0 idle) | Scale-to-zero ($0 idle) | Standard: $0 idle; Flex: min 1 VM |
+| **Max Connection Timeout** | Unlimited persistent | Unlimited persistent | 60 minutes (3,600s) | 60 minutes (3,600s) | Standard: 10m/24h; Flex: 60m |
+| **Hardware Acceleration** | NVIDIA GPUs, TPUs | NVIDIA GPUs, TPUs | NVIDIA L4 GPUs | CPU only | CPU only |
+
+## 4. Retry, Timeout &amp; Failure Recovery Diagram
+```
+Client Request -> Cloud Tasks (Queue: max 40 req/s, max 20 concurrent)
+                    |
+                    v
+              Cloud Workflows (State Machine)
+                    |
+         +----------+----------+
+         |                     |
+         v (Try Step 1)        v (Catch Step)
+    Cloud Run Service     Exponential Backoff (delay: 2s -> 4s -> 8s -> 16s)
+    [Order Validation]         |
+         |                     v
+         +--(Success)------> Cloud Tasks Fulfillment Queue (Rate-limited to 40/s)
+         |                     |
+         |                     v
+         |               Cloud SQL (PostgreSQL, capped at 20 conns)
+         |
+         +--(500 Error)----> Max Retries (5) Exceeded -> Saga Rollback:
+                               1. Release inventory reservation
+                               2. BigQuery audit log connector
+                               3. Dead-Letter Pub/Sub alert
+```
+
+## 5. Cross-Links to Prior Infrastructure Evidence
+- GKE Fleet Governance &amp; Multi-Cluster Ingress: `days/day-046.html#topic-01-technical`
+- Cloud Run Scaling, Concurrency &amp; Direct VPC Egress: `days/day-047.html#topic-01-technical`
+- Compute Engine Sizing &amp; Memory Allocation: `days/day-036.html#topic-01-technical`
+EOF</code></pre>
+</li>
+
+<li><strong>Verify Artifact Structure.</strong> Verify that all required sections exist in the markdown artifact:
+<pre><code>grep -E "^## " day-048-runtime-matrix.md</code></pre>
+<p>Expected output:</p>
+<pre><code>## 1. Executive Summary &amp; Core Principles
+## 2. Serverless Orchestration Decision Matrix
+## 3. Comprehensive 5-Way Runtime Decision Matrix
+## 4. Retry, Timeout &amp; Failure Recovery Diagram
+## 5. Cross-Links to Prior Infrastructure Evidence</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Artifact Acceptance:</strong> <code>day-048-runtime-matrix.md</code> accurately models compute selection criteria, orchestration roles, and failure retry boundaries.
+</div>
+</article>
+
+</section>
+
+<!-- ================= COMPLETION ================= -->
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-048-runtime-matrix.md</code> containing: (1) App Engine migration and deprecation policy, (2) serverless orchestration taxonomy distinguishing Cloud Scheduler, Cloud Tasks, Eventarc, and Cloud Workflows, (3) retry and failure recovery state diagram with exponential backoff and dead-letter routing, (4) comprehensive 5-way compute runtime decision matrix grounded in Days 36–47 infrastructure evidence. Label tabletop models clearly.</p>
+<label class="check"><input type="checkbox" data-progress="read-48"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-48"> I saved the exit artifact</label>
+</section>
+
+<!-- ================= PAGER ================= -->
+<nav class="pager" aria-label="Page navigation">
+<a href="day-047.html">← Day 47<small>Cloud Run and event-driven functions</small></a>
+<a href="../index.html">Index<small>180-day roadmap</small></a>
+<a href="day-049.html">Day 49 →<small>VPC address and route design</small></a>
+</nav>
+
+<footer class="site-footer">
+<p>GCP Professional Cloud Architect 180-Day Comprehensive Roadmap · Tabletop architecture and production readiness curriculum.</p>
+</footer>
+</main>
+</body>
+</html>

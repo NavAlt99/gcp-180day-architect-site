@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 41: VM operations and resource diagnosis · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+</style>
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-040.html" aria-label="Previous day">← Day 40</a>
+<a href="day-042.html" aria-label="Next day">Day 42 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html" selected>Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="41" data-prev="day-040.html" data-next="day-042.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 41 of 180</div>
+
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 41</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">tabletop / operational diagnosis</span>
+<span class="pill">Topic 013</span>
+</div>
+<h1>Day 41 — VM operations and resource diagnosis</h1>
+<p class="lead"><strong>Outcome:</strong> Manage automated OS patching and inventory with VM Manager, configure host maintenance and live migration policies, and evaluate SUDs, CUDs, and Recommender rightsizing metrics to optimize fleet cost and stability.</p>
+<div>
+<strong>Entry prerequisites:</strong>
+<p><a href="day-040.html">Day 40</a> (Spot, tenancy and secure VM access), <a href="day-008.html">Day 8</a> (CPU, memory and diagnostic signals); bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A VM operational runbook (<code>day-041-runbook.md</code>) linking guest operating system metrics to application symptoms, automated patch rollout schedules, live migration maintenance configurations, and a rightsizing decision sheet.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-27; VM Manager, Live Migration, and commitment pricing models sourced from GCP Compute Engine documentation. Operational models represent design architectures rather than production benchmarks.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>VM Manager (patching, inventory, OS config)</span>
+<a href="#topic-01-overview">overview</a> ·
+<a href="#topic-01-technical">discussion</a> ·
+<a href="#topic-01-problem">problem</a> ·
+<a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Live migration and maintenance policies (migrate vs terminate)</span>
+<a href="#topic-02-overview">overview</a> ·
+<a href="#topic-02-technical">discussion</a> ·
+<a href="#topic-02-problem">problem</a> ·
+<a href="#topic-02-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Sustained use discounts, committed use discounts, rightsizing recommendations</span>
+<a href="#topic-03-overview">overview</a> ·
+<a href="#topic-03-technical">discussion</a> ·
+<a href="#topic-03-problem">problem</a> ·
+<a href="#topic-03-lab">lab</a>
+</div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════ PART 1 ══ -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>VM Manager (patching, inventory, OS config)</h3>
+<p>
+  <strong>Google Cloud VM Manager</strong> is a suite of integrated tools designed to automate the management and compliance of large Compute Engine VM fleets. It consists of three capabilities: <strong>OS Patch Management</strong> (executing scheduled operating system updates, kernel patches, and pre/post-patch script hooks), <strong>OS Inventory Management</strong> (collecting operating system version, installed packages, kernel revisions, and Common Vulnerabilities and Exposures [CVE] status), and <strong>OS Configuration Management</strong> (declaratively enforcing installed packages, repositories, and custom guest policies).
+</p>
+<p>
+  While immutable Managed Instance Groups encourage updating golden images and performing rolling replacements, stateful VMs and enterprise batch fleets often rely on in-place patch jobs. Uncoordinated fleet-wide patching can inadvertently reboot all instances concurrently, destroying serving availability.
+</p>
+<p class="small"><em>Problem preview:</em> An operator initiates an ad-hoc VM Manager patch job across the Order API fleet with concurrent rollout mode and automatic reboot enabled. A patch in the upstream package repository breaks the application runtime dependencies, triggering simultaneous reboots across all production VMs and causing total checkout downtime.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Live migration and maintenance policies (migrate vs terminate)</h3>
+<p>
+  Compute Engine infrastructure undergoes regular physical host maintenance, including hypervisor updates, security patches, hardware repairs, and power management. When Google Cloud maintains the underlying physical host, a virtual machine's <strong>maintenance policy</strong> dictates its behavior: <code>MIGRATE</code> (default) or <code>TERMINATE</code>.
+</p>
+<p>
+  Under <strong>Live Migration</strong> (<code>MIGRATE</code>), Compute Engine transparently shifts running VMs to another physical host within the same zone without rebooting the guest OS or interrupting in-flight memory state, with only a sub-second network blackout. However, if an instance is misconfigured to <code>TERMINATE</code>, maintenance events will forcefully stop the VM, destroying transient in-memory state and dropping incoming connections.
+</p>
+<p class="small"><em>Problem preview:</em> A high-throughput in-memory order cache VM is configured with <code>onHostMaintenance: TERMINATE</code> instead of <code>MIGRATE</code>. During a routine Google Cloud host firmware maintenance window, the cache instance is forcefully powered down, dumping all read traffic directly onto the primary Cloud SQL database and triggering severe database CPU saturation.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Sustained use discounts, committed use discounts, rightsizing recommendations</h3>
+<p>
+  Compute Engine financial governance combines automated usage savings, term commitments, and algorithmic rightsizing. <strong>Sustained Use Discounts (SUDs)</strong> provide automatic discounts (up to 30%) on eligible machine families (such as N1, N2) when an instance runs for more than 25% of a billing month, requiring zero administrative setup.
+</p>
+<p>
+  <strong>Committed Use Discounts (CUDs)</strong> provide deep discounts (up to 57–70%) in exchange for 1-year or 3-year term commitments, available as resource-based (specific vCPU/memory in a single region) or flexible spend-based (dollar-per-hour across regions). Concurrently, <strong>Cloud Recommender</strong> analyzes rolling 8-day CPU and memory telemetry to generate rightsizing recommendations, preventing teams from locking over-provisioned machine types into multi-year commitments.
+</p>
+<p class="small"><em>Problem preview:</em> A procurement team purchases 3-year rigid resource-based CUDs for N1 machine types in <code>us-east1</code> without consulting engineering, right before the Order API is migrated to N2D instances in <code>us-central1</code>. The company wastes tens of thousands of dollars on unused N1 commitments while simultaneously paying un-discounted on-demand rates in the new region.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 2 ══ -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>VM Manager (patching, inventory, OS config)</h3>
+
+<h4>The three pillars of VM Manager</h4>
+<p>
+  VM Manager is an agent-based management suite installed on Compute Engine instances via the Google Cloud guest environment (<code>google-osconfig-agent</code>):
+</p>
+<ul>
+  <li><strong>OS Patch Management:</strong> Orchestrates the rollout of OS updates across Linux and Windows instances. Key features include defining maintenance windows, pre-patch and post-patch script hooks (e.g. draining an instance from a load balancer before patching and un-draining after), package exclusion filters, and reboot policies (<code>DEFAULT</code>, <code>ALWAYS</code>, <code>NEVER</code>).</li>
+  <li><strong>OS Inventory Management:</strong> Queries installed package versions, OS distribution details, kernel releases, and checks against the National Vulnerability Database (NVD) to generate vulnerability reports in Security Command Center.</li>
+  <li><strong>OS Configuration Management:</strong> Deploys OS policies that enforce declarative desired state: ensuring specific monitoring agents or security packages are present, managing custom software repositories, and running compliance check scripts.</li>
+</ul>
+
+<h4>Patch rollout modes and blast radius</h4>
+<p>
+  When executing a patch job, the rollout mode controls concurrency:
+</p>
+<table class="comparison">
+<thead>
+<tr>
+<th>Rollout Mode</th>
+<th>Execution Mechanics</th>
+<th>Availability Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Concurrent (Default)</strong></td>
+<td>Patches all selected VMs simultaneously</td>
+<td>High risk of complete service outage if patches trigger reboots or break runtimes</td>
+</tr>
+<tr>
+<td><strong>Zone-by-Zone</strong></td>
+<td>Completes patching in one zone before starting the next</td>
+<td>Preserves multi-zone service availability if paired with regional load balancing</td>
+</tr>
+<tr>
+<td><strong>Rolling (Disruption Budget)</strong></td>
+<td>Patches in fixed batches (e.g. max 10% of fleet at a time)</td>
+<td>Recommended for production; preserves serving capacity throughout rollout</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/manage-os" rel="noopener noreferrer">VM Manager overview</a> — Official Google Cloud reference on OS Patch Management, OS Inventory, and OS Policy definitions. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Live migration and maintenance policies (migrate vs terminate)</h3>
+
+<h4>Live migration mechanics</h4>
+<p>
+  When Google Cloud needs to perform hardware maintenance on a physical server hosting a virtual machine, the KVM hypervisor orchestrates a Live Migration. The migration process:
+</p>
+<ol>
+  <li>Identifies a healthy physical target host in the same availability zone.</li>
+  <li>Copies memory pages and CPU register state incrementally across high-speed internal data center networks while the source VM continues processing requests.</li>
+  <li>Pauses the source VM for a sub-second blackout window (typically &lt;200ms) to transfer final dirty memory pages.</li>
+  <li>Transfers network routing state to the new host and resumes execution seamlessly. Storage state remains intact because Persistent Disks are network-attached.</li>
+</ol>
+
+<h4>Maintenance policy configuration</h4>
+<p>
+  VM instances configure maintenance behavior via scheduling parameters:
+</p>
+<ul>
+  <li><code>--maintenance-policy=MIGRATE</code>: Enables transparent live migration. Supported on standard general-purpose, compute-optimized, and memory-optimized VM families.</li>
+  <li><code>--maintenance-policy=TERMINATE</code>: Forces VM termination during host maintenance. Required for VMs with attached GPUs (unless using specific A3/G2 configurations), certain sole-tenant hardware affinity setups, or Spot VMs.</li>
+  <li><code>--restart-on-failure</code>: Determines whether Compute Engine automatically boots the VM if it terminates due to a hardware crash or maintenance stop.</li>
+</ul>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/instances/live-migration-process" rel="noopener noreferrer">Live migration process</a> — Detailed technical overview of memory copying, quiescing, and network transfer during host maintenance. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Sustained use discounts, committed use discounts, rightsizing recommendations</h3>
+
+<h4>Comparing SUDs, CUDs, and Rightsizing</h4>
+<p>
+  Optimizing Compute Engine economics requires selecting the right financial mechanism for each workload lifecycle:
+</p>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Commitment Term</th>
+<th>Discount Level</th>
+<th>Flexibility</th>
+<th>Workload Suitability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sustained Use Discounts (SUD)</strong></td>
+<td>None (Automatic)</td>
+<td>Up to 30% incremental</td>
+<td>High (automatic per region on N1/N2)</td>
+<td>Dynamic, bursty, or newly launched workloads before commitment</td>
+</tr>
+<tr>
+<td><strong>Resource-based CUD</strong></td>
+<td>1 or 3 years</td>
+<td>Up to 57% (standard) / 70% (memory)</td>
+<td>Low (locked to specific machine series and region)</td>
+<td>Predictable, stable baseline infrastructure running 24/7</td>
+</tr>
+<tr>
+<td><strong>Flexible Spend-based CUD</strong></td>
+<td>1 or 3 years</td>
+<td>Up to 28% (1-yr) / 46% (3-yr)</td>
+<td>High (applies across regions, series, and Cloud Run/GKE)</td>
+<td>Organizations undergoing active architectural migrations or cross-region growth</td>
+</tr>
+<tr>
+<td><strong>Recommender Rightsizing</strong></td>
+<td>Immediate change</td>
+<td>Varies based on downsize</td>
+<td>High (stop VM, change machine type, restart)</td>
+<td>Over-provisioned VMs running at &lt;15% average CPU over 8 days</td>
+</tr>
+</tbody>
+</table>
+
+<!-- Part 2 Architecture SVG -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d41-arch-title d41-arch-desc">
+<title id="d41-arch-title">Compute Engine VM operations: VM Manager, Live Migration, and Rightsizing</title>
+<desc id="d41-arch-desc">An architectural flow illustrating VM operations in Google Cloud. On the left, the VM Manager service communicates through the OS Config guest agent to orchestrate staged patch jobs, collect inventory, and enforce OS policies. In the center, physical host maintenance triggers Live Migration, copying memory pages across physical hosts without VM reboot. On the right, Cloud Recommender analyzes guest CPU and memory telemetry to output rightsizing recommendations and financial CUD optimizations.</desc>
+<defs>
+<marker id="d41-a-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#38bdf8"/>
+</marker>
+<marker id="d41-g-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#4ade80"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Section 1: VM Manager Service -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="20" y="30" width="300" height="380" rx="8"/>
+<text fill="#38bdf8" font-size="12" font-weight="700" x="170" y="56" text-anchor="middle">VM MANAGER CONTROL PLANE</text>
+
+<rect class="box" x="36" y="80" width="268" height="90" rx="6"/>
+<text font-size="11" font-weight="700" x="170" y="104" text-anchor="middle">OS Patch Management</text>
+<text class="small-label" x="170" y="126" text-anchor="middle">• Scheduled patch jobs &amp; windows</text>
+<text class="small-label" x="170" y="144" text-anchor="middle">• Pre/post-patch script hooks</text>
+<text class="small-label" x="170" y="160" text-anchor="middle">• Rollout: Zone-by-Zone or Staged</text>
+
+<rect class="box" x="36" y="184" width="268" height="90" rx="6"/>
+<text font-size="11" font-weight="700" x="170" y="208" text-anchor="middle">OS Inventory &amp; Compliance</text>
+<text class="small-label" x="170" y="230" text-anchor="middle">• Installed packages &amp; kernel info</text>
+<text class="small-label" x="170" y="248" text-anchor="middle">• CVE vulnerability scanning</text>
+<text class="small-label" x="170" y="264" text-anchor="middle">• Security Command Center feed</text>
+
+<rect fill="#161b30" stroke="#4ade80" stroke-width="1.5" x="36" y="288" width="268" height="106" rx="6"/>
+<text fill="#4ade80" font-size="11" font-weight="700" x="170" y="312" text-anchor="middle">OS Config Guest Agent</text>
+<text class="small-label" x="170" y="334" text-anchor="middle">google-osconfig-agent runs inside VM</text>
+<text class="small-label" x="170" y="352" text-anchor="middle">Executes local apt/yum commands</text>
+<text class="small-label" x="170" y="370" text-anchor="middle">Enforces declarative guest policies</text>
+
+<!-- Section 2: Live Migration Mechanics -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="340" y="30" width="300" height="380" rx="8"/>
+<text fill="#facc15" font-size="12" font-weight="700" x="490" y="56" text-anchor="middle">LIVE MIGRATION MECHANICS</text>
+
+<rect class="box" x="356" y="80" width="268" height="120" rx="6"/>
+<text font-size="11" font-weight="700" x="490" y="104" text-anchor="middle">Source Physical Host A</text>
+<text class="small-label" x="490" y="124" text-anchor="middle">Maintenance notification scheduled</text>
+<rect fill="#052e16" stroke="#22c55e" stroke-width="1" x="376" y="136" width="228" height="50" rx="4"/>
+<text fill="#4ade80" font-size="10" x="490" y="156" text-anchor="middle">Active VM: order-api-01</text>
+<text class="small-label" x="490" y="172" text-anchor="middle">Dirty memory pages tracking</text>
+
+<path stroke="#facc15" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#d41-a-arr)" fill="none" d="M490 200 V230"/>
+<text fill="#facc15" font-size="10" x="550" y="218" text-anchor="middle">Pre-copy Memory</text>
+
+<rect fill="#161b30" stroke="#4ade80" stroke-width="1.5" x="356" y="234" width="268" height="120" rx="6"/>
+<text fill="#4ade80" font-size="11" font-weight="700" x="490" y="258" text-anchor="middle">Target Physical Host B</text>
+<text class="small-label" x="490" y="278" text-anchor="middle">Same availability zone infrastructure</text>
+<rect fill="#052e16" stroke="#22c55e" stroke-width="1" x="376" y="290" width="228" height="50" rx="4"/>
+<text fill="#4ade80" font-size="10" x="490" y="310" text-anchor="middle">Migrated VM: order-api-01</text>
+<text class="small-label" x="490" y="326" text-anchor="middle">Sub-second quiesce &amp; resume</text>
+
+<rect fill="#121526" stroke="#38bdf8" stroke-width="1" x="356" y="364" width="268" height="34" rx="4"/>
+<text fill="#38bdf8" font-size="10" x="490" y="386" text-anchor="middle">Network-attached Persistent Disk untouched</text>
+
+<!-- Section 3: Cost & Rightsizing Recommender -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="660" y="30" width="300" height="380" rx="8"/>
+<text fill="#4ade80" font-size="12" font-weight="700" x="810" y="56" text-anchor="middle">RIGHTSIZING &amp; COMMITMENTS</text>
+
+<rect class="box" x="676" y="80" width="268" height="130" rx="6"/>
+<text font-size="11" font-weight="700" x="810" y="104" text-anchor="middle">Cloud Recommender Engine</text>
+<text class="small-label" x="810" y="126" text-anchor="middle">• Analyzes rolling 8-day telemetry</text>
+<text class="small-label" x="810" y="146" text-anchor="middle">• Flags VMs with &lt;15% avg CPU</text>
+<text class="small-label" x="810" y="166" text-anchor="middle">• Proposes downsize: n2-std-8 → n2-std-2</text>
+<text fill="#4ade80" font-size="10" x="810" y="192" text-anchor="middle">Monthly Savings: ~$140/VM</text>
+
+<rect fill="#161b30" stroke="#facc15" stroke-width="1.5" x="676" y="230" width="268" height="160" rx="6"/>
+<text fill="#facc15" font-size="11" font-weight="700" x="810" y="254" text-anchor="middle">Commitment Strategy (CUDs)</text>
+<text class="small-label" x="810" y="274" text-anchor="middle">1. Rightsizing applied FIRST</text>
+<text class="small-label" x="810" y="294" text-anchor="middle">2. Establish steady-state baseline</text>
+<text class="small-label" x="810" y="314" text-anchor="middle">3. Commit 70% to 3-Year Flexible CUD</text>
+<text class="small-label" x="810" y="334" text-anchor="middle">4. Remaining 30% on Spot/SUD</text>
+<text fill="#4ade80" font-size="10" x="810" y="364" text-anchor="middle">Prevents lock-in on oversized VMs</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> Key operational components of Compute Engine: VM Manager OS patching and inventory collection (left), live migration host maintenance memory pre-copy mechanics (center), and Recommender rightsizing paired with commitment strategies (right). <strong>What it does not prove:</strong> Actual network transit times during dirty-memory iteration, application tolerance to sub-second network pauses, or regional discount pricing guarantees across future hardware releases.
+</figcaption>
+</figure>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/cuds" rel="noopener noreferrer">Committed use discounts overview</a> — Official Google Cloud guide on resource-based vs flexible spend-based commitments. (Publisher documentation; 2026-09-27.)</p>
+<p><a href="https://cloud.google.com/recommender/docs/recommenders" rel="noopener noreferrer">Compute Engine rightsizing recommender</a> — Details on observation periods, utilization thresholds, and recommendation safety margins. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 3 ══ -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problems and solutions</h2>
+<p class="small"><em>The scenarios below represent realistic production engineering incidents involving VM Manager patching, host maintenance configuration, and financial commitment misalignments.</em></p>
+
+<!-- ── Problem 1 ── -->
+<article id="topic-01-problem" class="topic-card">
+<h3>Topic 1 field case — Fleet-wide concurrent patch job triggers mass reboot failure</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  A security compliance auditor issues an urgent directive to patch an OpenSSL vulnerability across all Compute Engine instances at Brightloaf. The operations team configures an ad-hoc VM Manager patch job targeting label <code>service=order-api</code>. The patch job is configured with <code>rollout-mode: CONCURRENT</code> and <code>reboot-config: DEFAULT</code> (which allows automatic reboots when package updates require it).
+</p>
+<p>
+  An upstream OS package update included a breaking dependency modification to <code>glibc</code> that causes the custom compiled Order API binary to fail dynamically on startup. Because the patch job was concurrent, VM Manager applied the patch and rebooted all 8 production Order API instances simultaneously. Upon reboot, the application failed to start on all instances, causing an immediate 100% outage for customer order processing that persisted until engineers could manually roll back the package.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Critical OS security patches must be applied promptly across production VM fleets.</li>
+  <li>Patch execution must never reduce serving availability below 75% of target capacity.</li>
+  <li>Automated rollback must trigger if instances fail post-patch health verification.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Using concurrent rollout mode without a canary or zone-by-zone staging policy. The team executed an un-gated fleet-wide reboot without post-patch health verification or rollback hooks.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Inspect VM Manager patch job status: <kbd>gcloud compute os-config patch-jobs describe PATCH_JOB_ID</kbd> displays <code>COMPLETED_WITH_ERRORS</code> with all 8 instances reporting reboot completed.</li>
+  <li>Inspect system service status: SSH to an instance reveals <code>systemd</code> status for <code>order-api.service</code> in a <code>CrashLoopBackOff</code> state due to shared library linking errors.</li>
+  <li>Correlate load balancer metrics: Backend service healthy instance count dropped from 8 to 0 at the exact moment the concurrent patch job triggered reboots.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Enforce staged, zero-downtime patch policies:
+</p>
+<ol>
+  <li>Configure patch jobs to execute <strong>Zone-by-Zone</strong> or with a disruption budget (<code>max-concurrent: 1</code>).</li>
+  <li>Implement pre-patch and post-patch scripts: The pre-patch script marks the VM unhealthy to Cloud Load Balancing and waits 30 seconds for connections to drain. The post-patch script tests the local <code>/healthz</code> endpoint before re-enabling the instance.</li>
+  <li>If the post-patch script fails, the patch job halts immediately, leaving the remaining zones intact and healthy.</li>
+</ol>
+
+<h4>Verification</h4>
+<p>
+  Execute a test patch job with intentional bad packages in staging: verify that the patch job halts after the first instance fails post-patch health verification, leaving surviving nodes healthy and serving traffic with zero gateway errors.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Staged patch jobs take significantly longer to complete across large fleets (hours instead of minutes); security teams must balance patch duration against availability risk.
+</p>
+
+<!-- Incident SVG 1 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d41-i1-title d41-i1-desc">
+<title id="d41-i1-title">Concurrent VM Manager patch job causing fleet-wide outage vs Staged zone rollout</title>
+<desc id="d41-i1-desc">A comparative diagram showing the failed path where a concurrent patch job updates and reboots all VMs simultaneously, triggering a complete 100% outage when an upstream dependency fails. The corrected path uses staged zone-by-zone patching with post-patch health gates, catching the error on one instance while preserving serving availability.</desc>
+<defs>
+<marker id="d41-i1-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d41-i1-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · CONCURRENT PATCH JOB REBOOTS ALL 8 VMS SIMULTANEOUSLY → TOTAL OUTAGE</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Patch Job Triggered</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">Emergency security fix</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">Concurrent mode</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">All 8 Instances Reboot</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: zero canary / blast containment</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Broken glibc Dependency</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">Binary crashes on boot</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">0/8 instances healthy</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">100% Outage</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">Checkout halted</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d41-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d41-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d41-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · STAGED ZONE ROLLOUT WITH POST-PATCH HEALTH GATES HALTS UPON ERROR</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Patch Job Triggered</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Zone-by-Zone mode</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">Disruption budget = 1</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Post-Patch Script Hook</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Tests /healthz before progressing</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Failure Caught on Node 1</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">Health check fails</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Job HALTS immediately</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">7/8 Nodes Serving</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Zero user downtime</text>
+
+<path class="corrected" marker-end="url(#d41-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d41-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d41-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> An ad-hoc VM Manager patch job was executed with concurrent rollout mode across 8 Order API instances; a broken glibc update was installed; all 8 instances rebooted concurrently and failed application initialization; 100% outage ensued. <strong>Architectural inference:</strong> Un-gated concurrent patching destroys fleet redundancy; production patching must execute zone-by-zone or with a strict disruption budget combined with post-patch health verification. <strong>Expected post-fix behavior:</strong> Zone-by-zone patching ensures the first failing instance halts the patch rollout, preserving the remaining 7 instances to serve traffic without disruption.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 2 ── -->
+<article id="topic-02-problem" class="topic-card">
+<h3>Topic 2 field case — Inappropriate TERMINATE maintenance policy destroys primary in-memory cache</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  Brightloaf operates a dedicated high-memory Redis caching instance (<code>cache-primary-01</code>) that caches product catalog details, pricing rules, and hot user sessions. During initial VM provisioning, the deployment script set <code>--maintenance-policy=TERMINATE</code> to save on perceived live migration overhead.
+</p>
+<p>
+  At 03:00 AM on Wednesday, Google Cloud initiates routine physical host maintenance on the physical server hosting <code>cache-primary-01</code>. Instead of performing a transparent live migration, Compute Engine forcefully shuts down the instance. All in-memory cached state is wiped. When the VM automatically restarts 4 minutes later with an empty cache, the sudden 100% cache-miss storm slams directly into the backend Cloud SQL database, pushing database CPU to 100% and causing checkout request timeouts.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>The in-memory cache must survive regular Google Cloud physical infrastructure maintenance without downtime.</li>
+  <li>Must avoid cold-cache thunderous herd storms hitting relational databases.</li>
+  <li>Preserve the invariant that replaying an order event never triggers a duplicate fulfillment.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  The VM maintenance policy was misconfigured to <code>TERMINATE</code> instead of the default <code>MIGRATE</code>. The application was forced to reboot on host maintenance instead of live-migrating transparently.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  Update the VM scheduling configuration to enable <strong>Live Migration</strong> (<kbd>gcloud compute instances set-scheduling cache-primary-01 --maintenance-policy=MIGRATE</kbd>). When Google performs physical host maintenance, memory state, active connections, and cache keys are preserved as the instance transfers to another physical host with only sub-second latency jitter.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Trigger a simulated host maintenance event (<kbd>gcloud compute instances simulate-maintenance-event cache-primary-01</kbd>). Monitor Redis client connections: verify that all in-memory keys remain intact, the VM uptime counter does not reset, and client connection latency remains under 200ms throughout the migration.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Certain specialized hardware configurations (such as GPUs or some sole-tenant configurations) do not support Live Migration and must implement application-level cluster replication (e.g. Redis Sentinel or Memorystore High Availability) to absorb termination events.
+</p>
+
+<!-- Incident SVG 2 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d41-i2-title d41-i2-desc">
+<title id="d41-i2-title">Host maintenance TERMINATE policy causing cache wipe vs Live Migration</title>
+<desc id="d41-i2-desc">A comparative diagram showing the failed path where a host maintenance event terminates a cache instance configured with TERMINATE, wiping memory and overloading the database. The corrected path uses MIGRATE, transparently pre-copying memory to another host with zero cache loss.</desc>
+<defs>
+<marker id="d41-i2-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d41-i2-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · onHostMaintenance: TERMINATE KILLS CACHE VM → CACHE-MISS STORM OVERLOADS DB</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Host Maintenance</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">GCP updates firmware</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">Physical host A</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Policy: TERMINATE</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: live migration disabled</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Cache Instance Killed</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">RAM state wiped clean</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">Reboots empty 4m later</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">Database Crash</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">100% cache misses</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d41-i2-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d41-i2-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d41-i2-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · onHostMaintenance: MIGRATE PRESERVES RAM &amp; CONNECTIONS SEAMLESSLY</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Host Maintenance</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">GCP updates firmware</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">Physical host A</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Policy: MIGRATE</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Live migration enabled</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Transparent Migration</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">RAM transferred to Host B</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">&lt;200ms network quiesce</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">100% Cache Intact</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Zero DB spike</text>
+
+<path class="corrected" marker-end="url(#d41-i2-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d41-i2-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d41-i2-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> An in-memory cache VM was configured with <code>onHostMaintenance: TERMINATE</code>; physical host maintenance powered down the VM; all in-memory keys were lost; upon restart, a 100% cache-miss storm drove database CPU to 100%. <strong>Architectural inference:</strong> In-memory stateful nodes must utilize Live Migration to prevent unannounced reboots during hypervisor updates; setting maintenance policy to MIGRATE transparently moves memory state to a healthy host. <strong>Expected post-fix behavior:</strong> Setting <code>--maintenance-policy=MIGRATE</code> enables transparent live migration during host events, keeping memory state intact and avoiding cache-miss storms.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 3 ── -->
+<article id="topic-03-problem" class="topic-card">
+<h3>Topic 3 field case — Misaligned 3-year resource commitment locks in obsolete machine types</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  To capture an advertised 57% discount, Brightloaf's finance department purchased a 3-year <strong>Resource-based Committed Use Discount (CUD)</strong> for 200 vCPUs and 800 GB of RAM tied strictly to the N1 machine series in <code>us-east1</code>. Concurrently, the Cloud Recommender service had flagged that the application fleet was oversized by 60%, running at an average of 9% CPU utilization.
+</p>
+<p>
+  Two months later, the software engineering team re-architects the Order API to run on modern N2D and E2 instances in <code>us-central1</code> to achieve better price-performance and proximity to fulfillment warehouses. Because resource-based CUDs are non-transferable across machine series and non-transferable across regions, the company remains contractually obligated to pay for the 200 vCPUs of N1 capacity in <code>us-east1</code> every month for the next 34 months, while paying 100% on-demand rates for the active fleet in <code>us-central1</code>.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Financial commitments must match the actual multi-year engineering roadmap.</li>
+  <li>Must eliminate waste from over-provisioned idle vCPUs before committing capital.</li>
+  <li>Discounts must allow flexibility as workloads shift across regions and compute families.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Purchasing rigid resource-based commitments without reviewing Cloud Recommender rightsizing metrics or consulting the architectural roadmap. Committing capital to oversized, legacy machine types in the wrong geographic region.
+</p>
+
+<h4>Defensible solution</h4>
+<ol>
+  <li><strong>Rightsizing first:</strong> Apply Cloud Recommender recommendations to downsize existing instances (e.g. from <code>n1-standard-8</code> to <code>n2d-standard-2</code>) based on verified 8-day telemetry.</li>
+  <li><strong>Establish true baseline:</strong> Measure stable steady-state compute consumption after rightsizing.</li>
+  <li><strong>Adopt Flexible CUDs:</strong> Purchase <strong>Flexible Spend-based CUDs</strong> (e.g. committing to $50/hour of compute). Flexible CUDs apply automatically across any VM family (N1, N2, N2D, E2, C3), any region, and across Compute Engine, GKE, and Cloud Run.</li>
+</ol>
+
+<h4>Verification</h4>
+<p>
+  Review Google Cloud Cost Management Billing Reports: Confirm that the Flexible CUD credit applies directly to active N2D instances in <code>us-central1</code>, achieving a ~46% overall discount while eliminating unused commitment penalties.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Flexible spend commitments provide slightly lower percentage discounts (~46% for 3-year) compared to rigid resource commitments (~57% for 3-year), but completely mitigate the risk of 100% unutilized waste during architectural changes.
+</p>
+
+<!-- Incident SVG 3 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d41-i3-title d41-i3-desc">
+<title id="d41-i3-title">Rigid resource CUD lock-in vs Flexible spend-based commitment with rightsizing</title>
+<desc id="d41-i3-desc">A comparative diagram showing the failed path where a rigid 3-year resource CUD locks in oversized N1 VMs in the wrong region, wasting thousands of dollars. The corrected path rightsizes instances using Recommender telemetry first, then applies a Flexible Spend-based CUD that transfers across families and regions seamlessly.</desc>
+<defs>
+<marker id="d41-i3-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d41-i3-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · RIGID RESOURCE CUD LOCKS IN OBSOLETE N1 MACHINES IN WRONG REGION</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">3-Year Resource CUD</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">Purchased for N1</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">Locked to us-east1</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Migration to N2D / Central</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: rigid commitment mismatch</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Zero CUD Coverage</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">Paying 100% on-demand</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">in us-central1</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">Double Invoicing</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">$10k/mo wasted</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d41-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d41-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d41-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · RIGHTSIZE FIRST VIA RECOMMENDER → APPLY FLEXIBLE SPEND-BASED CUD</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Recommender Audit</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Analyzes 8-day CPU</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">Rightsizes N1 → N2D</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Flexible Spend CUD</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Committed $/hr across all regions</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Universal Discount</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">Applies to N2D, E2, C3</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Follows cross-region moves</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">46% Net Savings</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Zero unutilized waste</text>
+
+<path class="corrected" marker-end="url(#d41-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d41-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d41-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Finance purchased 3-year rigid resource-based CUDs for N1 instances in <code>us-east1</code>; engineering migrated the workload to N2D instances in <code>us-central1</code>; the N1 commitment remained unutilized while N2D ran at full on-demand prices. <strong>Architectural inference:</strong> Resource commitments lack cross-region and cross-family flexibility; architectural rightsizing must precede financial commitments, and dynamic architectures require Flexible Spend-based CUDs. <strong>Expected post-fix behavior:</strong> Rightsizing instances via Recommender telemetry establishes clean baseline capacity; purchasing Flexible Spend CUDs guarantees discounts apply seamlessly across modern machine families and geographic regions.
+</figcaption>
+</figure>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 4 ══ -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1 — VM Manager staged patch job specification with health gates</h3>
+<p><strong>Goal:</strong> Formulate an automated OS patch job using VM Manager with zone-by-zone execution and pre/post-patch health check scripts.</p>
+<p><strong>Mode:</strong> tabletop design / cloud sandbox · <strong>Prerequisites:</strong> Day 40 exit artifact.</p>
+
+<div class="callout">
+<strong>Preflight</strong>
+<p>Open <code>day-041-runbook.md</code>. Define the patch scope: Target label <code>env=production,service=order-api</code>; Maintenance window = Sunday 02:00–04:00 UTC; Reboot policy = <code>REBOOT_ALWAYS</code>.</p>
+</div>
+
+<ol>
+<li><strong>Author the pre-patch script hook.</strong> Create <code>pre-patch.sh</code> to drain traffic:
+<pre><code>#!/bin/bash
+# Signal local health check endpoint to return 503 to drain connections
+touch /var/run/draining
+sleep 30
+exit 0</code></pre>
+</li>
+<li><strong>Author the post-patch script hook.</strong> Create <code>post-patch.sh</code> to verify service readiness:
+<pre><code>#!/bin/bash
+rm -f /var/run/draining
+systemctl restart order-api
+# Test local endpoint
+for i in {1..12}; do
+  if curl -s http://127.0.0.1:8080/healthz | grep "OK"; then
+    echo "Service verified post-patch."
+    exit 0
+  fi
+  sleep 5
+done
+echo "Post-patch health verification failed!"
+exit 1</code></pre>
+</li>
+<li><strong>Formulate the declarative patch deployment.</strong> Define the gcloud execution command:
+<pre><code>gcloud compute os-config patch-jobs execute \
+  --project=PROJECT_ID \
+  --instance-filter-group="labels=env:production,service:order-api" \
+  --rollout-mode=ZONE_BY_ZONE \
+  --disruption-budget-percentage=25 \
+  --pre-patch-linux-executable=pre-patch.sh \
+  --post-patch-linux-executable=post-patch.sh \
+  --reboot-config=DEFAULT</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A validated staged patch job specification in <code>day-041-runbook.md</code> proving zero-downtime execution and automated failure gating.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-41-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2 — Live migration maintenance policy configuration and simulation</h3>
+<p><strong>Goal:</strong> Configure VM scheduling parameters for Live Migration and verify maintenance signal handling.</p>
+<p><strong>Mode:</strong> tabletop / sandbox · <strong>Prerequisites:</strong> Exercise 1.</p>
+
+<ol>
+<li><strong>Inspect existing VM scheduling configuration.</strong>
+<pre><code>gcloud compute instances describe INSTANCE_NAME \
+  --project=PROJECT_ID \
+  --zone=us-central1-a \
+  --format="yaml(scheduling)"</code></pre>
+</li>
+<li><strong>Enforce Live Migration.</strong> Update the maintenance policy:
+<pre><code>gcloud compute instances set-scheduling INSTANCE_NAME \
+  --project=PROJECT_ID \
+  --zone=us-central1-a \
+  --maintenance-policy=MIGRATE \
+  --restart-on-failure</code></pre>
+</li>
+<li><strong>Simulate host maintenance.</strong> Trigger a live migration event and record the metadata server notice behavior:
+<pre><code>gcloud compute instances simulate-maintenance-event INSTANCE_NAME \
+  --project=PROJECT_ID \
+  --zone=us-central1-a</code></pre>
+Document in <code>day-041-runbook.md</code> how <code>computeMetadata/v1/instance/maintenance-event</code> signals the guest OS.
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A verified maintenance policy configuration ensuring running memory persistence across physical host maintenance.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-41-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3 — Recommender rightsizing evaluation and commitment modeling</h3>
+<p><strong>Goal:</strong> Analyze rolling CPU/memory telemetry, apply rightsizing recommendations, and structure a flexible CUD commitment model.</p>
+<p><strong>Mode:</strong> financial and telemetry analysis · <strong>Prerequisites:</strong> Day 8 CPU/memory signal metrics.</p>
+
+<ol>
+<li><strong>Retrieve Recommender rightsizing recommendations.</strong>
+<pre><code>gcloud recommender recommendations list \
+  --project=PROJECT_ID \
+  --location=us-central1 \
+  --recommender=google.compute.instance.MachineTypeRecommender \
+  --format="table(content.overview.instance,content.overview.currentMachineType,content.overview.recommendedMachineType)"</code></pre>
+</li>
+<li><strong>Model the rightsizing transition.</strong> In <code>day-041-runbook.md</code>, document the downsizing workflow for an oversized VM (<code>n2-standard-8</code> to <code>n2-standard-2</code>):
+  <ul>
+    <li>Graceful service drain via load balancer.</li>
+    <li>Stop instance: <kbd>gcloud compute instances stop INSTANCE_NAME</kbd>.</li>
+    <li>Change machine type: <kbd>gcloud compute instances set-machine-type INSTANCE_NAME --machine-type=n2-standard-2</kbd>.</li>
+    <li>Start instance and confirm memory headroom (&gt;25% free under peak load).</li>
+  </ul>
+</li>
+<li><strong>Formulate the commitment strategy.</strong> Calculate the steady-state hourly spend across the rightsized fleet. Structure a 70% baseline commitment using <strong>3-Year Flexible Spend-based CUDs</strong> and document the projected 46% net savings.</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A completed <code>day-041-runbook.md</code> linking guest metrics to application symptoms, patch job rollout procedures, live migration configurations, and a rightsizing cost-optimization matrix.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>No new chargeable resources are left running. If sandbox test instances were modified, ensure they are stopped or deleted:</p>
+<pre><code>gcloud compute instances delete bf-patch-test --zone=us-central1-a --quiet</code></pre>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-41-topic-03"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-041-runbook.md</code> containing: (1) VM Manager staged patch job specification with pre/post-patch hooks, (2) Live Migration maintenance scheduling policy and simulation trace, (3) Recommender rightsizing analysis linking CPU/memory signals to downsized machine types, (4) Flexible Spend CUD strategy. Label tabletop models clearly.</p>
+<label class="check"><input type="checkbox" data-progress="read-41"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-41"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-040.html">← Day 40<small>Spot, tenancy and secure VM access</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-042.html">Day 42 →<small>Kubernetes architecture and cluster choices</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

@@ -1,0 +1,414 @@
+    <section class="part" id="part-4" aria-labelledby="part-4-title">
+      <h2 id="part-4-title">4 · Step-by-step labs for each topic</h2>
+
+      <article class="topic-card lab" id="topic-01-lab">
+        <h3>Exercise 1: Additive IAM policy inheritance calculator &amp; hierarchy simulation</h3>
+        <p><strong>Goal:</strong> Implement an executable Python inheritance calculation engine that models the 4-tier Google Cloud resource hierarchy (Organization &rarr; Folders &rarr; Projects &rarr; Resources), computes the exact mathematical set union of effective permissions at each tier, and validates that project-level role bindings cannot subtract inherited folder-level permissions.</p>
+        <p><strong>Expected Result:</strong> An executed simulation script (<code>calculate-iam-inheritance.py</code>) that outputs an evaluation trace across all hierarchy levels, computes the effective permission union, and proves that a principal granted <code>roles/editor</code> at a parent folder retains <code>spanner.databases.drop</code> even when bound to <code>roles/viewer</code> at the child project level.</p>
+        <p><strong>Mode:</strong> Local execution / Python 3 (deterministic, safe, zero cloud cost).</p>
+
+        <ol>
+          <li><strong>Preflight.</strong> Verify that Python 3 is installed and accessible in your shell environment:
+            <pre><code class="language-bash">python3 --version</code></pre>
+            <p>Create a dedicated working directory for today's governance simulations:</p>
+            <pre><code class="language-bash">mkdir -p ~/day022-labs &amp;&amp; cd ~/day022-labs</code></pre>
+          </li>
+
+          <li><strong>Author the IAM Inheritance Engine.</strong> Create a script named <code>calculate-iam-inheritance.py</code> that implements the mathematical set union evaluation model:
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""Google Cloud Hierarchical IAM Policy Inheritance Calculator.
+Simulates Org -&gt; Folder -&gt; Project -&gt; Leaf Resource downward flow
+and computes effective permissions via mathematical set union.
+"""
+from __future__ import annotations
+from typing import Dict, List, Set, Tuple
+
+ROLE_PERMISSIONS: Dict[str, Set[str]] = {
+    "roles/resourcemanager.organizationAdmin": {
+        "resourcemanager.organizations.get",
+        "resourcemanager.organizations.setIamPolicy",
+        "resourcemanager.folders.create",
+        "resourcemanager.projects.create",
+    },
+    "roles/securityReviewer": {
+        "resourcemanager.organizations.get",
+        "iam.roles.list",
+        "iam.serviceAccounts.list",
+        "resourcemanager.projects.get",
+    },
+    "roles/editor": {
+        "compute.instances.create",
+        "compute.instances.delete",
+        "spanner.databases.create",
+        "spanner.databases.drop",
+        "spanner.databases.select",
+        "spanner.sessions.create",
+        "storage.buckets.create",
+    },
+    "roles/viewer": {
+        "compute.instances.get",
+        "compute.instances.list",
+        "spanner.databases.get",
+        "spanner.databases.list",
+        "storage.buckets.get",
+    },
+    "roles/spanner.databaseViewer": {
+        "spanner.databases.get",
+        "spanner.databases.select",
+        "spanner.sessions.create",
+    }
+}
+
+class ResourceNode:
+    def __init__(self, tier: str, resource_id: str, parent: ResourceNode | None = None):
+        self.tier = tier
+        self.resource_id = resource_id
+        self.parent = parent
+        self.bindings: Dict[str, List[str]] = {}
+        self.deny_rules: Dict[str, Set[str]] = {}
+
+    def add_binding(self, principal: str, role: str) -> None:
+        self.bindings.setdefault(principal, []).append(role)
+
+    def add_deny(self, principal: str, permission: str) -> None:
+        self.deny_rules.setdefault(principal, set()).add(permission)
+
+    def get_ancestor_path(self) -> List[ResourceNode]:
+        path = []
+        curr: ResourceNode | None = self
+        while curr:
+            path.append(curr)
+            curr = curr.parent
+        return list(reversed(path))
+
+    def evaluate_effective_permissions(self, principal: str) -> Tuple[Set[str], List[dict], bool]:
+        path = self.get_ancestor_path()
+        accumulated_allows: Set[str] = set()
+        accumulated_denies: Set[str] = set()
+        trace = []
+
+        for node in path:
+            denies_here = node.deny_rules.get(principal, set())
+            accumulated_denies.update(denies_here)
+
+            roles_here = node.bindings.get(principal, [])
+            tier_allows = set()
+            for role in roles_here:
+                tier_allows.update(ROLE_PERMISSIONS.get(role, set()))
+            
+            accumulated_allows.update(tier_allows)
+
+            trace.append({
+                "tier": node.tier,
+                "resource_id": node.resource_id,
+                "roles": roles_here,
+                "tier_allows_count": len(tier_allows),
+                "cumulative_allows_count": len(accumulated_allows),
+                "active_denies": list(accumulated_denies)
+            })
+
+        effective = accumulated_allows - accumulated_denies
+        is_subtractive_fallacy_active = (
+            "roles/editor" in path[1].bindings.get(principal, []) and
+            "roles/viewer" in path[2].bindings.get(principal, []) and
+            "spanner.databases.drop" in effective
+        )
+        return effective, trace, is_subtractive_fallacy_active
+
+def main():
+    print("=" * 75)
+    print("GOOGLE CLOUD HIERARCHICAL IAM INHERITANCE EVALUATION")
+    print("=" * 75)
+
+    org = ResourceNode("Organization", "organizations/714029482103")
+    folder = ResourceNode("Folder", "folders/839102482019 (Production-Fulfillment)", parent=org)
+    project = ResourceNode("Project", "projects/bl-order-fulfill-prod", parent=folder)
+    database = ResourceNode("Resource", "spanner.googleapis.com/.../databases/orders-db", parent=project)
+
+    principal = "group:contractors-analytics@brightloaf.com"
+
+    folder.add_binding(principal, "roles/editor")
+    project.add_binding(principal, "roles/viewer")
+
+    effective_a, trace_a, fallacy = database.evaluate_effective_permissions(principal)
+
+    print(f"\nPrincipal: {principal}")
+    print("\n--- SCENARIO A: Additive Union Evaluation ---")
+    for t in trace_a:
+        print(f"[{t['tier']:12}] {t['resource_id']}")
+        print(f"  Direct Roles: {t['roles'] if t['roles'] else 'None'}")
+        print(f"  Cumulative Allow Permissions (Union): {t['cumulative_allows_count']}")
+
+    print("\nTest Action: spanner.databases.drop")
+    print(f"Is permission in effective set? {'YES (ALLOWED)' if 'spanner.databases.drop' in effective_a else 'NO (DENIED)'}")
+    if fallacy:
+        print("&gt;&gt; SUBTRACTIVE FALLACY DEMONSTRATED: Project 'roles/viewer' failed to revoke Folder 'roles/editor'!")
+
+    print("\n--- SCENARIO B: Enforcing Subtractive Guardrail via IAM Deny Policy ---")
+    folder.add_deny(principal, "spanner.databases.drop")
+    effective_b, trace_b, _ = database.evaluate_effective_permissions(principal)
+    print("Test Action: spanner.databases.drop with IAM Deny active")
+    print(f"Is permission in effective set? {'YES (ALLOWED)' if 'spanner.databases.drop' in effective_b else 'NO (DENIED)'}")
+    print("&gt;&gt; ARCHITECTURAL REMEDY CONFIRMED: IAM Deny overrides inherited allow permissions.")
+    print("=" * 75)
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+          </li>
+
+          <li><strong>Execute the Simulation.</strong> Run the calculation script directly:
+            <pre><code class="language-bash">python3 calculate-iam-inheritance.py</code></pre>
+          </li>
+
+          <li><strong>Verify Output.</strong> Confirm the calculation engine computes the additive union and demonstrates the subtractive fallacy:
+            <pre><code class="language-text">===========================================================================
+GOOGLE CLOUD HIERARCHICAL IAM INHERITANCE EVALUATION
+===========================================================================
+
+Principal: group:contractors-analytics@brightloaf.com
+
+--- SCENARIO A: Additive Union Evaluation ---
+[Organization] organizations/714029482103
+  Direct Roles: None
+  Cumulative Allow Permissions (Union): 0
+[Folder      ] folders/839102482019 (Production-Fulfillment)
+  Direct Roles: ['roles/editor']
+  Cumulative Allow Permissions (Union): 7
+[Project     ] projects/bl-order-fulfill-prod
+  Direct Roles: ['roles/viewer']
+  Cumulative Allow Permissions (Union): 12
+[Resource    ] spanner.googleapis.com/.../databases/orders-db
+  Direct Roles: None
+  Cumulative Allow Permissions (Union): 12
+
+Test Action: spanner.databases.drop
+Is permission in effective set? YES (ALLOWED)
+&gt;&gt; SUBTRACTIVE FALLACY DEMONSTRATED: Project 'roles/viewer' failed to revoke Folder 'roles/editor'!
+
+--- SCENARIO B: Enforcing Subtractive Guardrail via IAM Deny Policy ---
+Test Action: spanner.databases.drop with IAM Deny active
+Is permission in effective set? NO (DENIED)
+&gt;&gt; ARCHITECTURAL REMEDY CONFIRMED: IAM Deny overrides inherited allow permissions.
+===========================================================================</code></pre>
+          </li>
+        </ol>
+
+        <div class="callout success">
+          <strong>Expected Result &amp; Acceptance</strong>
+          <p>The Python calculation engine successfully models the downward traversal, proves that cumulative permissions are strictly non-decreasing across the hierarchy (0 &rarr; 7 &rarr; 12), and demonstrates that only an explicit IAM Deny policy can block an inherited allow permission.</p>
+        </div>
+
+        <div class="callout caution">
+          <strong>Troubleshooting</strong>
+          <p>If Python reports a syntax error, verify Python 3.8+ compatibility. If the union does not calculate 12 permissions at the project tier, confirm that the dictionary sets combine <code>roles/editor</code> (7 permissions) with unique non-overlapping permissions from <code>roles/viewer</code> (5 permissions: <code>compute.instances.get</code>, <code>compute.instances.list</code>, <code>spanner.databases.get</code>, <code>spanner.databases.list</code>, <code>storage.buckets.get</code>).</p>
+        </div>
+
+        <div class="callout">
+          <strong>Cleanup and Cost</strong>
+          <p>Local script execution incurs zero Google Cloud billing costs. Retain <code>calculate-iam-inheritance.py</code> as local verification evidence.</p>
+        </div>
+
+        <label class="check"><input type="checkbox" data-progress="lab-22-topic-01"> I completed and checked this topic exercise</label>
+      </article>
+
+      <article class="topic-card lab" id="topic-02-lab">
+        <h3>Exercise 2: Multi-plane governance audit &amp; tagging taxonomy architecture</h3>
+        <p><strong>Goal:</strong> Generate the comprehensive enterprise specification document <code>inheritance-and-tagging-guide.md</code> establishing Brightloaf's concrete tagging and labeling taxonomy across all three operational planes (Resource Labels, Resource Manager Secure Tags, and Network Tags), complete with inheritance calculations, schema validation rules, and Terraform implementation templates.</p>
+        <p><strong>Expected Result:</strong> Generation and validation of the Day 22 exit artifact <code>inheritance-and-tagging-guide.md</code> containing mathematical inheritance calculations, formal 3-plane metadata conventions, and verified code examples.</p>
+        <p><strong>Mode:</strong> Local script execution &amp; architectural specification generation.</p>
+
+        <ol>
+          <li><strong>Preflight.</strong> Verify your working directory and prepare the artifact generator:
+            <pre><code class="language-bash">cd ~/day022-labs &amp;&amp; pwd</code></pre>
+          </li>
+
+          <li><strong>Author the Taxonomy Generator.</strong> Create <code>generate-tagging-guide.py</code> to validate schema formatting rules and assemble the final specification:
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""Generates the Brightloaf 3-Plane Tagging Taxonomy and Inheritance Specification.
+Validates RFC-1035 label constraints, Resource Manager tag namespaces,
+and VPC network tag formatting before compiling inheritance-and-tagging-guide.md.
+"""
+from __future__ import annotations
+import re
+from pathlib import Path
+
+LABEL_KEY_REGEX = re.compile(r"^[a-z0-9_-]{1,63}$")
+LABEL_VAL_REGEX = re.compile(r"^[a-z0-9_-]{0,63}$")
+NETWORK_TAG_REGEX = re.compile(r"^[a-z][a-z0-9-]{0,62}$")
+
+TAXONOMY_SPEC = """# Brightloaf Enterprise Cloud: Inheritance and Tagging Taxonomy Guide
+**Document Version:** 1.0.0 | **Date:** 2026-09-27 | **Scope:** All Google Cloud Workloads
+
+## 1. Executive Summary and Core Architectural Invariants
+This document defines Brightloaf's authoritative standard for resource metadata, access control inheritance, and network packet filtering across Google Cloud. It establishes concrete rules for Resource Labels, Resource Manager Tags, and Compute Engine Network Tags, preventing operational conflation and security vulnerabilities.
+
+### Core Business Invariant:
+> **Duplicate Fulfillment Invariant:** Replaying an order or recovering dropped network connections must never cause a second physical fulfillment (<= 1 physical fulfillment per unique order ID). Deduplication tokens and idempotent database mutations must remain protected by least-privilege IAM and strict network isolation.
+
+---
+
+## 2. Mathematical Inheritance Calculation Matrix
+Google Cloud IAM allow policies are strictly additive (P_effective = Union of P_ancestors). Standard allow bindings have no subtractive capability.
+
+| Hierarchy Tier | Resource Identifier | Bound IAM Role | Injected Permissions | Cumulative Effective Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| **Organization** | organizations/714029482103 | roles/securityReviewer | iam.roles.list, iam.serviceAccounts.list, resourcemanager.organizations.get | 3 baseline read permissions |
+| **Folder Tier 1** | folders/839102482019 (/Production) | None (Zero default broad roles) | (none) | 3 baseline read permissions |
+| **Project Tier** | projects/bl-order-fulfill-prod | Custom: roles/spannerViewer | spanner.databases.get, spanner.databases.select, spanner.sessions.create | 6 permissions (Scoped least privilege) |
+| **Leaf Resource**| databases/orders-db | None | (none) | 6 permissions |
+| **Guardrail** | Organization Deny Policy | deny: spanner.databases.drop | Blocks drop across all automated service accounts | Hard stop overriding any inherited allow |
+
+---
+
+## 3. The Three-Plane Metadata Taxonomy
+
+### Plane 1: Resource Labels (Operations and Cloud Billing)
+- **Attachment Target:** All supported GCP resources (VMs, Buckets, Cloud SQL, BigQuery, Disks).
+- **Inheritance:** NONE (Per-resource attribute; must be stamped during resource instantiation).
+- **Format:** Lowercase alphanumeric with hyphens or underscores (Max 63 characters).
+- **Mandatory Label Schema:**
+  - `bl-environment`: production | staging | development
+  - `bl-cost-center`: c-104-baking | c-105-logistics | c-106-franchise
+  - `bl-application-id`: bl-order-api | bl-order-fulfillment | bl-inventory
+  - `bl-data-classification`: pci-token | confidential | internal
+  - `bl-managed-by`: terraform
+- **Use Case:** BigQuery Cloud Billing breakdown queries and automated resource lifecycle pruning.
+- **Security Boundary:** ZERO. Labels do NOT enforce IAM or VPC firewalls.
+
+### Plane 2: Resource Manager Tags (Governance and Conditional IAM)
+- **Attachment Target:** Organizations, Folders, Projects.
+- **Inheritance:** YES (Inherits automatically down the container tree).
+- **Format:** Centralized namespaced keys: organizations/714029482103/tagKeys/env.
+- **Authorized Values:** production, staging, development.
+- **Governance Roles:** Only principals with roles/resourcemanager.tagAdmin create tags; binding requires roles/resourcemanager.tagUser.
+- **IAM Condition Integration:**
+  `resource.matchTag('714029482103/env', 'production')`
+- **Security Boundary:** HARD BOUNDARY. Protected against tampering by project-level developers.
+
+### Plane 3: Network Tags (Compute Engine VPC Packet Filtering)
+- **Attachment Target:** Compute Engine VM instances and Instance Templates ONLY.
+- **Inheritance:** NONE (Per-VM instance string).
+- **Format:** Lowercase RFC-1035 alphanumeric with hyphens (Max 63 characters).
+- **Standardized Network Tags:**
+  - `bl-net-order-api`: For frontend API ingress instances.
+  - `bl-net-order-db`: For backend database listeners (Port 5432).
+  - `bl-net-bastion-mgmt`: For authorized management bastion hosts.
+- **VPC Firewall Rule Enforcement:**
+  - Ingress to `targetTags: ["bl-net-order-db"]` on `tcp:5432` strictly requires `sourceTags: ["bl-net-order-api"]`.
+  - Non-production subnets and developer bastions lack `bl-net-order-api` and are dropped by default.
+- **Security Limitation:** Mutable via compute.instances.setTags. Must transition to Resource Manager Secure Tags for Next-Gen Firewalls in PCI zones.
+
+---
+
+## 4. Concrete Terraform Implementation Template
+```hcl
+# Example Production Database Provisioning with Strict 3-Plane Metadata
+
+resource "google_compute_instance" "production_database" {
+  name         = "bl-order-db-prod-vm"
+  machine_type = "n2-standard-4"
+  zone         = "us-central1-a"
+  project      = "bl-order-fulfill-prod"
+
+  # Plane 1: Labels for Billing and Inventory
+  labels = {
+    bl-environment         = "production"
+    bl-cost-center         = "c-104-baking"
+    bl-application-id      = "bl-order-fulfillment"
+    bl-data-classification = "confidential"
+    bl-managed-by          = "terraform"
+  }
+
+  # Plane 3: Network Tags for VPC Firewall Packet Filtering
+  tags = [
+    "bl-net-order-db"
+  ]
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-12"
+    }
+  }
+
+  network_interface {
+    network    = "bl-production-vpc"
+    subnetwork = "bl-prod-db-subnet"
+  }
+}
+
+# Plane 2: Resource Manager Tag Binding (IAM and Policy Governance)
+resource "google_tags_tag_binding" "db_env_binding" {
+  parent    = "//cloudresourcemanager.googleapis.com/projects/bl-order-fulfill-prod"
+  tag_value = "tagValues/847192039481" # Corresponds to env: production
+}
+
+# Targeted VPC Firewall Rule utilizing Network Tags
+resource "google_compute_firewall" "allow_db_from_api" {
+  name        = "allow-order-db-from-api"
+  network     = "bl-production-vpc"
+  project     = "bl-order-fulfill-prod"
+  description = "Restricts PostgreSQL 5432 ingress to verified API instances only"
+
+  target_tags = ["bl-net-order-db"]
+  source_tags = ["bl-net-order-api"]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["5432"]
+  }
+}
+```
+
+---
+*End of Specification. Verified against Google Cloud Resource Manager, IAM, and VPC Documentation.*
+"""
+
+def main():
+    print("Validating 3-Plane Metadata Schemas...")
+    test_labels = {"bl-environment": "production", "bl-cost-center": "c-104-baking"}
+    for k, v in test_labels.items():
+        assert LABEL_KEY_REGEX.match(k), f"Invalid label key: {k}"
+        assert LABEL_VAL_REGEX.match(v), f"Invalid label value: {v}"
+    
+    test_net_tags = ["bl-net-order-api", "bl-net-order-db"]
+    for t in test_net_tags:
+        assert NETWORK_TAG_REGEX.match(t), f"Invalid network tag: {t}"
+
+    out_file = Path("inheritance-and-tagging-guide.md")
+    out_file.write_text(TAXONOMY_SPEC)
+    print(f"Artifact successfully created: {out_file.resolve()}")
+    print(f"File size: {out_file.stat().st_size} bytes")
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+          </li>
+
+          <li><strong>Generate the Artifact.</strong> Run the Python generator to validate the schema rules and write the guide:
+            <pre><code class="language-bash">python3 generate-tagging-guide.py</code></pre>
+          </li>
+
+          <li><strong>Verify the Output File.</strong> Inspect the generated specification to confirm all mathematical tables, 3-plane taxonomies, and Terraform examples are complete:
+            <pre><code class="language-bash">head -n 35 inheritance-and-tagging-guide.md</code></pre>
+          </li>
+        </ol>
+
+        <div class="callout success">
+          <strong>Expected Result &amp; Acceptance</strong>
+          <p>The output file <code>inheritance-and-tagging-guide.md</code> is generated and validated. It satisfies the Day 22 exit artifact criteria: provides a concrete mathematical inheritance calculation matrix and a comprehensive tagging convention across all three operational planes with production examples.</p>
+        </div>
+
+        <div class="callout caution">
+          <strong>Troubleshooting</strong>
+          <p>If the script asserts on label key format, ensure label keys use only lowercase characters, numbers, dashes, and underscores without uppercase characters. If the file is not written, check write permissions in <code>~/day022-labs</code>.</p>
+        </div>
+
+        <div class="callout">
+          <strong>Cleanup and Cost</strong>
+          <p>All operations are local and execute at zero cloud cost. Retain <code>inheritance-and-tagging-guide.md</code> as the primary daily deliverable.</p>
+        </div>
+
+        <label class="check"><input type="checkbox" data-progress="lab-22-topic-02"> I completed and checked this topic exercise</label>
+      </article>
+    </section>

@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Day 12 of the GCP architect roadmap: regions, scaling and cloud economics for Brightloaf.">
+  <title>Day 12 — Regions, scaling and economics · GCP Architect</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <script defer src="../assets/site.js"></script>
+  <style>
+    .day-badge{display:inline-block;border:1px solid #f43f5e;border-radius:999px;color:#f43f5e;padding:3px 9px;font-size:12px;font-weight:800}
+    .topic-card h4{color:#f43f5e;margin:22px 0 7px}
+    .topic-card table{width:100%;border-collapse:collapse;margin:16px 0;display:block;overflow-x:auto}
+    .topic-card caption{text-align:left;color:#f43f5e;font-weight:800;margin-bottom:8px}
+    .topic-card th,.topic-card td{border:1px solid #3b1d38;padding:9px 12px;text-align:left;vertical-align:top;min-width:150px}
+    .topic-card th{background:#090d16;color:#38bdf8}
+    .topic-card code{overflow-wrap:anywhere}
+    .topic-card pre code{overflow-wrap:normal}
+    .topic-card>span[id]{display:block;scroll-margin-top:140px}
+    .step{border-left:2px solid #3b1d38;padding-left:17px;margin:18px 0}
+    .step h4{margin-top:0}
+    .further{border-left:3px solid #38bdf8;padding:12px 16px;background:rgba(56,189,248,.06);margin-top:20px}
+    .further h4{margin:0 0 7px}
+    .further ul{margin:6px 0}
+    .meta{color:#a9b7cb;font-size:13px}
+    .topic-card p{max-width:82ch}
+    .diagram-figure{margin:20px 0;padding:14px;border:1px solid #3b1d38;border-radius:12px;background:#090d16;overflow-x:auto}
+    .diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}
+    .diagram-figure figcaption{color:#a9b7cb;font-size:12px;margin-top:10px}
+    .diagram-scroll-hint{display:none;color:#a9b7cb;font-size:11px}
+    @media(max-width:720px){.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-nav">
+    <nav class="nav-inner" aria-label="Day navigation">
+      <a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+      <span class="day-badge" aria-current="page">Day 12</span>
+      <label class="jump-label" for="day-jump">Choose a day</label>
+      <select id="day-jump" aria-label="Choose a day">
+        <optgroup label="Foundations">
+          <option value="day-001.html">Day 1 — Local workspace and learning baseline</option>
+          <option value="day-002.html">Day 2 — IP addressing and packet paths</option>
+          <option value="day-003.html">Day 3 — DNS, sockets and transport</option>
+          <option value="day-004.html">Day 4 — TLS, HTTP, MTU and routing vocabulary</option>
+          <option value="day-005.html">Day 5 — VPN, load balancers and firewalls</option>
+          <option value="day-006.html">Day 6 — Shell, processes and services</option>
+          <option value="day-007.html">Day 7 — SSH, scripts and process inspection</option>
+          <option value="day-008.html">Day 8 — CPU, memory and diagnostic signals</option>
+          <option value="day-009.html">Day 9 — VM and container isolation</option>
+          <option value="day-010.html">Day 10 — Images, filesystems and orchestration</option>
+          <option value="day-011.html">Day 11 — Cloud service models and responsibility</option>
+          <option value="day-012.html" selected>Day 12 — Regions, scaling and economics</option>
+          <option value="day-013.html">Day 13 — State, availability and recovery vocabulary</option>
+          <option value="day-014.html">Day 14 — Git, APIs and JSON</option>
+          <option value="day-015.html">Day 15 — Small application and architecture styles</option>
+          <option value="day-016.html">Day 16 — SQL foundations and business outcomes</option>
+          <option value="day-017.html">Day 17 — Gate 1 — Foundation recall and repair</option>
+        </optgroup>
+        <optgroup label="Cloud environment and identity">
+          <option value="day-018.html">Day 18 — Cloud sandbox and cost controls</option>
+          <option value="day-019.html">Day 19 — CLI configuration and identity checks</option>
+          <option value="day-020.html">Day 20 — APIs, client libraries and emulators</option>
+          <option value="day-021.html">Day 21 — Resource hierarchy and ownership</option>
+          <option value="day-022.html">Day 22 — Inheritance, labels and tags</option>
+          <option value="day-023.html">Day 23 — Organization policies and lifecycle</option>
+          <option value="day-024.html">Day 24 — Principals and workforce identity</option>
+          <option value="day-025.html">Day 25 — Roles and authorization decisions</option>
+          <option value="day-026.html">Day 26 — Credentials, tokens and impersonation</option>
+          <option value="day-027.html">Day 27 — Billing roles and budget ownership</option>
+          <option value="day-028.html">Day 28 — Cost attribution and notifications</option>
+          <option value="day-029.html">Day 29 — Cost exports, quota and capacity</option>
+          <option value="day-030.html">Day 30 — Region and resource-scope decisions</option>
+          <option value="day-031.html">Day 31 — Network tiers and delivery paths</option>
+          <option value="day-032.html">Day 32 — Support, inventory and learning tracker</option>
+          <option value="day-033.html">Day 33 — Lifecycle policies and operating assumptions</option>
+          <option value="day-034.html">Day 34 — First controlled cloud resource operation</option>
+          <option value="day-035.html">Day 35 — Gate 2 — Sandbox and identity readiness</option>
+        </optgroup>
+        <optgroup label="Core services and integrated practice">
+          <option value="day-036.html">Day 36 — VM sizing and image choices</option>
+          <option value="day-037.html">Day 37 — Disks, metadata and persistence</option>
+          <option value="day-038.html">Day 38 — Templates, MIGs and scaling</option>
+          <option value="day-039.html">Day 39 — Autohealing and deployment changes</option>
+          <option value="day-040.html">Day 40 — Spot, tenancy and secure VM access</option>
+          <option value="day-041.html">Day 41 — VM operations and resource diagnosis</option>
+          <option value="day-042.html">Day 42 — Kubernetes architecture and cluster choices</option>
+          <option value="day-043.html">Day 43 — Scheduling, scaling and Kubernetes access</option>
+          <option value="day-044.html">Day 44 — Service networking and persistent volumes</option>
+          <option value="day-045.html">Day 45 — Probes, secrets and workload failures</option>
+          <option value="day-046.html">Day 46 — Fleet, supply chain and mesh trade-offs</option>
+          <option value="day-047.html">Day 47 — Cloud Run and event-driven functions</option>
+          <option value="day-048.html">Day 48 — Workflows and runtime selection</option>
+          <option value="day-049.html">Day 49 — VPC address and route design</option>
+          <option value="day-050.html">Day 50 — Firewall policy and private API access</option>
+          <option value="day-051.html">Day 51 — Peering, Shared VPC, PSC and NAT</option>
+          <option value="day-052.html">Day 52 — DNS, hybrid transit and network diagnosis</option>
+          <option value="day-053.html">Day 53 — Load-balancer architecture</option>
+          <option value="day-054.html">Day 54 — Health checks, certificates and draining</option>
+          <option value="day-055.html">Day 55 — CDN, WAF and traffic management</option>
+          <option value="day-056.html">Day 56 — Hybrid topology and failure domains</option>
+          <option value="day-057.html">Day 57 — BGP, MTU and NAT diagnosis</option>
+          <option value="day-058.html">Day 58 — Object storage and local durability</option>
+          <option value="day-059.html">Day 59 — Transfers, block storage and restore</option>
+          <option value="day-060.html">Day 60 — File systems and backup design</option>
+          <option value="day-061.html">Day 61 — Relational databases and transactions</option>
+          <option value="day-062.html">Day 62 — Distributed and nonrelational database choices</option>
+          <option value="day-063.html">Day 63 — Caching, CDC and database selection</option>
+          <option value="day-064.html">Day 64 — Messaging, outbox and duplicate handling</option>
+          <option value="day-065.html">Day 65 — Integrate one order-service path</option>
+          <option value="day-066.html">Day 66 — Reproduce and recover the integrated baseline</option>
+          <option value="day-067.html">Day 67 — Gate 3 — Operate the core application</option>
+        </optgroup>
+        <optgroup label="Requirements, migration and architecture">
+          <option value="day-068.html">Day 68 — Requirements from observed behavior</option>
+          <option value="day-069.html">Day 69 — Stakeholders and priority trade-offs</option>
+          <option value="day-070.html">Day 70 — Well-Architected review lenses</option>
+          <option value="day-071.html">Day 71 — Performance, sustainability and trade-offs</option>
+          <option value="day-072.html">Day 72 — Application architecture patterns</option>
+          <option value="day-073.html">Day 73 — Data and hybrid architecture vocabulary</option>
+          <option value="day-074.html">Day 74 — Regional and tenant boundaries</option>
+          <option value="day-075.html">Day 75 — Migration assessment and VMware fit</option>
+          <option value="day-076.html">Day 76 — Migration rehearsal and reconciliation</option>
+          <option value="day-077.html">Day 77 — Migration waves and acceptance</option>
+          <option value="day-078.html">Day 78 — Decision matrices grounded in experiments</option>
+          <option value="day-079.html">Day 79 — ADRs, TCO and risk registers</option>
+          <option value="day-080.html">Day 80 — Architecture diagrams and failure sequences</option>
+          <option value="day-081.html">Day 81 — First architecture defense</option>
+          <option value="day-082.html">Day 82 — Gate 4 — Design from operational evidence</option>
+        </optgroup>
+        <optgroup label="Reliability and security">
+          <option value="day-083.html">Day 83 — Availability math and dependency risk</option>
+          <option value="day-084.html">Day 84 — Failure domains and graceful degradation</option>
+          <option value="day-085.html">Day 85 — Retries, timeouts and overload vocabulary</option>
+          <option value="day-086.html">Day 86 — SLIs, SLOs and error budgets</option>
+          <option value="day-087.html">Day 87 — Incidents, toil and capacity</option>
+          <option value="day-088.html">Day 88 — Availability across infrastructure layers</option>
+          <option value="day-089.html">Day 89 — Messaging, DNS and application health</option>
+          <option value="day-090.html">Day 90 — Recovery targets and patterns</option>
+          <option value="day-091.html">Day 91 — Backups and replication correctness</option>
+          <option value="day-092.html">Day 92 — Failover and failback planning</option>
+          <option value="day-093.html">Day 93 — Metrics, alerting and burn rates</option>
+          <option value="day-094.html">Day 94 — Logs, traces and profiling</option>
+          <option value="day-095.html">Day 95 — Central observability and audit evidence</option>
+          <option value="day-096.html">Day 96 — Bounded failure experiment design</option>
+          <option value="day-097.html">Day 97 — Run a recovery and overload experiment</option>
+          <option value="day-098.html">Day 98 — Restore and failover acceptance</option>
+          <option value="day-099.html">Day 99 — Advanced IAM and policy evaluation</option>
+          <option value="day-100.html">Day 100 — Workload federation and short-lived access</option>
+          <option value="day-101.html">Day 101 — Workforce federation and remote access</option>
+          <option value="day-102.html">Day 102 — Privileged access and break-glass</option>
+          <option value="day-103.html">Day 103 — Defense in depth and network policy</option>
+          <option value="day-104.html">Day 104 — Data perimeters and egress controls</option>
+          <option value="day-105.html">Day 105 — Certificates, mTLS and hybrid encryption</option>
+          <option value="day-106.html">Day 106 — Data classification and key lifecycle</option>
+          <option value="day-107.html">Day 107 — Secrets and de-identification</option>
+          <option value="day-108.html">Day 108 — Residency, confidentiality and data access</option>
+          <option value="day-109.html">Day 109 — Compliance evidence and responsibility</option>
+          <option value="day-110.html">Day 110 — Policy as code and audit retention</option>
+          <option value="day-111.html">Day 111 — Regulated workload design</option>
+          <option value="day-112.html">Day 112 — Threat detection and triage</option>
+          <option value="day-113.html">Day 113 — Incident response and threat modelling</option>
+          <option value="day-114.html">Day 114 — Artifact integrity and admission</option>
+          <option value="day-115.html">Day 115 — Container and pipeline hardening</option>
+          <option value="day-116.html">Day 116 — Integrate private access and key controls</option>
+          <option value="day-117.html">Day 117 — Security handover and evidence repair</option>
+          <option value="day-118.html">Day 118 — Gate 5 — Reliability and security acceptance</option>
+        </optgroup>
+        <optgroup label="Performance, delivery and operations">
+          <option value="day-119.html">Day 119 — Cost baseline and commitments</option>
+          <option value="day-120.html">Day 120 — Storage, network and database costs</option>
+          <option value="day-121.html">Day 121 — Runtime, analytics and carbon cost drivers</option>
+          <option value="day-122.html">Day 122 — Unit economics and sensitivity</option>
+          <option value="day-123.html">Day 123 — Caching correctness under load</option>
+          <option value="day-124.html">Day 124 — Database, network and I/O bottlenecks</option>
+          <option value="day-125.html">Day 125 — Profiling and capacity evidence</option>
+          <option value="day-126.html">Day 126 — Terraform baseline and state boundaries</option>
+          <option value="day-127.html">Day 127 — Terraform testing, drift and recovery</option>
+          <option value="day-128.html">Day 128 — Build and deployment pipeline</option>
+          <option value="day-129.html">Day 129 — Release rollback and delivery measures</option>
+          <option value="day-130.html">Day 130 — Service catalog and ownership</option>
+          <option value="day-131.html">Day 131 — Lifecycle, exceptions and adoption</option>
+          <option value="day-132.html">Day 132 — Customer success and platform outcomes</option>
+          <option value="day-133.html">Day 133 — Operations integration and remediation</option>
+        </optgroup>
+        <optgroup label="Data, AI and distributed correctness">
+          <option value="day-134.html">Day 134 — Warehouse foundations and query costs</option>
+          <option value="day-135.html">Day 135 — Warehouse security and reporting</option>
+          <option value="day-136.html">Day 136 — Batch and streaming processing choices</option>
+          <option value="day-137.html">Day 137 — Streaming correctness and CDC</option>
+          <option value="day-138.html">Day 138 — Lakehouse and open table design</option>
+          <option value="day-139.html">Day 139 — Catalogs, lineage and data contracts</option>
+          <option value="day-140.html">Day 140 — ML lifecycle and model selection</option>
+          <option value="day-141.html">Day 141 — Build a small grounded-answer flow</option>
+          <option value="day-142.html">Day 142 — Bounded tools and enterprise assistants</option>
+          <option value="day-143.html">Day 143 — AI security and evaluation</option>
+          <option value="day-144.html">Day 144 — AI serving and infrastructure choices</option>
+          <option value="day-145.html">Day 145 — Distributed state and regional correctness</option>
+        </optgroup>
+        <optgroup label="Discovery, cases and exam preparation">
+          <option value="day-146.html">Day 146 — Case analysis and discovery method</option>
+          <option value="day-147.html">Day 147 — Extract facts and numeric requirements</option>
+          <option value="day-148.html">Day 148 — Map requirements and conflicts</option>
+          <option value="day-149.html">Day 149 — Discovery: business, load and recovery</option>
+          <option value="day-150.html">Day 150 — Discovery: data, regulation and skills</option>
+          <option value="day-151.html">Day 151 — Discovery: budget, risks and success</option>
+          <option value="day-152.html">Day 152 — EHR Healthcare — facts and migration constraints</option>
+          <option value="day-153.html">Day 153 — EHR Healthcare — defend the design</option>
+          <option value="day-154.html">Day 154 — Altostrat Media — content and AI requirements</option>
+          <option value="day-155.html">Day 155 — Altostrat Media — architecture defense</option>
+          <option value="day-156.html">Day 156 — Cymbal Retail — catalog and commerce requirements</option>
+          <option value="day-157.html">Day 157 — Cymbal Retail — architecture defense</option>
+          <option value="day-158.html">Day 158 — KnightMotives — modernization requirements</option>
+          <option value="day-159.html">Day 159 — KnightMotives — architecture defense</option>
+          <option value="day-160.html">Day 160 — Case synthesis and feedback</option>
+          <option value="day-161.html">Day 161 — Changed-constraint design exercise</option>
+          <option value="day-162.html">Day 162 — Exam domain mapping and sample questions</option>
+          <option value="day-163.html">Day 163 — Timed reasoning and source-backed limits</option>
+          <option value="day-164.html">Day 164 — Readiness plan and remaining repairs</option>
+        </optgroup>
+        <optgroup label="Multi-team architecture and synthesis">
+          <option value="day-165.html">Day 165 — Landing zones and multi-team platform boundaries</option>
+          <option value="day-166.html">Day 166 — Production identity across teams</option>
+          <option value="day-167.html">Day 167 — API contracts and compatibility</option>
+          <option value="day-168.html">Day 168 — Sustainability and assisted operations</option>
+          <option value="day-169.html">Day 169 — Capacity allocation and overload governance</option>
+          <option value="day-170.html">Day 170 — Compute and database decision synthesis</option>
+          <option value="day-171.html">Day 171 — Network decision synthesis</option>
+          <option value="day-172.html">Day 172 — Storage, messaging and limits synthesis</option>
+          <option value="day-173.html">Day 173 — Consulting, portfolio and customer handover</option>
+        </optgroup>
+        <optgroup label="Final gate and capstone defenses">
+          <option value="day-174.html">Day 174 — Gate 6 — Integrated readiness and remediation</option>
+          <option value="day-175.html">Day 175 — Capstone 1 — Landing-zone defense</option>
+          <option value="day-176.html">Day 176 — Capstone 2 — Regulated-workload defense</option>
+          <option value="day-177.html">Day 177 — Capstone 3 — Global-application defense</option>
+          <option value="day-178.html">Day 178 — Capstone 4 — Migration defense</option>
+          <option value="day-179.html">Day 179 — Capstone 5 — Cost and reliability rescue</option>
+        </optgroup>
+        <optgroup label="Final review and rest">
+          <option value="day-180.html">Day 180 — Final review, logistics and rest</option>
+        </optgroup>
+      </select>
+      <a href="#part-1">Topics</a><a href="#part-2">Discussion</a><a href="#part-3">Problems</a><a href="#part-4">Labs</a>
+    </nav>
+  </header>
+  <main id="main" class="container day" data-day="12" data-prev="day-011.html" data-next="day-013.html" data-index="../index.html">
+    <div class="crumb"><a href="../index.html">Roadmap Index</a> / <a href="../index.html#block-foundations">Foundations</a> / Day 12</div>
+    <section class="hero" aria-labelledby="day-title">
+      <div class="pills"><span class="pill">DAY 12</span><span class="pill">Foundations</span><span class="pill">2–3 hours</span><span class="pill">Read-only cloud + local model</span></div>
+      <h1 id="day-title">Day 12 — Regions, scaling and economics</h1>
+      <p class="lead"><strong>Outcome:</strong> Decide where Brightloaf should run its India Order API, how it should absorb a sale burst, and what must be included in a cost comparison.</p>
+      <p><strong>Entry prerequisites:</strong> <a href="day-005.html">Day 5</a> and <a href="day-011.html">Day 11</a>.</p>
+      <div class="callout success"><strong>Exit artifact</strong><p>A location decision with explicit latency, residency, cost and failure-domain assumptions, supported by the three lab notes.</p></div>
+      <p class="meta">This lesson uses only the three topics named in the Day 12 roadmap entry. Its figures are declared exercise assumptions, not live Google Cloud prices or measured latency.</p>
+    </section>
+    <aside class="toc" aria-label="On this page">
+      <strong>On this page</strong>
+      <a href="#part-1">Part 1 · Topics of the day</a><a href="#part-2">Part 2 · Technical discussion</a><a href="#part-3">Part 3 · Real-world problems</a><a href="#part-4">Part 4 · Step-by-step labs</a>
+      <div class="toc-topic"><span>Regions, zones, multi-region and edge</span><a href="#regions-zones-edge-overview">Overview</a> · <a href="#regions-zones-edge-technical">Discussion</a> · <a href="#regions-zones-edge-problem">Problem</a> · <a href="#regions-zones-edge-lab">Lab</a></div>
+      <div class="toc-topic"><span>Elasticity and scaling</span><a href="#elasticity-scaling-overview">Overview</a> · <a href="#elasticity-scaling-technical">Discussion</a> · <a href="#elasticity-scaling-problem">Problem</a> · <a href="#elasticity-scaling-lab">Lab</a></div>
+      <div class="toc-topic"><span>CapEx, OpEx and pay-as-you-go</span><a href="#cloud-economics-overview">Overview</a> · <a href="#cloud-economics-technical">Discussion</a> · <a href="#cloud-economics-problem">Problem</a> · <a href="#cloud-economics-lab">Lab</a></div>
+    </aside>
+
+    <section class="part" id="part-1" aria-labelledby="part-1-title">
+      <h2 id="part-1-title">Part 1 · Topics of the day</h2>
+      <article class="topic-card" id="regions-zones-edge-overview">
+        <span id="topic-01-overview" aria-hidden="true"></span><h3>Regions, zones, multi-region and edge locations</h3>
+        <p><strong>What it is.</strong> A region is a geographic area in which Google Cloud offers services; a zone is a deployment area inside a region and a separate infrastructure failure domain. “Multi-region” is a location option for certain services, not a promise that every service automatically runs in multiple regions. Edge locations bring selected network delivery functions closer to users; they are not substitutes for an application’s chosen compute and data location.</p>
+        <p><strong>Why today.</strong> Before choosing a VM size or estimating a bill, an architect must decide where requests are served and where data is allowed to reside. <strong>System location.</strong> This decision spans the client-facing network edge, the Order API’s regional compute, zonal instances and the region of its stateful data.</p>
+        <p><strong>Problem preview.</strong> Brightloaf puts every Order API replica in one zone and checkout becomes unavailable when that zone fails. Lost checkout minutes and a missed delivery cutoff turn a location choice into revenue and fulfillment impact.</p>
+      </article>
+      <article class="topic-card" id="elasticity-scaling-overview">
+        <span id="topic-02-overview" aria-hidden="true"></span><h3>Elasticity versus scalability; vertical versus horizontal scaling</h3>
+        <p><strong>What it is.</strong> Scalability is the ability to handle more work by adding capacity; elasticity is the ability to add and release that capacity as demand changes. Vertical scaling gives one instance more resources, while horizontal scaling distributes work across more instances.</p>
+        <p><strong>Why today.</strong> A site sized for an average hour can fail during a short sale; a site permanently sized for its largest burst wastes money. <strong>System location.</strong> A load balancer distributes Order API requests to a pool of application workers, while an autoscaler changes pool size within a configured minimum and maximum.</p>
+        <p><strong>Problem preview.</strong> During a flash sale, Order API latency rises and requests time out although each individual VM is healthy. Abandoned carts and delayed order confirmation create lost sales and customer-support load.</p>
+      </article>
+      <article class="topic-card" id="cloud-economics-overview">
+        <span id="topic-03-overview" aria-hidden="true"></span><h3>CapEx, OpEx and pay-as-you-go economics</h3>
+        <p><strong>What it is.</strong> Capital expenditure (CapEx) buys or builds assets upfront; operating expenditure (OpEx) is a recurring cost of running a service. Cloud pay-as-you-go charging meters specific resources and usage, so the architecture and its traffic pattern affect the bill.</p>
+        <p><strong>Why today.</strong> Location and scaling choices are incomplete until their compute, storage, network and operational costs are compared under the same demand assumptions. <strong>System location.</strong> Project usage produces billable line items in Cloud Billing; a pricing estimate models those items before deployment.</p>
+        <p><strong>Problem preview.</strong> A cost sheet counts only VM hours while Brightloaf’s cross-region reads and data transfer grow during peak traffic. The monthly bill exceeds the approved margin for the promotion, forcing an unplanned budget review.</p>
+      </article>
+    </section>
+
+    <section class="part" id="part-2" aria-labelledby="part-2-title">
+      <h2 id="part-2-title">Part 2 · Technical discussion</h2>
+      <article class="topic-card" id="regions-zones-edge-technical">
+        <span id="topic-01-technical" aria-hidden="true"></span><h3>Regions, zones, multi-region and edge locations</h3>
+        <p>Location has several scopes. A Compute Engine VM and its ordinary persistent disk are zonal; a regional managed instance group can spread VMs across zones in one region; a global external Application Load Balancer can accept traffic at Google’s edge and route it to healthy backends. A regional backend does not become multi-region simply because its frontend is global. Stateful dependencies must be checked separately: a multi-zone application still has a single-region outage risk if its only database is regional.</p>
+        <p>Brightloaf’s application owner chooses the allowed geography, latency target and recovery objective. The platform team owns the project, network, backend placement and routing configuration. Google operates the underlying zones, but Brightloaf owns the architecture that uses them. Control flows from a customer request through the frontend and health-based routing to an Order API worker; that worker reads and writes the order state in its permitted region. Fulfillment may consume the resulting event later, but a replay must resolve to the same order and cannot produce a second shipment.</p>
+        <p>A region decision must distinguish <em>data residency</em> from low latency. An edge cache may serve static images near a shopper, yet a dynamic checkout request still reaches the regional Order API and its data. Replicating data to a second region may improve disaster recovery but creates legal, consistency and transfer-cost questions. Capacity and service availability also vary by region and zone; check the intended machine family and quotas before committing to a design.</p>
+        <table><caption>Brightloaf request path and resource scope</caption><thead><tr><th>Path stage</th><th>Scope and owner</th><th>Failure or limit to examine</th></tr></thead><tbody>
+          <tr><td>Shopper → edge frontend</td><td>Global entry point; platform team configures routing</td><td>Edge reachability says nothing about backend health or residency</td></tr>
+          <tr><td>Frontend → Order API pool</td><td>Regional backend with workers in at least two zones</td><td>One-zone placement leaves a single failure domain</td></tr>
+          <tr><td>Order API → order state</td><td>Chosen data region; data owner sets residency policy</td><td>Regional dependency can still be a regional single point of failure</td></tr>
+          <tr><td>Order event → Fulfillment</td><td>Asynchronous business workflow</td><td>Retry or replay must preserve one fulfillment per order</td></tr>
+        </tbody></table>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day12-geo-hierarchy-title day12-geo-hierarchy-desc" viewBox="0 0 940 330">
+<title id="day12-geo-hierarchy-title">Google Cloud Infrastructure Scope Hierarchy and Request Routing Boundaries</title>
+<desc id="day12-geo-hierarchy-desc">Architectural diagram illustrating the geographic hierarchy of Google Cloud services from Global Edge PoPs to Regional Managed Instance Groups, Zonal compute/database instances, and Multi-region storage with clear latency and data residency boundaries.</desc>
+<defs>
+<marker id="day12-geo-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day12-sync-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+</defs>
+<!-- Layer 1: Global Edge Tier -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="185" height="265" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="700" text-anchor="middle">
+<text x="112" y="52">GLOBAL EDGE TIER</text>
+<text x="112" y="68" fill="#38bdf8" font-size="10" font-weight="400">Google Anycast Network</text>
+</g>
+<g font-size="11" text-anchor="middle">
+<rect x="35" y="80" width="155" height="42" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="112" y="98" fill="#fce7f3">Edge PoP (Point of Presence)</text>
+<text x="112" y="112" fill="#a9b7cb">TLS Handshake &lt; 10 ms</text>
+<rect x="35" y="132" width="155" height="42" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="112" y="150" fill="#fce7f3">Cloud CDN Cache</text>
+<text x="112" y="164" fill="#a9b7cb">Static Images &amp; Assets</text>
+<rect x="35" y="184" width="155" height="52" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="112" y="202" fill="#38bdf8" font-weight="600">Global External ALB</text>
+<text x="112" y="216" fill="#a9b7cb">Single Anycast Virtual IP</text>
+<text x="112" y="228" fill="#a9b7cb">Health-based Backend Steer</text>
+<text x="112" y="272" fill="#38bdf8" font-size="10">Scope: Global Frontend</text>
+</g>
+
+<!-- Layer 2: Regional Boundary (asia-south1) -->
+<g fill="#121526" stroke-width="2">
+<rect x="235" y="30" width="445" height="265" rx="8" stroke="#f43f5e"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="700" text-anchor="middle">
+<text x="457" y="52">PRIMARY REGION: asia-south1 (Mumbai)</text>
+<text x="457" y="68" fill="#f43f5e" font-size="10" font-weight="400">Data Residency Boundary (India-Only Law &amp; Tax Compliance)</text>
+</g>
+
+<!-- Zone A -->
+<g fill="#090d16" stroke-width="1.5">
+<rect x="250" y="80" width="200" height="195" rx="6" stroke="#eab308"/>
+</g>
+<text x="350" y="98" fill="#eab308" font-size="11" font-weight="700" text-anchor="middle">ZONE: asia-south1-a</text>
+<g font-size="10" text-anchor="middle">
+<rect x="260" y="108" width="180" height="42" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="350" y="125" fill="#fce7f3">Order API Worker 1</text>
+<text x="350" y="139" fill="#a9b7cb">Regional MIG Replica (Zonal VM)</text>
+<rect x="260" y="160" width="180" height="42" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="350" y="177" fill="#fce7f3">Zonal Persistent Disk</text>
+<text x="350" y="191" fill="#a9b7cb">Attached SSD Block Storage</text>
+<rect x="260" y="212" width="180" height="48" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="350" y="228" fill="#34d399" font-weight="700">Cloud SQL (Primary)</text>
+<text x="350" y="242" fill="#a9b7cb">Read / Write Transaction Engine</text>
+<text x="350" y="254" fill="#a9b7cb">Single Zonal Failure Unit</text>
+</g>
+
+<!-- Zone B -->
+<g fill="#090d16" stroke-width="1.5">
+<rect x="465" y="80" width="200" height="195" rx="6" stroke="#eab308"/>
+</g>
+<text x="565" y="98" fill="#eab308" font-size="11" font-weight="700" text-anchor="middle">ZONE: asia-south1-b</text>
+<g font-size="10" text-anchor="middle">
+<rect x="475" y="108" width="180" height="42" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="565" y="125" fill="#fce7f3">Order API Worker 2</text>
+<text x="565" y="139" fill="#a9b7cb">Regional MIG Replica (Zonal VM)</text>
+<rect x="475" y="160" width="180" height="42" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="565" y="177" fill="#fce7f3">Zonal Persistent Disk</text>
+<text x="565" y="191" fill="#a9b7cb">Attached SSD Block Storage</text>
+<rect x="475" y="212" width="180" height="48" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="565" y="228" fill="#34d399" font-weight="700">Cloud SQL (Standby)</text>
+<text x="565" y="242" fill="#a9b7cb">Synchronous Replication</text>
+<text x="565" y="254" fill="#a9b7cb">Automatic HA Failover</text>
+</g>
+
+<!-- Layer 3: DR Region / Multi-Region Storage -->
+<g fill="#121526" stroke-width="2">
+<rect x="710" y="30" width="210" height="265" rx="8" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="700" text-anchor="middle">
+<text x="815" y="52">DR &amp; MULTI-REGION</text>
+<text x="815" y="68" fill="#34d399" font-size="10" font-weight="400">Cross-Region Failure Domain</text>
+</g>
+<g font-size="10" text-anchor="middle">
+<rect x="725" y="80" width="180" height="60" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="815" y="98" fill="#fce7f3" font-weight="600">Cloud Storage (Dual-Region)</text>
+<text x="815" y="112" fill="#a9b7cb">asia1 (Mumbai + Delhi)</text>
+<text x="815" y="126" fill="#a9b7cb">Geo-Redundant 99.999999999%</text>
+<rect x="725" y="150" width="180" height="65" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="815" y="168" fill="#fce7f3" font-weight="600">DR Region: asia-south2</text>
+<text x="815" y="182" fill="#a9b7cb">Delhi Disaster Recovery Site</text>
+<text x="815" y="196" fill="#a9b7cb">Async Read Replica / Standby</text>
+<text x="815" y="208" fill="#a9b7cb">Cross-Region Latency ~28 ms</text>
+<rect x="725" y="225" width="180" height="50" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="815" y="242" fill="#f43f5e" font-weight="600">Duplicate Invariant</text>
+<text x="815" y="256" fill="#a9b7cb">Order Replay &lt;= 1 Fulfillment</text>
+<text x="815" y="268" fill="#a9b7cb">Idempotency Key Enforced</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M190 205 L260 129" stroke="#38bdf8" marker-end="url(#day12-geo-arrow)"/>
+<path d="M190 215 L475 129" stroke="#38bdf8" marker-end="url(#day12-geo-arrow)"/>
+<path d="M440 236 L475 236" stroke="#34d399" stroke-dasharray="4 3" marker-end="url(#day12-sync-arrow)"/>
+<path d="M655 236 L725 182" stroke="#475569" stroke-dasharray="4 3"/>
+</g>
+<text x="470" y="315" fill="#a9b7cb" font-size="11" text-anchor="middle">Solid cyan line (—) = Global ALB request routing · Dashed green line (--) = Intra-region synchronous database sync (&lt;1ms latency)</text>
+</svg>
+<figcaption>Figure 12.1: Google Cloud infrastructure scope hierarchy showing global edge delivery, regional data residency boundary, multi-zone compute redundancy, and cross-region recovery boundaries for the Brightloaf Order API.</figcaption>
+</figure>
+        <div class="further"><h4>Further study</h4><ul>
+          <li><a href="https://docs.cloud.google.com/compute/docs/regions-zones#choose">Compute Engine: Choosing a region and zone</a> — failure, latency and placement considerations in the named section.</li>
+          <li><a href="https://www.youtube.com/watch?v=ieQ6l29Qqe4&amp;t=54s">Google Cloud fundamentals video, 0:54–1:23</a> — zone failure domains and using different regions. The linked segment was checked against its English transcript.</li>
+        </ul></div>
+      </article>
+      <article class="topic-card" id="elasticity-scaling-technical">
+        <span id="topic-02-technical" aria-hidden="true"></span><h3>Elasticity versus scalability; vertical versus horizontal scaling</h3>
+        <p>Capacity is bounded by the slowest part of the request path. Adding Order API workers helps only if requests can be distributed and downstream order storage, connection pools and quotas can sustain the extra concurrency. Vertical scaling can be a quick response to CPU or memory pressure, but a larger VM has a finite ceiling and resizing can require replacement or interruption. Horizontal scaling offers smaller failure units and can cross zones, but requires stateless or externally stored session state, health checks, and an explicit strategy for concurrent writes.</p>
+        <p>In a managed instance group, an instance template describes each VM and the group maintains a desired number of copies. An autoscaling policy evaluates a metric such as CPU utilization and changes the recommended group size within minimum and maximum limits. Initialization periods, metric lag and scale-in controls matter: a newly started worker is not instantly ready, and rapidly deleting workers can terminate in-flight work. The application team owns per-worker load testing and request behavior; the platform team owns the group, health check, autoscaling limits and quota request. The load balancer routes only to healthy workers; the database remains an independent capacity boundary.</p>
+        <p>For a deliberately simple capacity model, suppose a worker sustains 80 order requests per second at the latency target. At 120 requests per second, two workers suffice only if distribution is even and the storage tier keeps up. At 420 requests per second, six workers provide 480 requests per second of nominal capacity. That is a planning number, not an autoscaler setting proved by production traffic: leave headroom for uneven distribution, warm-up and failures. A single six-times-larger VM is not equivalent to six workers because it still has one zonal failure unit.</p>
+        <table><caption>Capacity control path</caption><thead><tr><th>Signal or control</th><th>Responsible component</th><th>Limit</th></tr></thead><tbody>
+          <tr><td>Request rate and latency</td><td>Order API and monitoring</td><td>Includes downstream waiting, not just CPU work</td></tr>
+          <tr><td>Metric → desired replica count</td><td>Managed instance group autoscaler</td><td>Minimum, maximum, quota, startup time</td></tr>
+          <tr><td>Healthy replica → request</td><td>Load balancer and health check</td><td>Bad health endpoint can admit an unready worker</td></tr>
+          <tr><td>Order write → fulfillment event</td><td>Order and Fulfillment application owners</td><td>More workers must not create duplicate fulfillment on retry</td></tr>
+        </tbody></table>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day12-scaling-loop-title day12-scaling-loop-desc" viewBox="0 0 940 330">
+<title id="day12-scaling-loop-title">Vertical versus Horizontal Scaling Architecture and Autoscaling Control Loop</title>
+<desc id="day12-scaling-loop-desc">Diagram contrasting vertical scaling limitations (single zonal failure domain, restart downtime, hardware ceiling) with horizontal Managed Instance Group autoscaling, depicting the closed metric feedback loop, scale-in controls, and downstream database connection ceiling.</desc>
+<defs>
+<marker id="day12-scale-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day12-loop-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#eab308"/></marker>
+</defs>
+<!-- Left: Vertical Scaling Box -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="250" height="265" rx="8" stroke="#f43f5e"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="700" text-anchor="middle">
+<text x="145" y="52">VERTICAL SCALING (SCALE UP)</text>
+<text x="145" y="68" fill="#f43f5e" font-size="10" font-weight="400">Single Monolithic VM Architecture</text>
+</g>
+<g font-size="10" text-anchor="middle">
+<rect x="35" y="80" width="220" height="42" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="145" y="98" fill="#fce7f3">Instance: e2-standard-16</text>
+<text x="145" y="112" fill="#a9b7cb">16 vCPUs · 64 GB RAM · 1 VM</text>
+<rect x="35" y="130" width="220" height="42" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="145" y="148" fill="#f43f5e" font-weight="600">Reboot Downtime on Resize</text>
+<text x="145" y="162" fill="#a9b7cb">Requires STOP and START to re-size</text>
+<rect x="35" y="180" width="220" height="42" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="145" y="198" fill="#f43f5e" font-weight="600">Single Zonal Failure Domain</text>
+<text x="145" y="212" fill="#a9b7cb">Zone host failure = 100% outage</text>
+<rect x="35" y="230" width="220" height="45" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="145" y="248" fill="#eab308" font-weight="600">Hardware Ceiling Limit</text>
+<text x="145" y="262" fill="#a9b7cb">Cannot scale past largest machine family</text>
+</g>
+
+<!-- Right: Horizontal Scaling & Autoscaler Loop -->
+<g fill="#121526" stroke-width="2">
+<rect x="290" y="30" width="630" height="265" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="700" text-anchor="middle">
+<text x="605" y="52">HORIZONTAL SCALING &amp; MANAGED INSTANCE GROUP (SCALE OUT)</text>
+<text x="605" y="68" fill="#38bdf8" font-size="10" font-weight="400">Elastic Regional Pool (asia-south1-a + asia-south1-b) with Dynamic Feedback Control</text>
+</g>
+
+<!-- Autoscaler Control Engine -->
+<g font-size="10" text-anchor="middle">
+<rect x="305" y="80" width="180" height="85" rx="6" fill="#1e293b" stroke="#eab308"/>
+<text x="395" y="98" fill="#eab308" font-weight="700">Autoscaler Engine</text>
+<text x="395" y="114" fill="#a9b7cb">Metrics: CPU Target (60%)</text>
+<text x="395" y="128" fill="#a9b7cb">ALB Capacity: 80 req/s/VM</text>
+<text x="395" y="142" fill="#fce7f3">Min: 2 VMs · Max: 7 VMs</text>
+<text x="395" y="156" fill="#34d399">Headroom: +25% safety</text>
+
+<!-- Instance Provisioning & Lifecycle -->
+<rect x="505" y="80" width="200" height="85" rx="6" fill="#1e293b" stroke="#38bdf8"/>
+<text x="605" y="98" fill="#38bdf8" font-weight="700">Instance Template &amp; MIG</text>
+<text x="605" y="114" fill="#a9b7cb">Warmup Period: 120s</text>
+<text x="605" y="128" fill="#a9b7cb">Scale-in Stabilization: 300s</text>
+<text x="605" y="142" fill="#a9b7cb">Connection Draining: 60s</text>
+<text x="605" y="156" fill="#fce7f3">Multi-Zone Balanced Spread</text>
+
+<!-- Downstream Ceiling -->
+<rect x="725" y="80" width="180" height="85" rx="6" fill="#1e293b" stroke="#f43f5e"/>
+<text x="815" y="98" fill="#f43f5e" font-weight="700">Downstream DB Boundary</text>
+<text x="815" y="114" fill="#a9b7cb">Max Connections: 200</text>
+<text x="815" y="128" fill="#a9b7cb">Write IOPS Capacity</text>
+<text x="815" y="142" fill="#fce7f3">Lock Contention Limit</text>
+<text x="815" y="156" fill="#f43f5e">Horizontal VMs &lt; DB Pool</text>
+
+<!-- Active Replicas Display -->
+<rect x="305" y="180" width="600" height="85" rx="6" fill="#090d16" stroke="#475569"/>
+<text x="605" y="198" fill="#38bdf8" font-weight="700">Active Workload Distribution (Baseline: 120 req/s → Flash Sale: 420 req/s)</text>
+<!-- Zone A Replicas -->
+<rect x="320" y="206" width="130" height="48" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="385" y="222" fill="#fce7f3" font-size="9">Zone A Replicas</text>
+<text x="385" y="234" fill="#34d399" font-size="9">VM-1, VM-2 (Base)</text>
+<text x="385" y="246" fill="#eab308" font-size="9">+ VM-3, VM-4 (Burst)</text>
+<!-- Zone B Replicas -->
+<rect x="465" y="206" width="130" height="48" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="530" y="222" fill="#fce7f3" font-size="9">Zone B Replicas</text>
+<text x="530" y="234" fill="#34d399" font-size="9">VM-5 (Base)</text>
+<text x="530" y="246" fill="#eab308" font-size="9">+ VM-6, VM-7 (Burst)</text>
+<!-- Idempotency & Invariant Box -->
+<rect x="610" y="206" width="280" height="48" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="750" y="222" fill="#34d399" font-weight="700" font-size="9">Order Invariant Enforcement</text>
+<text x="750" y="234" fill="#fce7f3" font-size="9">Unique Order Key &amp; Idempotency Header</text>
+<text x="750" y="246" fill="#a9b7cb" font-size="9">Replay / Retries Guarantee &lt;= 1 Fulfillment</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M485 122 L505 122" stroke="#eab308" marker-end="url(#day12-loop-arrow)"/>
+<path d="M705 122 L725 122" stroke="#f43f5e" stroke-dasharray="4 3"/>
+<path d="M605 165 L605 180" stroke="#38bdf8" marker-end="url(#day12-scale-arrow)"/>
+</g>
+<text x="605" y="285" fill="#a9b7cb" font-size="10" text-anchor="middle">Autoscaler evaluates telemetry → provisions instances across zones → respects downstream database connection limits</text>
+</svg>
+<figcaption>Figure 12.2: Comparison of vertical scaling limits versus horizontal autoscaling in a Regional Managed Instance Group, illustrating the metric evaluation loop, scale-in dampening, and downstream database connection ceiling.</figcaption>
+</figure>
+        <div class="further"><h4>Further study</h4><ul>
+          <li><a href="https://docs.cloud.google.com/compute/docs/autoscaler#autoscaling_policy">Compute Engine: Autoscaling policy</a> — the documented policy and its control signals.</li>
+          <li><a href="https://www.youtube.com/watch?v=nESQP6x3xLU&amp;t=92s">Google Cloud Tech, 1:32–2:27</a> — the verified “Things to consider: machine type” chapter, followed by initialization-period and scale-in-control chapters.</li>
+        </ul></div>
+      </article>
+      <article class="topic-card" id="cloud-economics-technical">
+        <span id="topic-03-technical" aria-hidden="true"></span><h3>CapEx, OpEx and pay-as-you-go economics</h3>
+        <p>Moving from owned servers to cloud does not eliminate planning; it changes when and how costs are incurred. A data-center purchase fixes much of the hardware capacity in advance. Cloud metering can follow actual running time and consumed service units, but idle VMs, retained disks, network transfer and managed-service minimums can still create recurring costs. Teams should compare total cost for the same service level, recovery target and demand curve, including engineering operations, rather than comparing a server purchase price with one cloud VM line item.</p>
+        <p>The billing account pays for usage; the project groups resources and their charges; labels can help allocate eligible costs, but they are not a substitute for a complete inventory. A cost estimate is a model built from resource shape, location, operating hours, traffic and storage assumptions. Actual prices, discounts, taxes and usage may differ. The finance owner sets the spending envelope, the architecture owner estimates all path components, and the operations owner observes actual usage and acts on variance. Budget alerts are notifications, not hard spending caps.</p>
+        <p>Elasticity changes the bill because a worker that is removed after a sale no longer consumes the same VM runtime as a permanently running worker. Yet a two-zone minimum for availability must remain in the base case. Location can alter compute prices and network charges; cross-region synchronous dependencies can also add latency. The model below deliberately uses invented unit rates to teach comparison, so the final purchasing decision must be re-priced in the live Google Cloud Pricing Calculator and checked against the applicable contract.</p>
+        <table><caption>Cost model ownership and missing-cost traps</caption><thead><tr><th>Line item</th><th>Model input</th><th>Owner and common omission</th></tr></thead><tbody>
+          <tr><td>Base compute</td><td>Minimum workers × all operating hours</td><td>Platform owner; forgetting the second zone</td></tr>
+          <tr><td>Burst compute</td><td>Extra workers × peak hours</td><td>Application owner; assuming instant scale-down</td></tr>
+          <tr><td>Data and storage</td><td>Stored GB, operations and backup retention</td><td>Data owner; counting only primary storage</td></tr>
+          <tr><td>Network and observability</td><td>Egress, cross-region traffic, logs and metrics</td><td>Architecture owner; counting only VM hours</td></tr>
+        </tbody></table>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day12-economics-title day12-economics-desc" viewBox="0 0 940 330">
+<title id="day12-economics-title">CapEx Fixed Capacity versus OpEx Elastic Pay-As-You-Go Economics and Cloud Bill of Materials</title>
+<desc id="day12-economics-desc">Comparison chart showing CapEx on-premises fixed provisioning waste versus cloud OpEx elastic demand tracking, paired with the comprehensive six-part Cloud Bill of Materials required for production budgeting.</desc>
+<defs>
+<marker id="day12-econ-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+</defs>
+<!-- Top Left: CapEx Curve -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="440" height="135" rx="8" stroke="#f43f5e"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="240" y="48">CapEx: On-Premises Fixed Provisioning Model</text>
+</g>
+<!-- CapEx Axes and Curves -->
+<g fill="none" stroke-width="1.5">
+<path d="M50 145 L430 145" stroke="#475569"/>
+<path d="M50 145 L50 60" stroke="#475569"/>
+<!-- Fixed Capacity Line (Red) -->
+<path d="M50 75 L430 75" stroke="#f43f5e" stroke-width="2.5"/>
+<!-- Demand Curve (Fluctuating) -->
+<path d="M50 135 Q100 135 130 130 T200 80 T260 65 T320 130 T430 135" stroke="#38bdf8" stroke-width="2"/>
+</g>
+<!-- CapEx Labels -->
+<g font-size="9" text-anchor="middle">
+<rect x="100" y="85" width="130" height="26" rx="4" fill="#f43f5e" fill-opacity="0.15" stroke="#f43f5e"/>
+<text x="165" y="98" fill="#fce7f3">Wasted Idle Capacity</text>
+<text x="165" y="107" fill="#a9b7cb">~83% off-peak waste</text>
+<rect x="235" y="55" width="115" height="18" rx="3" fill="#f43f5e"/>
+<text x="292" y="67" fill="#ffffff" font-weight="700">Unserved Demand Cliff</text>
+<text x="380" y="70" fill="#f43f5e" font-weight="700">Fixed Capacity Ceiling</text>
+</g>
+
+<!-- Top Right: OpEx Curve -->
+<g fill="#121526" stroke-width="2">
+<rect x="480" y="30" width="440" height="135" rx="8" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="700" y="48">OpEx: Cloud Elastic Pay-As-You-Go Model</text>
+</g>
+<!-- OpEx Axes and Curves -->
+<g fill="none" stroke-width="1.5">
+<path d="M510 145 L890 145" stroke="#475569"/>
+<path d="M510 145 L510 60" stroke="#475569"/>
+<!-- Dynamic Capacity Line (Green) tracking Demand closely -->
+<path d="M510 125 L560 125 L610 125 L640 75 L710 65 L760 125 L890 125" stroke="#34d399" stroke-width="2.5"/>
+<!-- Demand Curve (Fluctuating) -->
+<path d="M510 135 Q560 135 590 130 T660 80 T720 65 T780 130 T890 135" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="550" y="90" width="145" height="26" rx="4" fill="#34d399" fill-opacity="0.15" stroke="#34d399"/>
+<text x="622" y="103" fill="#fce7f3">Elastic Tracking Fit</text>
+<text x="622" y="112" fill="#34d399">Pay only for active hours</text>
+<text x="820" y="65" fill="#34d399" font-weight="700">Capacity matches burst</text>
+<text x="820" y="120" fill="#a9b7cb">2-VM multi-zone floor</text>
+</g>
+
+<!-- Bottom: Comprehensive Cloud Bill of Materials (BOM) Architecture -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="175" width="900" height="135" rx="8" stroke="#38bdf8"/>
+</g>
+<text x="470" y="193" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">COMPREHENSIVE CLOUD BILL OF MATERIALS (BOM) — PREVENTING UNBUDGETED OVERRUNS</text>
+
+<g font-size="9" text-anchor="middle">
+<!-- BOM Item 1 -->
+<rect x="35" y="202" width="205" height="98" rx="6" fill="#1e293b" stroke="#38bdf8"/>
+<text x="137" y="217" fill="#fce7f3" font-weight="700">1. Compute Engine VMs</text>
+<text x="137" y="231" fill="#38bdf8">Base: 2 VMs × 720h = 1,440 hrs</text>
+<text x="137" y="245" fill="#eab308">Peak: 5 VMs × 120h = 600 hrs</text>
+<text x="137" y="259" fill="#a9b7cb">Total: 2,040 VM-hours</text>
+<text x="137" y="273" fill="#34d399">Elastic Savings: 3,000 hrs saved</text>
+<text x="137" y="287" fill="#f43f5e">Trap: Forgetting 2nd zone VM</text>
+
+<!-- BOM Item 2 -->
+<rect x="255" y="202" width="205" height="98" rx="6" fill="#1e293b" stroke="#38bdf8"/>
+<text x="357" y="217" fill="#fce7f3" font-weight="700">2. Storage &amp; Persistent Disks</text>
+<text x="357" y="231" fill="#a9b7cb">Zonal SSD boot disks (all VMs)</text>
+<text x="357" y="245" fill="#a9b7cb">Cloud SQL Primary + Standby</text>
+<text x="357" y="259" fill="#a9b7cb">Daily automated snapshots</text>
+<text x="357" y="273" fill="#a9b7cb">Backup storage retention</text>
+<text x="357" y="287" fill="#f43f5e">Trap: Disks bill 24/7 even if VM off</text>
+
+<!-- BOM Item 3 -->
+<rect x="475" y="202" width="205" height="98" rx="6" fill="#1e293b" stroke="#38bdf8"/>
+<text x="577" y="217" fill="#fce7f3" font-weight="700">3. Network &amp; Data Egress</text>
+<text x="577" y="231" fill="#a9b7cb">Internet Egress (Checkout traffic)</text>
+<text x="577" y="245" fill="#a9b7cb">Inter-zone replication sync</text>
+<text x="577" y="259" fill="#a9b7cb">Cross-region analytics egress</text>
+<text x="577" y="273" fill="#a9b7cb">External ALB forwarding rules</text>
+<text x="577" y="287" fill="#f43f5e">Trap: Unbudgeted cross-region reads</text>
+
+<!-- BOM Item 4 -->
+<rect x="695" y="202" width="210" height="98" rx="6" fill="#1e293b" stroke="#38bdf8"/>
+<text x="800" y="217" fill="#fce7f3" font-weight="700">4. Observability &amp; Governance</text>
+<text x="800" y="231" fill="#a9b7cb">Cloud Logging volume ingestion</text>
+<text x="800" y="245" fill="#a9b7cb">Cloud Monitoring custom metrics</text>
+<text x="800" y="259" fill="#34d399">Cloud Billing budget alerts (80%, 100%)</text>
+<text x="800" y="273" fill="#fce7f3">Order Invariant: &lt;= 1 fulfillment</text>
+<text x="800" y="287" fill="#f43f5e">Trap: Debug log flooding in prod</text>
+</g>
+</svg>
+<figcaption>Figure 12.3: Economic model comparing fixed CapEx provisioning waste against OpEx pay-as-you-go elastic tracking, accompanied by the comprehensive multi-resource Cloud Bill of Materials required for accurate cost forecasting.</figcaption>
+</figure>
+        <div class="further"><h4>Further study</h4><ul>
+          <li><a href="https://docs.cloud.google.com/billing/docs/how-to/estimate-costs#access-pricing-calculator">Cloud Billing: Access the pricing calculator</a> — the exact section for building a current estimate.</li>
+          <li><a href="https://www.youtube.com/watch?v=3BRLfhJdXK8&amp;t=34s">Google Cloud Tech, 0:34–1:00</a> — a verified pricing-calculator walkthrough. Its Kafka example illustrates the method; it does not supply Order API prices.</li>
+        </ul></div>
+      </article>
+    </section>
+
+    <section class="part" id="part-3" aria-labelledby="part-3-title">
+      <h2 id="part-3-title">Part 3 · Real-world problems and solutions</h2>
+      <article class="topic-card" id="regions-zones-edge-problem">
+        <span id="topic-01-problem" aria-hidden="true"></span><h3>Incident exercise · One zonal failure stops checkout</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf deployed its dynamic Order API checkout service to Google Cloud in India. To minimize network latency for local shoppers in Mumbai and Pune, the team selected region <code>asia-south1</code> and provisioned three compute workers behind an external Application Load Balancer. However, during configuration, the engineers deployed all three worker virtual machines into zone <code>asia-south1-a</code> because it was the default selection in the provisioning console. At 14:15 IST, an unexpected underlying host and power failure in data center building A caused zone <code>asia-south1-a</code> to become temporarily unreachable. Although Google's global edge network and Cloud CDN points of presence remained healthy and responsive, the Application Load Balancer suddenly had zero healthy backend instances to route to. Shoppers across India encountered immediate HTTP 503 Service Unavailable errors during the critical afternoon rush, causing checkout abandonment and missing the regional logistics carrier cutoff.</p>
+        <p><strong>Constraints and operational invariants:</strong> Order data for Indian operations must strictly reside within the approved India geography; edge caching is permitted for static marketing assets and product images, but transactional checkout writes must strictly terminate within the approved region. The checkout workflow must preserve Brightloaf's fundamental duplicate fulfillment invariant: a customer retry or asynchronous event replay must never trigger duplicate physical warehouse fulfillment (&lt;= 1 fulfillment per unique order ID). Furthermore, failover must occur within approved data sovereignty rules without unapproved cross-border replication.</p>
+        <p><strong>Evidence and root cause:</strong> Cloud Monitoring telemetry and load balancer request logs revealed that the global frontend Anycast IP was reachable and TLS handshakes completed in under 12 ms, but 100% of backend requests failed health checks with connection timeouts. The Compute Engine console confirmed that all three running Order API VM instances were placed solely within <code>asia-south1-a</code>. The root cause was architectural failure to establish a multi-zone failure domain: the team conflated a global entry point (the Application Load Balancer) with regional and zonal backend resilience. A single zone is an independent failure domain; by concentrating all replicas in <code>asia-south1-a</code>, the system possessed a single point of failure.</p>
+        <p><strong>Diagnostic sequence:</strong></p>
+        <ol>
+          <li>Inspect Application Load Balancer backend service health via the Cloud Console or CLI to identify backend target health states across all configured zones.</li>
+          <li>Check Compute Engine instance placement to verify the zone distribution of all active Order API virtual machines.</li>
+          <li>Query Google Cloud Service Health to confirm whether active disruptions are confined to a single zone (such as <code>asia-south1-a</code>) versus the entire region.</li>
+          <li>Review backend health check probe logs in Cloud Logging to confirm whether health check probes failed due to network unreachability or guest OS crashes.</li>
+          <li>Inspect database connection state and data replication status between the primary database in <code>asia-south1-a</code> and its regional standby.</li>
+        </ol>
+        <p><strong>Defensible solution:</strong> Re-architect the compute layer using a Regional Managed Instance Group (Regional MIG) configured with a target distribution across at least two independent zones (<code>asia-south1-a</code> and <code>asia-south1-b</code>). Configure the load balancer backend service with a regional health check that evaluates application readiness. Ensure Cloud SQL is provisioned in High Availability (HA) mode with automatic synchronous failover between Zone A and Zone B. In the event of a zone disruption, the ALB automatically removes unhealthy Zone A instances within 10 seconds and directs 100% of incoming checkout traffic to healthy instances in Zone B. Enforce request deduplication using an <code>Idempotency-Key</code> header persisted in the database with a unique constraint so that customer client retries during failover return the confirmed order status without generating duplicate warehouse shipments.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day12-zonal-incident-title day12-zonal-incident-desc" viewBox="0 0 940 320">
+<title id="day12-zonal-incident-title">Single Zonal Failure Incident and Multi-Zone Regional MIG Remediation</title>
+<desc id="day12-zonal-incident-desc">Incident diagram showing client requests failing with HTTP 503 when all Order API instances reside in a single failed zone, and the corrected multi-zone regional MIG configuration that maintains seamless checkout availability.</desc>
+<defs>
+<marker id="day12-ok-arrow-1" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day12-fail-arrow-1" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="160" height="90" rx="8" stroke="#38bdf8"/>
+<rect x="220" y="25" width="460" height="115" rx="8" stroke="#f43f5e" stroke-dasharray="7 5"/>
+<rect x="220" y="175" width="460" height="115" rx="8" stroke="#34d399"/>
+<rect x="720" y="110" width="200" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="600" text-anchor="middle">
+<text x="100" y="140">Shopper / Mobile App</text>
+<text x="100" y="156" fill="#a9b7cb">Checkout Request</text>
+<text x="100" y="172" fill="#38bdf8">TLS Termination OK</text>
+
+<!-- Failed Path -->
+<text x="450" y="44" fill="#f43f5e" font-weight="700">[FAILED PATH: Single-Zone Deployment in asia-south1-a]</text>
+<text x="450" y="60" fill="#fce7f3">All 3 Order API VMs placed in zone asia-south1-a</text>
+<text x="450" y="76" fill="#f43f5e">EXACT FAILURE POINT: Underlying host/power outage in Zone A</text>
+<text x="450" y="92" fill="#f43f5e">Root Cause: 0 VMs in Zone B → ALB health check fails 100% of backends</text>
+<text x="450" y="108" fill="#f43f5e">Result: ALB returns HTTP 503 Service Unavailable → Missed cutoff</text>
+<text x="450" y="124" fill="#a9b7cb">Residency OK (India), but availability SLA breached</text>
+
+<!-- Corrected Path -->
+<text x="450" y="194" fill="#34d399" font-weight="700">[CORRECTED PATH: Regional Multi-Zone Managed Instance Group]</text>
+<text x="450" y="210" fill="#fce7f3">Regional MIG automatically balances VMs across asia-south1-a &amp; asia-south1-b</text>
+<text x="450" y="226" fill="#34d399">CORRECTED CONTROL: Zone A outage detected by ALB health check in &lt;10s</text>
+<text x="450" y="242" fill="#34d399">ALB automatically routes 100% traffic to healthy workers in Zone B</text>
+<text x="450" y="258" fill="#34d399">Cloud SQL HA synchronizes state between zones with zero transaction loss</text>
+<text x="450" y="274" fill="#a9b7cb">Order Invariant: Unique Order UUID prevents duplicate fulfillment on retry</text>
+
+<!-- Verification Boundary -->
+<text x="820" y="136">VERIFICATION BOUNDARY</text>
+<text x="820" y="154" fill="#34d399" font-weight="700">HTTP 200 OK Confirmed</text>
+<text x="820" y="170" fill="#a9b7cb">p95 Latency &lt; 220 ms</text>
+<text x="820" y="186" fill="#34d399">Fulfillment count &lt;= 1</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 135 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day12-fail-arrow-1)"/>
+<path d="M680 85 L720 135" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day12-fail-arrow-1)"/>
+<path d="M180 175 L220 230" stroke="#34d399" marker-end="url(#day12-ok-arrow-1)"/>
+<path d="M680 230 L720 175" stroke="#34d399" marker-end="url(#day12-ok-arrow-1)"/>
+</g>
+<text x="470" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed red line (--&gt;) = Single-zone failure &amp; 503 outage · Solid green line (—&gt;) = Multi-zone regional MIG failover</text>
+</svg>
+<figcaption>Figure 12.4: Supplied facts: A single-zone deployment in asia-south1-a experienced an infrastructure outage causing 100% checkout failure. Architectural inference: Conflating global Anycast edge routing with backend regional redundancy creates a single point of failure. Expected post-fix behavior: Deploying a Regional MIG across zones a and b enables sub-10s health-check failover to surviving instances with zero data loss and strict fulfillment deduplication.</figcaption>
+</figure>
+        <p><strong>Verification and residual risk:</strong> Simulate a zonal outage by draining traffic or cordoning instances in <code>asia-south1-a</code>; verify that the Application Load Balancer automatically shifts traffic to <code>asia-south1-b</code> within 10 seconds without dropping confirmed orders; submit simulated duplicate order requests and confirm that the database unique constraint rejects duplicate fulfillment events with HTTP 409 or idempotent HTTP 200. Residual risk: A multi-zone deployment survives any single data center or zone failure, but does not survive an entire regional catastrophic failure (such as a fiber cut across Mumbai). Multi-region disaster recovery to <code>asia-south2</code> (Delhi) would mitigate regional loss, but requires formal executive review of cross-region latency, data transfer egress costs, and asynchronous replication lag.</p>
+      </article>
+      <article class="topic-card" id="elasticity-scaling-problem">
+        <span id="topic-02-problem" aria-hidden="true"></span><h3>Incident exercise · Flash-sale load overwhelms a healthy fleet</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> In preparation for a nationwide holiday flash sale, Brightloaf scheduled an email campaign driving shoppers to a limited-time bread and pastry promotion. At 10:00 IST, traffic surged from an average baseline of 120 requests per second to 420 requests per second. Within 90 seconds, shoppers began experiencing extreme checkout lag: p95 response times climbed from 180 ms to over 1,200 ms, exceeding the 800 ms checkout SLO. Soon after, the frontend load balancer began returning HTTP 504 Gateway Timeout errors to 24% of checkout requests. Strangely, the Compute Engine dashboard showed all virtual machines with green checkmarks, and the VM CPU utilization hovered at 78%. Customer support queues rapidly filled with complaints of unconfirmed transactions, abandoned carts, and shoppers unsure whether their payments had succeeded.</p>
+        <p><strong>Constraints and operational invariants:</strong> The fleet must operate with a two-zone minimum availability floor at all times; capacity expansion must respect project compute quotas and database connection limits (maximum 200 backend connections); and scaling operations must drain in-flight orders safely before terminating instances. Retried order submissions caused by frontend timeouts must strictly preserve the duplicate fulfillment invariant: each order key must produce at most one physical fulfillment.</p>
+        <p><strong>Evidence and root cause:</strong> Analysis of the Managed Instance Group autoscaler configuration revealed that the maximum instance count was hardcoded to <code>maxNumReplicas = 3</code>. At a tested sustained throughput of 80 requests per second per worker, three workers provided a hard ceiling of only 240 requests per second—far below the 420 requests per second demand. Additionally, the instance health check targeted a shallow endpoint (<code>/healthz</code>) that merely verified the HTTP listener was running, returning HTTP 200 even when internal request worker threads were completely blocked waiting on saturated database connections. Furthermore, the autoscaler had an initialization period of 300 seconds, meaning even if scaling were permitted, reactive scale-out was too slow to absorb a sudden flash-sale spike.</p>
+        <p><strong>Diagnostic sequence:</strong></p>
+        <ol>
+          <li>Compare incoming Application Load Balancer request rate (420 req/s) against configured MIG autoscaler target and maximum replica boundaries.</li>
+          <li>Examine instance-level latency distributions, worker thread saturation, and backlog queue depths across all active Order API virtual machines.</li>
+          <li>Inspect database connection pool metrics in Cloud Monitoring to determine if worker threads are stalled waiting for available database connections.</li>
+          <li>Review the health check configuration to verify whether probes assess deep subsystem readiness or merely shallow socket connectivity.</li>
+          <li>Audit Compute Engine project regional vCPU and IP address quotas to determine if autoscaler expansion is constrained by project limits.</li>
+        </ol>
+        <p><strong>Defensible solution:</strong> Implement a three-part scaling and capacity remediation: First, calculate required worker capacity with a 25% safety headroom for 420 req/s (420 × 1.25 / 80 = 6.56, rounding up to 7 workers) and adjust the autoscaler boundaries to <code>minReplicas = 2</code> (one per zone) and <code>maxReplicas = 8</code>. Second, establish a scheduled scaling policy that pre-warms the instance group to 7 instances 30 minutes prior to scheduled promotional campaigns, eliminating startup latency lag. Third, replace the shallow health probe with a decoupled health model: use a lightweight liveness probe for VM restarts, and an Application Load Balancer readiness probe that evaluates internal worker queue depth and database connection availability. Configure scale-in controls with a 300-second stabilization window and graceful connection draining (<code>drainingTimeoutSec = 60</code>) so that terminating instances finish processing active checkout requests.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day12-scaling-incident-title day12-scaling-incident-desc" viewBox="0 0 940 320">
+<title id="day12-scaling-incident-title">Flash-Sale Autoscaler Saturation and Pre-Warmed Scaling Remediation</title>
+<desc id="day12-scaling-incident-desc">Incident diagram showing flash-sale traffic exhausting a hardcoded 3-worker autoscaling limit while shallow health checks report green, and the corrected pre-warmed 7-worker deployment with deep readiness probes.</desc>
+<defs>
+<marker id="day12-ok-arrow-2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day12-fail-arrow-2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="160" height="90" rx="8" stroke="#38bdf8"/>
+<rect x="220" y="25" width="460" height="115" rx="8" stroke="#f43f5e" stroke-dasharray="7 5"/>
+<rect x="220" y="175" width="460" height="115" rx="8" stroke="#34d399"/>
+<rect x="720" y="110" width="200" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="600" text-anchor="middle">
+<text x="100" y="136">Flash Sale Surge</text>
+<text x="100" y="152" fill="#eab308">420 req/s Peak Demand</text>
+<text x="100" y="168" fill="#a9b7cb">Baseline was 120 req/s</text>
+<text x="100" y="184" fill="#38bdf8">Promotional Campaign</text>
+
+<!-- Failed Path -->
+<text x="450" y="44" fill="#f43f5e" font-weight="700">[FAILED PATH: Rigid 3-Worker Limit &amp; Shallow Health Check]</text>
+<text x="450" y="60" fill="#fce7f3">MIG maxNumReplicas capped at 3 VMs (Nominal max: 240 req/s)</text>
+<text x="450" y="76" fill="#f43f5e">EXACT FAILURE POINT: Concurrency queues saturate; p95 latency &gt; 1,200 ms</text>
+<text x="450" y="92" fill="#f43f5e">Root Cause: Shallow /healthz returns 200 while thread pools are exhausted</text>
+<text x="450" y="108" fill="#f43f5e">Reactive autoscaler takes 300s to launch; ALB hits 30s timeout → HTTP 504</text>
+<text x="450" y="124" fill="#a9b7cb">Cart abandonment surges; customer support overloaded with payment disputes</text>
+
+<!-- Corrected Path -->
+<text x="450" y="194" fill="#34d399" font-weight="700">[CORRECTED CONTROL: Scheduled Pre-Warming, 7-Worker Max &amp; Deep Probe]</text>
+<text x="450" y="210" fill="#fce7f3">Scheduled policy pre-warms fleet to 7 workers (25% headroom) 30 min before sale</text>
+<text x="450" y="226" fill="#34d399">CORRECTED CONTROL: Deep /ready probe monitors queue depth &amp; DB connections</text>
+<text x="450" y="242" fill="#34d399">Autoscaler maxReplicas raised to 8; graceful connection draining set to 60s</text>
+<text x="450" y="258" fill="#34d399">Database connection pool sized to 200 to prevent downstream saturation</text>
+<text x="450" y="274" fill="#a9b7cb">Order Invariant: Client retry during timeout preserves &lt;= 1 fulfillment</text>
+
+<!-- Verification Boundary -->
+<text x="820" y="136">VERIFICATION BOUNDARY</text>
+<text x="820" y="154" fill="#34d399" font-weight="700">p95 Latency &lt; 350 ms</text>
+<text x="820" y="170" fill="#34d399">Zero 504 Timeouts</text>
+<text x="820" y="186" fill="#a9b7cb">420 req/s Sustained</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 135 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day12-fail-arrow-2)"/>
+<path d="M680 85 L720 135" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day12-fail-arrow-2)"/>
+<path d="M180 175 L220 230" stroke="#34d399" marker-end="url(#day12-ok-arrow-2)"/>
+<path d="M680 230 L720 175" stroke="#34d399" marker-end="url(#day12-ok-arrow-2)"/>
+</g>
+<text x="470" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed red line (--&gt;) = 3-worker ceiling saturation &amp; 504 timeouts · Solid green line (—&gt;) = Pre-warmed 7-worker capacity</text>
+</svg>
+<figcaption>Figure 12.5: Supplied facts: A 420 req/s flash sale overwhelmed a 3-worker fleet causing p95 latency &gt;1,200ms and HTTP 504 timeouts despite green VM metrics. Architectural inference: Reactive autoscaling and shallow health checks cannot prevent queue saturation during sudden traffic spikes. Expected post-fix behavior: Pre-warming to 7 workers with deep readiness checks maintains p95 latency under 350ms with zero timeout errors.</figcaption>
+</figure>
+        <p><strong>Verification and residual risk:</strong> Execute a synthetic load test simulating 420 requests per second; verify that the pre-warmed 7-worker fleet maintains p95 latency below 350 ms across both zones with zero HTTP 504 errors; test scale-in behavior after traffic recedes to verify that instances drain in-flight connections without aborting orders; verify that retried orders hit the idempotency cache and never produce duplicate fulfillments. Residual risk: Sizing horizontal workers to absorb peak demand shifts the bottleneck downstream to the relational database. If sale volume exceeds 600 requests per second, the database write capacity will saturate, necessitating read replicas, connection pooling proxies, or asynchronous order queuing.</p>
+      </article>
+      <article class="topic-card" id="cloud-economics-problem">
+        <span id="topic-03-problem" aria-hidden="true"></span><h3>Incident exercise · The promotion looks profitable until the bill arrives</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> Following the conclusion of Brightloaf's successful 30-day marketing promotion, the finance team conducted a post-campaign profitability review. The marketing director reported 120,000 completed orders and celebrated that the compute fleet matched the planned capacity model. However, when the monthly Google Cloud billing invoice arrived, the total charge for the Order API infrastructure was $542—nearly three times higher than the approved estimate of $180. Because the infrastructure cost per completed order surged from the budgeted $0.0015 to $0.0045, the promotion operated at an operational loss. The chief financial officer immediately initiated an emergency budget freeze and ordered an audit of cloud expenditures.</p>
+        <p><strong>Constraints and operational invariants:</strong> Brightloaf cannot reduce cloud costs by compromising reliability; it must maintain two-zone minimum compute redundancy, high-availability database replication, and regulatory data retention. Cost optimizations must not weaken the duplicate fulfillment invariant or relocate order data outside India. All cost models must use current, published Google Cloud Pricing Calculator rates and contract terms rather than informal estimates.</p>
+        <p><strong>Evidence and root cause:</strong> Detailed inspection of Cloud Billing Cost Table reports broken down by SKU revealed multiple unmodelled expenditure categories. The original estimate naively multiplied the hourly compute price of a single VM by operating hours. It completely omitted: (1) the second always-on VM required for multi-zone high availability; (2) provisioned zonal SSD persistent boot disks that bill 24/7 regardless of whether an autoscaled VM is active or idle; (3) inter-zone and cross-region network egress generated by an unoptimized analytics pipeline querying the primary database from an overseas office; (4) daily snapshot storage and backup retention; and (5) Cloud Logging ingestion volume generated by verbose debug-level logging left enabled in production.</p>
+        <p><strong>Diagnostic sequence:</strong></p>
+        <ol>
+          <li>Export detailed Cloud Billing data to BigQuery and query charges grouped by service and SKU descriptions to identify top cost drivers.</li>
+          <li>Compare the invoiced SKUs line-by-line against the original pre-deployment cost model spreadsheet to detect omitted infrastructure components.</li>
+          <li>Analyze network egress reports to trace the volume, source, and destination of cross-zone and cross-region data transfers.</li>
+          <li>Audit Compute Engine persistent disk allocations to verify whether disks attached to scaled-down ephemeral VMs were orphaned or retained.</li>
+          <li>Review Cloud Logging and Cloud Monitoring ingestion rates to evaluate non-compute operational overheads.</li>
+        </ol>
+        <p><strong>Defensible solution:</strong> Transition from naive VM-only math to a comprehensive multi-resource Cloud Bill of Materials (BOM) framework. Model all six primary cost drivers: base compute (2 always-on VMs across 2 zones), burst compute (autoscaled instances during peak hours), persistent disk storage, database HA and backup storage, network egress (optimizing cross-zone traffic and eliminating unnecessary cross-region queries), and observability ingestion. Re-estimate costs using the official Google Cloud Pricing Calculator. Implement automated financial guardrails: configure Cloud Billing budget alerts with email and Pub/Sub notifications at 50%, 80%, and 100% of forecast; establish auto-delete policies for ephemeral VM boot disks upon scale-in; tune logging levels from debug to info/warning in production; and co-locate analytics queries within the primary region.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day12-cost-incident-title day12-cost-incident-desc" viewBox="0 0 940 320">
+<title id="day12-cost-incident-title">Cost Estimation Omission Failure and Bill of Materials Remediation</title>
+<desc id="day12-cost-incident-desc">Incident diagram illustrating an unbudgeted 180% cloud invoice overrun caused by naive VM-only math omitting persistent storage, HA replicas, and cross-region egress, and the corrected multi-resource Bill of Materials governance framework.</desc>
+<defs>
+<marker id="day12-ok-arrow-3" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day12-fail-arrow-3" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="160" height="90" rx="8" stroke="#38bdf8"/>
+<rect x="220" y="25" width="460" height="115" rx="8" stroke="#f43f5e" stroke-dasharray="7 5"/>
+<rect x="220" y="175" width="460" height="115" rx="8" stroke="#34d399"/>
+<rect x="720" y="110" width="200" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="600" text-anchor="middle">
+<text x="100" y="136">Promotion Launch</text>
+<text x="100" y="152" fill="#34d399">120,000 Orders</text>
+<text x="100" y="168" fill="#a9b7cb">Target Margin: $0.0015</text>
+<text x="100" y="184" fill="#eab308">Finance Budget: $180</text>
+
+<!-- Failed Path -->
+<text x="450" y="44" fill="#f43f5e" font-weight="700">[FAILED ESTIMATE: Naive VM-Only Spreadsheet Calculation]</text>
+<text x="450" y="60" fill="#fce7f3">Forecast counted only 1 VM compute hour rate ($0.10/hr × hours)</text>
+<text x="450" y="76" fill="#f43f5e">EXACT FAILURE POINT: Cloud Billing invoice arrives at $542 (180% overrun!)</text>
+<text x="450" y="92" fill="#f43f5e">Root Cause: Omitted 2nd zone HA VM, 24/7 SSD persistent disks, cross-region egress</text>
+<text x="450" y="108" fill="#f43f5e">Omitted snapshot retention, ALB rules, and debug logging ingestion volume</text>
+<text x="450" y="124" fill="#a9b7cb">Campaign operates at a financial loss; emergency executive spending freeze</text>
+
+<!-- Corrected Path -->
+<text x="450" y="194" fill="#34d399" font-weight="700">[CORRECTED CONTROL: Comprehensive Bill of Materials &amp; Budget Alerts]</text>
+<text x="450" y="210" fill="#fce7f3">Full BOM modeled in Pricing Calculator: 2 baseline VMs + burst VM hours</text>
+<text x="450" y="226" fill="#34d399">CORRECTED CONTROL: Automated disk cleanup on scale-in; co-located analytics</text>
+<text x="450" y="242" fill="#34d399">Budget alerts configured with Pub/Sub thresholds at 50%, 80%, 100%</text>
+<text x="450" y="258" fill="#34d399">Production logging filtered to warning/error to cut observability ingestion</text>
+<text x="450" y="274" fill="#a9b7cb">Order Invariant: Cost optimizations retain &lt;= 1 fulfillment guarantee</text>
+
+<!-- Verification Boundary -->
+<text x="820" y="136">VERIFICATION BOUNDARY</text>
+<text x="820" y="154" fill="#34d399" font-weight="700">Invoice Variance &lt; 5%</text>
+<text x="820" y="170" fill="#34d399">Cost/Order: $0.00045</text>
+<text x="820" y="186" fill="#a9b7cb">Profitable Margins</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 135 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day12-fail-arrow-3)"/>
+<path d="M680 85 L720 135" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day12-fail-arrow-3)"/>
+<path d="M180 175 L220 230" stroke="#34d399" marker-end="url(#day12-ok-arrow-3)"/>
+<path d="M680 230 L720 175" stroke="#34d399" marker-end="url(#day12-ok-arrow-3)"/>
+</g>
+<text x="470" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed red line (--&gt;) = Naive VM calculation &amp; 180% overrun · Solid green line (—&gt;) = Comprehensive BOM governance</text>
+</svg>
+<figcaption>Figure 12.6: Supplied facts: A marketing promotion generated $542 in cloud costs against an estimated $180 due to unmodelled non-compute infrastructure. Architectural inference: Naive single-resource modeling ignores the compounded cost of multi-zone availability, persistent storage, and network egress. Expected post-fix behavior: Utilizing a multi-resource Bill of Materials with automated budget alerts limits budget variance to under 5% while safeguarding profitability.</figcaption>
+</figure>
+        <p><strong>Verification and residual risk:</strong> Reconcile the next monthly billing report against the revised BOM model; verify that actual billed charges deviate by less than 5% from the model; verify that budget alerts trigger notifications accurately during synthetic spend testing; confirm that logging adjustments and disk lifecycle automation do not impact diagnostic observability or the order fulfillment invariant. Residual risk: Budget alerts provide notifications but do not automatically terminate cloud resources or cap spend (to prevent accidental production outages). Therefore, operational governance and regular cost reviews by the platform team remain necessary to prevent unexpected resource sprawl.</p>
+      </article>
+    </section>
+
+    <section class="part" id="part-4" aria-labelledby="part-4-title">
+      <h2 id="part-4-title">Part 4 · Step-by-step labs</h2>
+      <p><strong>Shared lab mode:</strong> read-only Google Cloud queries plus a local Linux/Python model. These exercises create no Google Cloud resources and require no billing-enabled deployment. The synthetic Brightloaf numbers are fixed teaching inputs; replace them with measured traffic and current prices before any production decision.</p>
+      <article class="topic-card lab" id="regions-zones-edge-lab">
+        <span id="topic-01-lab" aria-hidden="true"></span><h3>Lab 1 · Verify two India deployment locations</h3>
+        <p><strong>Goal and expected result.</strong> Confirm that Mumbai and Delhi region entries are available to the selected project, inspect their zone scopes, and save a location comparison. The decision should name which geography is allowed, which failure domain each design survives and which facts still require latency measurement.</p>
+        <p><strong>Mode.</strong> Read-only cloud query and local files. <strong>Preflight checklist.</strong> Open a Linux terminal with Google Cloud CLI installed. Verify the CLI, active identity and selected project; stop if the project is not your authorized study project. The Compute Engine API must already be enabled, and the identity needs permission to read region and zone metadata.</p>
+        <div class="step"><h4>1. Verify the selected context</h4><pre><code class="language-bash">gcloud --version
+gcloud auth list --filter='status:ACTIVE' --format='table(account,status)'
+gcloud config get-value project
+PROJECT_ID="$(gcloud config get-value project)"
+test -n "$PROJECT_ID" &amp;&amp; test "$PROJECT_ID" != '(unset)'
+printf 'Study project: %s\n' "$PROJECT_ID"</code></pre><p><strong>Expected output.</strong> The CLI version appears, one active account is listed, and the final line prints the project ID. If the project is unset or unfamiliar, do not continue with an implicit default.</p></div>
+        <div class="step"><h4>2. Read each region and its zones</h4><pre><code class="language-bash">gcloud compute regions describe asia-south1 --project="$PROJECT_ID" --format='json(name,status,zones)'
+gcloud compute regions describe asia-south2 --project="$PROJECT_ID" --format='json(name,status,zones)'
+gcloud compute zones list --project="$PROJECT_ID" --filter='name~^asia-south(1|2)-' --format='table(name,region,status)'</code></pre><p><strong>Expected output shape.</strong> Each region JSON object has <code>name</code>, <code>status</code> and a <code>zones</code> array. The table lists zone names and status; exact entries can change, so use the live response rather than a hard-coded count. The CLI may report <code>PERMISSION_DENIED</code> or an API-not-enabled error if the project setup is incomplete.</p></div>
+        <div class="step"><h4>3. Write the placement decision</h4><p>Create a durable artifact using the observed zone names. This exact starting decision leaves the observed-zone and latency fields explicitly marked for measurement instead of inventing results.</p><pre><code class="language-bash">cat &gt; day-012-location-decision.md &lt;&lt;'EOF'
+# Brightloaf India location decision — Day 12
+
+Workload: dynamic Order API checkout and its order state.
+Candidate A: asia-south1 (Mumbai); use at least two observed healthy zones.
+Candidate B: asia-south2 (Delhi); use at least two observed healthy zones.
+Residency assumption: both regions must pass Brightloaf's approved India-data policy before use.
+Latency assumption: no measured customer-to-region or API-to-data latency is available yet; measure both candidates.
+Failure-domain decision: two zones protect against one zone failure; a second region requires a separate recovery design.
+Cost assumption: current compute, storage, network and recovery prices require a calculator estimate.
+Order invariant: a repeated order or replayed event cannot create a second fulfillment.
+Decision status: provisional until latency, residency, price and dependency scopes are verified.
+EOF
+PROJECT_ID="$(gcloud config get-value project)"
+printf '\n## Observed region and zone metadata\n' &gt;&gt; day-012-location-decision.md
+gcloud compute regions describe asia-south1 --project="$PROJECT_ID" --format='yaml(name,status,zones)' &gt;&gt; day-012-location-decision.md
+gcloud compute regions describe asia-south2 --project="$PROJECT_ID" --format='yaml(name,status,zones)' &gt;&gt; day-012-location-decision.md
+gcloud compute zones list --project="$PROJECT_ID" --filter='name~^asia-south(1|2)-' --format='table(name,region,status)' &gt;&gt; day-012-location-decision.md
+sed -n '1,14p' day-012-location-decision.md</code></pre><p><strong>Why.</strong> A defensible location decision separates facts returned by the API from unmeasured assumptions. It also prevents an edge or multi-zone choice from being mistaken for full multi-region recovery.</p></div>
+        <div class="callout success"><strong>Verification and acceptance</strong><p>Confirm two successful region descriptions, observed zone statuses, and a saved decision that names latency, residency, cost and failure domains. The region and zone output is read-only evidence; it does not demonstrate application latency or a failover test.</p></div>
+        <div class="callout caution"><strong>Troubleshooting</strong><p>If authentication fails, check the active account and project again. If the Compute Engine API is disabled, ask the project owner to enable it; this lab does not enable APIs. If a region status or zone availability differs from the lesson, record the live result and revise the provisional decision.</p></div>
+        <p><strong>Cleanup.</strong> No cloud resource was created, so there is no cloud deletion command. Keep the decision artifact as exit evidence; no temporary local file is created by this lab.</p>
+      </article>
+      <article class="topic-card lab" id="elasticity-scaling-lab">
+        <span id="topic-02-lab" aria-hidden="true"></span><h3>Lab 2 · Model baseline and sale-burst capacity</h3>
+        <p><strong>Goal and expected result.</strong> Compute a reproducible lower bound for horizontal workers and show why a three-worker maximum cannot serve the stated peak. <strong>Mode.</strong> Local Python 3; the Google Cloud context check remains read-only.</p>
+        <div class="step"><h4>1. Preflight the CLI context and Python runtime</h4><pre><code class="language-bash">gcloud auth list --filter='status:ACTIVE' --format='table(account,status)'
+gcloud config get-value project
+python3 --version</code></pre><p><strong>Expected output.</strong> An active account, the same study project as Lab 1, and a Python 3 version appear. This step makes the project context visible even though the capacity model itself runs locally.</p></div>
+        <div class="step"><h4>2. Create and run the complete model</h4><p>Open the same terminal. The code uses 80 sustained requests per second per worker, 120 baseline requests per second and 420 sale requests per second. It applies 25% capacity headroom before rounding up.</p><pre><code class="language-bash">cat &gt; day-012-capacity.py &lt;&lt;'PY'
+from math import ceil
+
+CAPACITY_PER_WORKER = 80
+BASELINE_REQUESTS_PER_SECOND = 120
+SALE_REQUESTS_PER_SECOND = 420
+HEADROOM_MULTIPLIER = 1.25
+MINIMUM_WORKERS = 2
+CURRENT_MAXIMUM_WORKERS = 3
+
+for name, demand in (
+    ("baseline", BASELINE_REQUESTS_PER_SECOND),
+    ("sale", SALE_REQUESTS_PER_SECOND),
+):
+    bare_minimum = ceil(demand / CAPACITY_PER_WORKER)
+    with_headroom = max(MINIMUM_WORKERS, ceil(demand * HEADROOM_MULTIPLIER / CAPACITY_PER_WORKER))
+    print(f"{name}: demand={demand} req/s, bare_minimum={bare_minimum}, with_25_percent_headroom={with_headroom}")
+
+maximum_capacity = CURRENT_MAXIMUM_WORKERS * CAPACITY_PER_WORKER
+print(f"current_maximum_capacity={maximum_capacity} req/s")
+print(f"sale_exceeds_current_maximum={SALE_REQUESTS_PER_SECOND &gt; maximum_capacity}")
+PY
+python3 day-012-capacity.py</code></pre><p><strong>Expected terminal output.</strong></p><pre><code class="language-text">baseline: demand=120 req/s, bare_minimum=2, with_25_percent_headroom=2
+sale: demand=420 req/s, bare_minimum=6, with_25_percent_headroom=7
+current_maximum_capacity=240 req/s
+sale_exceeds_current_maximum=True</code></pre><p><strong>Why.</strong> Rounding up avoids a fractional worker. Seven is a planning target with simple headroom, not proof that seven workers pass an end-to-end load test or zone-failure test.</p></div>
+        <div class="step"><h4>3. Save the interpretation</h4><pre><code class="language-bash">cat &gt; day-012-capacity-decision.md &lt;&lt;'EOF'
+# Brightloaf Order API capacity decision — Day 12
+
+Measured-input status: exercise assumptions, not production measurements.
+Per-worker sustained capacity at target latency: 80 requests/second.
+Baseline demand: 120 requests/second; two workers meet the arithmetic minimum.
+Sale demand: 420 requests/second; six workers are the arithmetic minimum.
+Planning target with 25 percent headroom: seven workers at sale demand.
+Current maximum of three workers: only 240 requests/second nominal capacity.
+Required follow-up: test complete request path, startup time, readiness, quota, database connection limits and one-zone failure.
+Order invariant: parallel retry and event replay must still produce at most one fulfillment per order.
+EOF
+cat day-012-capacity-decision.md</code></pre></div>
+        <div class="callout success"><strong>Verification and acceptance</strong><p>The terminal prints the four expected lines and the saved note states the assumptions, arithmetic and follow-up tests. The note must distinguish load-tested capacity from this exercise model.</p></div>
+        <div class="callout caution"><strong>Troubleshooting</strong><p>If the Python output differs, check the six constants at the top of the file and rerun it. If Python is unavailable, install it through your approved local package process; no Google Cloud resource is needed. Do not interpret a successful script as evidence that an autoscaler or database can reach the target.</p></div>
+        <p><strong>Cleanup in reverse dependency order.</strong> Keep the decision note as evidence. Delete the executable model after verification; it created no cloud resource.</p><pre><code class="language-bash">rm day-012-capacity.py
+test ! -e day-012-capacity.py
+test -f day-012-capacity-decision.md</code></pre>
+      </article>
+      <article class="topic-card lab" id="cloud-economics-lab">
+        <span id="topic-03-lab" aria-hidden="true"></span><h3>Lab 3 · Compare an elastic and fixed-capacity month</h3>
+        <p><strong>Goal and expected result.</strong> Calculate the worker-hour difference for the same 420-requests-per-second sale target, then list the charges the model omits. <strong>Mode.</strong> Local Python 3 and a browser visit to the current Google Cloud Pricing Calculator. The unit rate in this code is invented for arithmetic teaching and must never be quoted as a Google Cloud price.</p>
+        <div class="step"><h4>1. Preflight identity, project and calculator access</h4><pre><code class="language-bash">gcloud auth list --filter='status:ACTIVE' --format='table(account,status)'
+gcloud config get-value project
+python3 --version</code></pre><p><strong>Expected output.</strong> The same active identity and study project remain visible. Open <a href="https://cloud.google.com/products/calculator">Google Cloud Pricing Calculator</a> in a browser, select Compute Engine, and compare the current price for the chosen region and machine family with the rate used in any production estimate. No sign-in or resource creation is required for the local arithmetic.</p></div>
+        <div class="step"><h4>2. Run the complete cost comparison</h4><p>The model assumes a 30-day month, four peak hours per day, two always-on workers and seven total workers during peak. It includes only worker runtime at an invented rate of 0.10 currency units per worker-hour.</p><pre><code class="language-bash">cat &gt; day-012-economics.py &lt;&lt;'PY'
+DAYS = 30
+HOURS_PER_DAY = 24
+PEAK_HOURS_PER_DAY = 4
+BASE_WORKERS = 2
+PEAK_WORKERS = 7
+ASSUMED_RATE_PER_WORKER_HOUR = 0.10
+
+monthly_hours = DAYS * HOURS_PER_DAY
+peak_hours = DAYS * PEAK_HOURS_PER_DAY
+base_hours = BASE_WORKERS * monthly_hours
+extra_peak_hours = (PEAK_WORKERS - BASE_WORKERS) * peak_hours
+elastic_worker_hours = base_hours + extra_peak_hours
+fixed_worker_hours = PEAK_WORKERS * monthly_hours
+elastic_model_cost = elastic_worker_hours * ASSUMED_RATE_PER_WORKER_HOUR
+fixed_model_cost = fixed_worker_hours * ASSUMED_RATE_PER_WORKER_HOUR
+
+print(f"base_worker_hours={base_hours}")
+print(f"extra_peak_worker_hours={extra_peak_hours}")
+print(f"elastic_worker_hours={elastic_worker_hours}")
+print(f"fixed_worker_hours={fixed_worker_hours}")
+print(f"elastic_model_cost={elastic_model_cost:.2f} invented units")
+print(f"fixed_model_cost={fixed_model_cost:.2f} invented units")
+print(f"modeled_difference={fixed_model_cost - elastic_model_cost:.2f} invented units")
+PY
+python3 day-012-economics.py</code></pre><p><strong>Expected terminal output.</strong></p><pre><code class="language-text">base_worker_hours=1440
+extra_peak_worker_hours=600
+elastic_worker_hours=2040
+fixed_worker_hours=5040
+elastic_model_cost=204.00 invented units
+fixed_model_cost=504.00 invented units
+modeled_difference=300.00 invented units</code></pre><p><strong>Why.</strong> The arithmetic isolates the value of releasing burst workers. It deliberately excludes VM-type pricing details, discounts, disks, database, network, load balancing, logs, backup and tax. It also assumes immediate scale-out and scale-in, which must be tested or replaced with measured timings.</p></div>
+        <div class="step"><h4>3. Record what a purchasing estimate still needs</h4><pre><code class="language-bash">cat &gt; day-012-economics-decision.md &lt;&lt;'EOF'
+# Brightloaf cloud-economics decision — Day 12
+
+Exercise comparison: 2040 elastic worker-hours versus 5040 fixed worker-hours per 30-day month.
+Exercise-only rate: 0.10 invented currency units per worker-hour; this is not a Google Cloud price.
+Modeled worker-only difference: 300.00 invented units.
+Keep two baseline workers across separate zones for zonal availability.
+Current calculator follow-up: price the chosen machine family separately in asia-south1 and asia-south2.
+Add data storage, backups, load balancing, observability, internet egress and cross-region traffic.
+Check contract discounts, taxes, quota and actual scaling timings with the billing and platform owners.
+Decision status: provisional until current prices and measured traffic are entered.
+Order invariant: cost optimization must not permit duplicate fulfillment on event replay.
+EOF
+cat day-012-economics-decision.md</code></pre></div>
+        <div class="callout success"><strong>Verification and acceptance</strong><p>Check all seven output lines, retain the decision note, and add a current calculator estimate for both candidate regions before approving a production location. The day exit artifact is the three notes together: placement, capacity and economics.</p></div>
+        <div class="callout caution"><strong>Troubleshooting</strong><p>If the figures differ, confirm a 30-day month and four daily peak hours, then rerun the script. If calculator prices differ from an older estimate, use the current calculator and record the date and selected configuration. If a budget alert exists, remember that it notifies; it does not halt charges.</p></div>
+        <p><strong>Cleanup in reverse dependency order.</strong> Keep the three decision notes as evidence. Delete this model after its output is checked, then confirm no model scripts or Google Cloud resources remain from today’s read-only labs.</p><pre><code class="language-bash">rm day-012-economics.py
+test ! -e day-012-economics.py
+test ! -e day-012-capacity.py
+test -f day-012-location-decision.md
+test -f day-012-capacity-decision.md
+test -f day-012-economics-decision.md</code></pre>
+      </article>
+    </section>
+    <section class="completion" aria-labelledby="exit-title"><h2 id="exit-title">Daily evidence</h2><p>Submit the three saved decisions. Name the selected location, measured versus assumed latency, residency approval status, zonal and regional failure scope, sale-capacity target, and complete cost items. Mark the decision provisional wherever evidence is still missing.</p></section>
+    <nav class="pager" aria-label="Day pagination"><a href="day-011.html">← Day 11<small>Cloud service models and responsibility</small></a><a href="../index.html">All 180 days<small>Roadmap index</small></a><a href="day-013.html">Day 13 →<small>State, availability and recovery vocabulary</small></a></nav>
+  </main>
+  <footer class="site-footer">GCP Architect · 180-day independent study · Day 12</footer>
+</body>
+</html>

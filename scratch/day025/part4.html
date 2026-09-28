@@ -1,0 +1,476 @@
+    <section class="part" id="part-4" aria-labelledby="part-4-heading">
+      <h2 id="part-4-heading">Part 4 · Step-by-step labs</h2>
+      <p class="section-lead">Hands-on exercises: decomposing predefined roles into surgical custom roles, validating Common Expression Language (CEL) policy version 3 conditions, and computing hierarchical effective policies with authorization evidence generation.</p>
+
+      <!-- Lab 01 -->
+      <article class="card" id="topic-01-lab" aria-labelledby="l1-heading">
+        <span class="badge">Lab 25.1</span>
+        <h3 id="l1-heading">Predefined vs. Custom Role Differential Engine</h3>
+        <p><strong>Goal:</strong> Analyze the permission delta between a dangerous basic or broad predefined role and a surgical custom role, demonstrating least-privilege boundary enforcement.</p>
+        <p><strong>Expected Result:</strong> An automated audit report highlighting destructive API verbs stripped from the operational role (e.g., stripping <code>cloudsql.instances.delete</code> from Cloud SQL operators).</p>
+        <p><strong>Mode:</strong> Local Python analysis script executing in sandbox mode.</p>
+
+        <h4>Preflight Checks</h4>
+        <ol>
+          <li>Ensure Python 3.10+ is installed in your local shell environment.</li>
+          <li>Verify write permissions within the local working scratch directory.</li>
+        </ol>
+
+        <h4>Exact Execution Steps</h4>
+        <ol>
+          <li>Create a Python script named <code>diff-iam-roles.py</code> in the scratch directory:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day025/diff-iam-roles.py
+#!/usr/bin/env python3
+"""
+diff-iam-roles.py - Differential Analyzer for IAM Roles
+Compares broad predefined/basic roles against tailored custom roles.
+"""
+import json
+
+ROLE_EDITOR_PERMS = {
+    "cloudsql.instances.get",
+    "cloudsql.instances.list",
+    "cloudsql.instances.restart",
+    "cloudsql.instances.export",
+    "cloudsql.instances.delete",
+    "cloudsql.databases.delete",
+    "cloudsql.users.delete",
+    "compute.instances.delete",
+    "storage.buckets.delete",
+    "pubsub.topics.delete"
+}
+
+CUSTOM_OPERATOR_PERMS = {
+    "cloudsql.instances.get",
+    "cloudsql.instances.list",
+    "cloudsql.instances.restart",
+    "cloudsql.instances.export"
+}
+
+def analyze_roles(source_perms, target_perms, role_name):
+    allowed = target_perms.intersection(source_perms)
+    stripped = source_perms - target_perms
+    excess = target_perms - source_perms
+
+    print(f"=== IAM Role Differential Audit: {role_name} ===")
+    print(f"Total Base Permissions Evaluated: {len(source_perms)}")
+    print(f"Permissions Retained in Custom Role: {len(allowed)}")
+    print(f"Destructive/Excess Permissions Stripped: {len(stripped)}")
+    print("-" * 50)
+    print("Retained Operational Permissions (ALLOWED):")
+    for p in sorted(allowed):
+        print(f"  [+] {p}")
+    print("\nStripped High-Risk Permissions (BLOCKED):")
+    for p in sorted(stripped):
+        print(f"  [-] {p}")
+    
+    # Assert critical invariant: destructive actions must be stripped
+    assert "cloudsql.instances.delete" not in target_perms, "SECURITY FAULT: Deletion verb present!"
+    print("\n[LEAST PRIVILEGE COMPLIANCE]: PASSED (All destructive verbs purged)")
+
+if __name__ == "__main__":
+    analyze_roles(ROLE_EDITOR_PERMS, CUSTOM_OPERATOR_PERMS, "brightloafSqlOperator")
+EOF
+chmod +x scratch/day025/diff-iam-roles.py</code></pre>
+          </li>
+          <li>Execute the role differential audit engine:
+            <pre><code class="language-bash">python3 scratch/day025/diff-iam-roles.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">=== IAM Role Differential Audit: brightloafSqlOperator ===
+Total Base Permissions Evaluated: 10
+Permissions Retained in Custom Role: 4
+Destructive/Excess Permissions Stripped: 6
+--------------------------------------------------
+Retained Operational Permissions (ALLOWED):
+  [+] cloudsql.instances.export
+  [+] cloudsql.instances.get
+  [+] cloudsql.instances.list
+  [+] cloudsql.instances.restart
+
+Stripped High-Risk Permissions (BLOCKED):
+  [-] cloudsql.databases.delete
+  [-] cloudsql.instances.delete
+  [-] cloudsql.users.delete
+  [-] compute.instances.delete
+  [-] pubsub.topics.delete
+  [-] storage.buckets.delete
+
+[LEAST PRIVILEGE COMPLIANCE]: PASSED (All destructive verbs purged)</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>AssertionError: SECURITY FAULT:</em> Ensure <code>cloudsql.instances.delete</code> is omitted from the custom role permissions set.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Keep the script in the scratch folder for cross-verification with Lab 25.3.</p>
+      </article>
+
+      <!-- Lab 02 -->
+      <article class="card" id="topic-02-lab" aria-labelledby="l2-heading">
+        <span class="badge">Lab 25.2</span>
+        <h3 id="l2-heading">IAM Policy Version 3 &amp; CEL Condition Evaluation Simulator</h3>
+        <p><strong>Goal:</strong> Implement and validate a Common Expression Language (CEL) condition evaluator that checks request timestamps, resource name prefixes, and resource tags against an IAM Policy Version 3 schema.</p>
+        <p><strong>Expected Result:</strong> Exact authorization decisions (ALLOW vs. DENY) output for positive and negative test cases against temporal and resource boundaries.</p>
+        <p><strong>Mode:</strong> Python runtime simulator implementing standard IAM condition evaluation logic.</p>
+
+        <h4>Preflight Checks</h4>
+        <ol>
+          <li>Confirm Python standard libraries <code>json</code> and <code>datetime</code> are accessible.</li>
+          <li>Verify understanding of RFC 3339 UTC timestamp formatting.</li>
+        </ol>
+
+        <h4>Exact Execution Steps</h4>
+        <ol>
+          <li>Create a Python script named <code>simulate-iam-conditions.py</code> in the scratch directory:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day025/simulate-iam-conditions.py
+#!/usr/bin/env python3
+"""
+simulate-iam-conditions.py - IAM Policy v3 & CEL Condition Evaluation Engine
+Tests allowed and denied operations against temporal and resource-name conditions.
+"""
+from datetime import datetime, timezone
+import json
+
+# IAM Policy Document Schema Version 3
+POLICY_V3 = {
+    "version": 3,
+    "etag": "BwZ1a2b3c4d=",
+    "bindings": [
+        {
+            "role": "roles/clouddeploy.releaser",
+            "members": ["serviceAccount:sa-deploy@brightloaf-prod.iam.gserviceaccount.com"],
+            "condition": {
+                "title": "emergency_maintenance_window",
+                "description": "Permit release creation during emergency window in UTC",
+                "expression": "request.time < timestamp('2026-09-28T04:00:00Z')"
+            }
+        },
+        {
+            "role": "roles/pubsub.publisher",
+            "members": ["serviceAccount:order-ingest@brightloaf-prod.iam.gserviceaccount.com"],
+            "condition": {
+                "title": "prod_orders_topic_only",
+                "description": "Restrict publishing to prod-orders topics only",
+                "expression": "resource.name.startsWith('projects/_/topics/prod-orders')"
+            }
+        }
+    ]
+}
+
+def evaluate_request(principal, role, req_time_iso, resource_name):
+    req_time = datetime.fromisoformat(req_time_iso.replace("Z", "+00:00"))
+    
+    for binding in POLICY_V3["bindings"]:
+        if binding["role"] == role and principal in binding["members"]:
+            cond = binding.get("condition")
+            if not cond:
+                return True, "ALLOWED (Unconditional Binding)"
+            
+            expr = cond["expression"]
+            # Evaluate temporal condition
+            if "request.time < timestamp(" in expr:
+                cutoff_str = expr.split("'")[1].replace("Z", "+00:00")
+                cutoff_time = datetime.fromisoformat(cutoff_str)
+                if req_time < cutoff_time:
+                    return True, f"ALLOWED (Condition Passed: {cond['title']})"
+                else:
+                    return False, f"DENIED (Condition Expired: req_time={req_time_iso} >= cutoff={cutoff_str})"
+            
+            # Evaluate resource name prefix condition
+            if "resource.name.startsWith(" in expr:
+                prefix = expr.split("'")[1]
+                if resource_name.startswith(prefix):
+                    return True, f"ALLOWED (Condition Passed: prefix match '{prefix}')"
+                else:
+                    return False, f"DENIED (Condition Failed: '{resource_name}' does not start with '{prefix}')"
+                    
+    return False, "DENIED (No matching binding found)"
+
+def run_test_suite():
+    tests = [
+        {
+            "name": "Test 1: SRE Deployer during maintenance window (ALLOWED)",
+            "principal": "serviceAccount:sa-deploy@brightloaf-prod.iam.gserviceaccount.com",
+            "role": "roles/clouddeploy.releaser",
+            "req_time": "2026-09-27T19:00:00Z",
+            "resource": "projects/brightloaf-prod-fulfillment/deliveryPipelines/prod-pipe",
+            "expect_allow": True
+        },
+        {
+            "name": "Test 2: SRE Deployer after maintenance window expires (DENIED)",
+            "principal": "serviceAccount:sa-deploy@brightloaf-prod.iam.gserviceaccount.com",
+            "role": "roles/clouddeploy.releaser",
+            "req_time": "2026-09-28T05:00:00Z",
+            "resource": "projects/brightloaf-prod-fulfillment/deliveryPipelines/prod-pipe",
+            "expect_allow": False
+        },
+        {
+            "name": "Test 3: Ingestion SA publishing to authorized prod-orders topic (ALLOWED)",
+            "principal": "serviceAccount:order-ingest@brightloaf-prod.iam.gserviceaccount.com",
+            "role": "roles/pubsub.publisher",
+            "req_time": "2026-09-27T12:00:00Z",
+            "resource": "projects/_/topics/prod-orders-v1",
+            "expect_allow": True
+        },
+        {
+            "name": "Test 4: Ingestion SA publishing to unauthorized internal-audit topic (DENIED)",
+            "principal": "serviceAccount:order-ingest@brightloaf-prod.iam.gserviceaccount.com",
+            "role": "roles/pubsub.publisher",
+            "req_time": "2026-09-27T12:00:00Z",
+            "resource": "projects/_/topics/internal-audit-log",
+            "expect_allow": False
+        }
+    ]
+
+    print("=== Google Cloud IAM Policy v3 Condition Simulator ===")
+    for t in tests:
+        allowed, reason = evaluate_request(t["principal"], t["role"], t["req_time"], t["resource"])
+        status = "PASS" if allowed == t["expect_allow"] else "FAIL"
+        print(f"\n[{status}] {t['name']}")
+        print(f"  Result: {'ALLOW' if allowed else 'DENY'}")
+        print(f"  Reason: {reason}")
+        assert allowed == t["expect_allow"], f"Test failed: expected {t['expect_allow']} got {allowed}"
+    
+    print("\n[ALL TEST SUITE SCENARIOS PASSED]")
+
+if __name__ == "__main__":
+    run_test_suite()
+EOF
+chmod +x scratch/day025/simulate-iam-conditions.py</code></pre>
+          </li>
+          <li>Run the simulator:
+            <pre><code class="language-bash">python3 scratch/day025/simulate-iam-conditions.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">=== Google Cloud IAM Policy v3 Condition Simulator ===
+
+[PASS] Test 1: SRE Deployer during maintenance window (ALLOWED)
+  Result: ALLOW
+  Reason: ALLOWED (Condition Passed: emergency_maintenance_window)
+
+[PASS] Test 2: SRE Deployer after maintenance window expires (DENIED)
+  Result: DENY
+  Reason: DENIED (Condition Expired: req_time=2026-09-28T05:00:00Z &gt;= cutoff=2026-09-28T04:00:00+00:00)
+
+[PASS] Test 3: Ingestion SA publishing to authorized prod-orders topic (ALLOWED)
+  Result: ALLOW
+  Reason: ALLOWED (Condition Passed: prefix match 'projects/_/topics/prod-orders')
+
+[PASS] Test 4: Ingestion SA publishing to unauthorized internal-audit topic (DENIED)
+  Result: DENY
+  Reason: DENIED (Condition Failed: 'projects/_/topics/internal-audit-log' does not start with 'projects/_/topics/prod-orders')
+
+[ALL TEST SUITE SCENARIOS PASSED]</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>ValueError: Invalid isoformat string:</em> Ensure timezone offsets in test strings contain explicit 'Z' or '+00:00'.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Retain the simulator code for reference in authorization audits.</p>
+      </article>
+
+      <!-- Lab 03 -->
+      <article class="card" id="topic-03-lab" aria-labelledby="l3-heading">
+        <span class="badge">Lab 25.3</span>
+        <h3 id="l3-heading">Effective Policy Calculator &amp; Authorization Evidence Generator</h3>
+        <p><strong>Goal:</strong> Traverse the resource hierarchy (Organization &rarr; Folder &rarr; Project &rarr; Resource) to compute the true effective policy for target principals, and generate the mandatory redacted authorization evidence exit artifact.</p>
+        <p><strong>Expected Result:</strong> Generation of <code>scratch/day025/authorization-evidence.md</code> containing verified allowed and denied authorization decisions tied to principal, resource, role, and condition.</p>
+        <p><strong>Mode:</strong> Python script executing hierarchical policy graph calculation.</p>
+
+        <h4>Preflight Checks</h4>
+        <ol>
+          <li>Ensure write access to <code>scratch/day025/</code>.</li>
+          <li>Verify that previous lab scripts <code>diff-iam-roles.py</code> and <code>simulate-iam-conditions.py</code> executed without errors.</li>
+        </ol>
+
+        <h4>Exact Execution Steps</h4>
+        <ol>
+          <li>Create the effective policy engine script <code>generate-authorization-evidence.py</code>:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day025/generate-authorization-evidence.py
+#!/usr/bin/env python3
+"""
+generate-authorization-evidence.py
+Calculates effective IAM policies across Organization, Folder, Project, and Resource nodes.
+Compiles the Day 25 Exit Artifact: authorization-evidence.md
+"""
+import json
+import os
+from datetime import datetime, timezone
+
+HIERARCHY_POLICIES = {
+    "organizations/1029384756": [
+        {"role": "roles/resourcemanager.organizationViewer", "members": ["group:auditors@brightloaf.com"]}
+    ],
+    "folders/bakery-operations": [
+        {"role": "roles/monitoring.viewer", "members": ["group:all-devs@brightloaf.internal"]}
+    ],
+    "projects/brightloaf-prod-fulfillment": [
+        {"role": "roles/pubsub.viewer", "members": ["group:all-devs@brightloaf.internal"]},
+        {
+            "role": "roles/pubsub.publisher",
+            "members": ["serviceAccount:order-ingest@brightloaf-prod.iam.gserviceaccount.com"],
+            "condition": {
+                "title": "prod_orders_topic_only",
+                "expression": "resource.name.startsWith('projects/_/topics/prod-orders')"
+            }
+        }
+    ],
+    "projects/brightloaf-prod-fulfillment/topics/prod-orders-v1": [
+        {"role": "roles/pubsub.subscriber", "members": ["serviceAccount:bakery-worker@brightloaf-prod.iam.gserviceaccount.com"]}
+    ]
+}
+
+def resolve_effective_policy(principal, resource_chain):
+    effective_bindings = []
+    for node in resource_chain:
+        bindings = HIERARCHY_POLICIES.get(node, [])
+        for b in bindings:
+            if principal in b["members"]:
+                effective_bindings.append({
+                    "inherited_from": node,
+                    "role": b["role"],
+                    "condition": b.get("condition")
+                })
+    return effective_bindings
+
+def evaluate_permission(effective_bindings, target_role, req_context):
+    for b in effective_bindings:
+        if b["role"] == target_role:
+            cond = b.get("condition")
+            if not cond:
+                return True, f"Allowed unconditionally via inheritance from {b['inherited_from']}"
+            expr = cond["expression"]
+            if "resource.name.startsWith(" in expr:
+                prefix = expr.split("'")[1]
+                if req_context.get("resource_name", "").startswith(prefix):
+                    return True, f"Allowed under condition '{cond['title']}' inherited from {b['inherited_from']}"
+                else:
+                    return False, f"Denied: Condition '{cond['title']}' failed prefix check '{prefix}'"
+    return False, "Denied: Permission not present in effective policy union"
+
+def main():
+    resource_chain = [
+        "organizations/1029384756",
+        "folders/bakery-operations",
+        "projects/brightloaf-prod-fulfillment",
+        "projects/brightloaf-prod-fulfillment/topics/prod-orders-v1"
+    ]
+    
+    # Test Scenarios
+    # 1. Ingestion SA publishing to prod-orders (ALLOWED)
+    ingest_sa = "serviceAccount:order-ingest@brightloaf-prod.iam.gserviceaccount.com"
+    ingest_bindings = resolve_effective_policy(ingest_sa, resource_chain)
+    allowed1, reason1 = evaluate_permission(
+        ingest_bindings,
+        "roles/pubsub.publisher",
+        {"resource_name": "projects/_/topics/prod-orders-v1"}
+    )
+
+    # 2. Developer attempting to delete topic (DENIED)
+    dev_user = "group:all-devs@brightloaf.internal"
+    dev_bindings = resolve_effective_policy(dev_user, resource_chain)
+    allowed2, reason2 = evaluate_permission(
+        dev_bindings,
+        "roles/pubsub.admin",
+        {"resource_name": "projects/_/topics/prod-orders-v1"}
+    )
+
+    # Generate Markdown Exit Artifact
+    artifact_content = f"""# Day 25 Exit Artifact: Redacted Authorization Evidence
+
+**Generated:** {datetime.now(timezone.utc).isoformat()}
+**Scope:** Resource Hierarchy `organizations/1029384756/folders/bakery-operations/projects/brightloaf-prod-fulfillment`
+**Objective:** Redacted authorization evidence tied to principal, resource, role and condition.
+
+---
+
+## 1. Effective Policy Graph Resolution
+
+The effective policy represents the strict additive union of role bindings across the hierarchical lineage:
+
+```
+[Organization: 1029384756]
+   │
+   └── [Folder: bakery-operations]
+          │
+          └── [Project: brightloaf-prod-fulfillment]
+                 │
+                 └── [Resource: topics/prod-orders-v1]
+```
+
+### Principal: `serviceAccount:order-ingest@brightloaf-prod.iam.gserviceaccount.com`
+- **Inherited From:** `projects/brightloaf-prod-fulfillment`
+- **Role:** `roles/pubsub.publisher`
+- **Condition Title:** `prod_orders_topic_only`
+- **Condition Expression:** `resource.name.startsWith('projects/_/topics/prod-orders')`
+
+### Principal: `group:all-devs@brightloaf.internal`
+- **Inherited From:** `folders/bakery-operations`
+  - **Role:** `roles/monitoring.viewer` (Unconditional)
+- **Inherited From:** `projects/brightloaf-prod-fulfillment`
+  - **Role:** `roles/pubsub.viewer` (Unconditional)
+
+---
+
+## 2. Redacted Authorization Decision Evidence
+
+| Test ID | Principal (Redacted) | Target Resource | Requested Role / Permission | Condition Evaluated | Decision | Evaluation Rationale |
+|:---|:---|:---|:---|:---|:---|:---|
+| **AUTH-01** | `sa-order-ingest@***` | `.../topics/prod-orders-v1` | `roles/pubsub.publisher` | `resource.name.startsWith('projects/_/topics/prod-orders')` | <span style="color:#22c55e;font-weight:bold;">ALLOW (200 OK)</span> | {reason1} |
+| **AUTH-02** | `dev-user@***` | `.../topics/prod-orders-v1` | `roles/pubsub.admin` | None (Unconditional check) | <span style="color:#f43f5e;font-weight:bold;">DENY (403 PERMISSION_DENIED)</span> | {reason2} |
+
+---
+
+## 3. Invariant Verification & Compliance Attestation
+
+- **Duplicate Fulfillment Invariant (&le; 1 Physical Fulfillment per Order):**
+  - Narrowing `order-ingest` publisher permissions to authorized topics prevents accidental ingestion into unmonitored dead-letter queues or legacy topics.
+  - Denying `roles/pubsub.admin` to developer groups protects the active `prod-orders-v1` topic from uncoordinated deletion, preventing dropped ack offsets and subsequent double-baking replays.
+- **Principle of Least Privilege:**
+  - Zero basic primitive roles (`roles/owner`, `roles/editor`, `roles/viewer`) present in effective policies.
+  - All temporal and resource scopes verified through Policy Version 3 CEL condition evaluation.
+
+**Attested by:** Brightloaf Cloud Security Architecture Team
+"""
+
+    os.makedirs("scratch/day025", exist_ok=True)
+    artifact_path = "scratch/day025/authorization-evidence.md"
+    with open(artifact_path, "w") as f:
+        f.write(artifact_content)
+    
+    print(f"=== Successfully Compiled Exit Artifact: {artifact_path} ===")
+    print(f"AUTH-01: {'ALLOW' if allowed1 else 'DENY'} -> {reason1}")
+    print(f"AUTH-02: {'ALLOW' if allowed2 else 'DENY'} -> {reason2}")
+
+if __name__ == "__main__":
+    main()
+EOF
+chmod +x scratch/day025/generate-authorization-evidence.py</code></pre>
+          </li>
+          <li>Execute the generator script:
+            <pre><code class="language-bash">python3 scratch/day025/generate-authorization-evidence.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">=== Successfully Compiled Exit Artifact: scratch/day025/authorization-evidence.md ===
+AUTH-01: ALLOW -> Allowed under condition 'prod_orders_topic_only' inherited from projects/brightloaf-prod-fulfillment
+AUTH-02: DENY -> Denied: Permission not present in effective policy union</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>FileNotFoundError:</em> Ensure target directory <code>scratch/day025</code> exists before writing.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>The output artifact <code>scratch/day025/authorization-evidence.md</code> must be committed to durable documentation storage.</p>
+      </article>
+    </section>

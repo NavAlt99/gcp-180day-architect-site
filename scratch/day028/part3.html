@@ -1,0 +1,321 @@
+    <section class="part" id="part-3" aria-labelledby="part-3-heading">
+      <h2 id="part-3-heading">Part 3 · Real-world problems</h2>
+      <p class="section-lead">Analyzing severe production failures at Brightloaf: an unmemoized budget remediation consumer that throttled order intake upon duplicate Pub/Sub redelivery, and an unlabeled data pipeline that distorted eCommerce cost ledgers.</p>
+
+      <!-- Problem 01 -->
+      <article class="card" id="topic-01-problem" aria-labelledby="p1-heading">
+        <span class="badge badge-crisis">Crisis 28.1</span>
+        <h3 id="p1-heading">Non-Idempotent Budget Consumer Triggers Duplicate Automated Quota Throttling on Production Ingestion</h3>
+
+        <h4>Symptom</h4>
+        <p>At 08:14 UTC during the peak morning customer ordering window, Brightloaf's regional retail storefront and wholesale bakery partner APIs began returning widespread <code>HTTP 429 Too Many Requests</code> and <code>HTTP 503 Service Unavailable</code> errors. Over 8,400 bakery store replenishment orders failed mid-flight, shopping carts timed out, and automated physical dispatch at four central distribution facilities stalled.</p>
+
+        <h4>Constraints</h4>
+        <ul>
+          <li><strong>Messaging Protocol:</strong> Cloud Billing budgets publish event envelopes to Cloud Pub/Sub under an at-least-once delivery guarantee.</li>
+          <li><strong>Automated Cost Remediation:</strong> A serverless Cloud Function was provisioned to listen for 100% budget threshold events and enforce emergency capacity limits to stop runaway spend.</li>
+          <li><strong>Invariant:</strong> Brightloaf's physical duplicate fulfillment invariant (&le; 1 physical fulfillment per unique order ID) must never be compromised; order ingestion must never drop transactions or trigger untracked retry duplicates.</li>
+        </ul>
+
+        <h4>Evidence</h4>
+        <p>Telemetry extracted from Cloud Logging and Cloud Audit Logs (<code>cloudaudit.googleapis.com</code>) revealed a catastrophic cascade:</p>
+        <ol>
+          <li>At 08:14:02 UTC, Cloud Billing published a 100% threshold notification (<code>costAmount: 5120.40</code>, <code>budgetAmount: 5000.00</code>, <code>alertThresholdExceeded: 1.0</code>) with message ID <code>msg-882194</code> to topic <code>projects/brightloaf-billing/topics/billing-alerts</code>.</li>
+          <li>The subscriber Cloud Function instance <code>budget-remediator-01</code> received <code>msg-882194</code>. While processing, it experienced a 12-second latency spike attempting to push an audit record to an external monitoring dashboard. Because the Pub/Sub subscription acknowledgment deadline was configured to the default 10 seconds, Pub/Sub marked the message as unacknowledged and redelivered it.</li>
+          <li>At 08:14:14 UTC, a second Cloud Function instance <code>budget-remediator-02</code> pulled the redelivered <code>msg-882194</code>.</li>
+          <li>Instance <code>01</code> completed its first execution, lowering Cloud Run maximum instances for <code>order-ingestion-api</code> from 100 to 20.</li>
+          <li>Crucially, the remediation script lacked idempotency state tracking. Instance <code>02</code> executed the script a second time against the already-throttled service. Finding the current limit at 20, its stepped fallback logic aggressively dropped maximum instances from 20 down to 2! Concurrency collapsed from 8,000 requests/second to barely 160 requests/second.</li>
+        </ol>
+
+        <h4>Root Cause</h4>
+        <p>The automated budget remediation consumer was designed without idempotency guards, naively assuming exactly-once delivery from Cloud Pub/Sub. Furthermore, the remediation script violated infrastructure boundary isolation by targeting production order ingestion services instead of being strictly confined to non-production development and staging tiers.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Inspect Pub/Sub Subscription Metrics:</strong> Query Cloud Monitoring for <code>subscription/oldest_unacked_message_age</code> and <code>subscription/redelivered_message_count</code> on <code>billing-alerts-sub</code> to confirm message retransmissions.</li>
+          <li><strong>Analyze Remediation Consumer Execution Logs:</strong> In Cloud Logging, filter by <code>resource.type="cloud_function" AND textPayload=~"msg-882194"</code> to identify overlapping executions and elapsed processing times exceeding the 10-second ACK deadline.</li>
+          <li><strong>Audit Resource Mutation Events:</strong> Search Cloud Audit Logs for <code>methodName="google.cloud.run.v1.Services.ReplaceService"</code> to verify that the reduction of <code>maxScale</code> from 100 to 20 and then 20 to 2 was executed by the budget remediation service account.</li>
+          <li><strong>Review Consumer Source Code for Idempotency Memoization:</strong> Inspect the Cloud Function handler to confirm whether it performs any deduplication lookup against a persistent state store (e.g., Firestore or Redis) prior to executing mutations.</li>
+          <li><strong>Validate Environment Scope Filtering:</strong> Check whether the remediation query filtered on resource labels (e.g., <code>env="dev"</code>) or indiscriminately modified services across the entire project.</li>
+        </ol>
+
+        <h4>Defensible Solution</h4>
+        <p>To permanently resolve the vulnerability while safeguarding production operations:</p>
+        <ol>
+          <li><strong>Immediate Operational Recovery:</strong> Restore Cloud Run <code>maxScale</code> for <code>order-ingestion-api</code> back to 100 instances immediately via gcloud, and increase the Pub/Sub subscription ACK deadline from 10 seconds to 300 seconds.</li>
+          <li><strong>Deploy Persistent Atomic Deduplication Lock:</strong> Implement an idempotency check in the consumer handler using Cloud Firestore or Memorystore. The consumer derives a deterministic key:
+            <pre><code class="language-python">dedup_key = f"{msg['budgetDisplayName']}#{msg['costIntervalStart']}#{msg['alertThresholdExceeded']}"</code></pre>
+            If the key exists with status <code>COMPLETED</code>, the consumer logs <code>DUPLICATE_EVENT_DROPPED</code> and immediately returns an ACK without executing remediation.
+          </li>
+          <li><strong>Enforce Production Immunity Guardrails:</strong> Hard-code environment segregation in the remediation engine. Automated quota or scaling reductions are strictly restricted to resources labeled <code>env="development"</code> or <code>env="sandbox"</code>. Production order pipelines are classified as non-terminable, ensuring Brightloaf's duplicate fulfillment invariant (&le; 1 physical fulfillment per unique order ID) is unconditionally preserved.</li>
+        </ol>
+
+        <!-- Insert Figure 28.3 -->
+        <figure class="architecture-diagram" id="fig-28-3">
+          <svg viewBox="0 0 980 460" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-28-3-title fig-28-3-desc">
+            <title id="fig-28-3-title">Figure 28.3: Incident 28.1 - Non-Idempotent Budget Consumer vs. Idempotent Deduplication Architecture</title>
+            <desc id="fig-28-3-desc">Sequence diagram comparing the failed path where duplicate Pub/Sub delivery re-triggered quota throttling against the corrected path using atomic idempotency locks and production environment exclusion.</desc>
+            <defs>
+              <linearGradient id="bg-grad-28-3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#090d16"/>
+                <stop offset="100%" stop-color="#121526"/>
+              </linearGradient>
+              <marker id="arrow-rose-28-3" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow-green-28-3" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Background Canvas -->
+            <rect width="980" height="460" rx="12" fill="url(#bg-grad-28-3)" stroke="#1e293b" stroke-width="1.5"/>
+
+            <!-- Banner Header -->
+            <text x="30" y="36" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Incident 28.1: Non-Idempotent Budget Consumer Remediation Failure</text>
+            <text x="30" y="56" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Pub/Sub duplicate redelivery triggers secondary quota throttling vs. atomic lock &amp; production protection</text>
+
+            <!-- Components Columns -->
+            <!-- Col 1: Pub/Sub Broker -->
+            <rect x="30" y="80" width="160" height="40" rx="6" fill="#1e243d" stroke="#38bdf8" stroke-width="1.5"/>
+            <text x="110" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Pub/Sub Topic</text>
+            <line x1="110" y1="120" x2="110" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Col 2: Remediation Consumer -->
+            <rect x="270" y="80" width="180" height="40" rx="6" fill="#1e243d" stroke="#f59e0b" stroke-width="1.5"/>
+            <text x="360" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Remediation Function</text>
+            <line x1="360" y1="120" x2="360" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Col 3: Deduplication State Store -->
+            <rect x="530" y="80" width="180" height="40" rx="6" fill="#1e243d" stroke="#a855f7" stroke-width="1.5"/>
+            <text x="620" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Firestore State Store</text>
+            <line x1="620" y1="120" x2="620" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Col 4: Production Order Ingestion -->
+            <rect x="790" y="80" width="160" height="40" rx="6" fill="#1e243d" stroke="#22c55e" stroke-width="1.5"/>
+            <text x="870" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Prod Ingestion API</text>
+            <line x1="870" y1="120" x2="870" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- FAILED PATH (TOP HALF) -->
+            <!-- Step 1: Initial message delivery -->
+            <line x1="110" y1="150" x2="354" y2="150" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-rose-28-3)"/>
+            <text x="235" y="142" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">1. Deliver msg-882194 (100% alert)</text>
+
+            <!-- Slow logging causes ACK timeout -->
+            <rect x="370" y="155" width="170" height="24" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="455" y="171" fill="#fca5a5" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Slow log: ACK deadline 10s expires</text>
+
+            <!-- Step 2: Redelivery -->
+            <line x1="110" y1="200" x2="354" y2="200" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow-rose-28-3)"/>
+            <text x="235" y="194" fill="#f87171" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[FAILED PATH: Pub/Sub Redelivery]</text>
+
+            <!-- Step 3: Unchecked double execution throttles Prod -->
+            <line x1="360" y1="225" x2="864" y2="225" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow-rose-28-3)"/>
+            <text x="590" y="217" fill="#f87171" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[FAILED PATH: Secondary Quota Strip: max-instances &rarr; 2]</text>
+
+            <rect x="790" y="235" width="160" height="42" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="870" y="252" fill="#fca5a5" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">CRASH: HTTP 429/503</text>
+            <text x="870" y="268" fill="#fca5a5" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">8,400 orders dropped mid-flight</text>
+
+            <!-- Divider Line -->
+            <line x1="40" y1="290" x2="940" y2="290" stroke="#334155" stroke-width="1.5" stroke-dasharray="2 2"/>
+
+            <!-- CORRECTED PATH (BOTTOM HALF) -->
+            <!-- Step 4: Redelivery arrives at corrected consumer -->
+            <line x1="110" y1="320" x2="354" y2="320" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-green-28-3)"/>
+            <text x="235" y="312" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">4. Redelivery msg-882194 arrives</text>
+
+            <!-- Step 5: Check State Store -->
+            <line x1="360" y1="345" x2="614" y2="345" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-28-3)"/>
+            <text x="485" y="337" fill="#4ade80" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[CORRECTED PATH: Atomic Check dedup_key]</text>
+
+            <line x1="620" y1="370" x2="366" y2="370" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-28-3)"/>
+            <text x="485" y="364" fill="#86efac" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Key exists (COMPLETED) &rarr; DUPLICATE</text>
+
+            <!-- Step 6: Drop action, ACK message immediately -->
+            <rect x="280" y="385" width="160" height="38" rx="4" fill="#052e16" stroke="#22c55e" stroke-width="1"/>
+            <text x="360" y="401" fill="#4ade80" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">DUPLICATE DROPPED</text>
+            <text x="360" y="415" fill="#86efac" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">ACK msg &amp; Prod Untouched</text>
+
+            <!-- Step 7: Production isolated -->
+            <line x1="360" y1="420" x2="864" y2="420" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-28-3)"/>
+            <text x="612" y="414" fill="#4ade80" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[CORRECTED PATH: Prod Invariant Shielded: &le; 1 fulfillment]</text>
+          </svg>
+          <figcaption>Figure 28.3: Incident 28.1 - Non-Idempotent Budget Consumer vs. Idempotent Deduplication Architecture.
+            <br><strong>Supplied facts:</strong> A 100% budget notification was redelivered by Cloud Pub/Sub after an initial logging delay exceeded the 10s ACK deadline. The unmemoized consumer executed a secondary quota strip that throttled production Cloud Run max-instances to 2.
+            <br><strong>Architectural inference:</strong> Pub/Sub at-least-once delivery cannot be eliminated at the transport layer; consumers must enforce idempotency via state memoization and hard-code production immunity.
+            <br><strong>Expected post-fix behavior:</strong> Redelivered messages hit the atomic Firestore lock, identify existing keys, log <code>DUPLICATE_EVENT_DROPPED</code>, ACK immediately, and preserve production order throughput and the duplicate fulfillment invariant (&le; 1 physical fulfillment per unique order ID).
+          </figcaption>
+        </figure>
+
+        <h4>Verification</h4>
+        <p>In a controlled staging rehearsal, publish two identical Pub/Sub budget notification messages to the topic within a 500ms window. Verify that the consumer executes the targeted development teardown once, acquires the Firestore state lock, and logs <code>[IDEMPOTENT_FILTER] Message msg-test-duplicate ignored (already completed)</code> on the second arrival while acknowledging the message.</p>
+
+        <h4>Residual Risk</h4>
+        <p>If the external state store experiences a complete regional outage, the consumer might fail open and allow duplicate execution or fail closed and drop remediation. Mitigate by implementing a local in-memory LRU cache fallback within container memory holding recently seen message IDs.</p>
+      </article>
+
+      <!-- Problem 02 -->
+      <article class="card" id="topic-02-problem" aria-labelledby="p2-heading">
+        <span class="badge badge-crisis">Crisis 28.2</span>
+        <h3 id="p2-heading">Unlabeled Workload Blindspot Inadvertently Attributes Shared Analytics Cluster to eCommerce Operations</h3>
+
+        <h4>Symptom</h4>
+        <p>Following the monthly close, Brightloaf's finance department issued an internal cloud cost chargeback report attributing $54,700 to the eCommerce business unit—a 240% spike over its approved $16,200 baseline. Facing an unexpected deficit, the eCommerce business sponsor disputed the charge and placed an emergency spending freeze on cloud infrastructure, halting feature releases and planned checkout scalability enhancements.</p>
+
+        <h4>Constraints</h4>
+        <ul>
+          <li><strong>Billing Ingestion:</strong> BigQuery Detailed Billing Export is active and serves as the single source of truth for corporate chargeback calculations.</li>
+          <li><strong>Shared Tenancy:</strong> Exploratory analytics and retail applications share a consolidated GCP billing account.</li>
+          <li><strong>Dispute Resolution Policy:</strong> Any line-item charge disputed by a department head requires cryptographic or audit-log verified proof of resource ownership before charges can be cleared.</li>
+        </ul>
+
+        <h4>Evidence</h4>
+        <p>FinOps investigation into BigQuery billing export records revealed the mechanism of contamination:</p>
+        <ol>
+          <li>The standard finance attribution SQL query was written with a naive fallback logic:
+            <pre><code class="language-sql">COALESCE((SELECT value FROM UNNEST(labels) WHERE key = 'cost-center'), project.name) AS cost_center</code></pre>
+          </li>
+          <li>A data science squad had deployed an ad-hoc GKE batch processing cluster and run multi-terabyte BigQuery geospatial queries to forecast holiday bakery demand. Because they provisioned these resources manually via scripts without attaching labels, the <code>labels</code> array in the billing export was empty.</li>
+          <li>Because the GKE cluster was spun up inside the shared <code>brightloaf-ecommerce-prod</code> host project, the <code>COALESCE</code> function defaulted the attribution string to <code>brightloaf-ecommerce-prod</code>, automatically mapping $38,500 of exploratory data science compute into the eCommerce operations general ledger.</li>
+        </ol>
+
+        <h4>Root Cause</h4>
+        <p>A systemic lack of resource labeling enforcement in the deployment pipeline allowed unlabeled shared compute to be provisioned. This was compounded by flawed FinOps attribution queries that collapsed unlabeled orphan spend into host project ownership rather than isolating it into a transparent unallocated variance bucket.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Quantify Unlabeled Spend in BigQuery Export:</strong> Execute an unnesting query on <code>gcp_billing_export_resource_v1_*</code> filtering for records where <code>labels IS NULL</code> or <code>ARRAY_LENGTH(labels) = 0</code> to calculate total unattributed dollar volume.</li>
+          <li><strong>Isolate High-Variance SKUs:</strong> Group unlabeled records by <code>sku.description</code> and <code>resource.name</code> to identify which specific services (Compute Engine N2 instances and BigQuery Analysis) generated the $38,500 surge.</li>
+          <li><strong>Correlate Resource Identifiers with Audit Logs:</strong> Cross-reference the identified GKE node pool instance names against Cloud Audit Logs (<code>cloudaudit.googleapis.com</code>) to extract the principal email who invoked <code>compute.instances.insert</code>.</li>
+          <li><strong>Inspect CI/CD and Infrastructure as Code:</strong> Review the Terraform repository to verify whether the root module enforces default labels on Google Cloud provider blocks.</li>
+          <li><strong>Review FinOps Reporting Logic:</strong> Audit SQL views feeding Looker Studio dashboards to identify improper <code>COALESCE</code> expressions that disguise unallocated spend as operational application costs.</li>
+        </ol>
+
+        <h4>Defensible Solution</h4>
+        <p>To restore financial accountability and prevent recurring attribution disputes:</p>
+        <ol>
+          <li><strong>Financial Ledger Reallocation:</strong> Reassign the $38,500 invoice line item from <code>cc-ecommerce</code> to the Central Data Science R&amp;D cost center (<code>cc-analytics-rd</code>), unfreezing eCommerce infrastructure funding.</li>
+          <li><strong>Fix FinOps Attribution SQL:</strong> Refactor the BigQuery chargeback views to route all records lacking a valid <code>cost-center</code> label to an explicit <code>UNALLOCATED_SHARED_DEBT</code> category:
+            <pre><code class="language-sql">CASE
+  WHEN (SELECT value FROM UNNEST(labels) WHERE key = 'cost-center') IS NOT NULL
+  THEN (SELECT value FROM UNNEST(labels) WHERE key = 'cost-center')
+  ELSE 'UNALLOCATED_SHARED_DEBT'
+END AS cost_center</code></pre>
+          </li>
+          <li><strong>Enforce Mandatory Labeling via Policy:</strong> Implement mandatory labeling across all deployment pipelines. Update Terraform root provider configurations to inject <code>default_labels</code> (<code>cost-center</code>, <code>env</code>, <code>service</code>, <code>owner</code>) on all resources. Furthermore, deploy Google Cloud Policy Controller (OPA Gatekeeper) admission rules in GKE and Organization Policies to block the creation of any Compute Engine, Cloud Storage, or BigQuery resource lacking mandatory cost attribution keys.</li>
+        </ol>
+
+        <!-- Insert Figure 28.4 -->
+        <figure class="architecture-diagram" id="fig-28-4">
+          <svg viewBox="0 0 980 460" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-28-4-title fig-28-4-desc">
+            <title id="fig-28-4-title">Figure 28.4: Incident 28.2 - Unlabeled Workload Contamination vs. Governed Label Attribution Architecture</title>
+            <desc id="fig-28-4-desc">Diagram contrasting the failed path of unlabeled shared workloads contaminating eCommerce production budgets with the corrected path enforcing mandatory labels in CI/CD and routing unlabeled residue to an isolated debt bucket.</desc>
+            <defs>
+              <linearGradient id="bg-grad-28-4" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#090d16"/>
+                <stop offset="100%" stop-color="#121526"/>
+              </linearGradient>
+              <marker id="arrow-rose-28-4" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow-green-28-4" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Background Canvas -->
+            <rect width="980" height="460" rx="12" fill="url(#bg-grad-28-4)" stroke="#1e293b" stroke-width="1.5"/>
+
+            <!-- Banner Header -->
+            <text x="30" y="36" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Incident 28.2: Shared Resource Cost Attribution Blindspot</text>
+            <text x="30" y="56" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Unlabeled shared data clusters distort departmental chargeback vs. mandatory label gates &amp; unallocated isolation</text>
+
+            <!-- Left Box: Workload Deployment -->
+            <rect x="30" y="90" width="220" height="150" rx="8" fill="#161b30" stroke="#f43f5e" stroke-width="1.5"/>
+            <text x="45" y="115" fill="#f87171" font-size="12" font-weight="700" font-family="system-ui, sans-serif">UNGOVERNED DEPLOYMENT</text>
+            <text x="45" y="140" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Ad-hoc Analytics Run</text>
+            <text x="45" y="162" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• GKE Batch + BigQuery</text>
+            <text x="45" y="180" fill="#f87171" font-size="11" font-weight="600" font-family="system-ui, sans-serif">• Labels: NONE (Empty)</text>
+            <text x="45" y="198" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Hosted in shared project</text>
+            <text x="45" y="222" fill="#f87171" font-size="11" font-family="system-ui, sans-serif">Spend: $38,500 unallocated</text>
+
+            <!-- Failed Path: Arrows to Finance Attribution Query -->
+            <path d="M 250 165 L 360 165" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow-rose-28-4)"/>
+            <text x="305" y="155" fill="#f87171" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[FAILED PATH: Unlabeled compute folds into eCommerce project]</text>
+
+            <!-- Middle Box: Naive FinOps Query -->
+            <rect x="370" y="90" width="250" height="150" rx="8" fill="#161b30" stroke="#f43f5e" stroke-width="1.5"/>
+            <text x="385" y="115" fill="#f87171" font-size="12" font-weight="700" font-family="system-ui, sans-serif">NAIVE CHARGEBACK SQL</text>
+            <text x="385" y="138" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif">Default Project Fallback</text>
+            <text x="385" y="160" fill="#cbd5e1" font-size="11" font-family="monospace">COALESCE(cost_center,</text>
+            <text x="400" y="176" fill="#f87171" font-size="11" font-family="monospace">project_name) AS owner</text>
+            <text x="385" y="198" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">Unlabeled records fold into</text>
+            <text x="385" y="214" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">project owner's cost ledger</text>
+
+            <!-- Failed Path: Contaminating eCommerce Budget -->
+            <path d="M 620 165 L 730 165" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow-rose-28-4)"/>
+            <text x="675" y="155" fill="#f87171" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[FAILED PATH]</text>
+
+            <!-- Right Box: eCommerce Budget Impact -->
+            <rect x="740" y="90" width="210" height="150" rx="8" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+            <text x="755" y="115" fill="#f87171" font-size="12" font-weight="700" font-family="system-ui, sans-serif">BUDGET CONTAMINATION</text>
+            <text x="755" y="140" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif">cc-ecommerce Ledger</text>
+            <text x="755" y="164" fill="#fca5a5" font-size="12" font-weight="700" font-family="system-ui, sans-serif">Spike: +$38,500 (+240%)</text>
+            <text x="755" y="184" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Dispute halts releases</text>
+            <text x="755" y="202" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Prod freeze for 3 weeks</text>
+            <text x="755" y="222" fill="#fca5a5" font-size="10" font-style="italic" font-family="system-ui, sans-serif">False billing attribution</text>
+
+            <!-- Horizontal Separator -->
+            <line x1="30" y1="265" x2="950" y2="265" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+            <!-- CORRECTED PATH (BOTTOM HALF) -->
+            <!-- Step 1: CI/CD & Policy Enforcement Gate -->
+            <rect x="30" y="285" width="220" height="150" rx="8" fill="#161b30" stroke="#22c55e" stroke-width="1.5"/>
+            <text x="45" y="310" fill="#4ade80" font-size="12" font-weight="700" font-family="system-ui, sans-serif">GOVERNED DEPLOYMENT</text>
+            <text x="45" y="335" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Mandatory Label Gate</text>
+            <text x="45" y="356" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Terraform lint / Sentinel</text>
+            <text x="45" y="374" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">• Rejects untagged deploys</text>
+            <text x="45" y="394" fill="#38bdf8" font-size="10" font-family="monospace">cost-center: cc-analytics-rd</text>
+            <text x="45" y="412" fill="#38bdf8" font-size="10" font-family="monospace">env: dev | owner: data-team</text>
+
+            <!-- Corrected Path Arrow -->
+            <path d="M 250 360 L 360 360" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#arrow-green-28-4)"/>
+            <text x="305" y="350" fill="#4ade80" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[CORRECTED PATH: Mandatory label enforcement &amp; isolated debt]</text>
+
+            <!-- Step 2: Governed BigQuery Attribution SQL -->
+            <rect x="370" y="285" width="250" height="150" rx="8" fill="#161b30" stroke="#22c55e" stroke-width="1.5"/>
+            <text x="385" y="310" fill="#4ade80" font-size="12" font-weight="700" font-family="system-ui, sans-serif">GOVERNED ATTRIBUTION</text>
+            <text x="385" y="333" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif">Isolated Debt Bucket</text>
+            <text x="385" y="355" fill="#cbd5e1" font-size="11" font-family="monospace">COALESCE(cost_center,</text>
+            <text x="400" y="371" fill="#f59e0b" font-size="11" font-family="monospace">'UNALLOCATED_SHARED')</text>
+            <text x="385" y="394" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">Label unnesting partitions</text>
+            <text x="385" y="412" fill="#86efac" font-size="11" font-weight="600" font-family="system-ui, sans-serif">costs by verified department</text>
+
+            <!-- Corrected Path Arrow to Accurate Attribution -->
+            <path d="M 620 360 L 730 360" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#arrow-green-28-4)"/>
+            <text x="675" y="350" fill="#4ade80" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[CORRECTED PATH]</text>
+
+            <!-- Step 3: Clean Separation -->
+            <rect x="740" y="285" width="210" height="150" rx="8" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+            <text x="755" y="310" fill="#4ade80" font-size="12" font-weight="700" font-family="system-ui, sans-serif">ACCURATE ATTRIBUTION</text>
+            <text x="755" y="333" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif">Zero Contamination</text>
+            <text x="755" y="354" fill="#86efac" font-size="11" font-family="system-ui, sans-serif">• cc-analytics-rd: $38,500</text>
+            <text x="755" y="372" fill="#86efac" font-size="11" font-family="system-ui, sans-serif">• cc-ecommerce: $16,200</text>
+            <text x="755" y="392" fill="#38bdf8" font-size="10" font-weight="600" font-family="system-ui, sans-serif">eCommerce Budget Intact</text>
+            <text x="755" y="412" fill="#f8fafc" font-size="10" font-family="system-ui, sans-serif">Order pipeline fully funded</text>
+          </svg>
+          <figcaption>Figure 28.4: Incident 28.2 - Unlabeled Workload Contamination vs. Governed Label Attribution Architecture.
+            <br><strong>Supplied facts:</strong> An ad-hoc data analytics cluster lacked mandatory cost-center labels. A naive FinOps SQL query fell back to the project ID, dumping $38,500 of exploratory analytics compute into the eCommerce operations budget.
+            <br><strong>Architectural inference:</strong> Relying on default project IDs for unallocated spend creates severe organizational friction; mandatory labels must be enforced at deploy time, and unallocated spend must be segregated into an explicit debt bucket.
+            <br><strong>Expected post-fix behavior:</strong> CI/CD blocks deployments lacking mandatory labels (<code>cost-center</code>, <code>env</code>, <code>service</code>, <code>owner</code>), FinOps SQL maps remaining untagged spend to <code>UNALLOCATED_SHARED_DEBT</code>, and operational order services retain full budget stability.
+          </figcaption>
+        </figure>
+
+        <h4>Verification</h4>
+        <p>Run the refactored FinOps SQL script against the billing dataset. Confirm that the $38,500 is cleanly segregated and that <code>cc-ecommerce</code> displays exactly $16,200.00. Then run a preflight Terraform deployment of an unlabeled VM and confirm that the CI pipeline halts with an explicit error: <code>Missing required label: cost-center</code>.</p>
+
+        <h4>Residual Risk</h4>
+        <p>Legacy resources provisioned before policy enforcement will continue to emit unlabeled billing telemetry. Mitigate by running scheduled inventory audit scripts that scan for unlabeled resources and automatically alert the project owner or apply default fallback labels.</p>
+      </article>
+    </section>

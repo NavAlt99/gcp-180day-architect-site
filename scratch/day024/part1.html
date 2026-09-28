@@ -1,0 +1,45 @@
+    <section class="part" id="part-1" aria-labelledby="part-1-title">
+      <h2 id="part-1-title">1 · Concepts and problem previews</h2>
+
+      <article class="topic-card" id="topic-01-overview">
+        <h3>Cloud Identity vs. Google Workspace vs. consumer Google accounts</h3>
+        <p><strong>What it is:</strong> Authentication in Google Cloud is strictly decoupled from cloud resource management, relying on an external identity repository. Three distinct categories of accounts exist within the Google ecosystem:
+        <strong>Consumer Google Accounts</strong> (personal unmanaged accounts ending in <code>@gmail.com</code> or personal domains, owned and managed entirely by individual end users without corporate oversight),
+        <strong>Cloud Identity</strong> (an enterprise Identity-as-a-Service directory anchored to a verified company domain such as <code>@brightloaf.com</code>, providing centralized user lifecycle management, 2-Step Verification enforcement, single sign-on via SAML 2.0 / OIDC with external IdPs, and automated employee de-provisioning), and
+        <strong>Google Workspace</strong> (the complete enterprise productivity suite including Gmail, Google Drive, and Meet, which shares the identical underlying Cloud Identity directory and administrative console).</p>
+        <p><strong>Why today:</strong> Having established organizational governance and project lifecycles on <a href="day-023.html">Day 23</a>, architects must now formalize the human identities permitted to manage and interact with cloud resources. Permitting unmanaged personal Google accounts into enterprise project IAM policies creates severe shadow-IT security exposures, prevents automated employee offboarding, and violates compliance audit mandates.</p>
+        <p><strong>Where it sits:</strong> At the authentication gateway of Google's global Identity Platform. Cloud Identity acts as the authoritative source of truth that federates workforce identities from corporate Human Resource Information Systems (HRIS), Active Directory, Okta, or Microsoft Entra ID into Google Cloud.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>A franchise infrastructure administrator permits contract software developers to manage production order fulfillment projects using unmanaged personal <code>@gmail.com</code> accounts rather than federated corporate Cloud Identity credentials. When a contractor was abruptly terminated following a security breach, corporate IT disabled their company email but could not revoke their personal Google account, leaving them with active production console access that triggered an emergency security shutdown across all 450 retail bakeries.</p>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-overview">
+        <h3>Principals: Google account, group, service account, domain, allAuthenticatedUsers, allUsers</h3>
+        <p><strong>What it is:</strong> In Google Cloud IAM, a <strong>Principal</strong> (historically referred to as a <em>member</em>) is an identity entity granted access to resources via role bindings. Google Cloud evaluates six distinct principal types distinguished by explicit type prefixes:
+        <code>user:{email}</code> (individual human identity),
+        <code>group:{email}</code> (Google Group managing multiple accounts),
+        <code>serviceAccount:{email}</code> (non-human workload identity used by applications and VM instances),
+        <code>domain:{domain.com}</code> (all user accounts within a verified Cloud Identity domain),
+        <code>allAuthenticatedUsers</code> (a special identifier granting access to <em>any</em> authenticated Google account on the internet, including personal consumer accounts), and
+        <code>allUsers</code> (a special identifier representing anyone on the public internet, completely unauthenticated).</p>
+        <p><strong>Why today:</strong> Conflating these principal types is one of the most common and catastrophic security defects in cloud architecture. Specifically, engineers frequently misinterpret <code>allAuthenticatedUsers</code> as meaning \"all authenticated employees within my company domain,\" mistakenly granting public internet access to confidential corporate databases and storage buckets.</p>
+        <p><strong>Where it sits:</strong> In the <code>members</code> list of IAM policy bindings across Organization, Folder, Project, and Resource nodes, directly evaluated by the IAM Policy Enforcement Engine for every incoming API request.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>A DevOps engineer binds the <code>allAuthenticatedUsers</code> principal to an internal Cloud Storage bucket containing raw retail order payment archives, mistakenly believing the identifier restricted access to authenticated corporate staff. Because <code>allAuthenticatedUsers</code> grants access to anyone logged into any consumer Google account globally, an external security researcher accessed and downloaded 140,000 unencrypted customer transaction receipts, triggering an immediate mandatory privacy breach disclosure to federal regulators.</p>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-03-overview">
+        <h3>Why groups (not individual users) should receive roles</h3>
+        <p><strong>What it is:</strong> The foundational best-practice principle of enterprise cloud identity architecture mandates that IAM roles should be bound exclusively to <strong>Google Groups</strong> (e.g. <code>group:bakery-ops@brightloaf.com</code>), never directly to individual user accounts (<code>user:alice@brightloaf.com</code>). Individual users are assigned to job-function groups within Cloud Identity or synchronized from external directories (Active Directory / Okta / Entra). When an employee's role changes or their employment terminates, updating their group membership in the identity provider automatically and instantaneously updates their effective permissions across hundreds of cloud projects without modifying any Google Cloud IAM policies.</p>
+        <p><strong>Why today:</strong> Binding roles directly to individuals creates unmanageable administrative sprawl, causes catastrophic \"privilege creep\" as employees accumulate permissions across years, and rapidly exceeds Google Cloud's hard platform limits (an IAM policy cannot exceed 250 KB or 1,500 total member entries). Group-based role binding decouples identity management from infrastructure deployment pipelines.</p>
+        <p><strong>Where it sits:</strong> In the enterprise access control model implemented across all IAM policy bindings in Terraform modules, Organization Policies, and resource-level access control lists.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>A cloud platform team deploys automated scripts that bind individual developer email addresses directly to IAM policies across sixty regional microservice projects, causing the production project IAM policy to breach Google Cloud's 250 KB limit. The oversized policy rejected all subsequent administrative updates, blocking an emergency CI/CD hotfix for an active payment processing bug and forcing 450 franchise stores to revert to manual paper receipts during morning rush hour.</p>
+        </div>
+      </article>
+    </section>

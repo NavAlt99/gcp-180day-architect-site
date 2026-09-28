@@ -1,0 +1,234 @@
+<section id="part-2" class="part"><h2>2 · Technical discussion of each topic</h2>
+<article id="topic-01-technical" class="topic-card">
+<h3>Reproduce, diagnose and restore the integrated application</h3>
+
+<!-- PART_2_SVG_PLACEHOLDER -->
+
+<h4>1. The Imperative of Reproducibility: Declarative IaC &amp; Network Topology</h4>
+<p>In enterprise cloud engineering, an infrastructure configuration that cannot be recreated deterministically from source code is an unquantified liability. While single-service tutorials encourage ad-hoc console provisioning, production architectures must adhere to the <strong>Declarative Reproduction Discipline</strong>: every managed resource, network route, security perimeter, and IAM binding must be expressed in auditable Infrastructure as Code (Terraform / OpenTofu) or fully scripted <code>gcloud</code> workflows. Rebuilding the integrated retail order baseline for Brightloaf requires instantiating five tightly coupled layers in strict dependency order:</p>
+<ol>
+<li><strong>VPC Networking &amp; Private IP Foundations:</strong> A regional custom-mode VPC network (<code>brightloaf-vpc</code>) hosting a dedicated <code>/24</code> subnet (<code>10.128.10.0/24</code>) reserved exclusively for Cloud Run Direct VPC Egress. Unlike legacy Serverless VPC Access connectors—which required dedicated <code>/28</code> subnets and provisioned underlying Compute Engine connector instances that introduced throughput ceilings, scaling lag, and cold-start latency—Direct VPC Egress binds container instances directly to elastic network interfaces (subinterfaces) inside the VPC, drawing up to 251 available private IP addresses with wire-speed throughput and zero intermediate VM hops.</li>
+<li><strong>Private Service Connect (PSC) Datastore Endpoints:</strong> A Regional High Availability Cloud SQL for PostgreSQL 16 instance configured across primary zone <code>us-central1-a</code> and standby replica zone <code>us-central1-f</code>. The instance is published via Private Service Connect to a private endpoint forwarding rule inside <code>brightloaf-vpc</code> at IP <code>10.128.0.50/32</code> on TCP port 5432. PSC completely supersedes legacy VPC Peering for managed databases by eliminating RFC 1918 IP address overlap collisions, preserving customer VPC route autonomy, and preventing transitive routing vulnerabilities.</li>
+<li><strong>Container Runtime Tier (Cloud Run):</strong> The containerized <code>order-service</code> API runtime deployed with Direct VPC Egress enabled (<code>--network=brightloaf-vpc --subnet=order-egress-subnet --vpc-egress=private-ranges-only</code>). Running on Google&#39;s hardened gVisor microVM sandbox, the service operates under a dedicated least-privilege service account (<code>sa-order-service@...</code>) possessing only <code>roles/cloudsql.client</code> and <code>roles/pubsub.publisher</code>.</li>
+<li><strong>Asynchronous Event Fabric with Dead-Letter Topic:</strong> A Cloud Pub/Sub topic (<code>orders.v1</code>) enforcing message ordering via <code>ordering_key = order_id</code>. The downstream fulfillment worker ingests messages via a pull subscription (<code>orders.v1.fulfillment-sub</code>) configured with a strict dead-letter policy: <code>deadLetterTopic = projects/brightloaf-prod/topics/orders.v1.dlq</code> with <code>maxDeliveryAttempts = 5</code>.</li>
+<li><strong>Edge Security &amp; Global Ingress:</strong> A Global external Application Load Balancer terminating client HTTPS via Google-managed TLS 1.3 certificates, protected by Cloud Armor rate-limiting (2,000 QPS per source IP) and pre-configured OWASP Top 10 rulesets, dispatching traffic to the Cloud Run service via a Serverless Network Endpoint Group (NEG).</li>
+</ol>
+
+<h4>2. Controlled Failure Injection: Probes, Circuit Breakers &amp; Quarantine</h4>
+<p>Resilience cannot be asserted; it must be verified under synthetic stress. The architecture incorporates three controlled failure injection probe points designed to test system boundaries under realistic failure conditions:</p>
+
+<h5>Failure Injection 1: Datastore Network Partition &amp; Pool Exhaustion</h5>
+<p>Relational databases represent the most fragile stateful component in cloud microservices. When a database failover occurs, or when a network route to the PSC endpoint is severed, client applications that lack decoupled health checking rapidly enter a catastrophic failure loop. If the application exposes a monolithic health probe (<code>/healthz</code>) that checks database connectivity and fails when the database is unreachable, Cloud Run interprets the failure as a container crash and continuously kills and restarts instances. This triggers a <strong>cold-start reboot storm</strong>: hundreds of restarting containers simultaneously flood the recovering database with fresh TCP handshakes, SSL negotiations, and pool warm-up queries, causing immediate secondary connection pool collapse.</p>
+<p>To eliminate this failure mode, the baseline architecture enforces <strong>Decoupled Dual-Probe Architecture</strong>:</p>
+<ul>
+<li><strong>Liveness Probe (<code>/healthz</code>):</strong> Validates only that the HTTP process is running, event loops are unblocked, and local memory thresholds are healthy. Returns <code>HTTP 200 OK</code> regardless of downstream database availability, preventing Cloud Run from initiating destructive container restarts during transient infrastructure outages.</li>
+<li><strong>Readiness Probe (<code>/readyz</code>):</strong> Actively executes a fast connection validation against the database pool (<code>SELECT 1</code> with a strict 1,000ms timeout). If the PSC endpoint is unreachable or the pool is saturated, <code>/readyz</code> immediately returns <code>HTTP 503 Service Unavailable</code>. The upstream Global ALB detects the readiness probe failure and instantly purges the container instance from the healthy backend pool, preventing user checkout requests from being routed to a crippled backend.</li>
+<li><strong>Client-Side Circuit Breaker:</strong> The application runtime wraps database operations in a circuit breaker pattern (e.g., PyBreaker). Upon detecting 3 consecutive socket timeouts to <code>10.128.0.50:5432</code>, the circuit transitions from <code>CLOSED</code> to <code>OPEN</code>. In the open state, incoming checkout requests fail immediately with <code>HTTP 503</code> and a <code>Retry-After: 30</code> header in under 3 milliseconds, rather than blocking container threads for the full 60-second GFE gateway timeout.</li>
+</ul>
+
+<h5>Failure Injection 2: Poison Pill Payload &amp; Head-of-Line Blocking Prevention</h5>
+<p>In distributed event-driven systems utilizing ordering keys, a <strong>poison pill</strong> is a malformed, corrupted, or schema-violating message that cannot be processed by the consumer logic. In Cloud Pub/Sub, when message ordering is enabled (<code>enable_message_ordering = true</code>), the broker guarantees that messages published with the same <code>ordering_key</code> are delivered to subscribers in the exact order received. However, this architectural guarantee introduces a severe vulnerability: <strong>Head-of-Line (HoL) Blocking</strong>. If consumer logic throws an unhandled exception (e.g., JSON syntax error, missing mandatory attribute, or database constraint violation) and NACKs the message, Pub/Sub redelivers the identical failed message on the next pull. Because the broker cannot violate FIFO ordering, all subsequent valid messages queued behind that ordering key remain permanently stuck in the subscription backlog.</p>
+<p>The baseline mitigates this vulnerability by configuring a <strong>Dead-Letter Topic (DLT) with Retry Bound</strong>:</p>
+<ul>
+<li>The subscription specifies <code>maxDeliveryAttempts = 5</code> pointing to <code>orders.v1.dlq</code>.</li>
+<li>When the fulfillment consumer encounters a corrupted payload, it logs the exception with full W3C trace correlation and NACKs the message. Pub/Sub increments the delivery counter.</li>
+<li>Upon the 5th consecutive delivery failure, Pub/Sub&#39;s broker service agent automatically forwards the poison message to the dead-letter topic and automatically acknowledges the message on the primary subscription.</li>
+<li>The ordering key partition is instantly unblocked, allowing subsequent valid customer orders to resume processing within seconds. A Cloud Monitoring alert triggers immediately on <code>pubsub.googleapis.com/subscription/dead_letter_message_count &gt; 0</code>, paging on-call engineers to inspect the quarantined payload in the dead-letter queue without customer-facing downtime.</li>
+</ul>
+
+<h5>Failure Injection 3: Identity Token Breach &amp; Perimeter Rejection</h5>
+<p>Security defense-in-depth requires verifying that unauthorized callers are rejected at the edge before consuming backend compute or memory resources. Cloud Run provides built-in IAM authentication enforced directly at the Google Front End (GFE) proxy layer:</p>
+<ul>
+<li><strong>Unauthenticated Requests (Missing / Expired Bearer Token):</strong> The client dispatches a request without an <code>Authorization: Bearer &lt;id_token&gt;</code> header. The GFE terminates the request at the edge, returning <code>HTTP 401 Unauthorized</code> with zero container invocation, preserving backend compute capacity.</li>
+<li><strong>Unauthorized Principals (Invalid IAM Invoker Role):</strong> A caller presents a valid Google-signed OIDC token issued to a service account or user that has not been granted <code>roles/run.invoker</code> on the Cloud Run service. The Cloud Run IAM authorizer evaluates the policy and returns <code>HTTP 403 Forbidden</code>.</li>
+<li><strong>Audit Evidence:</strong> Every rejected request generates an immutable audit record in Cloud Logging with <code>protoPayload.status.code = 7 (PERMISSION_DENIED)</code>, enabling automated Security Command Center alerts and rate-based IP banning via Cloud Armor.</li>
+</ul>
+
+<h4>3. Multi-Runtime Architectural Comparison</h4>
+<p>Selecting the optimal compute runtime is a foundational architectural decision. The table below details the concrete engineering trade-offs between Cloud Run, GKE Autopilot, Compute Engine MIGs, and Cloud Functions (2nd Gen) across six architectural dimensions:</p>
+
+<table class="table">
+<thead>
+<tr>
+<th>Architectural Dimension</th>
+<th>Cloud Run (Fully Managed Container)</th>
+<th>GKE Autopilot / Standard</th>
+<th>Compute Engine MIGs (Stateful/Stateless)</th>
+<th>Cloud Functions (2nd Gen)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Autoscaling Dynamics &amp; Cold Starts</strong></td>
+<td>Sub-second container autoscaling from 0 to 1,000+ instances based on incoming request concurrency (up to 250 req/container). Cold starts typically 1.5–3.5s for lightweight runtimes.</td>
+<td>Horizontal Pod Autoscaler (HPA) scales pods in seconds; Cluster Autoscaler / Karpenter provisions node VMs in 60–120s. Overprovisioning buffers required for instant spikes.</td>
+<td>Compute Engine Autoscaler provisions full VM instances based on CPU or custom metric signals. Provisioning and OS boot time requires 3–5 minutes. Zero scale-to-zero capability.</td>
+<td>Event-driven 0-to-N autoscaling identical to Cloud Run. Optimized for single concurrency (1 request per container) or low concurrency; script initialization latency 1–2s.</td>
+</tr>
+<tr>
+<td><strong>VPC Networking &amp; Egress Topology</strong></td>
+<td>Direct VPC Egress binds containers directly to private subnet IPs (e.g. <code>10.128.10.0/24</code>) with zero connector overhead. Supports Private Service Connect endpoints directly.</td>
+<td>VPC-native CNI with Pod IP aliasing allocates secondary subnet ranges to pods. Pods communicate directly across VPC and hybrid interconnects without NAT or gateway proxies.</td>
+<td>VM instances possess primary private network interfaces (NICs). Direct Layer-3 connectivity with full support for multiple NICs, jumbo frames (MTU 8896), and custom routes.</td>
+<td>Direct VPC Egress or Serverless VPC Access connector. Direct VPC Egress provides private IP routing to internal VPC resources and PSC endpoints without external NAT hops.</td>
+</tr>
+<tr>
+<td><strong>Statefulness &amp; Storage Bindings</strong></td>
+<td>Strictly stateless. Ephemeral in-memory root filesystem. Supports read-only or read-write Cloud Storage FUSE and Network File System (NFS / Filestore) volume mounts via gCSFuse.</td>
+<td>Comprehensive stateful orchestration via StatefulSets, Persistent Volume Claims (PVCs), Regional Persistent Disks (standard, balanced, SSD), and Filestore CSI drivers.</td>
+<td>Full stateful persistence. Regional and zonal persistent disks can remain attached across VM autohealing, OS recreation, and rolling instance group updates.</td>
+<td>Stateless only. Ephemeral <code>/tmp</code> scratch disk backed by RAM. No native block storage volume mounts. Out-of-process state must reside in Cloud SQL, Memorystore, or GCS.</td>
+</tr>
+<tr>
+<td><strong>Operational Burden &amp; Day-2 Toil</strong></td>
+<td>Zero infrastructure management. No OS patching, kernel tuning, or node maintenance windows. Google fully manages TLS certificates, scaling infrastructure, and host security.</td>
+<td>Autopilot eliminates node management and OS patching; Standard requires node pool maintenance, Kubernetes minor version upgrades, and CNI/CSI driver lifecycle governance.</td>
+<td>Substantial operational overhead. Requires Packer golden image maintenance, OS vulnerability patching, agent installation (Ops Agent), and custom autohealing health checks.</td>
+<td>Minimal operational overhead. Google handles container builds via Cloud Build and Buildpacks. Developers maintain only application source code and declared dependencies.</td>
+</tr>
+<tr>
+<td><strong>Cost Economics &amp; Pricing Model</strong></td>
+<td>Pure utility pricing. Billed strictly per millisecond of vCPU and memory allocated during active request execution (or min-instances baseline). Zero cost during complete idle periods.</td>
+<td>Autopilot bills per pod vCPU and memory requests. Standard bills for provisioned worker node VMs regardless of pod utilization, plus a $0.10/hour cluster management fee.</td>
+<td>Billed for 100% of provisioned VM hours, vCPUs, RAM, and attached persistent disks whether active or idle. Committed Use Discounts (CUDs) reduce sustained baseline costs by 37–55%.</td>
+<td>Billed per million invocations ($0.40/M) plus active vCPU-seconds and memory-seconds. Eligible for Google Cloud Free Tier monthly allowances (2M invocations/month free).</td>
+</tr>
+<tr>
+<td><strong>Optimal Enterprise Fit</strong></td>
+<td>Modern stateless microservices, REST/gRPC APIs, asynchronous event consumers, and batch webhooks requiring rapid elasticity and zero maintenance.</td>
+<td>Complex microservice topologies, service meshes (Istio/Anthos), multi-container pods, stateful workloads (Kafka, Elasticsearch), and heterogeneous architectures.</td>
+<td>Legacy monolithic applications, custom Linux kernel modules, specialized licensing bound to hardware UUIDs, GPU-intensive HPC tasks, and non-containerized software.</td>
+<td>Lightweight glue logic, asynchronous cloud event listeners (Eventarc, Cloud Storage object creation), webhook transformations, and low-frequency scheduled cron tasks.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>4. Enterprise Failure Injection &amp; Diagnostic Runbook Matrix</h4>
+<p>When an incident strikes production, guessing the failure point wastes critical minutes of error budget. The matrix below defines the definitive diagnostic sequence, telemetry signals, automated containment mechanisms, and restoration procedures for five foundational failure modes:</p>
+
+<table class="table">
+<thead>
+<tr>
+<th>Failure Mode &amp; Scenario</th>
+<th>Injection Mechanism</th>
+<th>Primary Telemetry &amp; Diagnostic Signal</th>
+<th>Circuit Breaker / Containment</th>
+<th>Restoration Procedure &amp; Target MTTR</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Datastore PSC Network Partition</strong><br>Transient Cloud SQL failover or deleted PSC forwarding rule.</td>
+<td>Simulate via route deletion or dropping TCP port 5432 packets via iptables on test proxy.</td>
+<td>Cloud Run logs show <code>HikariPool ConnectionTimeout</code>. Readiness probe <code>/readyz</code> returns 503. Trace spans show 60s hang in <code>db-acquire</code>.</td>
+<td>Application circuit breaker trips to OPEN after 3 timeouts; returns instant HTTP 503 with <code>Retry-After: 30</code>. ALB purges instance.</td>
+<td>Re-establish PSC forwarding rule pointing to Cloud SQL service attachment. Verify <code>/readyz</code> returns 200. Target MTTR: &lt; 3 minutes.</td>
+</tr>
+<tr>
+<td><strong>Poison Pill Payload in Pub/Sub</strong><br>Malformed JSON payload causing consumer deserialization crash.</td>
+<td>Publish corrupt byte sequence or schema-violating JSON with valid <code>ordering_key</code> to <code>orders.v1</code>.</td>
+<td>Consumer logs show repeated <code>UnicodeDecodeError</code> or <code>JSONDecodeError</code>. Backlog metric <code>num_undelivered_messages</code> spikes.</td>
+<td>Dead-letter policy intercepts message after 5 delivery attempts; forwards to <code>orders.v1.dlq</code>; automatically ACKs primary queue.</td>
+<td>Alert fires on DLT message count &gt; 0. SRE inspects quarantined message in DLQ, fixes client parsing bug, re-publishes. Target MTTR: &lt; 5 minutes.</td>
+</tr>
+<tr>
+<td><strong>Identity Token Breach / Replay</strong><br>Unauthenticated public caller or compromised token without invoker role.</td>
+<td>Dispatch HTTPS request with expired JWT, forged signature, or service account lacking <code>roles/run.invoker</code>.</td>
+<td>Edge response: HTTP 401 Unauthorized or HTTP 403 Forbidden. Cloud Logging displays <code>protoPayload.status.code = 7</code>.</td>
+<td>GFE edge proxy terminates connection immediately; zero container vCPU cycles or database connections consumed.</td>
+<td>Revoke compromised service account key. Issue refreshed Google OIDC ID token with verified audience claim. Target MTTR: &lt; 1 minute.</td>
+</tr>
+<tr>
+<td><strong>Ingress Edge DDoS / Rate Saturation</strong><br>Botnet flooding <code>POST /v1/orders</code> endpoint with 50,000 QPS.</td>
+<td>Execute synthetic Locust load test exceeding Cloud Armor 2,000 QPS threshold from single IP pool.</td>
+<td>ALB metrics show spike in HTTP 429 Too Many Requests or 403 Forbidden. Cloud Armor logs show <code>enforcedAction: DENY</code>.</td>
+<td>Cloud Armor rate-limiting rule triggers; drops offending IP requests at edge before entering VPC or reaching Cloud Run.</td>
+<td>Update Cloud Armor security policy with adaptive protection or geoblocking rule. Backend remains 100% operational. Target MTTR: &lt; 2 minutes.</td>
+</tr>
+<tr>
+<td><strong>Direct VPC Subnet IP Starvation</strong><br>Cloud Run autoscales past available IPs in undersized <code>/28</code> subnet.</td>
+<td>Scale Cloud Run max-instances to 100 while bound to a <code>/28</code> subnet (only 11 usable IP addresses).</td>
+<td>Cloud Logging shows <code>Container failed to start: failed to allocate IP from subnet</code>. ALB returns HTTP 503 Service Unavailable.</td>
+<td>Cloud Run fails container allocation and reports revision status failure; ALB redirects traffic to surviving warm instances.</td>
+<td>Migrate Direct VPC Egress configuration to dedicated <code>/24</code> subnet (251 usable IPs) via zero-downtime rolling revision. Target MTTR: &lt; 8 minutes.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>5. Rigorous Inventory &amp; Teardown Dependency Ordering (LIFO)</h4>
+<p>Cloud resource destruction is governed by strict mathematical directed acyclic graph (DAG) dependencies. Deleting infrastructure out of order results in dependency deadlocks (e.g. attempting to delete a VPC subnet while a Cloud Run Direct VPC Egress subinterface holds an active IP allocation) or leaves orphaned resources that quietly accumulate thousands of dollars in unbudgeted billing leaks. To ensure safe, deterministic teardown, architects must enforce a strict <strong>Last-In, First-Out (LIFO) Reverse-Dependency Deletion Order</strong> across five operational phases:</p>
+
+<table class="table">
+<thead>
+<tr>
+<th>Teardown Phase</th>
+<th>Resource Type &amp; Scope</th>
+<th>Target GCP Resources</th>
+<th>Reverse Dependency Constraint</th>
+<th>Orphan Risk &amp; Billing Leak Prevention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Phase 1: Ingress Edge &amp; Forwarding</strong></td>
+<td>Global Networking &amp; Security</td>
+<td>Global forwarding rules, target HTTPS proxies, URL maps, SSL certificates, Cloud Armor policies, Serverless NEGs.</td>
+<td>Must be deleted before compute backends; otherwise ingress proxies attempt to route traffic to non-existent runtimes.</td>
+<td>Orphaned external forwarding rules and unattached static IP addresses incur hourly reservation fees if unreleased.</td>
+</tr>
+<tr>
+<td><strong>Phase 2: Compute Runtimes &amp; IAM</strong></td>
+<td>Serverless Workloads</td>
+<td>Cloud Run services (<code>order-service</code>, <code>fulfillment-service</code>), IAM policy bindings, Secret Manager IAM bindings.</td>
+<td>Must be destroyed before subnets; deleting Cloud Run releases dynamic Direct VPC Egress IP allocations in the VPC subnet.</td>
+<td>Active Cloud Run min-instances continue billing for idle provisioned vCPU/memory if left running in background.</td>
+</tr>
+<tr>
+<td><strong>Phase 3: Messaging &amp; Event Bus</strong></td>
+<td>Asynchronous Messaging</td>
+<td>Pub/Sub pull subscriptions, Dead-Letter Topics (<code>orders.v1.dlq</code>), primary topic (<code>orders.v1</code>), Pub/Sub IAM roles.</td>
+<td>Subscriptions must be detached before topics can be deleted; drain or purge dead-letter messages prior to deletion.</td>
+<td>Subscriptions retain unacknowledged messages for 7 days, incurring message storage charges and persistent backlog metrics.</td>
+</tr>
+<tr>
+<td><strong>Phase 4: Data Layer &amp; Private Access</strong></td>
+<td>Managed Datastores</td>
+<td>Private Service Connect forwarding rules (<code>10.128.0.50</code>), Cloud SQL HA instances (primary + standby), automated backup policies.</td>
+<td>PSC forwarding rule must be deleted before releasing VPC subnet IP; Cloud SQL termination protection must be explicitly disabled.</td>
+<td>Cloud SQL Regional HA instances represent the single highest hourly billing cost; orphaned instances leak $300–$1,200/month.</td>
+</tr>
+<tr>
+<td><strong>Phase 5: Network Foundations &amp; IPs</strong></td>
+<td>Core VPC Infrastructure</td>
+<td>Dedicated Direct VPC Egress subnet (<code>10.128.10.0/24</code>), VPC firewall rules, Cloud NAT gateways, static external IPv4 addresses.</td>
+<td>Subnets cannot be deleted until all NIC subinterfaces, PSC rules, and router attachments are completely released.</td>
+<td>Reserved external static IP addresses not bound to an active forwarding rule or VM incur idle reservation fees ($0.010/hr).</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it: Diagnostic Triage Sequence</strong>
+<p><strong>Scenario:</strong> Client checkouts are failing with <code>HTTP 504 Gateway Timeout</code>. SREs observe that Cloud Run container instances are alive and CPU utilization is under 15%.</p>
+<p><strong>Step-by-step Triage:</strong></p>
+<ol>
+<li><strong>Inspect Cloud Trace:</strong> Query traces with <code>http.status_code=504</code>. Confirm the bottleneck span: if the root span stalls for 60,000ms inside database connection acquisition, the failure is in the datastore layer.</li>
+<li><strong>Evaluate Decoupled Probes:</strong> Check <code>/healthz</code> versus <code>/readyz</code>. If <code>/healthz</code> returns 200 but <code>/readyz</code> returns 503, the container runtime is healthy but connection pooling to PSC <code>10.128.0.50:5432</code> is severed.</li>
+<li><strong>Audit PSC Endpoint Status:</strong> Inspect forwarding rule operational status and target service attachment connectivity using the Compute API or <kbd>gcloud compute forwarding-rules describe psc-cloudsql-endpoint --region=us-central1</kbd>.</li>
+<li><strong>Containment:</strong> Trip the application circuit breaker to OPEN, forcing instant <code>HTTP 503</code> with <code>Retry-After</code> headers. This sheds load, preserves user sockets, and enables Cloud SQL HA failover to complete cleanly.</li>
+</ol>
+</div>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-021">Topic 021 source section</a> in this site, with original publisher links and curriculum context.</p>
+<p>Official Google Cloud Documentation:</p>
+<ul>
+<li><a href="https://docs.cloud.google.com/pubsub/docs/handling-failures#dead_letter_topic" rel="noopener noreferrer">Cloud Pub/Sub Dead-Letter Topics &amp; Retry Policies</a></li>
+<li><a href="https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc" rel="noopener noreferrer">Cloud Run Direct VPC Egress Architecture &amp; Subnet Sizing</a></li>
+<li><a href="https://docs.cloud.google.com/sql/docs/postgres/configure-private-service-connect" rel="noopener noreferrer">Cloud SQL Private Service Connect Configuration &amp; High Availability</a></li>
+<li><a href="https://cloud.google.com/architecture/framework/reliability" rel="noopener noreferrer">Google Cloud Architecture Framework: Reliability &amp; Disaster Recovery</a></li>
+</ul>
+</div>
+</article>
+</section>

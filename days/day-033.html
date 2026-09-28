@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 33: Lifecycle policies and operating assumptions · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+</style>
+<script defer src="../assets/site.js">
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span>
+</a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-032.html" aria-label="Previous day">← Day 32</a>
+<a href="day-034.html" aria-label="Next day">Day 34 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html" selected>Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner">
+<strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="33" data-prev="day-032.html" data-next="day-034.html" data-index="../index.html">
+<div class="crumb">
+<a href="../index.html">Roadmap index</a> / <a href="../index.html#block-cloud-environment-and-identity">Cloud environment and identity</a> / Day 33 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY</span>
+<span class="pill">2–3 hours</span>
+<span class="pill">tabletop / design</span>
+<span class="pill">Topics 012</span>
+</div>
+<h1>Day 33 — Lifecycle policies and operating assumptions</h1>
+<p class="lead">
+<strong>Outcome:</strong> Review launch stage and deprecation notices for two chosen services; define migration triggers and resource expiration rules.</p>
+<div>
+<strong>Entry prerequisites:</strong> <p>
+<a href="day-023.html">Day 23</a>, <a href="day-032.html">Day 32</a>; bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A service lifecycle register with owner, review date and an exit option.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>SLA versus SLO, launch stage, deprecation notices and service lifecycle</span>
+<a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Review the hierarchy and budget artifacts already created</span>
+<a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a>
+</div>
+</aside>
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>SLA versus SLO, launch stage, deprecation notices and service lifecycle</h3>
+<p>An SLA is a provider&#x27;s contractual commitment and remedy under stated conditions; an SLO is an objective the service owner chooses and measures for user experience. Launch stage, product-specific terms, release notes, deprecation notices, and lifecycle status describe different risks, so a GA label or provider SLA cannot replace Brightloaf&#x27;s own reliability target or exit plan.</p>
+<p>This topic belongs after Day 32&#x27;s inventory and support work because each selected service now needs an owner, evidence date, operating assumption, review cadence, migration trigger, and viable alternative.</p>
+<p><strong>Problem preview:</strong> Brightloaf builds a checkout dependency on a Preview feature and records the parent product&#x27;s SLA as the application SLO. A feature change leaves the team without a supported fallback, delaying order acceptance and recovery.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+<article id="topic-02-overview" class="topic-card">
+<h3>Review the hierarchy and budget artifacts already created</h3>
+<p>A lifecycle decision is enforceable only when it maps to a real resource boundary, accountable owner, funding source, inventory record, and expiration or review control. Day 23&#x27;s hierarchy and Day 32&#x27;s asset register reveal where controls attach, while the budget artifacts reveal who sees ongoing cost; labels help organize and attribute resources but do not themselves delete them or enforce IAM policy.</p>
+<p>This review sits between service selection and the first controlled resource operation so tomorrow&#x27;s resource has a known lifetime before it is created.</p>
+<p><strong>Problem preview:</strong> A sandbox service survives its experiment because its owner left, its expiration field was only free text, and its budget alert had no responder. The orphan continues consuming budget and blocks a clean ownership decision.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+<article id="topic-01-technical" class="topic-card">
+<h3>SLA versus SLO, launch stage, deprecation notices and service lifecycle</h3>
+<p><strong>Separate the contracts.</strong> The provider SLA applies only to the named service/configuration and defines eligibility and remedies; it does not promise that Brightloaf&#x27;s end-to-end checkout meets the same percentage. Brightloaf owns its SLI definition, SLO target, alerting, dependency budget, and response. Confirm the exact product SLA rather than inheriting a number from a product family or architecture diagram.</p>
+<p><strong>Gate the lifecycle.</strong> Google describes Preview as testing-oriented without SLA or technical-support commitments unless stated otherwise; GA is production-ready and covered by an SLA where applicable; Deprecated means scheduled shutdown/removal. Pre-GA functionality is excluded from the general deprecation policy cited by Google Cloud, so the register must capture feature-level stage and terms, not only product name.</p>
+<figure class="diagram-figure"><svg viewBox="0 0 980 440" role="img" aria-labelledby="d33-life-title d33-life-desc"><title id="d33-life-title">Service lifecycle decision and exit-control flow</title><desc id="d33-life-desc">A left-to-right conceptual process takes a service candidate through user objectives, feature-level launch-stage and SLA checks, ownership and cost review, an approved operating register, recurring review, and an exit trigger leading to migration or retirement.</desc><defs><marker id="d33-life-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#38bdf8"/></marker></defs><rect class="canvas" width="980" height="440" rx="8"/><text class="lane-label" x="28" y="30" fill="#7dd3fc">FEATURE-LEVEL EVIDENCE → OWNED OPERATING ASSUMPTION → TESTABLE EXIT</text><rect class="box" x="30" y="90" width="165" height="92" rx="8"/><text x="52" y="121">User objective</text><text class="small-label" x="48" y="145">SLI + internal SLO</text><text class="small-label" x="49" y="164">criticality + data</text><rect class="box" x="240" y="70" width="190" height="132" rx="8"/><text x="261" y="101">Provider evidence</text><text class="small-label" x="258" y="125">feature launch stage</text><text class="small-label" x="258" y="146">exact SLA + terms</text><text class="small-label" x="258" y="167">release/deprecation notice</text><rect class="box" x="475" y="70" width="190" height="132" rx="8"/><text x="497" y="101">Internal controls</text><text class="small-label" x="494" y="125">owner + funding</text><text class="small-label" x="494" y="146">review + expiration</text><text class="small-label" x="494" y="167">alternative + test</text><rect class="verifybox" x="710" y="70" width="225" height="132" rx="8"/><text x="731" y="101">LIFECYCLE REGISTER</text><text class="small-label" x="729" y="125">approved assumption</text><text class="small-label" x="729" y="146">dated source evidence</text><text class="small-label" x="729" y="167">owned exit trigger</text><path class="path" marker-end="url(#d33-life-arrow)" d="M195 136 H240"/><path class="path" marker-end="url(#d33-life-arrow)" d="M430 136 H475"/><path class="path" marker-end="url(#d33-life-arrow)" d="M665 136 H710"/><rect class="failbox" x="240" y="276" width="190" height="92" rx="8"/><text x="261" y="307">Trigger reached</text><text class="small-label" x="258" y="331">stage/notice/cost/risk</text><text class="small-label" x="258" y="350">or review overdue</text><rect class="box" x="500" y="276" width="175" height="92" rx="8"/><text x="522" y="307">Decision owner</text><text class="small-label" x="519" y="331">accept, migrate, retire</text><rect class="verifybox" x="745" y="276" width="190" height="92" rx="8"/><text x="767" y="307">EXIT VERIFIED</text><text class="small-label" x="764" y="331">replacement tested</text><text class="small-label" x="764" y="350">old resource reconciled</text><path class="path" marker-end="url(#d33-life-arrow)" d="M822 202 C822 238 430 240 430 276"/><path class="path" marker-end="url(#d33-life-arrow)" d="M430 322 H500"/><path class="path" marker-end="url(#d33-life-arrow)" d="M675 322 H745"/></svg><figcaption>Conceptual lifecycle-control flow for a chosen feature, not evidence that any particular Brightloaf service is GA, covered by an SLA, or safe for production. Every provider claim must be checked at feature/configuration level and dated in the register.</figcaption></figure>
+<table class="comparison"><caption>Lifecycle register fields and decision boundaries</caption><thead><tr><th>Field</th><th>Owner/evidence</th><th>Decision boundary</th></tr></thead><tbody><tr><td>Business use and internal SLO</td><td>Service owner and product owner</td><td>End-to-end target; not copied from provider SLA</td></tr><tr><td>Launch stage and exact SLA</td><td>Product page, terms, product-specific SLA</td><td>Feature/configuration/date specific</td></tr><tr><td>Notices and review</td><td>Release notes, deprecation channel, named reviewer</td><td>Quiet inbox is not proof of no change</td></tr><tr><td>Exit trigger and option</td><td>Architecture owner with tested alternative</td><td>Trigger must lead to an executable decision</td></tr></tbody></table>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-012">Topic 012 sources</a> · <a href="https://cloud.google.com/products#product-launch-stages" rel="noopener noreferrer">Product launch stages</a> · <a href="https://cloud.google.com/terms/deprecation" rel="noopener noreferrer">Services subject to the Deprecation Policy</a> · <a href="https://docs.cloud.google.com/architecture/framework/operational-excellence/operational-readiness-and-performance-using-cloudops#define-slos-slas" rel="noopener noreferrer">Define SLOs and SLAs</a>. Sections checked 2026-09-27; no video timestamp is claimed.</p>
+</div>
+</article>
+<article id="topic-02-technical" class="topic-card">
+<h3>Review the hierarchy and budget artifacts already created</h3>
+<p>Join the Day 32 asset list to the Day 23 hierarchy and budget owner. For every service, record organization/folder/project, resource scope, environment, team owner, cost owner, technical owner, data classification, creation evidence, expiration/review date, dependency, and approved exit. A project label does not propagate automatically to service resources, and labels organize/report—they are not an authorization or deletion mechanism.</p>
+<p>Expiration requires an execution path: inventory selection, owner notification, dependency check, archive or migration if required, deletion approval, and post-action reconciliation. Budget alerts remain notifications; assign a responder and escalation rule rather than treating a threshold as a hard lifecycle control.</p>
+<table class="comparison"><caption>Governance path from hierarchy to expiration</caption><thead><tr><th>Boundary</th><th>Evidence</th><th>Required control</th><th>Limit</th></tr></thead><tbody><tr><td>Hierarchy</td><td>Full resource name and ancestry</td><td>Correct policy/billing scope</td><td>Folder/project location does not identify service owner</td></tr><tr><td>Ownership</td><td>Team role plus backup contact</td><td>Review and exit authority</td><td>A person&#x27;s name is fragile and may be sensitive</td></tr><tr><td>Cost</td><td>Billing account/budget mapping</td><td>Responder and decision threshold</td><td>Budget alert does not cap spend</td></tr><tr><td>Expiration</td><td>Review date and dependency evidence</td><td>Notify, approve, migrate/archive, delete, reconcile</td><td>A label alone performs none of these actions</td></tr></tbody></table>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://docs.cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy#resource-hierarchy-detail" rel="noopener noreferrer">Resource hierarchy detail</a> · <a href="https://docs.cloud.google.com/resource-manager/docs/labels-overview#common_uses_of_labels" rel="noopener noreferrer">Common uses and limits of labels</a> · <a href="https://docs.cloud.google.com/asset-inventory/docs/asset-inventory-overview#work_with_assets_in_google_cloud" rel="noopener noreferrer">Work with assets</a>. Sections checked 2026-09-27.</p>
+</div>
+</article>
+</section>
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+<article id="topic-01-problem" class="topic-card">
+<h3>Example incident: Preview feature without an exit</h3>
+<p><strong>Supplied facts and impact:</strong> Brightloaf&#x27;s checkout architecture uses a Preview feature on the order-ingress path. The decision record names the GA parent product, copies its SLA into the application objective, and has no feature-level stage evidence, owner, migration trigger, or tested alternative. A provider notice changes the feature&#x27;s operating assumption, and the release team cannot safely proceed.</p>
+<p><strong>Constraints and evidence:</strong> Do not claim an SLA remedy or production support for the Preview feature; preserve checkout correctness and do not shift traffic to an untested replacement. Evidence includes the dated feature page, applicable terms, architecture dependency map, notice, and the incomplete decision record.</p>
+<p><strong>Diagnostic sequence:</strong> (1) identify the exact feature/configuration, not only its product; (2) retrieve current launch stage, applicable SLA and terms; (3) distinguish Brightloaf&#x27;s SLI/SLO from provider commitments; (4) trace dependent request/data paths; (5) identify the notice deadline or changed condition without inventing one; (6) assign decision authority; (7) test the alternative before cutover.</p>
+<p><strong>Root cause and solution:</strong> The exact failure is lifecycle approval based on the parent product&#x27;s GA/SLA instead of feature-level evidence. Update the register with dated sources, an internal SLO, an owner, a review cadence, a trigger tied to stage/notice/support risk, and a rehearsed migration or retirement option.</p>
+<figure class="diagram-figure"><svg viewBox="0 0 980 440" role="img" aria-labelledby="d33-i1-title d33-i1-desc"><title id="d33-i1-title">Preview feature lifecycle incident and corrected exit control</title><desc id="d33-i1-desc">The upper dashed lane shows checkout selecting a Preview feature based on its parent product's GA status, failing at a missing feature-level lifecycle decision and ending with a blocked release. The lower solid lane checks feature evidence, records an owner and exit trigger, tests an alternative, and crosses a verification boundary.</desc><defs><marker id="d33-i1-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/></marker><marker id="d33-i1-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/></marker></defs><rect class="canvas" width="980" height="440" rx="8"/><rect class="lane-failed" x="18" y="18" width="944" height="170" rx="8"/><rect class="lane-corrected" x="18" y="236" width="944" height="184" rx="8"/><text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · PARENT PRODUCT STATUS SUBSTITUTED FOR FEATURE EVIDENCE</text><text class="lane-label" x="34" y="258" fill="#4ade80">CORRECTED PATH · FEATURE-LEVEL REGISTER AND TESTED EXIT</text><rect class="box" x="36" y="78" width="150" height="76" rx="8"/><text x="58" y="108">Checkout need</text><text class="small-label" x="55" y="131">release decision</text><rect class="failbox" x="236" y="66" width="230" height="100" rx="8"/><text x="257" y="96">FAILURE POINT</text><text x="254" y="119">assume parent GA/SLA</text><text class="small-label" x="254" y="143">root cause: feature unchecked</text><rect class="failbox" x="536" y="78" width="175" height="76" rx="8"/><text x="558" y="108">Blocked release</text><text class="small-label" x="554" y="131">no safe exit option</text><path class="failed" marker-end="url(#d33-i1-f)" d="M186 116 H236"/><path class="failed" marker-end="url(#d33-i1-f)" d="M466 116 H536"/><text x="746" y="119" fill="#fda4af">FAILED OUTCOME</text><rect class="box" x="36" y="296" width="150" height="76" rx="8"/><text x="58" y="326">Same need</text><text class="small-label" x="55" y="349">constraints preserved</text><rect class="box" x="236" y="284" width="230" height="100" rx="8"/><text x="257" y="314">Corrected control</text><text x="254" y="337">stage + SLA + owner</text><text class="small-label" x="254" y="361">notice + trigger + option</text><rect class="box" x="516" y="296" width="175" height="76" rx="8"/><text x="538" y="326">Alternative test</text><text class="small-label" x="534" y="349">migration / retirement</text><rect class="verifybox" x="752" y="284" width="190" height="100" rx="8"/><text x="773" y="314">VERIFY BOUNDARY</text><text x="771" y="337">register approved</text><text class="small-label" x="771" y="361">exit evidence attached</text><path class="corrected" marker-end="url(#d33-i1-c)" d="M186 334 H236"/><path class="corrected" marker-end="url(#d33-i1-c)" d="M466 334 H516"/><path class="corrected" marker-end="url(#d33-i1-c)" d="M691 334 H752"/><rect class="boundary" x="738" y="270" width="218" height="128" rx="12"/></svg><figcaption><strong>Supplied facts:</strong> the example uses a Preview dependency, parent-product SLA assumption, provider notice, and missing owner/exit evidence. <strong>Architectural inference:</strong> the proven control failure is feature-level lifecycle governance; the scenario does not establish a provider outage or SLA breach. <strong>Expected post-fix behavior:</strong> a dated register and tested alternative cross the verification boundary before the release decision.</figcaption></figure>
+<p><strong>Verification and residual risk:</strong> A reviewer must reproduce each provider source, locate the feature in the dependency map, and inspect evidence from the alternative test. Stage and terms can change; an approved register does not guarantee the replacement meets production performance or correctness.</p>
+</article>
+<article id="topic-02-problem" class="topic-card">
+<h3>Example incident: expired sandbox with no accountable owner</h3>
+<p><strong>Supplied facts and impact:</strong> A Brightloaf sandbox resource remains after its experiment. Its project is visible in the hierarchy, but the asset record has no team role, review date, dependency record, or executable expiration workflow; a budget notification has no named responder. The team cannot decide whether deletion is safe, so cost and operational uncertainty continue.</p>
+<p><strong>Constraints and evidence:</strong> Do not delete from an age label alone, assume an alert caps spend, or infer no dependency from silence. Use the hierarchy, current inventory, billing/budget owner, activity/dependency evidence, and an approval trail; keep personal data out of labels.</p>
+<p><strong>Diagnostic sequence:</strong> (1) resolve the resource&#x27;s full name and ancestry; (2) identify technical, service and cost-owner roles; (3) check dependencies and current activity with the owning service; (4) compare creation purpose to review/expiration policy; (5) notify the owner and backup; (6) archive or migrate required state; (7) obtain deletion approval; (8) delete only in an authorized exercise and reconcile inventory and billing later.</p>
+<p><strong>Root cause and solution:</strong> The failure point is an informational expiration label without owner or workflow. Create a lifecycle control that turns a due review into owned notification, dependency evidence, an approve/extend/retire decision, and post-action verification.</p>
+<figure class="diagram-figure"><svg viewBox="0 0 980 440" role="img" aria-labelledby="d33-i2-title d33-i2-desc"><title id="d33-i2-title">Orphan sandbox lifecycle incident and corrected expiration workflow</title><desc id="d33-i2-desc">The failed dashed lane moves from a sandbox resource through an unowned expiration label and budget notification to an unresolved resource. The corrected solid lane joins hierarchy, owner, dependency and cost evidence, makes an approve extend or retire decision, and verifies inventory reconciliation.</desc><defs><marker id="d33-i2-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/></marker><marker id="d33-i2-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/></marker></defs><rect class="canvas" width="980" height="440" rx="8"/><rect class="lane-failed" x="18" y="18" width="944" height="170" rx="8"/><rect class="lane-corrected" x="18" y="236" width="944" height="184" rx="8"/><text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · INFORMATIONAL EXPIRY WITH NO OWNER OR ACTION</text><text class="lane-label" x="34" y="258" fill="#4ade80">CORRECTED PATH · OWNED REVIEW, DECISION, AND RECONCILIATION</text><rect class="box" x="36" y="78" width="155" height="76" rx="8"/><text x="58" y="108">Sandbox asset</text><text class="small-label" x="55" y="131">experiment complete</text><rect class="failbox" x="241" y="66" width="230" height="100" rx="8"/><text x="262" y="96">FAILURE POINT</text><text x="259" y="119">expiry label only</text><text class="small-label" x="259" y="143">root cause: no workflow</text><rect class="failbox" x="541" y="78" width="180" height="76" rx="8"/><text x="563" y="108">Unresolved asset</text><text class="small-label" x="559" y="131">cost/risk continues</text><path class="failed" marker-end="url(#d33-i2-f)" d="M191 116 H241"/><path class="failed" marker-end="url(#d33-i2-f)" d="M471 116 H541"/><text x="760" y="119" fill="#fda4af">FAILED OUTCOME</text><rect class="box" x="36" y="296" width="155" height="76" rx="8"/><text x="58" y="326">Scoped asset</text><text class="small-label" x="55" y="349">ancestry + budget</text><rect class="box" x="241" y="284" width="230" height="100" rx="8"/><text x="262" y="314">Corrected control</text><text x="259" y="337">owner + dependency check</text><text class="small-label" x="259" y="361">approve / extend / retire</text><rect class="box" x="521" y="296" width="180" height="76" rx="8"/><text x="543" y="326">Execute decision</text><text class="small-label" x="539" y="349">archive/migrate/delete</text><rect class="verifybox" x="762" y="284" width="180" height="100" rx="8"/><text x="778" y="314">VERIFY BOUNDARY</text><text x="781" y="337">inventory clean</text><text class="small-label" x="778" y="361">billing review queued</text><path class="corrected" marker-end="url(#d33-i2-c)" d="M191 334 H241"/><path class="corrected" marker-end="url(#d33-i2-c)" d="M471 334 H521"/><path class="corrected" marker-end="url(#d33-i2-c)" d="M701 334 H762"/><rect class="boundary" x="748" y="270" width="208" height="128" rx="12"/></svg><figcaption><strong>Supplied facts:</strong> the example asset outlived its experiment, has no accountable role or executable review, and its budget notification lacks a responder. <strong>Architectural inference:</strong> deletion safety and provider cost are unknown; the demonstrated defect is lifecycle ownership. <strong>Expected post-fix behavior:</strong> an authorized decision executes only after dependency review, then inventory and later billing evidence are reconciled inside the marked boundary.</figcaption></figure>
+<p><strong>Verification and residual risk:</strong> Require owner/backup acknowledgment, dependency evidence, the decision record, and post-action asset reconciliation. Billing data can lag resource deletion, hidden external dependencies can remain, and this tabletop example does not authorize deleting a real resource.</p>
+</article>
+</section>
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Build a two-service lifecycle register</h3>
+<p><strong>Goal:</strong> Review two genuinely chosen services or features and record an owned, dated operating assumption plus a usable exit option for each.</p>
+<p><strong>Expected Result:</strong> Two complete register rows that distinguish internal SLOs from provider SLAs and identify evidence gaps without guessing.</p>
+<p><strong>Mode:</strong> local documentation review/tabletop; no cloud account or deployment required.</p>
+<p><strong>Preflight:</strong> Create <code>day-033-service-lifecycle.csv</code>. Bring Day 32&#x27;s asset list and escalation sheet. Select two features that appear in your artifacts; if the artifacts contain none, use the supplied fixtures <code>Order API runtime feature</code> and <code>Order data persistence feature</code> and keep exact product/stage fields marked <code>UNKNOWN</code> until researched.</p>
+<p><strong>Numbered Exact Execution:</strong></p><ol><li>Create columns <code>service_feature,use,criticality,internal_sli,internal_slo,launch_stage,stage_source,exact_sla,sla_source,notice_channel,owner_role,backup_role,cost_owner,review_date,exit_trigger,exit_option,exit_test_evidence,status</code>.</li><li>Open the exact feature page and record launch stage plus checked date; do not infer stage from the parent product.</li><li>Open the product-specific SLA and applicable terms. Record <code>none found</code> or <code>not applicable</code> instead of borrowing another configuration&#x27;s commitment.</li><li>Write Brightloaf&#x27;s internal SLI and SLO separately. Mark the tabletop target as a proposed objective, not measured performance.</li><li>Define owner roles, review date, notice channel, one objective trigger, a replacement/retirement option, and the evidence required before exit.</li><li>Repeat for the second feature, then have another reader reproduce every source link.</li></ol>
+<div class="callout success"><strong>Verification with expected output</strong><p>Expected: exactly two data rows; every provider claim has a dated URL; no internal SLO is labeled as a provider guarantee; every row has an owner role, trigger, option, and test-evidence field.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>If the product page and SLA disagree, narrow the feature/configuration and keep the field unresolved. If a service is Preview, do not manufacture an SLA. If a notice channel cannot be confirmed, assign an owner to resolve it.</p></div>
+<div class="callout"><strong>Cleanup</strong><p>No resources or cost. Keep the register; remove only disposable copies.</p></div>
+<p><strong>Artifact Acceptance:</strong> A reviewer can explain the difference between provider SLA and internal SLO and can execute each row&#x27;s decision path without relying on an unnamed owner.</p>
+<label class="check">
+<input type="checkbox" data-progress="lab-33-topic-01"> I completed and checked this topic exercise</label>
+</article>
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Rehearse the expiration decision</h3>
+<p><strong>Goal:</strong> Join hierarchy, inventory, budget, ownership, and dependency evidence into a safe review for one supplied sandbox asset.</p>
+<p><strong>Expected Result:</strong> An approve/extend/retire decision record that never treats a label or budget alert as an automatic deletion control.</p>
+<p><strong>Mode:</strong> tabletop with supplied fixture; no real resource is changed.</p>
+<p><strong>Preflight:</strong> Create <code>day-033-expiration-review.md</code>. Use this fixture: <code>asset=synthetic sandbox Order API runtime; ancestry=organization/folder/sandbox-project; lifecycle=review-due; owner=UNKNOWN; budget responder=UNKNOWN; dependencies=UNKNOWN; data disposition=UNKNOWN</code>.</p>
+<p><strong>Numbered Exact Execution:</strong></p><ol><li>Copy the fixture and label every item as supplied fact, unresolved evidence, or decision.</li><li>Define the evidence source and accountable role for owner, backup, dependencies, activity, data disposition, cost, and approval authority.</li><li>Write three branches: <code>extend</code> with next review; <code>migrate/archive</code> with acceptance evidence; <code>retire</code> with reverse-dependency cleanup and inventory reconciliation.</li><li>Because the fixture has unresolved owner/dependencies/data, choose <code>HOLD — evidence incomplete</code>. Do not choose deletion.</li><li>Resolve one unknown hypothetically and show why it does or does not change the decision; label the result a tabletop prediction.</li><li>Append the two lifecycle-register rows from Exercise 1 and name the owner of every remaining gap.</li></ol>
+<div class="callout success"><strong>Verification with expected output</strong><p>Expected decision: <code>HOLD — evidence incomplete</code>. The note lists all three branches, assigns each unknown, and includes a post-action verification boundary even though no action is authorized.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>If you are tempted to delete because the review date passed, return to dependencies, authority, and data disposition. If a budget alert is your only cost evidence, record its limitation and the billing owner.</p></div>
+<div class="callout"><strong>Cleanup</strong><p>No cloud resources were created or changed. Keep the review with the lifecycle register.</p></div>
+<p><strong>Artifact Acceptance:</strong> Combine the two-service register and expiration review into the Day 33 exit artifact. It passes only when each service has an owner role, review date, evidence-backed trigger, and exit option.</p>
+<label class="check">
+<input type="checkbox" data-progress="lab-33-topic-02"> I completed and checked this topic exercise</label>
+</article>
+</section>
+<section class="completion">
+<h2>Daily evidence</h2>
+<label class="check">
+<input type="checkbox" data-progress="read-33"> I read and reviewed the day</label>
+<label class="check">
+<input type="checkbox" data-progress="artifact-33"> I saved the exit artifact</label>
+</section>
+<nav class="pager" aria-label="Day pagination">
+<a href="day-032.html">← Day 32<small>Support, inventory and learning tracker</small>
+</a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small>
+</a>
+<a href="day-034.html">Day 34 →<small>First controlled cloud resource operation</small>
+</a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

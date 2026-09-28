@@ -1,0 +1,105 @@
+
+<figure class="diagram-figure" id="fig-20-4">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig20-4-title fig20-4-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig20-4-title">Incident 20.2: Single-Node Emulator Delivery Illusion vs Distributed At-Least-Once Production Replay</title>
+      <desc id="fig20-4-desc">Incident flow depicting how the Pub/Sub emulator single-thread in-memory behavior masked an at-least-once message replay loop, and how consumer-side database uniqueness constraints preserved single fulfillment.</desc>
+      <defs>
+        <linearGradient id="p20-f4-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p20-f4-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p20-f4-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p20-f4-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 20.4: Incident Flow · Emulator Illusion vs. At-Least-Once Production Replay</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">In-Memory Emulator Zero-Jitter Assumption · Ack Deadline Timeout · Idempotent Fulfillment Invariant Defense</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: Production Surge</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">11:00 UTC Peak Baking</text>
+      <text x="42" y="146" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Tested only on emulator</text>
+      <text x="42" y="164" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Network jitter delays</text>
+      <text x="42" y="186" fill="#f59e0b" font-family="monospace" font-size="9">ack() > 10s deadline</text>
+      <text x="42" y="204" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">Pub/Sub redelivers message</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Naive Consumer Assumes Exactly-Once]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Emulator never redelivered messages in tests</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Devs omitted consumer deduplication filter</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. Redelivered message reaches consumer pod B</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: Dispatches second baking ticket for same order!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. 1,200 ingredient batches double-ordered</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">Emergency circuit breaker tripped to halt dispatch.</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Idempotent Key &amp; Atomic DB Constraint]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Consumer checks Redis lease: SETNX order_id:lock</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Replayed message rejected in cache or DB row-lock</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Database enforces: UNIQUE(order_id) on fulfillments</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Second insert catches 409 Conflict &amp; ACKs message</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. Exactly 1 physical bakery fulfillment generated</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Invariant strictly maintained despite cloud message replays.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p20-f4-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p20-f4-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed Production Log:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">[DISPATCH] ORD-49281 (Pod A)</text>
+        <text x="25" y="90" fill="#fca5a5" font-family="monospace" font-size="9">[DISPATCH] ORD-49281 (Pod B)</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">Duplicate batch produced!</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected Consumer Log:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">[DISPATCH] ORD-49281 (Success)</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">[REPLAY] ORD-49281 caught</text>
+        <text x="25" y="206" fill="#86efac" font-family="system-ui, sans-serif" font-size="9">[DB 409] Duplicate rejected</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">[ACK] Redelivered msg acked</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">Total physical dispatches: 1</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Order fulfillment count &le; 1</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Zero over-baking under replays</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p20-f4-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p20-f4-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Cloud Pub/Sub guarantees at-least-once delivery; the emulator masks this by operating synchronously.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Production microservices must enforce consumer-side idempotency with database uniqueness constraints to prevent duplicate operations.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 20.4: Incident Flow · Emulator Illusion vs. At-Least-Once Production Replay.</strong>
+    Demonstrates how the synchronous zero-jitter behavior of the local Pub/Sub emulator concealed a message replay bug, and how database uniqueness constraints preserved Brightloaf's single-fulfillment invariant in production.
+    <br><strong>Supplied facts:</strong> The Pub/Sub emulator executes in a single JVM with near-zero latency; production Pub/Sub operates across multi-zone clusters where network jitter can trigger ack deadline expiries and message redeliveries.
+    <br><strong>Architectural inference:</strong> Testing solely against an emulator without consumer idempotency checks leads to catastrophic double-fulfillment when deployed to cloud environments.
+    <br><strong>Expected post-fix behavior:</strong> Message handlers implement distributed locking and database-tier unique constraints, safely acknowledging redelivered messages while ensuring physical order fulfillment occurs exactly once.
+  </figcaption>
+</figure>

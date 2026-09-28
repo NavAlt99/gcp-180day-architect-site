@@ -1,0 +1,212 @@
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d64-arch-title d64-arch-desc" viewBox="0 0 1120 860" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d64-arch-title">Enterprise Event-Driven Messaging, Transactional Outbox &amp; Deduplication Pipeline</title>
+<desc id="d64-arch-desc">Comprehensive architectural topology detailing Order Ingestion with ACID Transactional Outbox in Cloud SQL, Outbox Relay Publisher with Ordering Keys, Cloud Pub/Sub Broker with Dead Letter Topic routing, Pull Subscriber with Idempotent Consumer filter, Deduplication Table, and Crash-Before-Ack vs Crash-After-Ack timeline.</desc>
+<defs>
+<marker id="d64-m-db" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d64-m-relay" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d64-m-pubsub" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#a855f7"/>
+</marker>
+<marker id="d64-m-dlt" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d64-m-consumer" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#06b6d4"/>
+</marker>
+<marker id="d64-m-ack" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+<marker id="d64-m-fail" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#ef4444"/>
+</marker>
+</defs>
+
+<!-- SECTION 1: INGESTION & TRANSACTIONAL OUTBOX (CLOUD SQL) -->
+<rect x="20" y="20" width="1080" height="195" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="42" fill="#38bdf8" font-size="13" font-weight="700">1. INGESTION TIER: Order API &amp; Local ACID Transactional Outbox (Cloud SQL PostgreSQL / AlloyDB)</text>
+
+<!-- Client / API Gateway -->
+<rect x="35" y="55" width="180" height="145" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="45" y="75" fill="#38bdf8" font-size="11" font-weight="700">API Gateway / Ingress</text>
+<text x="45" y="93" fill="#94a3b8" font-size="10">HTTPS Client Requests</text>
+<rect x="45" y="102" width="160" height="34" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="52" y="117" fill="#7dd3fc" font-family="monospace" font-size="9">POST /v1/orders</text>
+<text x="52" y="130" fill="#cbd5e1" font-size="9">Header: Idempotency-Key</text>
+<text x="45" y="152" fill="#22c55e" font-size="9">&#10003; JWT &amp; OpenAPI Validated</text>
+<text x="45" y="167" fill="#cbd5e1" font-size="9">&bull; TLS 1.3 Termination</text>
+<text x="45" y="182" fill="#cbd5e1" font-size="9">&bull; Client Rate Limiting</text>
+
+<!-- Order Service Box -->
+<rect x="250" y="55" width="220" height="145" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+<text x="260" y="75" fill="#7dd3fc" font-size="11" font-weight="700">Order Service (Cloud Run / GKE)</text>
+<text x="260" y="93" fill="#cbd5e1" font-size="10">Single Database Connection Pool</text>
+<rect x="260" y="102" width="200" height="42" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="268" y="117" fill="#fde68a" font-family="monospace" font-size="9">BEGIN TRANSACTION;</text>
+<text x="268" y="130" fill="#cbd5e1" font-family="monospace" font-size="8.5">INSERT INTO orders ...;</text>
+<text x="268" y="140" fill="#cbd5e1" font-family="monospace" font-size="8.5">INSERT INTO outbox_events ...;</text>
+<text x="260" y="160" fill="#f43f5e" font-size="9.5" font-weight="700">&#9888; DUAL-WRITE TRAP ELIMINATED:</text>
+<text x="260" y="174" fill="#cbd5e1" font-size="8.5">Zero direct external network calls</text>
+<text x="260" y="187" fill="#22c55e" font-size="8.5">Guaranteed local ACID atomicity</text>
+
+<!-- Cloud SQL Box -->
+<rect x="505" y="55" width="575" height="145" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1"/>
+<text x="520" y="75" fill="#86efac" font-size="11" font-weight="700">Cloud SQL PostgreSQL Engine (Local ACID Commit Boundary)</text>
+
+<!-- Table 1: orders -->
+<rect x="520" y="85" width="265" height="105" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="530" y="102" fill="#4ade80" font-size="10" font-weight="700">TABLE: orders</text>
+<text x="530" y="118" fill="#cbd5e1" font-family="monospace" font-size="9">order_id VARCHAR PRIMARY KEY</text>
+<text x="530" y="132" fill="#cbd5e1" font-family="monospace" font-size="9">customer_id VARCHAR NOT NULL</text>
+<text x="530" y="146" fill="#cbd5e1" font-family="monospace" font-size="9">amount NUMERIC(10,2)</text>
+<text x="530" y="160" fill="#cbd5e1" font-family="monospace" font-size="9">status VARCHAR ('PENDING')</text>
+<text x="530" y="176" fill="#22c55e" font-size="8.5">&#10003; Business state persisted</text>
+
+<!-- Table 2: outbox_events -->
+<rect x="800" y="85" width="265" height="105" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="810" y="102" fill="#4ade80" font-size="10" font-weight="700">TABLE: outbox_events</text>
+<text x="810" y="118" fill="#cbd5e1" font-family="monospace" font-size="9">event_id UUID PRIMARY KEY</text>
+<text x="810" y="132" fill="#cbd5e1" font-family="monospace" font-size="9">aggregate_id VARCHAR NOT NULL</text>
+<text x="810" y="146" fill="#cbd5e1" font-family="monospace" font-size="9">payload JSONB NOT NULL</text>
+<text x="810" y="160" fill="#cbd5e1" font-family="monospace" font-size="9">status VARCHAR ('UNPUBLISHED')</text>
+<text x="810" y="176" fill="#22c55e" font-size="8.5">&#10003; Atomic with orders table</text>
+
+<!-- Path from Client to Order Service -->
+<path d="M 215 125 L 250 125" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d64-m-relay)"/>
+<!-- Path from Order Service to Cloud SQL -->
+<path d="M 470 125 L 505 125" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d64-m-db)"/>
+
+<!-- SECTION 2: OUTBOX RELAY & PUB/SUB MESSAGING BROKER -->
+<rect x="20" y="230" width="1080" height="205" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="252" fill="#a855f7" font-size="13" font-weight="700">2. RELAY &amp; BROKER TIER: Outbox Relay Publisher &amp; Google Cloud Pub/Sub Messaging Fabric</text>
+
+<!-- Outbox Relay Worker -->
+<rect x="35" y="265" width="275" height="155" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+<text x="45" y="285" fill="#c084fc" font-size="11" font-weight="700">Outbox Relay Worker (Daemon / CDC)</text>
+<rect x="45" y="295" width="255" height="42" rx="3" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="52" y="310" fill="#e0e7ff" font-family="monospace" font-size="8.5">SELECT * FROM outbox_events</text>
+<text x="52" y="322" fill="#e0e7ff" font-family="monospace" font-size="8.5">WHERE status='UNPUBLISHED'</text>
+<text x="52" y="333" fill="#a5b4fc" font-family="monospace" font-size="8">FOR UPDATE SKIP LOCKED LIMIT 100;</text>
+<text x="45" y="352" fill="#cbd5e1" font-size="9.5">&bull; Sets <code>ordering_key = aggregate_id</code></text>
+<text x="45" y="367" fill="#cbd5e1" font-size="9.5">&bull; Publishes batch to Cloud Pub/Sub</text>
+<text x="45" y="382" fill="#cbd5e1" font-size="9.5">&bull; On Publish ACK &rarr; <code>status = 'PUBLISHED'</code></text>
+<text x="45" y="405" fill="#38bdf8" font-size="9">Alternative: Datastream CDC from WAL</text>
+
+<!-- Cloud Pub/Sub Topic and Broker -->
+<rect x="345" y="265" width="410" height="155" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1.5"/>
+<text x="355" y="285" fill="#c084fc" font-size="11" font-weight="700">Cloud Pub/Sub Topic: projects/app/topics/orders.v1</text>
+
+<!-- Topic Partitioning -->
+<rect x="355" y="295" width="185" height="115" rx="3" fill="#1e1b4b" stroke="#a855f7" stroke-width="1"/>
+<text x="365" y="312" fill="#e0e7ff" font-size="9.5" font-weight="700">Ordered Message Stream</text>
+<text x="365" y="328" fill="#cbd5e1" font-family="monospace" font-size="8.5">ordering_key: cust_101</text>
+<text x="365" y="342" fill="#cbd5e1" font-size="8.5">&bull; Serial per-key delivery</text>
+<text x="365" y="356" fill="#cbd5e1" font-size="8.5">&bull; SHA-256 partition routing</text>
+<text x="365" y="370" fill="#22c55e" font-size="8.5">&bull; Horizontal scale across keys</text>
+<text x="365" y="386" fill="#7dd3fc" font-size="8.5">&bull; Schema: Avro / Protobuf</text>
+<text x="365" y="401" fill="#f59e0b" font-size="8">Retention: 31d unack, 7d ack</text>
+
+<!-- Dead Letter Queue Box -->
+<rect x="555" y="295" width="185" height="115" rx="3" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="565" y="312" fill="#fca5a5" font-size="9.5" font-weight="700">Dead Letter Topic (DLT)</text>
+<text x="565" y="328" fill="#fca5a5" font-size="8.5">Topic: orders.v1.deadletter</text>
+<text x="565" y="344" fill="#cbd5e1" font-size="8.5">&bull; <code>maxDeliveryAttempts: 5</code></text>
+<text x="565" y="358" fill="#cbd5e1" font-size="8.5">&bull; Isolates poison pill payloads</text>
+<text x="565" y="372" fill="#22c55e" font-size="8.5">&bull; Prevents partition stalls</text>
+<text x="565" y="386" fill="#cbd5e1" font-size="8.5">&bull; Backoff: 10s min &rarr; 600s max</text>
+<text x="565" y="401" fill="#f43f5e" font-size="8">Quarantine &amp; Replay Alert</text>
+
+<!-- GCP Integration Alternatives Box -->
+<rect x="785" y="265" width="295" height="155" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="795" y="285" fill="#38bdf8" font-size="11" font-weight="700">GCP Messaging Stack Alignment</text>
+<text x="795" y="303" fill="#cbd5e1" font-size="9">&bull; <strong>Cloud Tasks:</strong> Point-to-point dispatch &amp; rate limit</text>
+<text x="795" y="321" fill="#cbd5e1" font-size="9">&bull; <strong>Eventarc:</strong> CloudEvents v1.0 audit log triggers</text>
+<text x="795" y="339" fill="#cbd5e1" font-size="9">&bull; <strong>Cloud Workflows:</strong> Orchestrated state machine</text>
+<text x="795" y="357" fill="#cbd5e1" font-size="9">&bull; <strong>App Integration:</strong> Enterprise iPaaS connectors</text>
+<text x="795" y="375" fill="#cbd5e1" font-size="9">&bull; <strong>API Gateway:</strong> Managed OpenAPI ingress &amp; auth</text>
+<text x="795" y="401" fill="#f59e0b" font-size="9">Pub/Sub = High-Throughput Event Streaming</text>
+
+<!-- Path from Cloud SQL to Relay -->
+<path d="M 800 190 L 800 215 L 175 215 L 175 265" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d64-m-relay)"/>
+<!-- Path from Relay to Pub/Sub -->
+<path d="M 310 340 L 345 340" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#d64-m-pubsub)"/>
+<!-- Path to DLT -->
+<path d="M 540 350 L 555 350" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#d64-m-dlt)"/>
+
+<!-- SECTION 3: CONSUMER DEDUPLICATION & IDEMPOTENT PROCESSING TIER -->
+<rect x="20" y="450" width="1080" height="205" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="472" fill="#06b6d4" font-size="13" font-weight="700">3. CONSUMPTION TIER: StreamingPull Consumer, Deduplication Table &amp; Atomic State Transition</text>
+
+<!-- Consumer Pod -->
+<rect x="35" y="485" width="295" height="155" rx="4" fill="#0f172a" stroke="#06b6d4" stroke-width="1"/>
+<text x="45" y="505" fill="#22d3ee" font-size="11" font-weight="700">Fulfillment Consumer (StreamingPull)</text>
+<text x="45" y="522" fill="#cbd5e1" font-size="9.5">Client Library: <code>google-cloud-pubsub</code></text>
+<text x="45" y="538" fill="#f59e0b" font-size="9.5">&#9733; Transport EOD Enabled (within deadline)</text>
+<rect x="45" y="548" width="275" height="42" rx="3" fill="#164e63" stroke="#06b6d4" stroke-width="1"/>
+<text x="52" y="563" fill="#cffafe" font-family="monospace" font-size="8.5">def callback(message):</text>
+<text x="52" y="575" fill="#cffafe" font-family="monospace" font-size="8.5">  event_id = message.attributes["event_id"]</text>
+<text x="52" y="586" fill="#cffafe" font-family="monospace" font-size="8.5">  process_idempotent(event_id, message.data)</text>
+<text x="45" y="605" fill="#f43f5e" font-size="9">&#9888; CRITICAL: Never ACK before DB commit</text>
+<text x="45" y="620" fill="#22c55e" font-size="9">&#10003; Auto Ack Deadline Extension active</text>
+
+<!-- Deduplication Engine Box -->
+<rect x="365" y="485" width="375" height="155" rx="4" fill="#0f172a" stroke="#06b6d4" stroke-width="1"/>
+<text x="375" y="505" fill="#22d3ee" font-size="11" font-weight="700">Idempotent Deduplication Engine (Cloud SQL / Spanner)</text>
+
+<!-- Dedup Table -->
+<rect x="375" y="515" width="355" height="115" rx="3" fill="#083344" stroke="#06b6d4" stroke-width="1"/>
+<text x="385" y="532" fill="#67e8f9" font-size="10" font-weight="700">TABLE: processed_events (Unique Idempotency Store)</text>
+<text x="385" y="548" fill="#cbd5e1" font-family="monospace" font-size="8.5">event_id VARCHAR(64) PRIMARY KEY</text>
+<text x="385" y="562" fill="#cbd5e1" font-family="monospace" font-size="8.5">consumer_name VARCHAR(64) NOT NULL</text>
+<text x="385" y="576" fill="#cbd5e1" font-family="monospace" font-size="8.5">processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP</text>
+<text x="385" y="594" fill="#fde68a" font-family="monospace" font-size="8">INSERT INTO processed_events VALUES (id, name)</text>
+<text x="385" y="606" fill="#fde68a" font-family="monospace" font-size="8">ON CONFLICT (event_id) DO NOTHING;</text>
+<text x="385" y="622" fill="#22c55e" font-size="8.5">&#10003; Rows affected: 1 = NEW &bull; 0 = DUPLICATE REPLAY</text>
+
+<!-- Fulfillment Execution Box -->
+<rect x="775" y="485" width="305" height="155" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1"/>
+<text x="785" y="505" fill="#86efac" font-size="11" font-weight="700">Fulfillment Business Execution</text>
+<rect x="785" y="515" width="285" height="52" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="795" y="532" fill="#cbd5e1" font-size="9">If NEW: Execute Warehouse Pick &amp; Pack</text>
+<text x="795" y="546" fill="#cbd5e1" font-size="9">Commit Order Status &rarr; 'FULFILLED'</text>
+<text x="795" y="560" fill="#4ade80" font-size="9.5" font-weight="700">COMMIT TRANSACTION;</text>
+<rect x="785" y="575" width="285" height="55" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="795" y="593" fill="#fde68a" font-size="10" font-weight="700">Step Final: message.ack()</text>
+<text x="795" y="608" fill="#cbd5e1" font-size="8.5">Sent ONLY after DB transaction commits to disk</text>
+<text x="795" y="621" fill="#22c55e" font-size="8.5">If duplicate: Skip pick &amp; ack immediately</text>
+
+<!-- Path from Pub/Sub to Consumer -->
+<path d="M 450 420 L 450 455 L 180 455 L 180 485" fill="none" stroke="#06b6d4" stroke-width="2" marker-end="url(#d64-m-consumer)"/>
+<!-- Path from Consumer to Dedup Engine -->
+<path d="M 330 560 L 365 560" fill="none" stroke="#06b6d4" stroke-width="2" marker-end="url(#d64-m-consumer)"/>
+<!-- Path from Dedup Engine to Fulfillment -->
+<path d="M 740 560 L 775 560" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d64-m-db)"/>
+
+<!-- SECTION 4: CRASH/ACK BOUNDARY LIFECYCLE -->
+<rect x="20" y="670" width="1080" height="175" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="692" fill="#f59e0b" font-size="13" font-weight="700">4. RECOVERY INVARIANTS: Crash/Ack Boundary Safety &amp; End-to-End Correctness Guarantee</text>
+
+<!-- Left Box: Crash-Before-Ack (Safe) -->
+<rect x="35" y="705" width="515" height="125" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="45" y="725" fill="#4ade80" font-size="11" font-weight="700">&#10003; CRASH-BEFORE-ACK: SAFE AT-LEAST-ONCE REPLAY</text>
+<text x="45" y="743" fill="#cbd5e1" font-size="9.5">1. Consumer commits business state + <code>processed_events</code> to Cloud SQL.</text>
+<text x="45" y="759" fill="#fca5a5" font-size="9.5">2. Worker crashes (OOM / pod preemption) BEFORE sending ACK to Pub/Sub.</text>
+<text x="45" y="775" fill="#cbd5e1" font-size="9.5">3. Ack deadline expires &rarr; Pub/Sub broker redelivers message to healthy worker.</text>
+<text x="45" y="791" fill="#86efac" font-size="9.5">4. Worker queries <code>processed_events</code> &rarr; finds token &rarr; skips fulfillment logic.</text>
+<text x="45" y="807" fill="#4ade80" font-size="9.5" font-weight="700">5. Worker immediately calls <code>message.ack()</code>. Result: ZERO duplicate effects!</text>
+
+<!-- Right Box: Crash-After-Ack (Catastrophic) -->
+<rect x="580" y="705" width="500" height="125" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="590" y="725" fill="#f87171" font-size="11" font-weight="700">&#9888; CRASH-AFTER-ACK: PERMANENT DATA LOSS (FORBIDDEN)</text>
+<text x="590" y="743" fill="#cbd5e1" font-size="9.5">1. Worker receives message from Pub/Sub and executes <code>message.ack()</code> FIRST.</text>
+<text x="590" y="759" fill="#fca5a5" font-size="9.5">2. Broker deletes message from topic partition, assuming successful processing.</text>
+<text x="590" y="775" fill="#fca5a5" font-size="9.5">3. Worker pod crashes (SIGKILL, segfault, node eviction) BEFORE DB commit.</text>
+<text x="590" y="791" fill="#f87171" font-size="9.5">4. Cloud SQL transaction is aborted / rolled back by the engine.</text>
+<text x="590" y="807" fill="#ef4444" font-size="9.5" font-weight="700">5. Catastrophic state: Order is lost forever. ZERO redelivery possible!</text>
+</svg>
+<figcaption>Figure 64.1: Enterprise Event-Driven Messaging and Transactional Outbox Pipeline. End-to-end data flow showing atomic ACID outbox persistence in Cloud SQL, guaranteed delivery via Outbox Relay to Cloud Pub/Sub with ordering keys and dead-letter routing, subscriber idempotency via a processed events deduplication table, and strict adherence to the crash-before-ack boundary invariant.</figcaption>
+</figure>

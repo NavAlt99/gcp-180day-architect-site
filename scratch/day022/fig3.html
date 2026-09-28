@@ -1,0 +1,120 @@
+<figure class="diagram-figure" id="fig-22-3">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig22-3-title fig22-3-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig22-3-title">Incident 22.1 Flow: Additive IAM Inheritance Escalation vs. Bounded Least-Privilege Architecture</title>
+      <desc id="fig22-3-desc">Incident diagram contrasting the failed path where inherited folder-level editor permissions dropped a production database with the corrected path implementing environment folder segregation, leaf custom roles, IAM Deny guardrails, and idempotent event replay.</desc>
+      <defs>
+        <linearGradient id="p22-f3-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p22-f3-fail-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e"/>
+        </marker>
+        <marker id="p22-f3-ok-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <!-- Background -->
+      <rect width="960" height="520" rx="12" fill="url(#p22-f3-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header Banner -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INCIDENT 22.1: ADDITIVE IAM INHERITANCE ESCALATION &amp; DEFENSE</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Illustrating how inherited folder editor permissions overrode a project viewer role to drop production Spanner, and the corrected architecture.</text>
+
+      <!-- TOP: Actor / Caller Identity -->
+      <g transform="translate(40, 75)">
+        <rect width="880" height="58" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="24" fill="#f8fafc" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CALLER IDENTITY: analytics-deployer@brightloaf-franchise-analytics.iam.gserviceaccount.com</text>
+        <text x="20" y="44" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Automated pipeline running schema updates; intended for staging but configured with production project credentials.</text>
+      </g>
+
+      <!-- LEFT SIDE: FAILED PATH -->
+      <g transform="translate(40, 150)">
+        <rect width="420" height="280" rx="8" fill="#2d1219" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#881337"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">FAILED PATH: ADDITIVE INHERITANCE OVERRIDE</text>
+
+        <!-- Step 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="48" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Folder Binding: roles/editor</text>
+          <text x="12" y="36" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Parent folder grant injects spanner.databases.drop</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="94" x2="210" y2="108" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p22-f3-fail-arrow)"/>
+
+        <!-- Step 2 -->
+        <g transform="translate(16, 112)">
+          <rect width="388" height="48" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Project Binding: roles/viewer (Subtractive Fallacy)</text>
+          <text x="12" y="36" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">Viewer binding CANNOT subtract inherited editor role!</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="160" x2="210" y2="174" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p22-f3-fail-arrow)"/>
+
+        <!-- Step 3 Failure -->
+        <g transform="translate(16, 178)">
+          <rect width="388" height="88" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[FAILED PATH: DROP DATABASE AUTHORIZED]</text>
+          <text x="12" y="40" fill="#fca5a5" font-size="10" font-family="ui-monospace, monospace">API: spanner.databases.drop &rarr; HTTP 200 OK</text>
+          <text x="12" y="58" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; orders-db deleted; worker pods throw 404 Not Found</text>
+          <text x="12" y="74" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Result: 450 franchise stores cannot fetch order queue</text>
+        </g>
+      </g>
+
+      <!-- RIGHT SIDE: CORRECTED PATH -->
+      <g transform="translate(500, 150)">
+        <rect width="420" height="280" rx="8" fill="#0c2317" stroke="#22c55e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#14532d"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CORRECTED PATH: LEAST-PRIVILEGE &amp; IAM DENY</text>
+
+        <!-- Step 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="48" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Environment-Segregated Folders (/Prod vs /NonProd)</text>
+          <text x="12" y="36" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">No broad editor roles assigned at parent folder levels</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="94" x2="210" y2="108" stroke="#22c55e" stroke-width="2" marker-end="url(#p22-f3-ok-arrow)"/>
+
+        <!-- Step 2 -->
+        <g transform="translate(16, 112)">
+          <rect width="388" height="48" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Leaf Custom Role &amp; Org IAM Deny Policy</text>
+          <text x="12" y="36" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">Deny spanner.databases.drop on all automated service accounts</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="160" x2="210" y2="174" stroke="#22c55e" stroke-width="2" marker-end="url(#p22-f3-ok-arrow)"/>
+
+        <!-- Step 3 Corrected -->
+        <g transform="translate(16, 178)">
+          <rect width="388" height="88" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[CORRECTED PATH: PERMISSION DENIED &amp; PITR RECOVERY]</text>
+          <text x="12" y="40" fill="#86efac" font-size="10" font-family="ui-monospace, monospace">API: spanner.databases.drop &rarr; HTTP 403 Forbidden</text>
+          <text x="12" y="58" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">&check; Spanner PITR restores db; Pub/Sub events replayed</text>
+          <text x="12" y="74" fill="#86efac" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Invariant Preserved: &le; 1 physical fulfillment per unique order ID</text>
+        </g>
+      </g>
+
+      <!-- Bottom Invariant Defense Summary -->
+      <g transform="translate(40, 445)">
+        <rect width="880" height="58" rx="8" fill="#111827" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">FULFILLMENT INVARIANT VERIFICATION BOUNDARY:</text>
+        <text x="20" y="42" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Cloud Spanner PITR restored schema and transactions up to 06:13 UTC. Replaying unacknowledged Pub/Sub queue events verified idempotent deduplication hashes, ensuring zero duplicate bread orders were produced across all 450 bakeries.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 22.3: Incident Flow · Additive IAM Inheritance Escalation vs. Bounded Least-Privilege &amp; Deny Guardrails.</strong>
+    Contrasts the failure path where an inherited folder-level <code>roles/editor</code> grant permitted an unauthorized database drop against the corrected architecture enforcing environment folder segregation, leaf custom roles, and IAM Deny policies.
+    <br><strong>Supplied facts:</strong> A contractor analytics service account issued a <code>DropDatabase</code> API call that succeeded despite an explicit project-level <code>roles/viewer</code> binding.
+    <br><strong>Architectural inference:</strong> IAM allow policies are strictly additive; a project-level viewer binding cannot restrict permissions inherited from an ancestor folder editor binding.
+    <br><strong>Expected post-fix behavior:</strong> Broad editor roles are purged from parent folders, IAM Deny policies prevent database deletion, and Spanner PITR restoration combined with idempotent event replays ensures &le; 1 physical fulfillment per unique order ID.
+  </figcaption>
+</figure>

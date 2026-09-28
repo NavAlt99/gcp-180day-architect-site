@@ -1,0 +1,282 @@
+    <section class="part" id="part-3" aria-labelledby="part-3-heading">
+      <h2 id="part-3-heading">Part 3 · Real-world problems</h2>
+      <p class="section-lead">Production postmortems from Brightloaf: responding to exfiltrated private key breaches, diagnosing access versus ID token rejections on private serverless endpoints, and preserving the duplicate fulfillment invariant.</p>
+
+      <!-- Problem 01 -->
+      <article class="card" id="topic-01-problem" aria-labelledby="p1-heading">
+        <span class="badge danger">Incident 26.1</span>
+        <h3 id="p1-heading">Exfiltrated Static Key Breach: Rogue Spanner Mutations Threaten Duplicate Baking</h3>
+
+        <div class="grid-2">
+          <div>
+            <h4>Symptom</h4>
+            <p>At 03:14 UTC, Brightloaf's security monitoring alerted on anomalous write activity on the primary Cloud Spanner instance <code>orders-spanner</code> in project <code>brightloaf-prod-orders</code>. Over 1,200 active bakery orders had their status updated to <code>CANCELLED</code>, while 450 new synthetic order records were inserted. Concurrently, regional bakery dispatch lines experienced processing anomalies, receiving conflicting order IDs.</p>
+          </div>
+          <div>
+            <h4>Constraints &amp; Invariant</h4>
+            <p><strong>Duplicate Fulfillment Invariant:</strong> The physical baking line must never execute duplicate batches for the same customer order (&le; 1 physical fulfillment per unique order ID).
+            <br><strong>Operational Constraint:</strong> SREs must immediately revoke attacker access without interrupting valid in-flight transactions from legitimate microservices.</p>
+          </div>
+        </div>
+
+        <h4>Incident Evidence</h4>
+        <pre><code class="language-json">{
+  "protoPayload": {
+    "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+    "authenticationInfo": {
+      "principalEmail": "sa-fulfillment-worker@brightloaf-prod-orders.iam.gserviceaccount.com",
+      "serviceAccountKeyName": "//iam.googleapis.com/projects/brightloaf-prod-orders/serviceAccounts/sa-fulfillment-worker@.../keys/8f4c9a12b0e7"
+    },
+    "serviceName": "spanner.googleapis.com",
+    "methodName": "google.spanner.v1.Spanner.Commit",
+    "resourceName": "projects/brightloaf-prod-orders/instances/orders-spanner/databases/orders-db"
+  },
+  "severity": "NOTICE",
+  "timestamp": "2026-09-27T03:14:18.291044Z"
+}</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>A contractor attempting to debug an order routing script generated a service account JSON private key on their local laptop. The contractor accidentally committed the key file (<code>sa-fulfillment-worker-key.json</code>) into a public repository. Within 28 minutes, an automated scanner scraped the private key and began issuing unauthorized mutations against Cloud Spanner. Because the service account held broad write permissions on the database and static keys do not record caller IP or identity, the attacker was able to anonymously alter transactional order states.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Key Identification:</strong> Search Cloud Audit Logs for the anomalous <code>serviceAccountKeyName</code> to identify the compromised key ID (<code>8f4c9a12b0e7</code>).</li>
+          <li><strong>Immediate Key Revocation:</strong> Delete the compromised key via IAM to instantly invalidate all subsequent API calls from the attacker.</li>
+          <li><strong>Database Mutation Scoping:</strong> Query Cloud Spanner commit timestamps to isolate all transactions executed using the compromised key between 03:14 UTC and 03:42 UTC.</li>
+          <li><strong>Fulfillment Re-verification:</strong> Cross-reference the affected 1,200 order IDs against regional bakery fulfillment dispatch systems to freeze any conflicting orders before bread dough entered production ovens.</li>
+          <li><strong>Key Estate Audit:</strong> Run an inventory across all Google Cloud projects to locate any remaining active service account keys.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Mitigation</h4>
+        <p>To permanently eliminate static key exfiltration risks:</p>
+        <ol>
+          <li>Enforce the organization policy constraint <code>constraints/iam.disableServiceAccountKeyCreation</code> across the entire organization hierarchy.</li>
+          <li>Migrate all automated workloads to <strong>Attached Workload Identity</strong> (GKE Workload Identity and Cloud Run runtime service accounts).</li>
+          <li>Mandate that human engineers and CI/CD runners access production resources strictly via <strong>Service Account Impersonation</strong> using <code>roles/iam.serviceAccountTokenCreator</code>, ensuring complete dual-principal audit trails.</li>
+          <li>Roll back the fraudulent Spanner mutations using Spanner point-in-time recovery (PITR) to restore order state prior to 03:14 UTC. Re-validate that no cancelled order was re-dispatched to physical bakery lines.</li>
+        </ol>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 420" width="100%" height="auto" role="img" aria-labelledby="fig26-3-title fig26-3-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig26-3-title">Figure 26.3: Incident 26.1 Architecture - Static Key Breach vs Audited Impersonation Defense</title>
+            <desc id="fig26-3-desc">Diagram contrasting the exploitation of an exfiltrated static service account JSON key with the protection offered by attached workload identity and IAM impersonation.</desc>
+            <defs>
+              <marker id="arrow26-3-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow26-3-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Title -->
+            <text x="480" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle">Figure 26.3: Leaked Static Key Exfiltration vs. Impersonation Defense</text>
+            <text x="480" y="52" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">Incident 26.1 · Preventing anonymous data plane mutations through key avoidance</text>
+
+            <!-- Actor Box -->
+            <g transform="translate(40, 160)">
+              <rect width="180" height="110" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+              <text x="90" y="30" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">Initiating Actor</text>
+              <text x="90" y="52" fill="#94a3b8" font-family="monospace" font-size="10" text-anchor="middle">External Actor / Workload</text>
+              <rect x="20" y="68" width="140" height="26" rx="4" fill="#0c4a6e"/>
+              <text x="90" y="85" fill="#bae6fd" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">API Request Initiation</text>
+            </g>
+
+            <!-- FAILED PATH (Top) -->
+            <g transform="translate(320, 75)">
+              <rect width="280" height="100" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="140" y="24" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">STATIC JSON PRIVATE KEY</text>
+              <text x="140" y="44" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">Exfiltrated from public Git repository</text>
+              <text x="140" y="62" fill="#ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Anonymous minting: no caller attribution</text>
+              <text x="140" y="80" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Key valid indefinitely without expiration</text>
+              <text x="140" y="93" fill="#fda4af" font-family="monospace" font-size="9" text-anchor="middle">[FAILED PATH: Static JSON key breach]</text>
+            </g>
+
+            <!-- FAILED DESTINATION (Top Right) -->
+            <g transform="translate(700, 75)">
+              <rect width="220" height="100" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="110" y="26" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Cloud Spanner orders-db</text>
+              <text x="110" y="46" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">Mutations Executed</text>
+              <rect x="20" y="58" width="180" height="30" rx="4" fill="#991b1b"/>
+              <text x="110" y="74" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">CORRUPTED ORDER STATE</text>
+              <text x="110" y="86" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="8" text-anchor="middle">1,200 orders altered; Dispatch halted</text>
+            </g>
+
+            <!-- Failed path arrows -->
+            <path d="M 220 190 L 270 190 L 270 125 L 315 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow26-3-red)"/>
+            <path d="M 600 125 L 695 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow26-3-red)"/>
+
+            <!-- CORRECTED PATH (Bottom) -->
+            <g transform="translate(320, 245)">
+              <rect width="280" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="140" y="24" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">ATTACHED IDENTITY &amp; IMPERSONATION</text>
+              <text x="140" y="44" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">constraints/iam.disableServiceAccountKeyCreation</text>
+              <text x="140" y="62" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Short-lived (1 hr) tokens via metadata server</text>
+              <text x="140" y="80" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Dual-principal Cloud Audit Log attribution</text>
+              <text x="140" y="98" fill="#4ade80" font-family="monospace" font-size="9" text-anchor="middle">[CORRECTED PATH: Ephemeral token delegation]</text>
+            </g>
+
+            <!-- CORRECTED DESTINATION (Bottom Right) -->
+            <g transform="translate(700, 245)">
+              <rect width="220" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="110" y="28" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Cloud Spanner orders-db</text>
+              <text x="110" y="48" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">Authenticated Mutation</text>
+              <rect x="20" y="62" width="180" height="34" rx="4" fill="#15803d"/>
+              <text x="110" y="77" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">ORDER STATE PROTECTED</text>
+              <text x="110" y="90" fill="#bbf7d0" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Audit verified; Invariant safe</text>
+            </g>
+
+            <!-- Corrected path arrows -->
+            <path d="M 220 230 L 270 230 L 270 305 L 315 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow26-3-green)"/>
+            <path d="M 600 305 L 695 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow26-3-green)"/>
+          </svg>
+          <figcaption class="diagram-caption">Figure 26.3: Architecture comparison for Incident 26.1.
+            <br><strong>Supplied facts:</strong> External adversary extracted a downloaded service account JSON key from a public repository and used it to issue unauthorized mutations against the production Cloud Spanner database.
+            <br><strong>Architectural inference:</strong> Static service account keys lack hardware binding, automatic expiration, and caller attribution, allowing unmonitored exfiltration and remote misuse.
+            <br><strong>Expected post-fix behavior:</strong> Key creation is disabled via organization policy; workloads migrate to attached metadata identities and human engineers use IAM impersonation, ensuring ephemeral token lifecycles and complete dual-principal audit trails.
+          </figcaption>
+        </figure>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Attempt to create a service account key using the <code>iam service-accounts keys create</code> CLI method against any project. Confirm the operation is blocked with <code>Request is prohibited by organization policy: constraints/iam.disableServiceAccountKeyCreation</code>.</p>
+        <p><strong>Residual Risk:</strong> Third-party SaaS tools that do not support Workload Identity Federation may require temporary organizational policy exceptions. Such exceptions must require VP approval and 30-day automated key expiration.</p>
+      </article>
+
+      <!-- Problem 02 -->
+      <article class="card" id="topic-02-problem" aria-labelledby="p2-heading">
+        <span class="badge danger">Incident 26.2</span>
+        <h3 id="p2-heading">Access Token vs ID Token Mismatch: Cloud Run Ingress 401 Outage</h3>
+
+        <div class="grid-2">
+          <div>
+            <h4>Symptom</h4>
+            <p>At 06:00 UTC, store edge gateways across forty retail locations began logging <code>HTTP 401 Unauthorized</code> errors when transmitting morning batch bread orders to the central ingestion endpoint (<code>https://order-ingest-prod-xyz.run.app</code>). Over 3,400 orders accumulated in edge gateway retry buffers, and bakery management dashboards showed zero inbound orders for the upcoming morning baking shift.</p>
+          </div>
+          <div>
+            <h4>Constraints &amp; Invariant</h4>
+            <p><strong>Duplicate Fulfillment Invariant:</strong> When store gateways flush their backlogged queues, accumulated retries must not result in duplicate baking orders (&le; 1 physical fulfillment per unique order ID).
+            <br><strong>Security Constraint:</strong> The Cloud Run ingestion microservice must remain private and authenticated (<code>allUsers</code> invoker access strictly prohibited).</p>
+          </div>
+        </div>
+
+        <h4>Incident Evidence</h4>
+        <pre><code class="language-text">HTTP/2 401 Unauthorized
+content-type: text/html; charset=UTF-8
+date: Sun, 27 Sep 2026 06:01:14 GMT
+server: Google Frontend
+www-authenticate: Bearer error="invalid_token" error_description="The token is not an ID token"
+content-length: 331
+
+&lt;html&gt;&lt;head&gt;&lt;title&gt;401 Unauthorized&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;&lt;h1&gt;401 Unauthorized&lt;/h1&gt;
+The request was not authenticated. Expected OpenID Connect ID token with audience matching service URI.
+&lt;/body&gt;&lt;/html&gt;</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>During a weekend software upgrade of the store edge gateways, developers updated the authentication module to use Google Cloud client libraries. However, the client code invoked <code>google.auth.default()</code> to acquire an <em>OAuth2 Access Token</em> (the standard bearer token used for Google Cloud APIs such as Cloud Storage and Pub/Sub). Because the target service was a private Cloud Run endpoint guarded by Google Cloud's serverless ingress proxy, the proxy required an <em>OpenID Connect (OIDC) ID Token</em> containing an <code>aud</code> (audience) claim matching the service URL. Passing an access token caused the ingress proxy to immediately reject the request with HTTP 401 before it ever reached the application container.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Header Inspection:</strong> Inspect the <code>WWW-Authenticate</code> response header from the Cloud Run endpoint to observe <code>error_description="The token is not an ID token"</code>.</li>
+          <li><strong>Token Type Analysis:</strong> Decode the bearer token transmitted by the client gateway. Confirm that the token is an opaque OAuth2 access token (starting with <code>ya29.</code>) rather than a three-part JWT (<code>Header.Payload.Signature</code>).</li>
+          <li><strong>Audience Validation Check:</strong> Verify that the Cloud Run service IAM policy grants <code>roles/run.invoker</code> to the store gateway service account.</li>
+          <li><strong>Backlog Queue Throttling:</strong> Place edge gateway outbound dispatch queues into a controlled drain state to prevent a burst of duplicate order submissions upon authentication restoration.</li>
+          <li><strong>Client Library Reconfiguration:</strong> Update edge client code to use <code>google.auth.transport.requests</code> with <code>google.oauth2.id_token.fetch_id_token</code> specifying the explicit target service audience.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Mitigation</h4>
+        <p>To restore order ingestion and prevent future token confusion:</p>
+        <ol>
+          <li>Deploy a hotfix to edge store gateways: configure the client to request an OIDC ID token targeting <code>audience="https://order-ingest-prod-xyz.run.app"</code>.</li>
+          <li>Verify that the gateway service account retains <code>roles/run.invoker</code> on the Cloud Run service.</li>
+          <li>Slowly drain the backlogged order queues through an idempotent ingestion gateway that inspects the <code>order_id</code> against the Spanner deduplication index, dropping replayed events.</li>
+          <li>Add automated CI/CD integration tests asserting that all client SDK calls targeting internal microservices utilize ID tokens, while calls targeting GCP resource APIs use access tokens.</li>
+        </ol>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 420" width="100%" height="auto" role="img" aria-labelledby="fig26-4-title fig26-4-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig26-4-title">Figure 26.4: Incident 26.2 Architecture - Access Token Rejection vs Validated OIDC ID Token</title>
+            <desc id="fig26-4-desc">Diagram showing how sending an OAuth2 Access Token to a private Cloud Run endpoint resulted in 401 Unauthorized, contrasted with sending a signed OIDC ID Token with the exact audience claim.</desc>
+            <defs>
+              <marker id="arrow26-4-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow26-4-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Header -->
+            <text x="480" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle">Figure 26.4: Access Token 401 Rejection vs. Validated OIDC ID Token</text>
+            <text x="480" y="52" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">Incident 26.2 · Enforcing audience verification for private Cloud Run service-to-service ingress</text>
+
+            <!-- Actor Box -->
+            <g transform="translate(40, 150)">
+              <rect width="180" height="120" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+              <text x="90" y="28" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">Store Edge Gateway</text>
+              <text x="90" y="48" fill="#94a3b8" font-family="monospace" font-size="10" text-anchor="middle">gateway-sa@brightloaf...</text>
+              <rect x="20" y="60" width="140" height="48" rx="4" fill="#0c4a6e"/>
+              <text x="90" y="78" fill="#bae6fd" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Batch Order Ingest</text>
+              <text x="90" y="96" fill="#7dd3fc" font-family="monospace" font-size="9" text-anchor="middle">3,400 Orders Queued</text>
+            </g>
+
+            <!-- FAILED PATH (Top) -->
+            <g transform="translate(320, 75)">
+              <rect width="280" height="105" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="140" y="22" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">OAUTH2 ACCESS TOKEN (ya29...)</text>
+              <text x="140" y="40" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">Authorization: Bearer ya29.c.b0...</text>
+              <text x="140" y="58" fill="#ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Lacks 'aud' audience claim</text>
+              <text x="140" y="76" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Intended for Google APIs, not Cloud Run</text>
+              <text x="140" y="92" fill="#fda4af" font-family="monospace" font-size="9" text-anchor="middle">[FAILED PATH: Token type mismatch]</text>
+            </g>
+
+            <!-- FAILED DESTINATION (Top Right) -->
+            <g transform="translate(700, 75)">
+              <rect width="220" height="105" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="110" y="24" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Cloud Run Ingress Envoy</text>
+              <text x="110" y="44" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">https://ingest.run.app</text>
+              <rect x="20" y="56" width="180" height="34" rx="4" fill="#991b1b"/>
+              <text x="110" y="72" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">401 UNAUTHORIZED</text>
+              <text x="110" y="84" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="8" text-anchor="middle">Orders rejected; Ingestion halted</text>
+            </g>
+
+            <!-- Failed path arrows -->
+            <path d="M 220 190 L 270 190 L 270 125 L 315 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow26-4-red)"/>
+            <path d="M 600 125 L 695 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow26-4-red)"/>
+
+            <!-- CORRECTED PATH (Bottom) -->
+            <g transform="translate(320, 245)">
+              <rect width="280" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="140" y="22" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">SIGNED OIDC ID TOKEN (JWT)</text>
+              <text x="140" y="40" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">Authorization: Bearer eyJhbGciOi...</text>
+              <text x="140" y="60" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">aud: "https://ingest.run.app"</text>
+              <text x="140" y="78" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Cryptographically signed by Google OIDC</text>
+              <text x="140" y="98" fill="#4ade80" font-family="monospace" font-size="9" text-anchor="middle">[CORRECTED PATH: Verified OIDC audience]</text>
+            </g>
+
+            <!-- CORRECTED DESTINATION (Bottom Right) -->
+            <g transform="translate(700, 245)">
+              <rect width="220" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="110" y="26" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Cloud Run Ingress Envoy</text>
+              <text x="110" y="46" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">https://ingest.run.app</text>
+              <rect x="20" y="60" width="180" height="34" rx="4" fill="#15803d"/>
+              <text x="110" y="76" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">200 OK: ACCEPTED</text>
+              <text x="110" y="90" fill="#bbf7d0" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Orders dispatched; Invariant safe</text>
+            </g>
+
+            <!-- Corrected path arrows -->
+            <path d="M 220 230 L 270 230 L 270 305 L 315 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow26-4-green)"/>
+            <path d="M 600 305 L 695 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow26-4-green)"/>
+          </svg>
+          <figcaption class="diagram-caption">Figure 26.4: Architecture comparison for Incident 26.2.
+            <br><strong>Supplied facts:</strong> Edge store gateways were rejected with HTTP 401 Unauthorized when attempting to post batch order requests to a private Cloud Run endpoint.
+            <br><strong>Architectural inference:</strong> Cloud Run private ingress requires an OpenID Connect (OIDC) ID token with an audience claim exactly matching the service URL; client code had erroneously supplied an OAuth2 access token meant for Google Cloud APIs.
+            <br><strong>Expected post-fix behavior:</strong> Client library is reconfigured to invoke the IAM Credentials API generateIdToken method targeting the Cloud Run URI; Cloud Run validates the JWT signature and audience, successfully processing orders without duplicate replays.
+          </figcaption>
+        </figure>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Execute an authorized curl probe passing the newly generated OIDC ID token to the Cloud Run endpoint. Confirm the response status is <code>HTTP/2 200 OK</code> and inspect Cloud Run request logs to verify identity extraction.</p>
+        <p><strong>Residual Risk:</strong> If the Cloud Run service URL changes (e.g., migrating to a custom domain), client configurations must update their requested audience parameter; otherwise, audience mismatch errors will recur.</p>
+      </article>
+    </section>

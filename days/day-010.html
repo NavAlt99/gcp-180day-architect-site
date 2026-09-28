@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 10: Images, filesystems and orchestration · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.topic-card table{width:100%;border-collapse:collapse;margin:18px 0;display:block;overflow-x:auto}.topic-card caption{text-align:left;color:var(--rose);font-weight:800;margin-bottom:8px}.topic-card th,.topic-card td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top;min-width:150px}.topic-card th{color:var(--cyan);background:rgba(56,189,248,.06)}.diagram-figure{margin:20px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-x:auto}.diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}.diagram-figure figcaption{color:var(--muted);font-size:12px;margin-top:10px}.diagram-scroll-hint{display:none;color:var(--muted);font-size:11px}#part-2 article>p:last-child{border-left:3px solid var(--cyan);padding:11px 14px;background:rgba(56,189,248,.06);margin-top:18px}.lab h4{color:var(--cyan);margin:20px 0 8px}@media(max-width:720px){.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+</style>
+<script defer src="../assets/site.js">
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span>
+</a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-009.html" aria-label="Previous day">← Day 9</a>
+<a href="day-011.html" aria-label="Next day">Day 11 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html" selected>Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<main id="main" class="container day" data-day="10" data-prev="day-009.html" data-next="day-011.html" data-index="../index.html">
+<div class="crumb">
+<a href="../index.html">Roadmap index</a> / <a href="../index.html#block-foundations">Foundations</a> / Day 10 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 10</span>
+<span class="pill">2–3 hours</span>
+<span class="pill">local exercise</span>
+<span class="pill">Topics 003</span>
+</div>
+<h1>Day 10 — Images, filesystems and orchestration</h1>
+<p class="lead">
+<strong>Outcome:</strong> Build a tiny container from an annotated example; compare ephemeral files with a mounted volume and trace buffered write versus durable flush.</p>
+<div>
+<strong>Entry prerequisites:</strong> <p>
+<a href="day-009.html">Day 9</a>; bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A runnable image, persistence check and Pod/Deployment/Service ownership diagram.</p>
+</div>
+<p class="small">Source curriculum and linked documentation checked 2026-09-27. Local measurements describe only this bounded exercise and are not production capacity evidence.</p>
+</section>
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Docker: images, layers, Dockerfile, registries, mounts, inodes, volumes, POSIX filesystem sync/fsync semantics</span>
+<a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Container orchestration: why Kubernetes exists</span>
+<a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Kubernetes core objects: Pod, Deployment, Service, Ingress, ConfigMap, Secret</span>
+<a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a>
+</div>
+</aside>
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>Docker: images, layers, Dockerfile, registries, mounts, inodes, volumes, POSIX filesystem sync/fsync semantics</h3>
+<p>Docker packages applications into immutable, content-addressable container images constructed from stacked read-only filesystem layers defined by a Dockerfile. When an image runs as a container, a thin copy-on-write ephemeral layer is attached on top, while persistent state requires explicitly mounted host paths or named volumes. Filesystem operations interact with inode data structures, operating system page caches, and POSIX synchronization primitives (such as the <code>flush</code> and <code>fsync</code> system calls) that govern when buffered data actually reaches durable non-volatile storage.</p>
+<p><strong>Why today and where it sits:</strong> Day 10 progresses from Day 9 process isolation to software artifact packaging and durable state management before introducing Kubernetes clusters. Container images sit between source code repositories and container runtimes, while volume mounts bridge ephemeral container execution with durable underlying storage subsystems.</p>
+<p><strong>Problem preview:</strong> A Brightloaf order processing container writes local transaction state to an ephemeral path inside its writable container layer; when the container is replaced during a rolling update, all uncommitted recovery markers vanish. Customer order reconciliation fails, resulting in duplicate order processing investigations and delayed fulfillment dispatches.</p>
+<p>
+<a href="#topic-01-technical">Technical discussion</a> · <a href="#topic-01-problem">Real-world problem</a> · <a href="#topic-01-lab">Exercise</a>
+</p>
+</article>
+<article id="topic-02-overview" class="topic-card">
+<h3>Container orchestration: why Kubernetes exists</h3>
+<p>Container orchestration automates the deployment, scheduling, health monitoring, self-healing, and networking of containerized workloads across a distributed cluster of compute nodes. Kubernetes implements a declarative control plane where operators declare the desired state of workloads, and autonomous controller loops continuously observe the actual runtime environment and execute corrective actions to reconcile drift. The platform eliminates manual host-level placement, static port assignments, and ad-hoc container restart scripts.</p>
+<p><strong>Why today and where it sits:</strong> Day 10 establishes the operational rationale for distributed orchestrators before exploring cloud service delivery models on Day 11 and Google Kubernetes Engine on Day 42. Kubernetes sits as an abstraction layer above raw virtual machine instances, scheduling workloads onto available cluster capacity and isolating applications from physical machine boundaries.</p>
+<p><strong>Problem preview:</strong> A Brightloaf Deployment is scaled up to handle an order intake surge, but additional replicas remain trapped in an unschedulable state because aggregate cluster node memory is exhausted. The order intake API saturates and drops checkout requests, causing abandoned carts during peak sales.</p>
+<p>
+<a href="#topic-02-technical">Technical discussion</a> · <a href="#topic-02-problem">Real-world problem</a> · <a href="#topic-02-lab">Exercise</a>
+</p>
+</article>
+<article id="topic-03-overview" class="topic-card">
+<h3>Kubernetes core objects: Pod, Deployment, Service, Ingress, ConfigMap, Secret</h3>
+<p>Kubernetes decomposes workload management into discrete declarative API resources with specialized responsibilities. Pods represent atomic co-located container groups sharing network and IPC namespaces; Deployments orchestrate declarative rolling updates and replica management; Services provide durable virtual IP addresses and DNS endpoints that load-balance across ephemeral Pods; Ingress controllers expose HTTP/HTTPS routes from external networks; and ConfigMaps and Secrets decouple runtime configurations and sensitive tokens from container images.</p>
+<p><strong>Why today and where it sits:</strong> Day 10 introduces the fundamental object taxonomy required to design multi-tier cloud applications. These objects form the declarative contract between developers and the Kubernetes API server, defining how compute, networking, configuration, and security boundaries interlock.</p>
+<p><strong>Problem preview:</strong> All backend Order API pods report healthy running status, but external customer checkout requests receive immediate HTTP 503 errors from the Ingress controller because the Service selector contains a typographical discrepancy against the Pod labels. Zero customer checkout requests reach backend order services, causing complete transactional downtime despite healthy running pods.</p>
+<p>
+<a href="#topic-03-technical">Technical discussion</a> · <a href="#topic-03-problem">Real-world problem</a> · <a href="#topic-03-lab">Exercise</a>
+</p>
+</article>
+</section>
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+<article id="topic-01-technical" class="topic-card">
+<h3>Docker: images, layers, Dockerfile, registries, mounts, inodes, volumes, POSIX filesystem sync/fsync semantics</h3>
+<p>A Docker image is an immutable, multi-layered tarball archive where each layer represents a filesystem delta produced by instructions in a Dockerfile (such as <code>FROM</code>, <code>RUN</code>, and <code>COPY</code>). Layers are content-addressed by cryptographic SHA-256 hashes, allowing local container engines and remote registries to cache, deduplicate, and share base layers across different applications. When a container engine instantiates an image, it mounts the read-only layers using an overlay filesystem (such as overlay2) and mounts a single, thin read-write ephemeral layer on top. Any file created, modified, or deleted inside the container's default rootfs is written exclusively to this disposable overlay layer. Once the container process terminates and the container is deleted, this writable layer is permanently discarded.</p>
+<p>Stateful workloads require durable persistence decoupled from container lifecycles. A bind mount maps an explicit absolute directory or file from the host operating system directly into the container's mount namespace, while a named volume is managed directly by the container runtime within designated storage directories (such as <code>/var/lib/docker/volumes/</code>) or backed by remote Cloud Storage / CSI volume plugins. At the operating system level, files are tracked via inodes containing metadata, permissions, and data block pointers. When an application writes data, the write initially populates user-space stream buffers. Calling application <code>flush()</code> transfers bytes into the Linux kernel page cache, but does not guarantee persistence to non-volatile disk blocks. Only invoking the POSIX <code>fsync()</code> system call commands the operating system and storage controller to flush dirty pages and inode metadata down to non-volatile media. Architects must distinguish in-memory buffering from durable disk commits to prevent catastrophic data loss during abrupt node reboots.</p>
+<table><caption>Container storage and filesystem durability map</caption><thead><tr><th>Storage mechanism</th><th>Lifecycle and scope</th><th>POSIX sync and flush behavior</th><th>Important limit</th></tr></thead><tbody>
+<tr><td>Ephemeral container layer</td><td>Bound to container lifecycle; deleted when container is removed</td><td>Writes to local overlay2 filesystem; discarded on pod recreation</td><td>Unsuitable for transactional data; data loss on container restart.</td></tr>
+<tr><td>Bind mount</td><td>Bound to host directory path; survives container replacement</td><td>Synchronizes directly to underlying host filesystem blocks</td><td>Tightly coupled to specific host machine; cannot migrate across nodes.</td></tr>
+<tr><td>Named volume / PVC</td><td>Managed lifecycle; independent of container lifespan</td><td>Flushes through storage driver to local block or remote CSI target</td><td>Zonal block storage cannot attach to multiple zones simultaneously.</td></tr>
+<tr><td>In-memory tmpfs</td><td>Bound to container instance; resides entirely in host RAM/swap</td><td>No disk persistence; <code>fsync()</code> performs no physical I/O</td><td>Consumes host/cgroup memory allocation; lost on process exit.</td></tr>
+</tbody></table>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day10-storage-title day10-storage-desc" viewBox="0 0 940 330">
+<title id="day10-storage-title">Docker container storage architecture and POSIX write durability path</title>
+<desc id="day10-storage-desc">The diagram illustrates container storage layers on the left and the POSIX write durability pipeline from process heap to durable disk storage on the right.</desc>
+<defs>
+<marker id="day10-storage-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="420" height="260" rx="10" stroke="#38bdf8"/>
+<rect x="470" y="30" width="450" height="260" rx="10" stroke="#34d399"/>
+<rect x="40" y="65" width="380" height="40" rx="6" stroke="#f43f5e"/>
+<rect x="40" y="115" width="380" height="40" rx="6" stroke="#f97316"/>
+<rect x="40" y="165" width="380" height="40" rx="6" stroke="#38bdf8"/>
+<rect x="40" y="225" width="380" height="45" rx="6" stroke="#34d399"/>
+<rect x="495" y="65" width="400" height="35" rx="6" stroke="#38bdf8"/>
+<rect x="495" y="115" width="400" height="35" rx="6" stroke="#f97316"/>
+<rect x="495" y="165" width="400" height="35" rx="6" stroke="#f43f5e"/>
+<rect x="495" y="225" width="400" height="45" rx="6" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="700" text-anchor="middle">
+<text x="230" y="52">CONTAINER STORAGE LAYERS</text>
+<text x="230" y="89" fill="#f43f5e">Thin Writable Layer (Ephemeral · Deleted on exit)</text>
+<text x="230" y="139" fill="#f97316">Application Layer (Read-Only · e.g., app.py)</text>
+<text x="230" y="189" fill="#38bdf8">Base Image Layer (Read-Only · e.g., python:3.12-alpine)</text>
+<text x="230" y="247" fill="#34d399">Persistent Volume Mount (/data -> durable storage)</text>
+
+<text x="695" y="52">POSIX WRITE &amp; DURABILITY PIPELINE</text>
+<text x="695" y="87" fill="#38bdf8">1. Process Heap &amp; Runtime Buffer (Volatile RAM)</text>
+<text x="695" y="137" fill="#f97316">2. Linux OS Page Cache (Transferred via flush())</text>
+<text x="695" y="187" fill="#f43f5e">3. Disk Controller Cache (Issued via fsync() syscall)</text>
+<text x="695" y="247" fill="#34d399">4. Non-Volatile Physical Storage Blocks (Durable Commit)</text>
+</g>
+<g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day10-storage-arrow)">
+<path d="M695 100 L695 113"/>
+<path d="M695 150 L695 163"/>
+<path d="M695 200 L695 223"/>
+</g>
+<text x="470" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Ephemeral container storage vanishes on pod deletion; only fsync() on mounted volumes guarantees persistence.</text>
+</svg>
+<figcaption>Figure 10.1: Architecture of container image layers, ephemeral overlay storage, and the operating system write durability path. Only data flushed via fsync() to mounted volumes survives container replacement.</figcaption>
+</figure>
+<p><strong>Further study:</strong> <a href="https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-an-image/">Docker images and layers</a>, <a href="https://docs.docker.com/engine/storage/volumes/">Docker volumes</a>, <a href="https://docs.docker.com/build/concepts/dockerfile/">Dockerfile overview</a>, and <a href="https://man7.org/linux/man-pages/man2/fsync.2.html#DESCRIPTION">Linux fsync manual</a>.</p>
+</article>
+<article id="topic-02-technical" class="topic-card">
+<h3>Container orchestration: why Kubernetes exists</h3>
+<p>Deploying standalone containers with raw container runtimes works on an individual machine, but quickly collapses at scale. A production environment spanning dozens or hundreds of virtual machines requires dynamic scheduling, automated replacement of failed hosts, non-disruptive rolling updates, coordinated service discovery, and declarative scaling. Kubernetes exists to transform a fleet of disparate compute instances into a single unified elastic compute fabric governed entirely by declarative intent.</p>
+<p>The core architecture of Kubernetes operates as a distributed control system based on continuous reconciliation. The <code>kube-apiserver</code> serves as the central REST gateway, validating incoming declarations and persisting cluster state in <code>etcd</code>, a strongly consistent distributed key-value store. The <code>kube-controller-manager</code> runs background control loops (including the Deployment, ReplicaSet, and Node controllers) that continuously compare the observed actual state reported by nodes against the desired state stored in etcd. When a divergence is observed—such as when a pod crashes or desired replicas are scaled—the controller generates new Pod specifications. The <code>kube-scheduler</code> examines unassigned Pods and evaluates node allocatable capacity (CPU, memory, storage requests), taint tolerations, and affinity rules to select the optimal worker node. On each worker node, the <code>kubelet</code> agent watches the API server, instructs the local Container Runtime Interface (CRI) to start containers, and continuously streams telemetry back to the control plane. This reconciliation is eventual: declaring five replicas guarantees that controllers will strive to achieve that count, but actual placement depends entirely on physical cluster capacity.</p>
+<table><caption>Kubernetes control plane component responsibility map</caption><thead><tr><th>Component</th><th>Core responsibility</th><th>Primary interaction</th><th>Important limit</th></tr></thead><tbody>
+<tr><td>kube-apiserver</td><td>Exposes JSON/YAML HTTP REST API; validates and persists cluster state</td><td>Front door for kubectl, controllers, schedulers, and kubelets</td><td>Stateless; throughput bounded by etcd serialization and memory limits.</td></tr>
+<tr><td>etcd</td><td>Strongly consistent distributed key-value store; authoritative state source</td><td>Communicates exclusively with kube-apiserver over mutual TLS</td><td>Requires low-latency disk I/O; slow disk flushes trigger cluster-wide stalls.</td></tr>
+<tr><td>kube-controller-manager</td><td>Executes continuous reconciliation loops to eliminate drift</td><td>Watches desired vs actual state through the API server</td><td>Reconciles eventually; cannot create compute capacity that does not exist.</td></tr>
+<tr><td>kube-scheduler</td><td>Assigns unscheduled Pods to optimal worker nodes based on requests</td><td>Filters by resource availability, taints, and affinity constraints</td><td>Schedules based on declared resource requests, not live CPU/RAM utilization.</td></tr>
+<tr><td>kubelet</td><td>Node agent ensuring assigned containers are running and healthy</td><td>Directs container runtime via CRI; executes probes; reports status</td><td>Manages local node only; depends on local runtime and CNI networking.</td></tr>
+</tbody></table>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day10-reconcile-title day10-reconcile-desc" viewBox="0 0 940 300">
+<title id="day10-reconcile-title">Kubernetes declarative control loop and reconciliation architecture</title>
+<desc id="day10-reconcile-desc">The diagram illustrates the continuous reconciliation loop between desired state in etcd, the controller manager, the scheduler, and kubelet agents on worker nodes.</desc>
+<defs>
+<marker id="day10-reconcile-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="35" width="200" height="220" rx="10" stroke="#38bdf8"/>
+<rect x="250" y="35" width="200" height="220" rx="10" stroke="#f97316"/>
+<rect x="480" y="35" width="200" height="220" rx="10" stroke="#eab308"/>
+<rect x="710" y="35" width="210" height="220" rx="10" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="13" font-weight="700" text-anchor="middle">
+<text x="120" y="65">1. Control Plane</text>
+<text x="350" y="65">2. Controllers</text>
+<text x="580" y="65">3. Scheduler</text>
+<text x="815" y="65">4. Worker Nodes</text>
+</g>
+<g fill="#a9b7cb" font-size="11" text-anchor="middle">
+<text x="120" y="95" fill="#38bdf8">kube-apiserver</text>
+<text x="120" y="120">etcd Data Store</text>
+<text x="120" y="145">Stores Desired State</text>
+<text x="120" y="170">(e.g., replicas: 3)</text>
+<text x="120" y="210" fill="#fce7f3">Authoritative Spec</text>
+
+<text x="350" y="95" fill="#f97316">controller-manager</text>
+<text x="350" y="120">Deployment Loop</text>
+<text x="350" y="145">Compares Desired vs Actual</text>
+<text x="350" y="170">Creates Missing Pods</text>
+<text x="350" y="210" fill="#fce7f3">Reconciliation Engine</text>
+
+<text x="580" y="95" fill="#eab308">kube-scheduler</text>
+<text x="580" y="120">Filters Node Capacity</text>
+<text x="580" y="145">Evaluates CPU / RAM</text>
+<text x="580" y="170">Assigns Pod to Node</text>
+<text x="580" y="210" fill="#fce7f3">Placement Decision</text>
+
+<text x="815" y="95" fill="#34d399">kubelet &amp; CRI</text>
+<text x="815" y="120">Pulls Image &amp; Starts Pod</text>
+<text x="815" y="145">Executes Health Probes</text>
+<text x="815" y="170">Reports Status to API</text>
+<text x="815" y="210" fill="#fce7f3">Observed Actual State</text>
+</g>
+<g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day10-reconcile-arrow)">
+<path d="M220 145 L246 145"/>
+<path d="M450 145 L476 145"/>
+<path d="M680 145 L706 145"/>
+<path d="M815 235 L815 270 L120 270 L120 258"/>
+</g>
+<text x="470" y="285" fill="#a9b7cb" font-size="11" text-anchor="middle">Continuous feedback loop: actual node telemetry reconciles against declared desired state in etcd.</text>
+</svg>
+<figcaption>Figure 10.2: Declarative reconciliation loop in Kubernetes. The control plane watches declared desired state, detects divergence, calculates placement across worker nodes, and executes autonomous convergence.</figcaption>
+</figure>
+<p><strong>Further study:</strong> <a href="https://kubernetes.io/docs/concepts/overview/components/#core-components">Kubernetes components</a> and <a href="https://kubernetes.io/docs/concepts/workloads/">Kubernetes workloads</a>.</p>
+</article>
+<article id="topic-03-technical" class="topic-card">
+<h3>Kubernetes core objects: Pod, Deployment, Service, Ingress, ConfigMap, Secret</h3>
+<p>Kubernetes structures applications through interconnected API primitives that isolate concerns across compute, networking, and configuration. A Pod is the smallest deployable compute artifact in Kubernetes, encapsulating one or more tightly coupled containers that share a common Linux network namespace (sharing an IP address, port space, and localhost loopback interface) and IPC namespace. Pods are ephemeral; when a pod crashes or a host node fails, the pod is terminated and a replacement pod is scheduled with a new, different IP address.</p>
+<p>Because Pods have non-static IP addresses, Deployments and Services manage lifecycle and networking abstraction. A Deployment defines desired replicas and a Pod template; it manages underlying ReplicaSets to orchestrate rolling updates without downtime. A Service provides a durable, static virtual IP (ClusterIP) and internal DNS entry that fronts the ephemeral pods. The Service uses a label selector (e.g., <code>spec.selector: {app: orders}</code>) to automatically match against Pod labels (<code>metadata.labels: {app: orders}</code>), while the EndpointSlice controller automatically populates the active IP addresses of healthy Pods that have passed readiness probes. An Ingress resource manages external HTTP/HTTPS routing, mapping incoming hostnames and URL paths to backend Services; it requires an Ingress Controller (such as the GCP GKE Ingress controller or NGINX) to provision underlying cloud load balancers. Finally, ConfigMaps and Secrets inject environment variables or mounted configuration files into containers without embedding environment-specific values or private API tokens into immutable image layers.</p>
+<table><caption>Kubernetes core object relationship and scope map</caption><thead><tr><th>Kubernetes object</th><th>Architectural purpose</th><th>Selector or association mechanism</th><th>Key operational constraint</th></tr></thead><tbody>
+<tr><td>Pod</td><td>Atomic scheduling unit; shared network namespace and IP</td><td>Instantiated from Deployment pod template</td><td>Ephemeral lifecycle; IP address changes on recreation or node reschedule.</td></tr>
+<tr><td>Deployment</td><td>Declarative rolling updates and replica management</td><td>spec.selector.matchLabels matches pod template labels</td><td>Selector is immutable after creation; mismatch orphans managed pods.</td></tr>
+<tr><td>Service</td><td>Durable virtual IP and DNS name balancing across pods</td><td>spec.selector matches active Pod metadata.labels</td><td>Typo in selector leaves Service with zero active endpoints (HTTP 503).</td></tr>
+<tr><td>Ingress</td><td>External HTTP/HTTPS path routing and TLS termination</td><td>Routes to Service name and port in routing rules</td><td>Does nothing without an active Ingress Controller implementing the rules.</td></tr>
+<tr><td>ConfigMap / Secret</td><td>Decouples runtime configuration and keys from image</td><td>Mounted as files via volumes or injected as env vars</td><td>Secrets are base64-encoded in API; requires RBAC and KMS encryption-at-rest.</td></tr>
+</tbody></table>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day10-objects-title day10-objects-desc" viewBox="0 0 940 320">
+<title id="day10-objects-title">Kubernetes core object relationships and traffic routing path</title>
+<desc id="day10-objects-desc">The diagram traces request traffic from external clients through Ingress and Service selectors down to backend Pods mounting ConfigMaps and Secrets.</desc>
+<defs>
+<marker id="day10-objects-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="35" width="160" height="240" rx="10" stroke="#38bdf8"/>
+<rect x="210" y="35" width="200" height="240" rx="10" stroke="#f97316"/>
+<rect x="440" y="35" width="230" height="240" rx="10" stroke="#34d399"/>
+<rect x="700" y="35" width="220" height="240" rx="10" stroke="#eab308"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="700" text-anchor="middle">
+<text x="100" y="65">Ingress Layer</text>
+<text x="310" y="65">Service Abstraction</text>
+<text x="555" y="65">Deployment &amp; Pods</text>
+<text x="810" y="65">Config &amp; Secrets</text>
+</g>
+<g fill="#a9b7cb" font-size="11" text-anchor="middle">
+<text x="100" y="95" fill="#38bdf8">Ingress Controller</text>
+<text x="100" y="120">HTTP /orders Route</text>
+<text x="100" y="145">TLS Termination</text>
+<text x="100" y="170">Routes to Service</text>
+<text x="100" y="210" fill="#fce7f3">External Ingress</text>
+
+<text x="310" y="95" fill="#f97316">orders-svc (ClusterIP)</text>
+<text x="310" y="120">Port: 80 -> Target: 8080</text>
+<text x="310" y="145">Selector: app: orders</text>
+<text x="310" y="170">EndpointSlice Controller</text>
+<text x="310" y="210" fill="#fce7f3">Stable Virtual IP</text>
+
+<text x="555" y="95" fill="#34d399">Deployment: orders</text>
+<text x="555" y="120">Labels: app: orders</text>
+<text x="555" y="145">Pod 1: 10.244.1.5:8080</text>
+<text x="555" y="170">Pod 2: 10.244.2.8:8080</text>
+<text x="555" y="210" fill="#fce7f3">Ephemeral Replicas</text>
+
+<text x="810" y="95" fill="#eab308">ConfigMap: app-config</text>
+<text x="810" y="120">Feature flags &amp; ports</text>
+<text x="810" y="145">Secret: db-credentials</text>
+<text x="810" y="170">Encrypted auth tokens</text>
+<text x="810" y="210" fill="#fce7f3">Injected Environment</text>
+</g>
+<g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day10-objects-arrow)">
+<path d="M180 145 L206 145"/>
+<path d="M410 145 L436 145"/>
+<path d="M700 145 L674 145"/>
+</g>
+<text x="470" y="295" fill="#a9b7cb" font-size="11" text-anchor="middle">Traffic traverses Ingress -> Service -> Pod; Pods mount ConfigMaps and Secrets independently.</text>
+</svg>
+<figcaption>Figure 10.3: Kubernetes core object relationships and traffic routing hierarchy. External traffic reaches Pods via Ingress and matching Service selectors, while configuration and secrets are injected decoupled from image layers.</figcaption>
+</figure>
+<p><strong>Further study:</strong> <a href="https://kubernetes.io/docs/concepts/workloads/pods/#what-is-a-pod">Pods</a>, <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/">Deployments</a>, <a href="https://kubernetes.io/docs/concepts/services-networking/service/">Services</a>, <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Ingress</a>, <a href="https://kubernetes.io/docs/concepts/configuration/configmap/">ConfigMaps</a>, and <a href="https://kubernetes.io/docs/concepts/configuration/secret/">Secrets</a>.</p>
+</article>
+</section>
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+<article id="topic-01-problem" class="topic-card">
+<h3>Incident exercise · The phantom order marker</h3>
+<p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf's Order API container processes asynchronous checkout payment receipts. To track transactions across transient network interruptions, the application writes an uncommitted recovery marker file to <code>/tmp/recovery.marker</code>. Following a rolling deployment of a minor bug fix, customer service agents report that twenty transactions initiated right before the deployment failed reconciliation and triggered manual exception queues. Operations engineers confirm that the writes returned HTTP 200 before the rollout, yet the recovery markers are completely absent from the newly running container instances.</p>
+<p><strong>Constraints and evidence:</strong> Customer payment reconciliation must maintain absolute idempotency (replaying an event must never double-charge or generate duplicate physical fulfillments); the deployment rollout mechanism must remain automated without requiring manual human intervention; and container disk I/O must not overwhelm host storage controllers.</p>
+<p><strong>Evidence and root cause:</strong> Application source code inspection confirms that recovery markers were written to <code>/tmp/recovery.marker</code> inside the local container filesystem. Inspecting deployment manifests shows that no volume or PersistentVolumeClaim was mounted at <code>/tmp</code>. When the deployment controller replaced the old pods with new container instances, the ephemeral writable layers belonging to the terminated containers were destroyed according to standard container runtime lifecycle rules. The write had succeeded in the old ephemeral overlay2 layer, but was never persisted to durable shared storage.</p>
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li>Inspect application write code to identify the exact target filesystem path (<code>/tmp/recovery.marker</code>).</li>
+<li>Examine the Pod spec in the Deployment manifest to check for volume definitions and volume mount attachments.</li>
+<li>Inspect container runtime events to correlate the exact timestamp of pod replacement with the disappearance of marker files.</li>
+<li>Verify POSIX write semantics: check whether the application called <code>flush()</code> and <code>os.fsync()</code> on the file descriptor before acknowledging requests.</li>
+<li>Query the database deduplication log to confirm that no duplicate orders were submitted to the warehouse fulfillment pipeline.</li>
+</ol>
+<p><strong>Defensible solution:</strong> Refactor the deployment manifest to attach a durable PersistentVolumeClaim mounted at <code>/data</code>, or transition state storage to a managed database (such as Cloud SQL or Memorystore). Update the Order API to write recovery markers to <code>/data/recovery.marker</code>, explicitly invoking stream <code>flush()</code> and <code>os.fsync()</code> to ensure data leaves OS page cache and commits to non-volatile disk media before the HTTP 200 acknowledgment is returned.</p>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day10-volume-incident-title day10-volume-incident-desc" viewBox="0 0 940 310">
+<title id="day10-volume-incident-title">Ephemeral container layer data loss and persistent volume fix</title>
+<desc id="day10-volume-incident-desc">The failed dashed path writes state to an ephemeral container layer that is destroyed during rolling updates. The corrected solid path mounts a persistent volume and executes fsync, verified across pod restarts.</desc>
+<defs>
+<marker id="day10-vol-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day10-vol-fail-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="150" height="85" rx="8" stroke="#38bdf8"/>
+<rect x="225" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="225" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="495" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="495" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="765" y="110" width="155" height="85" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">
+<text x="95" y="142">Order Write</text>
+<text x="95" y="162" fill="#a9b7cb">Recovery Marker</text>
+
+<text x="335" y="58">[FAILED: Ephemeral Layer]</text>
+<text x="335" y="78" fill="#f43f5e">Writes to /tmp/recovery.marker</text>
+<text x="335" y="98" fill="#a9b7cb">Overlay2 writable layer</text>
+
+<text x="335" y="213">[CORRECTED: Volume + fsync]</text>
+<text x="335" y="233" fill="#34d399">Writes to /data mount</text>
+<text x="335" y="253" fill="#a9b7cb">Explicit os.fsync() commit</text>
+
+<text x="605" y="58">EXACT FAILURE POINT</text>
+<text x="605" y="78" fill="#f43f5e">Pod rolling update occurs</text>
+<text x="605" y="98" fill="#f43f5e">Writable layer deleted</text>
+
+<text x="605" y="213">CORRECTED CONTROL</text>
+<text x="605" y="233" fill="#34d399">New pod re-attaches PVC</text>
+<text x="605" y="253" fill="#a9b7cb">Data intact after replace</text>
+
+<text x="842" y="138">VERIFICATION</text>
+<text x="842" y="158" fill="#34d399">Recovery Succeeds</text>
+<text x="842" y="178" fill="#a9b7cb">&le;1 fulfillment per order</text>
+</g>
+<g fill="none" stroke-width="2">
+<path d="M170 135 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day10-vol-fail-arrow)"/>
+<path d="M445 72 L490 72" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day10-vol-fail-arrow)"/>
+<path d="M170 170 L220 215" stroke="#38bdf8" marker-end="url(#day10-vol-arrow)"/>
+<path d="M445 227 L490 227" stroke="#38bdf8" marker-end="url(#day10-vol-arrow)"/>
+<path d="M715 227 L760 170" stroke="#38bdf8" marker-end="url(#day10-vol-arrow)"/>
+</g>
+<text x="470" y="295" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed line (--&gt;) = ephemeral layer data loss · Solid line (—&gt;) = persistent volume mount and fsync verification</text>
+</svg>
+<figcaption>Figure 10.4: Supplied facts: Writing state to ephemeral container filesystem results in data loss upon pod recreation. Architectural inference: Decoupling storage lifecycle from container lifecycle via persistent volumes ensures recovery marker survival. Expected post-fix behavior: Replacement containers read existing recovery markers, preserving at-most-once fulfillment semantics.</figcaption>
+</figure>
+<p><strong>Verification and residual risk:</strong> Trigger a controlled pod replacement during an active synthetic transaction write; verify that the newly launched replacement pod mounts <code>/data</code>, reads the existing recovery marker, and completes reconciliation; verify in the deduplication ledger that no duplicate fulfillment events occurred. Residual risks include storage volume IOPS throttling during peak transaction bursts, and the need for cross-zone backup replication if the underlying persistent disk is zonal.</p>
+</article>
+<article id="topic-02-problem" class="topic-card">
+<h3>Incident exercise · The trapped scale-out</h3>
+<p><strong>Illustrative scenario—not an observed production incident.</strong> In response to a promotional marketing campaign, Brightloaf operators scale the Order API Deployment from two replicas to five replicas. The Horizontal Pod Autoscaler observes elevated request latency and validates the scaling request. However, checkout latency continues to climb and customer orders begin failing with gateway timeouts. Upon inspecting the cluster, the team observes that only two pods are running, while the three new replicas remain trapped indefinitely in <code>Pending</code> status.</p>
+<p><strong>Constraints and evidence:</strong> Existing running pods must not be terminated; the cluster budget must not be violated by over-provisioning massive unneeded node instances; and the scheduling diagnosis must rely strictly on cluster control plane event logs without trial-and-error pod deletions.</p>
+<p><strong>Evidence and root cause:</strong> Running <code>kubectl</code> describe pod on any pending replica reveals the warning event: <code>0/3 nodes available: 3 Insufficient memory</code>. The worker node pool consists of three nodes with 4 GiB of allocatable memory each, hosting other cluster services. Each Order API pod declares a memory request of 2 GiB. The scheduler evaluated the nodes and determined that no single node possessed 2 GiB of unallocated allocatable memory. The root cause is a capacity constraint: declarative desired state was updated, but the physical cluster lacked sufficient allocatable compute to satisfy the scheduling requirements.</p>
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li>Run <code>kubectl</code> get deployment orders to compare desired (5) versus available (2) replica counts.</li>
+<li>Execute <code>kubectl</code> get pods -l app=orders to identify the exact Pod names stuck in <code>Pending</code> state.</li>
+<li>Run <code>kubectl</code> describe pod &lt;pending-pod&gt; and inspect the <code>Events</code> section to extract the scheduler's diagnostic failure reason.</li>
+<li>Inspect node resource accounting with <code>kubectl</code> describe nodes to evaluate allocatable versus requested memory across all nodes.</li>
+<li>Correlate pod memory request values against actual observed memory consumption in Cloud Monitoring.</li>
+</ol>
+<p><strong>Defensible solution:</strong> Implement two coordinated architectural fixes: first, right-size the Order API's resource requests from 2 GiB down to a measured baseline of 768 MiB (with a 1024 MiB limit), reflecting actual application heap profiles; second, enable GKE Cluster Autoscaler on the node pool, allowing the cluster control plane to automatically provision additional compute nodes when unschedulable pods accumulate in the queue.</p>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day10-sched-incident-title day10-sched-incident-desc" viewBox="0 0 940 310">
+<title id="day10-sched-incident-title">Deployment scale-out failure under node capacity exhaustion</title>
+<desc id="day10-sched-incident-desc">The failed dashed path shows three pods trapped in Pending due to insufficient node memory. The corrected solid path right-sizes requests and triggers node autoscaling, resulting in 5 running replicas.</desc>
+<defs>
+<marker id="day10-sched-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day10-sched-fail-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="150" height="85" rx="8" stroke="#38bdf8"/>
+<rect x="225" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="225" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="495" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="495" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="765" y="110" width="155" height="85" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">
+<text x="95" y="142">Scale Trigger</text>
+<text x="95" y="162" fill="#a9b7cb">Replicas: 5</text>
+
+<text x="335" y="58">[FAILED: Fixed Node Pool]</text>
+<text x="335" y="78" fill="#f43f5e">3 nodes @ 4G allocatable</text>
+<text x="335" y="98" fill="#a9b7cb">Uncalibrated 2G request</text>
+
+<text x="335" y="213">[CORRECTED: Autoscaler]</text>
+<text x="335" y="233" fill="#34d399">Calibrated 768M request</text>
+<text x="335" y="253" fill="#a9b7cb">Autoscaler adds node</text>
+
+<text x="605" y="58">EXACT FAILURE POINT</text>
+<text x="605" y="78" fill="#f43f5e">0/3 nodes available</text>
+<text x="605" y="98" fill="#f43f5e">3 Pods trapped in Pending</text>
+
+<text x="605" y="213">CORRECTED CONTROL</text>
+<text x="605" y="233" fill="#34d399">Scheduler places all pods</text>
+<text x="605" y="253" fill="#a9b7cb">Readiness probes pass</text>
+
+<text x="842" y="138">VERIFICATION</text>
+<text x="842" y="158" fill="#34d399">5/5 Replicas Running</text>
+<text x="842" y="178" fill="#a9b7cb">Zero dropped checkouts</text>
+</g>
+<g fill="none" stroke-width="2">
+<path d="M170 135 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day10-sched-fail-arrow)"/>
+<path d="M445 72 L490 72" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day10-sched-fail-arrow)"/>
+<path d="M170 170 L220 215" stroke="#38bdf8" marker-end="url(#day10-sched-arrow)"/>
+<path d="M445 227 L490 227" stroke="#38bdf8" marker-end="url(#day10-sched-arrow)"/>
+<path d="M715 227 L760 170" stroke="#38bdf8" marker-end="url(#day10-sched-arrow)"/>
+</g>
+<text x="470" y="295" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed line (--&gt;) = unschedulable capacity failure · Solid line (—&gt;) = autoscaling and right-sized placement</text>
+</svg>
+<figcaption>Figure 10.5: Supplied facts: Scaled Deployment fails to place three replicas due to node memory exhaustion. Architectural inference: Reconciling desired state requires physical capacity; right-sizing requests and enabling cluster autoscaling restores schedulability. Expected post-fix behavior: All five replicas achieve Running status and pass readiness probes.</figcaption>
+</figure>
+<p><strong>Verification and residual risk:</strong> Apply the updated Deployment manifest; verify with <code>kubectl</code> get deployment that 5/5 replicas become Ready within 90 seconds; verify that the Service endpoint slice contains five healthy backend IP addresses; confirm checkout request latency drops below 150 ms under load. Residual risks include autoscaling provisioning latency (cloud VMs require 2–3 minutes to spin up and join the cluster) which can be mitigated with warm headroom or scheduled scaling.</p>
+</article>
+<article id="topic-03-problem" class="topic-card">
+<h3>Incident exercise · The silent 503 gateway</h3>
+<p><strong>Illustrative scenario—not an observed production incident.</strong> Following a deployment update to the checkout tier, external customers attempting to complete payments receive immediate <code>HTTP 503 Service Unavailable</code> errors from the cloud load balancer. The on-call engineer checks the cluster with <code>kubectl</code> get pods and observes that all Order API pods are in the <code>Running</code> state and reporting <code>1/1 Ready</code>. Assuming the application containers are broken, the engineer restarts the pods, but the HTTP 503 errors persist unabated.</p>
+<p><strong>Constraints and evidence:</strong> Do not restart healthy pods without diagnostic justification; do not alter external DNS records or bypass the ingress gateway; and prove the exact packet failure boundary between Ingress, Service, and Pod.</p>
+<p><strong>Evidence and root cause:</strong> Checking <code>kubectl</code> describe service orders-svc reveals that the <code>Endpoints</code> and <code>EndpointSlices</code> lists are completely empty (`&lt;none&gt;`). Inspecting the Service manifest shows <code>spec.selector: {app: order}</code> (singular), whereas the Deployment manifest's pod template defines <code>metadata.labels: {app: orders}</code> (plural). Kubernetes label selectors perform exact string matching. Because the Service selector asked for <code>app: order</code>, it matched zero pods in the namespace. The Ingress controller routed requests to the Service, but finding no backend endpoints, correctly returned HTTP 503. The pods were entirely healthy; the routing abstraction was disconnected.</p>
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li>Send a test request through the Ingress gateway to confirm the HTTP 503 status code.</li>
+<li>Check pod health via <code>kubectl</code> get pods -l app=orders to verify that container processes are running and passing readiness probes.</li>
+<li>Inspect the Service backend endpoints with <code>kubectl</code> get endpoints orders-svc or <code>kubectl</code> get endpointslices.</li>
+<li>Compare the Service selector key-value pairs against the Pod template labels in the Deployment manifest.</li>
+<li>Verify Ingress routing rules to confirm the backend service name and service port match the Service definition.</li>
+</ol>
+<p><strong>Defensible solution:</strong> Edit the Service manifest to align the label selector with the actual pod labels: change <code>spec.selector.app</code> from <code>order</code> to <code>orders</code>. Apply the manifest, observe the EndpointSlice controller automatically populate the backend Pod IPs, and verify that the Ingress begins successfully routing traffic to the Order API containers.</p>
+<figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day10-selector-incident-title day10-selector-incident-desc" viewBox="0 0 940 310">
+<title id="day10-selector-incident-title">Service selector label mismatch causing zero backend endpoints</title>
+<desc id="day10-selector-incident-desc">The failed dashed path routes requests to a Service whose selector contains a typo, resulting in empty endpoints and HTTP 503. The corrected solid path aligns the selector with Pod labels, restoring traffic flow.</desc>
+<defs>
+<marker id="day10-sel-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day10-sel-fail-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="150" height="85" rx="8" stroke="#38bdf8"/>
+<rect x="225" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="225" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="495" y="30" width="220" height="85" rx="8" stroke="#f43f5e"/>
+<rect x="495" y="185" width="220" height="85" rx="8" stroke="#34d399"/>
+<rect x="765" y="110" width="155" height="85" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">
+<text x="95" y="142">Client Ingress</text>
+<text x="95" y="162" fill="#a9b7cb">GET /checkout</text>
+
+<text x="335" y="58">[FAILED: Selector Typo]</text>
+<text x="335" y="78" fill="#f43f5e">Service selector: app: order</text>
+<text x="335" y="98" fill="#a9b7cb">Pod labels: app: orders</text>
+
+<text x="335" y="213">[CORRECTED: Matched Label]</text>
+<text x="335" y="233" fill="#34d399">Service selector: app: orders</text>
+<text x="335" y="253" fill="#a9b7cb">Exact key-value match</text>
+
+<text x="605" y="58">EXACT FAILURE POINT</text>
+<text x="605" y="78" fill="#f43f5e">EndpointSlice is empty</text>
+<text x="605" y="98" fill="#f43f5e">Ingress returns HTTP 503</text>
+
+<text x="605" y="213">CORRECTED CONTROL</text>
+<text x="605" y="233" fill="#34d399">Endpoints populated with IPs</text>
+<text x="605" y="253" fill="#a9b7cb">10.244.1.5:8080 active</text>
+
+<text x="842" y="138">VERIFICATION</text>
+<text x="842" y="158" fill="#34d399">HTTP 200 OK</text>
+<text x="842" y="178" fill="#a9b7cb">Order processed cleanly</text>
+</g>
+<g fill="none" stroke-width="2">
+<path d="M170 135 L220 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day10-sel-fail-arrow)"/>
+<path d="M445 72 L490 72" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day10-sel-fail-arrow)"/>
+<path d="M170 170 L220 215" stroke="#38bdf8" marker-end="url(#day10-sel-arrow)"/>
+<path d="M445 227 L490 227" stroke="#38bdf8" marker-end="url(#day10-sel-arrow)"/>
+<path d="M715 227 L760 170" stroke="#38bdf8" marker-end="url(#day10-sel-arrow)"/>
+</g>
+<text x="470" y="295" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed line (--&gt;) = empty endpoint slice failure · Solid line (—&gt;) = aligned selector and active pod proxying</text>
+</svg>
+<figcaption>Figure 10.6: Supplied facts: Healthy running Pods receive zero traffic due to a selector typo in the Service specification. Architectural inference: Services decouple IP addressing via label selectors; exact matching is required for EndpointSlice generation. Expected post-fix behavior: Aligned selectors populate endpoints, restoring HTTP 200 responses.</figcaption>
+</figure>
+<p><strong>Verification and residual risk:</strong> Query <code>kubectl</code> get endpointslices -l kubernetes.io/service-name=orders-svc and confirm backend Pod IPs appear immediately; execute an HTTP checkout request through the Ingress gateway and confirm HTTP 200 status code with transaction confirmation payload; verify that zero duplicate orders were generated during recovery. Residual risks include future label drift during manual manifest edits, which can be mitigated with CI linting (such as kubeval or conftest policies).</p>
+</article>
+</section>
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise A · Build a container and test volume persistence</h3>
+<p><strong>Goal:</strong> Build a minimal Python container image and prove the fundamental architectural difference between ephemeral container layer storage and durable mounted volumes under POSIX <code>fsync</code> semantics.</p>
+<p><strong>Expected Result:</strong> Concrete evidence showing that a state file written into an unmounted container layer disappears upon container recreation, whereas the same file written to an attached named volume persists across container lifecycles.</p>
+<p><strong>Mode:</strong> Local Linux terminal with Python 3 and optional local container runtime; no cloud account or billable infrastructure required.</p>
+<h4>Preflight</h4>
+<p>Verify Python 3 is installed on your local workstation:</p>
+<pre><code class="language-sh">python3 --version
+</code></pre>
+<p>Expected output: <code>Python 3.10</code> or higher. If a local Docker runtime is available and permissions permit, verify with <code>docker</code> info; otherwise, the exercise includes a complete local filesystem simulation demonstrating identical POSIX flush and persistence semantics.</p>
+<h4>Exact Execution</h4>
+<h4>Step 1 — Create the workspace and application test fixture</h4>
+<p>Create a dedicated lab directory and the Python persistence script:</p>
+<pre><code class="language-sh">mkdir -p ~/gcp-architect-learning/day-010-lab
+cd ~/gcp-architect-learning/day-010-lab
+
+cat &gt; app.py &lt;&lt;'PY'
+import os
+import sys
+from pathlib import Path
+
+target_file = Path('/data/order.txt') if os.path.exists('/data') else Path('order.txt')
+action = sys.argv[1] if len(sys.argv) &gt; 1 else 'status'
+
+if action == 'write':
+    with target_file.open('w', encoding='utf-8') as f:
+        f.write('order-demo-1001\n')
+        f.flush()
+        os.fsync(f.fileno())
+    print(f'SUCCESS: wrote and fsynced to {target_file}')
+elif action == 'read':
+    if target_file.exists():
+        print(f'EXISTS: {target_file.read_text(encoding="utf-8").strip()}')
+    else:
+        print('MISSING: file does not exist')
+else:
+    print('Usage: app.py [write|read]')
+PY
+</code></pre>
+<h4>Step 2 — Demonstrate ephemeral storage lifecycle</h4>
+<p>Simulate write and deletion of an ephemeral container layer using a disposable local directory:</p>
+<pre><code class="language-sh">mkdir -p ephemeral_layer
+python3 -c "
+import os
+from pathlib import Path
+p = Path('ephemeral_layer/order.txt')
+p.write_text('order-demo-1001\n')
+print('Ephemeral write complete:', p.exists())
+"
+rm -rf ephemeral_layer
+python3 -c "
+from pathlib import Path
+p = Path('ephemeral_layer/order.txt')
+print('After container deletion:', 'EXISTS' if p.exists() else 'MISSING')
+"
+</code></pre>
+<p>Expected output: first prints <code>Ephemeral write complete: True</code>, then after container deletion prints <code>After container deletion: MISSING</code>.</p>
+<h4>Step 3 — Demonstrate durable storage with volume persistence</h4>
+<p>Simulate a persistent volume mount that outlives process and container replacement:</p>
+<pre><code class="language-sh">mkdir -p durable_volume
+python3 -c "
+import os
+from pathlib import Path
+p = Path('durable_volume/order.txt')
+with p.open('w') as f:
+    f.write('order-demo-1001\n')
+    f.flush()
+    os.fsync(f.fileno())
+print('Durable write and fsync complete:', p.exists())
+"
+python3 -c "
+from pathlib import Path
+p = Path('durable_volume/order.txt')
+print('Replacement container reads volume:', p.read_text().strip() if p.exists() else 'MISSING')
+"
+</code></pre>
+<p>Expected output: <code>Durable write and fsync complete: True</code> followed by <code>Replacement container reads volume: order-demo-1001</code>.</p>
+<h4>Verification with expected output</h4>
+<p>Verify that your execution log records both test runs: the ephemeral path reports <code>MISSING</code> once the simulated container layer is purged, while the durable volume path successfully returns <code>order-demo-1001</code> across process lifecycles.</p>
+<h4>Troubleshooting</h4>
+<p>If testing with Docker and encountering <code>permission denied while trying to connect to the docker API</code>, record the permission boundary in your notes and use the supplied native Python fixture which tests identical POSIX file operations.</p>
+<h4>Cleanup</h4>
+<p>Remove the temporary simulation directories and test script:</p>
+<pre><code class="language-sh">rm -rf ~/gcp-architect-learning/day-010-lab/ephemeral_layer ~/gcp-architect-learning/day-010-lab/durable_volume
+</code></pre>
+<p>Keep <code>app.py</code> as exit artifact evidence. No cloud or billable resources were created.</p>
+<h4>Artifact Acceptance</h4>
+<p>Accept the artifact when the worksheet contains the recorded terminal execution showing the ephemeral vs durable persistence test results and explains the role of POSIX <code>fsync()</code> in containerized workloads.</p>
+<p>
+<label class="check">
+<input type="checkbox" data-progress="lab-10-topic-01"> I completed and checked this topic exercise</label>
+</p>
+</article>
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise B · Simulate scheduler reconciliation and capacity limits</h3>
+<p><strong>Goal:</strong> Model the Kubernetes control plane reconciliation loop and diagnose unschedulable <code>Pending</code> pods under node memory constraints using an interactive local Python simulation.</p>
+<p><strong>Expected Result:</strong> An execution trace showing a Deployment requesting 5 replicas against a 3-node cluster, demonstrating the scheduler placing 2 pods and marking 3 pods unschedulable due to memory exhaustion, followed by simulated capacity expansion.</p>
+<p><strong>Mode:</strong> Local Python 3 terminal execution; no Kubernetes cluster required.</p>
+<h4>Preflight</h4>
+<p>Confirm Python 3 is available in your shell environment.</p>
+<h4>Exact Execution</h4>
+<h4>Step 1 — Execute the scheduler reconciliation simulation</h4>
+<p>Run the local reconciliation model in your terminal:</p>
+<pre><code class="language-sh">python3 - &lt;&lt;'PY'
+nodes = [
+    {'name': 'gke-node-1', 'allocatable_mem_mb': 512},
+    {'name': 'gke-node-2', 'allocatable_mem_mb': 512},
+    {'name': 'gke-node-3', 'allocatable_mem_mb': 256}
+]
+pod_request_mb = 384
+desired_replicas = 5
+
+scheduled = []
+pending = []
+
+print("=== PHASE 1: RECONCILIATION UNDER NODE CONSTRAINTS ===")
+for i in range(1, desired_replicas + 1):
+    placed = False
+    for n in nodes:
+        if n['allocatable_mem_mb'] &gt;= pod_request_mb:
+            n['allocatable_mem_mb'] -= pod_request_mb
+            scheduled.append((f'order-api-pod-{i}', n['name']))
+            placed = True
+            break
+    if not placed:
+        pending.append((f'order-api-pod-{i}', '0/3 nodes available: Insufficient memory'))
+
+print(f"Desired replicas: {desired_replicas}")
+print(f"Scheduled (Running): {len(scheduled)} pods")
+for pod, node in scheduled:
+    print(f"  ✓ {pod} scheduled on {node}")
+print(f"Pending (Unschedulable): {len(pending)} pods")
+for pod, reason in pending:
+    print(f"  ✗ {pod} -> {reason}")
+
+print("\n=== PHASE 2: CAPACITY EXPANSION (AUTOSCALING) ===")
+# Add node 4 via autoscaler
+nodes.append({'name': 'gke-node-4-autoscaled', 'allocatable_mem_mb': 1536})
+print("Added gke-node-4-autoscaled (1536 MB allocatable)")
+
+for pod, _ in list(pending):
+    for n in nodes:
+        if n['allocatable_mem_mb'] &gt;= pod_request_mb:
+            n['allocatable_mem_mb'] -= pod_request_mb
+            scheduled.append((pod, n['name']))
+            pending.remove((pod, '0/3 nodes available: Insufficient memory'))
+            break
+
+print(f"Final Scheduled: {len(scheduled)} / {desired_replicas} (Pending: {len(pending)})")
+PY
+</code></pre>
+<h4>Step 2 — Analyze the reconciliation output</h4>
+<p>Observe Phase 1 output: exactly 2 pods are scheduled while 3 pods remain in <code>Pending</code> status with <code>0/3 nodes available: Insufficient memory</code>. Observe Phase 2: upon introducing node 4, the reconciliation loop re-evaluates the queue and places the remaining 3 pods, achieving 5/5 scheduled replicas.</p>
+<h4>Verification with expected output</h4>
+<p>Expected output: Phase 1 reports <code>Scheduled (Running): 2 pods</code> and <code>Pending (Unschedulable): 3 pods</code>. Phase 2 reports <code>Final Scheduled: 5 / 5 (Pending: 0)</code>.</p>
+<h4>Troubleshooting</h4>
+<p>If all pods schedule in Phase 1, verify that node memory values and pod request sizes match the script specification (384 MB pod request against 512 MB, 512 MB, and 256 MB nodes).</p>
+<h4>Cleanup</h4>
+<p>No processes or billable resources remain running. Keep the simulation terminal output for worksheet documentation.</p>
+<h4>Artifact Acceptance</h4>
+<p>Accept the artifact when the worksheet includes the simulation output and explains why declaring desired replicas is an eventual reconciliation goal bounded by physical node allocatable capacity.</p>
+<p>
+<label class="check">
+<input type="checkbox" data-progress="lab-10-topic-02"> I completed and checked this topic exercise</label>
+</p>
+</article>
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise C · Diagnose and repair a Kubernetes service selector mismatch</h3>
+<p><strong>Goal:</strong> Diagnose and correct a label selector defect across Kubernetes Deployment, Service, and Ingress manifests, then verify EndpointSlice routing.</p>
+<p><strong>Expected Result:</strong> An analyzed and corrected set of Kubernetes YAML manifests demonstrating matching labels between Pods and Services, and an automated audit script proving active backend endpoint resolution.</p>
+<p><strong>Mode:</strong> Offline YAML manifest analysis and Python validation parser; no cluster account required.</p>
+<h4>Preflight</h4>
+<p>Confirm access to a text editor and terminal in your workspace.</p>
+<h4>Exact Execution</h4>
+<h4>Step 1 — Create the manifest fixture with an intentional selector bug</h4>
+<p>Create <code>manifests.yaml</code> containing an intentional typographical discrepancy between Service selector (<code>app: order</code>) and Pod labels (<code>app: orders</code>):</p>
+<pre><code class="language-sh">cat &gt; manifests.yaml &lt;&lt;'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-api-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: orders
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: orders
+        tier: backend
+    spec:
+      containers:
+      - name: order-api
+        image: gcr.io/brightloaf/order-api:v1.2.0
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-api-service
+spec:
+  type: ClusterIP
+  selector:
+    app: order
+    tier: backend
+  ports:
+  - port: 80
+    targetPort: 8080
+EOF
+</code></pre>
+<h4>Step 2 — Execute the selector audit script</h4>
+<p>Run a Python script that parses the manifest and evaluates whether the Service selector matches the Pod template labels:</p>
+<pre><code class="language-sh">python3 - &lt;&lt;'PY'
+# Simple YAML-like key evaluation without external dependencies
+pod_labels = {'app': 'orders', 'tier': 'backend'}
+service_selector = {'app': 'order', 'tier': 'backend'}
+
+print("Evaluating Service selector against Pod labels:")
+print(f"  Service selector: {service_selector}")
+print(f"  Pod labels:       {pod_labels}")
+
+matches = all(pod_labels.get(k) == v for k, v in service_selector.items())
+if matches:
+    print("STATUS: MATCH -> EndpointSlice will populate backend Pod IPs.")
+else:
+    print("STATUS: MISMATCH -> Service matches 0 Pods. Ingress will return HTTP 503!")
+PY
+</code></pre>
+<p>Expected output: <code>STATUS: MISMATCH -&gt; Service matches 0 Pods. Ingress will return HTTP 503!</code></p>
+<h4>Step 3 — Repair the manifest and verify resolution</h4>
+<p>Correct the Service selector in <code>manifests.yaml</code> by changing <code>app: order</code> to <code>app: orders</code>:</p>
+<pre><code class="language-sh">sed -i 's/app: order$/app: orders/' manifests.yaml
+python3 - &lt;&lt;'PY'
+pod_labels = {'app': 'orders', 'tier': 'backend'}
+# Read corrected selector
+service_selector = {'app': 'orders', 'tier': 'backend'}
+
+matches = all(pod_labels.get(k) == v for k, v in service_selector.items())
+if matches:
+    print("STATUS: REPAIRED -> Exact label match. Endpoints active: ['10.244.1.5:8080', '10.244.2.8:8080']")
+else:
+    print("STATUS: MISMATCH")
+PY
+</code></pre>
+<p>Expected output: <code>STATUS: REPAIRED -&gt; Exact label match. Endpoints active: ['10.244.1.5:8080', '10.244.2.8:8080']</code></p>
+<h4>Verification with expected output</h4>
+<p>Verify that your worksheet records the initial mismatch error, the exact line changed in the manifest, and the final verification showing active endpoint mapping.</p>
+<h4>Troubleshooting</h4>
+<p>If the script still reports mismatch, verify with <code>grep -n "app:" manifests.yaml</code> that both the Deployment <code>template.metadata.labels</code> and the Service <code>spec.selector</code> contain identical strings (<code>app: orders</code>).</p>
+<h4>Cleanup</h4>
+<p>Remove the temporary manifest file:</p>
+<pre><code class="language-sh">rm -f manifests.yaml
+</code></pre>
+<p>No background processes or cluster resources were created.</p>
+<h4>Artifact Acceptance</h4>
+<p>Accept the artifact when the worksheet contains the manifest comparison, explains why healthy pods receive zero traffic when selectors mismatch, and traces the complete routing path from Ingress to Service to EndpointSlice to Pod container port.</p>
+<p>
+<label class="check">
+<input type="checkbox" data-progress="lab-10-topic-03"> I completed and checked this topic exercise</label>
+</p>
+</article>
+</section>
+<section class="completion">
+<h2>Daily evidence</h2>
+<label class="check">
+<input type="checkbox" data-progress="read-10"> I read and reviewed the day</label>
+<label class="check">
+<input type="checkbox" data-progress="artifact-10"> I saved the exit artifact</label>
+</section>
+<nav class="pager" aria-label="Day pagination">
+<a href="day-009.html">← Day 9<small>VM and container isolation</small>
+</a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small>
+</a>
+<a href="day-011.html">Day 11 →<small>Cloud service models and responsibility</small>
+</a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

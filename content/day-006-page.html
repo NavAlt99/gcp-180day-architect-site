@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html data-theme="dark" lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1" name="viewport"/>
+  <meta content="dark light" name="color-scheme"/>
+  <title>
+   Day 6: Shell, processes and services · GCP 180 days
+  </title>
+  <link href="../assets/site.css" rel="stylesheet"/>
+  <style>
+   .topic-card table{width:100%;border-collapse:collapse;margin:18px 0;display:block;overflow-x:auto}.topic-card caption{text-align:left;color:var(--rose);font-weight:800;margin-bottom:8px}.topic-card th,.topic-card td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top;min-width:150px}.topic-card th{color:var(--cyan);background:rgba(56,189,248,.06)}.diagram-figure{margin:20px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-x:auto}.diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}.diagram-figure figcaption{color:var(--muted);font-size:12px;margin-top:10px}.diagram-scroll-hint{display:none;color:var(--muted);font-size:11px}.further{border-left:3px solid var(--cyan);padding:11px 14px;background:rgba(56,189,248,.06);margin-top:18px}.further h4{color:var(--cyan);margin:0 0 6px}.lab h4{color:var(--cyan);margin:20px 0 8px}@media(max-width:720px){.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+  </style>
+  <script defer="" src="../assets/site.js">
+  </script>
+ </head>
+ <body>
+  <a class="skip" href="#main">
+   Skip to content
+  </a>
+  <header class="site-nav">
+   <nav aria-label="Site navigation" class="nav-inner">
+    <a class="brand" href="../index.html">
+     ◆
+     <span>
+      GCP · 180 days
+     </span>
+    </a>
+    <a href="../index.html">
+     Day index
+    </a>
+    <a href="../glossary.html">
+     Glossary
+    </a>
+    <a href="../sources.html">
+     Sources
+    </a>
+    <a href="../artifacts.html">
+     Artifacts
+    </a>
+    <a aria-label="Previous day" href="day-005.html">
+     ← Day 5
+    </a>
+    <a aria-label="Next day" href="day-007.html">
+     Day 7 →
+    </a>
+    <label class="jump-label" for="day-jump">
+     Jump to day
+    </label>
+    <select aria-label="Jump to day" id="day-jump">
+     <option value="">
+      Choose a day…
+     </option>
+     <optgroup label="Foundations">
+      <option value="day-001.html">
+       Day 1: Local workspace and learning baseline
+      </option>
+      <option value="day-002.html">
+       Day 2: IP addressing and packet paths
+      </option>
+      <option value="day-003.html">
+       Day 3: DNS, sockets and transport
+      </option>
+      <option value="day-004.html">
+       Day 4: TLS, HTTP, MTU and routing vocabulary
+      </option>
+      <option value="day-005.html">
+       Day 5: VPN, load balancers and firewalls
+      </option>
+      <option selected="" value="day-006.html">
+       Day 6: Shell, processes and services
+      </option>
+      <option value="day-007.html">
+       Day 7: SSH, scripts and process inspection
+      </option>
+      <option value="day-008.html">
+       Day 8: CPU, memory and diagnostic signals
+      </option>
+      <option value="day-009.html">
+       Day 9: VM and container isolation
+      </option>
+      <option value="day-010.html">
+       Day 10: Images, filesystems and orchestration
+      </option>
+      <option value="day-011.html">
+       Day 11: Cloud service models and responsibility
+      </option>
+      <option value="day-012.html">
+       Day 12: Regions, scaling and economics
+      </option>
+      <option value="day-013.html">
+       Day 13: State, availability and recovery vocabulary
+      </option>
+      <option value="day-014.html">
+       Day 14: Git, APIs and JSON
+      </option>
+      <option value="day-015.html">
+       Day 15: Small application and architecture styles
+      </option>
+      <option value="day-016.html">
+       Day 16: SQL foundations and business outcomes
+      </option>
+      <option value="day-017.html">
+       Day 17: Gate 1 — Foundation recall and repair
+      </option>
+     </optgroup>
+     <optgroup label="Cloud environment and identity">
+      <option value="day-018.html">
+       Day 18: Cloud sandbox and cost controls
+      </option>
+      <option value="day-019.html">
+       Day 19: CLI configuration and identity checks
+      </option>
+      <option value="day-020.html">
+       Day 20: APIs, client libraries and emulators
+      </option>
+      <option value="day-021.html">
+       Day 21: Resource hierarchy and ownership
+      </option>
+      <option value="day-022.html">
+       Day 22: Inheritance, labels and tags
+      </option>
+      <option value="day-023.html">
+       Day 23: Organization policies and lifecycle
+      </option>
+      <option value="day-024.html">
+       Day 24: Principals and workforce identity
+      </option>
+      <option value="day-025.html">
+       Day 25: Roles and authorization decisions
+      </option>
+      <option value="day-026.html">
+       Day 26: Credentials, tokens and impersonation
+      </option>
+      <option value="day-027.html">
+       Day 27: Billing roles and budget ownership
+      </option>
+      <option value="day-028.html">
+       Day 28: Cost attribution and notifications
+      </option>
+      <option value="day-029.html">
+       Day 29: Cost exports, quota and capacity
+      </option>
+      <option value="day-030.html">
+       Day 30: Region and resource-scope decisions
+      </option>
+      <option value="day-031.html">
+       Day 31: Network tiers and delivery paths
+      </option>
+      <option value="day-032.html">
+       Day 32: Support, inventory and learning tracker
+      </option>
+      <option value="day-033.html">
+       Day 33: Lifecycle policies and operating assumptions
+      </option>
+      <option value="day-034.html">
+       Day 34: First controlled cloud resource operation
+      </option>
+      <option value="day-035.html">
+       Day 35: Gate 2 — Sandbox and identity readiness
+      </option>
+     </optgroup>
+     <optgroup label="Core services and integrated practice">
+      <option value="day-036.html">
+       Day 36: VM sizing and image choices
+      </option>
+      <option value="day-037.html">
+       Day 37: Disks, metadata and persistence
+      </option>
+      <option value="day-038.html">
+       Day 38: Templates, MIGs and scaling
+      </option>
+      <option value="day-039.html">
+       Day 39: Autohealing and deployment changes
+      </option>
+      <option value="day-040.html">
+       Day 40: Spot, tenancy and secure VM access
+      </option>
+      <option value="day-041.html">
+       Day 41: VM operations and resource diagnosis
+      </option>
+      <option value="day-042.html">
+       Day 42: Kubernetes architecture and cluster choices
+      </option>
+      <option value="day-043.html">
+       Day 43: Scheduling, scaling and Kubernetes access
+      </option>
+      <option value="day-044.html">
+       Day 44: Service networking and persistent volumes
+      </option>
+      <option value="day-045.html">
+       Day 45: Probes, secrets and workload failures
+      </option>
+      <option value="day-046.html">
+       Day 46: Fleet, supply chain and mesh trade-offs
+      </option>
+      <option value="day-047.html">
+       Day 47: Cloud Run and event-driven functions
+      </option>
+      <option value="day-048.html">
+       Day 48: Workflows and runtime selection
+      </option>
+      <option value="day-049.html">
+       Day 49: VPC address and route design
+      </option>
+      <option value="day-050.html">
+       Day 50: Firewall policy and private API access
+      </option>
+      <option value="day-051.html">
+       Day 51: Peering, Shared VPC, PSC and NAT
+      </option>
+      <option value="day-052.html">
+       Day 52: DNS, hybrid transit and network diagnosis
+      </option>
+      <option value="day-053.html">
+       Day 53: Load-balancer architecture
+      </option>
+      <option value="day-054.html">
+       Day 54: Health checks, certificates and draining
+      </option>
+      <option value="day-055.html">
+       Day 55: CDN, WAF and traffic management
+      </option>
+      <option value="day-056.html">
+       Day 56: Hybrid topology and failure domains
+      </option>
+      <option value="day-057.html">
+       Day 57: BGP, MTU and NAT diagnosis
+      </option>
+      <option value="day-058.html">
+       Day 58: Object storage and local durability
+      </option>
+      <option value="day-059.html">
+       Day 59: Transfers, block storage and restore
+      </option>
+      <option value="day-060.html">
+       Day 60: File systems and backup design
+      </option>
+      <option value="day-061.html">
+       Day 61: Relational databases and transactions
+      </option>
+      <option value="day-062.html">
+       Day 62: Distributed and nonrelational database choices
+      </option>
+      <option value="day-063.html">
+       Day 63: Caching, CDC and database selection
+      </option>
+      <option value="day-064.html">
+       Day 64: Messaging, outbox and duplicate handling
+      </option>
+      <option value="day-065.html">
+       Day 65: Integrate one order-service path
+      </option>
+      <option value="day-066.html">
+       Day 66: Reproduce and recover the integrated baseline
+      </option>
+      <option value="day-067.html">
+       Day 67: Gate 3 — Operate the core application
+      </option>
+     </optgroup>
+     <optgroup label="Requirements, migration and architecture">
+      <option value="day-068.html">
+       Day 68: Requirements from observed behavior
+      </option>
+      <option value="day-069.html">
+       Day 69: Stakeholders and priority trade-offs
+      </option>
+      <option value="day-070.html">
+       Day 70: Well-Architected review lenses
+      </option>
+      <option value="day-071.html">
+       Day 71: Performance, sustainability and trade-offs
+      </option>
+      <option value="day-072.html">
+       Day 72: Application architecture patterns
+      </option>
+      <option value="day-073.html">
+       Day 73: Data and hybrid architecture vocabulary
+      </option>
+      <option value="day-074.html">
+       Day 74: Regional and tenant boundaries
+      </option>
+      <option value="day-075.html">
+       Day 75: Migration assessment and VMware fit
+      </option>
+      <option value="day-076.html">
+       Day 76: Migration rehearsal and reconciliation
+      </option>
+      <option value="day-077.html">
+       Day 77: Migration waves and acceptance
+      </option>
+      <option value="day-078.html">
+       Day 78: Decision matrices grounded in experiments
+      </option>
+      <option value="day-079.html">
+       Day 79: ADRs, TCO and risk registers
+      </option>
+      <option value="day-080.html">
+       Day 80: Architecture diagrams and failure sequences
+      </option>
+      <option value="day-081.html">
+       Day 81: First architecture defense
+      </option>
+      <option value="day-082.html">
+       Day 82: Gate 4 — Design from operational evidence
+      </option>
+     </optgroup>
+     <optgroup label="Reliability and security">
+      <option value="day-083.html">
+       Day 83: Availability math and dependency risk
+      </option>
+      <option value="day-084.html">
+       Day 84: Failure domains and graceful degradation
+      </option>
+      <option value="day-085.html">
+       Day 85: Retries, timeouts and overload vocabulary
+      </option>
+      <option value="day-086.html">
+       Day 86: SLIs, SLOs and error budgets
+      </option>
+      <option value="day-087.html">
+       Day 87: Incidents, toil and capacity
+      </option>
+      <option value="day-088.html">
+       Day 88: Availability across infrastructure layers
+      </option>
+      <option value="day-089.html">
+       Day 89: Messaging, DNS and application health
+      </option>
+      <option value="day-090.html">
+       Day 90: Recovery targets and patterns
+      </option>
+      <option value="day-091.html">
+       Day 91: Backups and replication correctness
+      </option>
+      <option value="day-092.html">
+       Day 92: Failover and failback planning
+      </option>
+      <option value="day-093.html">
+       Day 93: Metrics, alerting and burn rates
+      </option>
+      <option value="day-094.html">
+       Day 94: Logs, traces and profiling
+      </option>
+      <option value="day-095.html">
+       Day 95: Central observability and audit evidence
+      </option>
+      <option value="day-096.html">
+       Day 96: Bounded failure experiment design
+      </option>
+      <option value="day-097.html">
+       Day 97: Run a recovery and overload experiment
+      </option>
+      <option value="day-098.html">
+       Day 98: Restore and failover acceptance
+      </option>
+      <option value="day-099.html">
+       Day 99: Advanced IAM and policy evaluation
+      </option>
+      <option value="day-100.html">
+       Day 100: Workload federation and short-lived access
+      </option>
+      <option value="day-101.html">
+       Day 101: Workforce federation and remote access
+      </option>
+      <option value="day-102.html">
+       Day 102: Privileged access and break-glass
+      </option>
+      <option value="day-103.html">
+       Day 103: Defense in depth and network policy
+      </option>
+      <option value="day-104.html">
+       Day 104: Data perimeters and egress controls
+      </option>
+      <option value="day-105.html">
+       Day 105: Certificates, mTLS and hybrid encryption
+      </option>
+      <option value="day-106.html">
+       Day 106: Data classification and key lifecycle
+      </option>
+      <option value="day-107.html">
+       Day 107: Secrets and de-identification
+      </option>
+      <option value="day-108.html">
+       Day 108: Residency, confidentiality and data access
+      </option>
+      <option value="day-109.html">
+       Day 109: Compliance evidence and responsibility
+      </option>
+      <option value="day-110.html">
+       Day 110: Policy as code and audit retention
+      </option>
+      <option value="day-111.html">
+       Day 111: Regulated workload design
+      </option>
+      <option value="day-112.html">
+       Day 112: Threat detection and triage
+      </option>
+      <option value="day-113.html">
+       Day 113: Incident response and threat modelling
+      </option>
+      <option value="day-114.html">
+       Day 114: Artifact integrity and admission
+      </option>
+      <option value="day-115.html">
+       Day 115: Container and pipeline hardening
+      </option>
+      <option value="day-116.html">
+       Day 116: Integrate private access and key controls
+      </option>
+      <option value="day-117.html">
+       Day 117: Security handover and evidence repair
+      </option>
+      <option value="day-118.html">
+       Day 118: Gate 5 — Reliability and security acceptance
+      </option>
+     </optgroup>
+     <optgroup label="Performance, delivery and operations">
+      <option value="day-119.html">
+       Day 119: Cost baseline and commitments
+      </option>
+      <option value="day-120.html">
+       Day 120: Storage, network and database costs
+      </option>
+      <option value="day-121.html">
+       Day 121: Runtime, analytics and carbon cost drivers
+      </option>
+      <option value="day-122.html">
+       Day 122: Unit economics and sensitivity
+      </option>
+      <option value="day-123.html">
+       Day 123: Caching correctness under load
+      </option>
+      <option value="day-124.html">
+       Day 124: Database, network and I/O bottlenecks
+      </option>
+      <option value="day-125.html">
+       Day 125: Profiling and capacity evidence
+      </option>
+      <option value="day-126.html">
+       Day 126: Terraform baseline and state boundaries
+      </option>
+      <option value="day-127.html">
+       Day 127: Terraform testing, drift and recovery
+      </option>
+      <option value="day-128.html">
+       Day 128: Build and deployment pipeline
+      </option>
+      <option value="day-129.html">
+       Day 129: Release rollback and delivery measures
+      </option>
+      <option value="day-130.html">
+       Day 130: Service catalog and ownership
+      </option>
+      <option value="day-131.html">
+       Day 131: Lifecycle, exceptions and adoption
+      </option>
+      <option value="day-132.html">
+       Day 132: Customer success and platform outcomes
+      </option>
+      <option value="day-133.html">
+       Day 133: Operations integration and remediation
+      </option>
+     </optgroup>
+     <optgroup label="Data, AI and distributed correctness">
+      <option value="day-134.html">
+       Day 134: Warehouse foundations and query costs
+      </option>
+      <option value="day-135.html">
+       Day 135: Warehouse security and reporting
+      </option>
+      <option value="day-136.html">
+       Day 136: Batch and streaming processing choices
+      </option>
+      <option value="day-137.html">
+       Day 137: Streaming correctness and CDC
+      </option>
+      <option value="day-138.html">
+       Day 138: Lakehouse and open table design
+      </option>
+      <option value="day-139.html">
+       Day 139: Catalogs, lineage and data contracts
+      </option>
+      <option value="day-140.html">
+       Day 140: ML lifecycle and model selection
+      </option>
+      <option value="day-141.html">
+       Day 141: Build a small grounded-answer flow
+      </option>
+      <option value="day-142.html">
+       Day 142: Bounded tools and enterprise assistants
+      </option>
+      <option value="day-143.html">
+       Day 143: AI security and evaluation
+      </option>
+      <option value="day-144.html">
+       Day 144: AI serving and infrastructure choices
+      </option>
+      <option value="day-145.html">
+       Day 145: Distributed state and regional correctness
+      </option>
+     </optgroup>
+     <optgroup label="Discovery, cases and exam preparation">
+      <option value="day-146.html">
+       Day 146: Case analysis and discovery method
+      </option>
+      <option value="day-147.html">
+       Day 147: Extract facts and numeric requirements
+      </option>
+      <option value="day-148.html">
+       Day 148: Map requirements and conflicts
+      </option>
+      <option value="day-149.html">
+       Day 149: Discovery: business, load and recovery
+      </option>
+      <option value="day-150.html">
+       Day 150: Discovery: data, regulation and skills
+      </option>
+      <option value="day-151.html">
+       Day 151: Discovery: budget, risks and success
+      </option>
+      <option value="day-152.html">
+       Day 152: EHR Healthcare — facts and migration constraints
+      </option>
+      <option value="day-153.html">
+       Day 153: EHR Healthcare — defend the design
+      </option>
+      <option value="day-154.html">
+       Day 154: Altostrat Media — content and AI requirements
+      </option>
+      <option value="day-155.html">
+       Day 155: Altostrat Media — architecture defense
+      </option>
+      <option value="day-156.html">
+       Day 156: Cymbal Retail — catalog and commerce requirements
+      </option>
+      <option value="day-157.html">
+       Day 157: Cymbal Retail — architecture defense
+      </option>
+      <option value="day-158.html">
+       Day 158: KnightMotives — modernization requirements
+      </option>
+      <option value="day-159.html">
+       Day 159: KnightMotives — architecture defense
+      </option>
+      <option value="day-160.html">
+       Day 160: Case synthesis and feedback
+      </option>
+      <option value="day-161.html">
+       Day 161: Changed-constraint design exercise
+      </option>
+      <option value="day-162.html">
+       Day 162: Exam domain mapping and sample questions
+      </option>
+      <option value="day-163.html">
+       Day 163: Timed reasoning and source-backed limits
+      </option>
+      <option value="day-164.html">
+       Day 164: Readiness plan and remaining repairs
+      </option>
+     </optgroup>
+     <optgroup label="Multi-team architecture and synthesis">
+      <option value="day-165.html">
+       Day 165: Landing zones and multi-team platform boundaries
+      </option>
+      <option value="day-166.html">
+       Day 166: Production identity across teams
+      </option>
+      <option value="day-167.html">
+       Day 167: API contracts and compatibility
+      </option>
+      <option value="day-168.html">
+       Day 168: Sustainability and assisted operations
+      </option>
+      <option value="day-169.html">
+       Day 169: Capacity allocation and overload governance
+      </option>
+      <option value="day-170.html">
+       Day 170: Compute and database decision synthesis
+      </option>
+      <option value="day-171.html">
+       Day 171: Network decision synthesis
+      </option>
+      <option value="day-172.html">
+       Day 172: Storage, messaging and limits synthesis
+      </option>
+      <option value="day-173.html">
+       Day 173: Consulting, portfolio and customer handover
+      </option>
+     </optgroup>
+     <optgroup label="Final gate and capstone defenses">
+      <option value="day-174.html">
+       Day 174: Gate 6 — Integrated readiness and remediation
+      </option>
+      <option value="day-175.html">
+       Day 175: Capstone 1 — Landing-zone defense
+      </option>
+      <option value="day-176.html">
+       Day 176: Capstone 2 — Regulated-workload defense
+      </option>
+      <option value="day-177.html">
+       Day 177: Capstone 3 — Global-application defense
+      </option>
+      <option value="day-178.html">
+       Day 178: Capstone 4 — Migration defense
+      </option>
+      <option value="day-179.html">
+       Day 179: Capstone 5 — Cost and reliability rescue
+      </option>
+     </optgroup>
+     <optgroup label="Final review and rest">
+      <option value="day-180.html">
+       Day 180: Final review, logistics and rest
+      </option>
+     </optgroup>
+    </select>
+    <button aria-label="Toggle light and dark theme" id="theme-toggle" type="button">
+     ☀ Theme
+    </button>
+   </nav>
+  </header>
+  <main class="container day" data-day="6" data-index="../index.html" data-next="day-007.html" data-prev="day-005.html" id="main">
+   <div class="crumb">
+    <a href="../index.html">
+     Roadmap index
+    </a>
+    /
+    <a href="../index.html#block-foundations">
+     Foundations
+    </a>
+    / Day 6 of 180
+   </div>
+   <section class="hero">
+    <div class="pills">
+     <span class="pill">
+      DAY 6
+     </span>
+     <span class="pill">
+      2–3 hours
+     </span>
+     <span class="pill">
+      local Linux lab
+     </span>
+     <span class="pill">
+      Topics 002
+     </span>
+    </div>
+    <h1>
+     Day 6 — Shell, processes and services
+    </h1>
+    <p class="lead">
+     <strong>
+      Outcome:
+     </strong>
+     Start and stop a disposable local service, inspect its PID and journal, and compare a graceful stop with a forced termination.
+    </p>
+    <div>
+     <strong>
+      Entry prerequisites:
+     </strong>
+     <p>
+      <a href="day-001.html">
+       Day 1
+      </a>
+      ; bring their exit artifacts.
+     </p>
+    </div>
+    <div class="callout success">
+     <strong>
+      Exit artifact
+     </strong>
+     <p>
+      Commands, exit codes and log timestamps explaining the service lifecycle.
+     </p>
+    </div>
+    <p class="small">
+     Roadmap and linked Linux documentation reviewed 2026-09-27. Lab results describe disposable local processes; they are not evidence from a Brightloaf production host.
+    </p>
+   </section>
+   <aside aria-label="On this page" class="toc">
+    <strong>
+     On this page
+    </strong>
+    <a href="#part-1">
+     1 · Topics
+    </a>
+    <a href="#part-2">
+     2 · Technical discussion
+    </a>
+    <a href="#part-3">
+     3 · Problems and solutions
+    </a>
+    <a href="#part-4">
+     4 · Labs
+    </a>
+    <div class="toc-topic">
+     <span>
+      Kernel, user space, files and permissions
+     </span>
+     <a href="#topic-01-overview">
+      overview
+     </a>
+     ·
+     <a href="#topic-01-technical">
+      discussion
+     </a>
+     ·
+     <a href="#topic-01-problem">
+      problem
+     </a>
+     ·
+     <a href="#topic-01-lab">
+      lab
+     </a>
+    </div>
+    <div class="toc-topic">
+     <span>
+      Processes, streams, signals and services
+     </span>
+     <a href="#topic-02-overview">
+      overview
+     </a>
+     ·
+     <a href="#topic-02-technical">
+      discussion
+     </a>
+     ·
+     <a href="#topic-02-problem">
+      problem
+     </a>
+     ·
+     <a href="#topic-02-lab">
+      lab
+     </a>
+    </div>
+   </aside>
+   <section class="part" id="part-1">
+    <h2>
+     1 · Topics of the day
+    </h2>
+    <article class="topic-card" id="topic-01-overview">
+     <h3>
+      Kernel, user space, files and permissions
+     </h3>
+     <p>
+     The Linux kernel manages processes, memory, devices and filesystem access; user-space programs request those services through system calls. Paths locate files and directories. Ownership and permission bits determine which users and groups may read, write or traverse them.
+     </p>
+     <p><strong>Why today and where it sits:</strong> Day 6 moves from network paths to the operating-system boundary that hosts an application. Brightloaf's Order API process runs in user space, while the kernel resolves its file paths and applies credentials and permission checks.</p>
+     <p><strong>Problem preview:</strong> After deployment, the Order API reports <code>PermissionError: [Errno 13] Permission denied: '/srv/brightloaf/order-api/config.json'</code> while an administrator can read the file. Checkout requests cannot be processed because the service identity cannot traverse or read its configuration path.</p>
+     <p>
+      <a href="#topic-01-technical">
+       Technical discussion
+      </a>
+      ·
+      <a href="#topic-01-problem">
+       Real-world problem
+      </a>
+      ·
+      <a href="#topic-01-lab">
+       Exercise
+      </a>
+     </p>
+    </article>
+    <article class="topic-card" id="topic-02-overview">
+     <h3>
+      Processes, streams, signals and services
+     </h3>
+     <p>
+     A process is a running program with an identity, environment, open file descriptors and exit status. Standard input, output and error are file descriptors 0, 1 and 2. Pipes and redirection connect those streams. A service manager such as systemd starts, stops and monitors long-lived processes; signals request or force process state changes.
+     </p>
+     <p><strong>Why today and where it sits:</strong> Long-running Order API and Fulfillment workers need observable startup, shutdown and restart behavior before they can be operated safely on a VM. The shell launches diagnostic commands, the kernel owns process state and signals, and a service manager owns the declared unit lifecycle.</p>
+     <p><strong>Problem preview:</strong> A deployment sends SIGKILL to a Fulfillment worker before it records completion, and the broker later replays the same event. Without a durable idempotency decision, Brightloaf ships the order twice and incurs inventory and refund costs.</p>
+     <p>
+      <a href="#topic-02-technical">
+       Technical discussion
+      </a>
+      ·
+      <a href="#topic-02-problem">
+       Real-world problem
+      </a>
+      ·
+      <a href="#topic-02-lab">
+       Exercise
+      </a>
+     </p>
+    </article>
+   </section>
+   <section class="part" id="part-2">
+    <h2>
+     2 · Technical discussion of each topic
+    </h2>
+    <article class="topic-card" id="topic-01-technical">
+     <h3>
+      Kernel, user space, files and permissions
+     </h3>
+     <p>
+      A shell command is a user-space process. When it opens a file, the kernel resolves the path and checks permissions using the process's identity and the file or directory metadata. A directory's execute bit permits traversal; its read bit permits listing names. A file's read, write and execute bits have different meanings. Permissions are grouped for owner, group and others. For example, mode 600 grants read and write to the owner only; mode 700 on a directory grants the owner list, create and traverse rights while excluding others under the ordinary mode-bit model. Access-control lists and other security mechanisms can add rules beyond those basic bits.
+     </p>
+     <p>
+      The file owner and group are separate from the current shell user. A user can usually change modes on a file they own, but changing ownership to another user typically requires privilege. This matters in cloud VMs because a service running under its own account may fail to read a secret even though an interactive administrator can. Granting broad permissions hides the owner mismatch and increases exposure; first inspect the identity, path components and intended service account.
+     </p>
+     <table><caption>File access decision path</caption><thead><tr><th>Stage</th><th>Owner</th><th>Evidence</th><th>Limit</th></tr></thead><tbody><tr><td>Process identity</td><td>Kernel credentials</td><td>Effective UID, GID and supplementary groups</td><td>A username alone does not show every group.</td></tr><tr><td>Path resolution</td><td>Kernel VFS and filesystem</td><td>Every directory component exists and is searchable</td><td>Readable file bits cannot repair a blocked parent path.</td></tr><tr><td>Mode selection</td><td>File owner and administrator</td><td>Owner, group or other permission class</td><td>Only one class supplies the ordinary mode bits for a check.</td></tr><tr><td>Additional controls</td><td>Host security policy</td><td>ACLs, mount state and security-module evidence</td><td>Mode bits are not the complete policy on every host.</td></tr></tbody></table>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 290" role="img" aria-labelledby="day6-perm-title day6-perm-desc"><title id="day6-perm-title">User-space file request crossing the kernel permission boundary</title><desc id="day6-perm-desc">The Order API process requests config.json. The kernel checks process credentials, path traversal and the selected owner, group or other mode before the filesystem returns data or permission denied.</desc><defs><marker id="day6-perm-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker></defs><rect x="20" y="38" width="210" height="132" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><rect x="286" y="38" width="366" height="132" rx="10" fill="#121526" stroke="#f43f5e" stroke-width="2"/><rect x="708" y="38" width="210" height="132" rx="10" fill="#121526" stroke="#34d399" stroke-width="2"/><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="125" y="73">User space</text><text x="469" y="73">Kernel checks</text><text x="813" y="73">Filesystem result</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="125" y="106">Order API process</text><text x="125" y="135">open(config.json)</text><text x="469" y="103">effective UID / groups</text><text x="469" y="128">parent directory search</text><text x="469" y="153">owner · group · other bits</text><text x="813" y="106">file descriptor</text><text x="813" y="135">or EACCES</text></g><g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day6-perm-arrow)"><path d="M230 104 L280 104"/><path d="M652 104 L702 104"/></g><line x1="257" y1="22" x2="257" y2="190" stroke="#f43f5e" stroke-dasharray="6 5"/><text x="257" y="218" fill="#f43f5e" font-size="12" text-anchor="middle">system-call boundary</text><text x="470" y="258" fill="#a9b7cb" font-size="12" text-anchor="middle">A successful administrator read does not prove the service identity can read the same path.</text></svg><figcaption>Figure 6.1: The conceptual access path separates the user-space caller from kernel enforcement. It omits filesystem-specific ACL and security-module details that must be inspected when ordinary mode bits do not explain the result.</figcaption></figure>
+     <div class="further"><h4>Further Study</h4><p><a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2), DESCRIPTION</a> defines the mode bits and directory search meaning. <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7), DESCRIPTION</a> explains process user and group identifiers. No timestamped video segment is claimed because none was verified for this topic.</p></div>
+    </article>
+    <article class="topic-card" id="topic-02-technical">
+     <h3>
+      Processes, streams, signals and services
+     </h3>
+     <p>
+      When a shell launches a program, the kernel gives the process an ID and resources. The shell can redirect output into a file or pipe it to another process. A successful shell exit code only reports how a command terminated; it does not prove the service met a customer request. SIGTERM asks a process to terminate and can be handled for cleanup; SIGKILL cannot be caught or ignored and prevents application cleanup. A forced stop may leave in-flight work unfinished, so the architect should favor graceful shutdown with a bounded deadline before escalation.
+     </p>
+     <p>
+      At boot, a service manager activates configured units according to dependencies and target state. A unit describes how to start the service, its restart policy and other operating constraints. Systemd reports unit state while the kernel reports process state; a unit can fail after its process exits. Standard output/error may be captured in the journal for a managed service, while other applications write separate files under
+      <code>
+       /var/log
+      </code>
+      or elsewhere. Diagnostic evidence should include timestamp, unit, PID, exit status and relevant log lines. A journal entry proves what was logged, not that every request was served.
+     </p>
+     <table><caption>Service lifecycle evidence</caption><thead><tr><th>Layer</th><th>Control or stream</th><th>Useful evidence</th><th>What it does not prove</th></tr></thead><tbody><tr><td>Shell</td><td>Pipeline, redirection, exit status</td><td>Command status and captured bytes</td><td>Business success.</td></tr><tr><td>Kernel</td><td>PID, file descriptors, signal delivery</td><td>Process state and wait status</td><td>That cleanup completed.</td></tr><tr><td>Application</td><td>SIGTERM handler and durable commit</td><td>Timestamped cleanup and commit logs</td><td>That replay is harmless without a dedupe record.</td></tr><tr><td>Service manager</td><td>Unit dependencies and restart policy</td><td>Active state, main PID and journal</td><td>That every request finished.</td></tr></tbody></table>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 315" role="img" aria-labelledby="day6-service-title day6-service-desc"><title id="day6-service-title">Boot-to-service control flow and process streams</title><desc id="day6-service-desc">Systemd starts a unit, the kernel creates the worker process, file descriptors zero through two connect input and logs, and SIGTERM allows cleanup before exit while SIGKILL bypasses application cleanup.</desc><defs><marker id="day6-service-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker></defs><g fill="#121526" stroke-width="2"><rect x="18" y="42" width="205" height="122" rx="10" stroke="#38bdf8"/><rect x="274" y="42" width="205" height="122" rx="10" stroke="#38bdf8"/><rect x="530" y="42" width="205" height="122" rx="10" stroke="#34d399"/><rect x="786" y="42" width="136" height="122" rx="10" stroke="#f43f5e"/></g><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="120" y="76">Boot target</text><text x="376" y="76">systemd unit</text><text x="632" y="76">Worker process</text><text x="854" y="76">Journal</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="120" y="108">dependency order</text><text x="120" y="137">requested state</text><text x="376" y="108">start / stop / restart</text><text x="376" y="137">tracks main PID</text><text x="632" y="108">fd 0 input</text><text x="632" y="132">fd 1 stdout</text><text x="632" y="154">fd 2 stderr</text><text x="854" y="112">timestamps</text><text x="854" y="137">unit + PID</text></g><g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day6-service-arrow)"><path d="M223 103 L268 103"/><path d="M479 103 L524 103"/><path d="M735 103 L780 103"/></g><path d="M632 194 L632 242" stroke="#34d399" stroke-width="3" marker-end="url(#day6-service-arrow)"/><path d="M632 194 C705 208 740 219 786 242" stroke="#f43f5e" stroke-width="3" stroke-dasharray="7 5"/><g font-size="12" text-anchor="middle"><text x="548" y="222" fill="#34d399">SIGTERM → handler → exit</text><text x="770" y="222" fill="#f43f5e">SIGKILL → immediate stop</text><text x="632" y="282" fill="#a9b7cb">The wait status and logs explain termination; the durable store explains business completion.</text></g></svg><figcaption>Figure 6.2: The service manager, kernel process, streams and journal provide different evidence. The two shutdown paths are conceptual; actual timeout and restart policy come from the unit configuration.</figcaption></figure>
+     <div class="further"><h4>Further Study</h4><p><a href="https://man7.org/linux/man-pages/man7/signal.7.html#DESCRIPTION">signal(7), DESCRIPTION</a>, <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5), DESCRIPTION</a>, and <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1), DESCRIPTION</a> define the operating-system evidence used here. No timestamped video segment is claimed because none was verified for this topic.</p></div>
+    </article>
+   </section>
+   <section class="part" id="part-3">
+    <h2>
+     3 · Real-world problem and solution for each topic
+    </h2>
+    <article class="topic-card" id="topic-01-problem">
+     <h3>
+      Case 1 · Administrator can read; service user receives EACCES
+     </h3>
+     <p>
+      <strong>
+       Failure:
+      </strong>
+      An order API service cannot read its configuration file after deployment, although an administrator can open it in a shell.
+     </p>
+     <p>
+      <strong>
+       Cause:
+      </strong>
+      The service runs as a separate user. The file is owned by the administrator with owner-only read permission, or a parent directory lacks traverse permission for the service identity.
+     </p>
+     <p>
+      <strong>
+       Fix:
+      </strong>
+      Inspect the service's effective user/group, file owner/mode and every parent directory. Put the file under the intended service account or an appropriately restricted group and grant only the needed read/traverse access. Restart the service and verify a read under its identity. Changing the file to world-readable would mask the root cause and expose configuration.
+     </p>
+     <p><strong>Constraints:</strong> the configuration may contain sensitive values, the service must remain unprivileged, and the repair must not grant access to unrelated users. Preserve the original owner, group and modes in the change record so the change can be reversed.</p>
+     <p><strong>Diagnostic sequence:</strong> capture the unit's configured user and effective process credentials; run <code>namei -l</code> or inspect each parent directory; inspect file owner, group, mode and ACL; then reproduce the read as the service identity in a controlled environment. This separates blocked directory traversal from a final-file read failure.</p>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 390" role="img" aria-labelledby="day6-perm-incident-title day6-perm-incident-desc"><title id="day6-perm-incident-title">Order API configuration permission incident before and after repair</title><desc id="day6-perm-incident-desc">Before repair, the service user reaches config.json but owner-only mode permits only the deployment administrator, so the kernel returns EACCES. After repair, a restricted order-api group has directory search and file read permission, and a read as the service identity verifies the boundary.</desc><defs><marker id="day6-perm-incident-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker></defs><text x="24" y="35" fill="#f43f5e" font-size="15" font-weight="700">BEFORE · failing path</text><g fill="#121526" stroke-width="2"><rect x="24" y="56" width="210" height="100" rx="10" stroke="#38bdf8"/><rect x="294" y="56" width="260" height="100" rx="10" stroke="#38bdf8"/><rect x="614" y="56" width="300" height="100" rx="10" stroke="#f43f5e"/></g><g fill="#fce7f3" font-size="14" font-weight="700" text-anchor="middle"><text x="129" y="88">Order API</text><text x="424" y="88">/srv/brightloaf/order-api</text><text x="764" y="88">config.json · admin:admin 0600</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="129" y="122">identity: order-api</text><text x="424" y="122">directory traversal checked</text><text x="764" y="122" fill="#f43f5e">DENY · EACCES at file</text></g><g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day6-perm-incident-arrow)"><path d="M234 106 L288 106"/><path d="M554 106 L608 106"/></g><line x1="24" y1="192" x2="914" y2="192" stroke="#a9b7cb" stroke-dasharray="5 5"/><text x="24" y="226" fill="#34d399" font-size="15" font-weight="700">AFTER · corrected and verified path</text><g fill="#121526" stroke-width="2"><rect x="24" y="247" width="210" height="100" rx="10" stroke="#38bdf8"/><rect x="294" y="247" width="260" height="100" rx="10" stroke="#34d399"/><rect x="614" y="247" width="300" height="100" rx="10" stroke="#34d399"/></g><g fill="#fce7f3" font-size="14" font-weight="700" text-anchor="middle"><text x="129" y="279">Order API</text><text x="424" y="279">restricted order-api group</text><text x="764" y="279">config.json · root:order-api 0640</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="129" y="313">test as service identity</text><text x="424" y="313">directory search granted</text><text x="764" y="313">ALLOW · file read only</text></g><g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day6-perm-incident-arrow)"><path d="M234 297 L288 297"/><path d="M554 297 L608 297"/></g><text x="470" y="378" fill="#a9b7cb" font-size="12" text-anchor="middle">Verification ends at a controlled read as order-api; application readiness is checked separately.</text></svg><figcaption>Figure 6.3: Supplied incident example. The before row shows the asserted identity mismatch; the after row shows one least-privilege repair and its verification boundary. Actual ownership and ACL choices must follow the host deployment policy.</figcaption></figure>
+     <p><strong>Verification and residual risk:</strong> verify a successful read as the configured service user, a clean unit start, and a rejected read from an unrelated ordinary identity. The application can still fail on malformed content, ACLs, read-only mounts or host security policy, so a successful permission check is not full readiness proof.</p>
+    </article>
+    <article class="topic-card" id="topic-02-problem">
+     <h3>
+      Case 2 · Forced worker stop exposes a duplicate-fulfillment defect
+     </h3>
+     <p>
+      <strong>
+       Failure:
+      </strong>
+      An order worker disappears during deployment. The service manager restarts it, but an order processed just before the stop is replayed and fulfilled twice.
+     </p>
+     <p>
+      <strong>
+       Cause:
+      </strong>
+      The worker was killed before it could finish or record its work, and the application lacked an idempotency check. “Service active again” does not establish that in-flight orders were safe.
+     </p>
+     <p>
+      <strong>
+       Fix:
+      </strong>
+      Inspect the previous unit state, PID, termination signal, exit status and timestamped logs. Give the worker a bounded graceful-stop path and ensure replay is idempotent using an order key or equivalent durable state. Test a stop during a synthetic order, then verify one fulfillment after restart. A forced kill remains a recovery tool when graceful stop exceeds its deadline, not the normal success criterion.
+     </p>
+     <p><strong>Constraints:</strong> deployment must finish within a bounded drain window, an unresponsive process must still be stoppable, and an acknowledged event may be delivered again. Brightloaf cannot use a longer shutdown timeout as its only duplicate-prevention control.</p>
+     <p><strong>Diagnostic sequence:</strong> correlate unit stop and restart timestamps with the old and new PIDs, signal or wait status, broker delivery identifier, fulfillment key and durable commit record. Determine whether the first worker performed the external action before recording completion and whether the second worker checked the same stable key.</p>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 430" role="img" aria-labelledby="day6-worker-incident-title day6-worker-incident-desc"><title id="day6-worker-incident-title">Fulfillment replay incident before and after idempotency repair</title><desc id="day6-worker-incident-desc">Before repair, worker A performs fulfillment and is killed before recording completion, so replay to worker B causes a second fulfillment. After repair, the worker claims a durable event key before the effect, passes that key to the fulfillment boundary, and makes replay wait or return the stored outcome.</desc><defs><marker id="day6-worker-incident-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker></defs><text x="22" y="33" fill="#f43f5e" font-size="15" font-weight="700">BEFORE · duplicate side effect</text><g fill="#121526" stroke-width="2"><rect x="22" y="52" width="180" height="106" rx="10" stroke="#38bdf8"/><rect x="250" y="52" width="180" height="106" rx="10" stroke="#f43f5e"/><rect x="478" y="52" width="180" height="106" rx="10" stroke="#f43f5e"/><rect x="706" y="52" width="212" height="106" rx="10" stroke="#f43f5e"/></g><g fill="#fce7f3" font-size="14" font-weight="700" text-anchor="middle"><text x="112" y="84">Event E-481</text><text x="340" y="84">Worker A</text><text x="568" y="84">Broker replay</text><text x="812" y="84">Worker B</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="112" y="118">delivery 1</text><text x="340" y="114">fulfill, then SIGKILL</text><text x="340" y="136">no completion record</text><text x="568" y="118">delivery 2 · same key</text><text x="812" y="114" fill="#f43f5e">fulfills again</text><text x="812" y="136">DUPLICATE</text></g><g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day6-worker-incident-arrow)"><path d="M202 105 L244 105"/><path d="M430 105 L472 105"/><path d="M658 105 L700 105"/></g><line x1="22" y1="194" x2="918" y2="194" stroke="#a9b7cb" stroke-dasharray="5 5"/><text x="22" y="228" fill="#34d399" font-size="15" font-weight="700">AFTER · one durable business decision</text><g fill="#121526" stroke-width="2"><rect x="22" y="248" width="180" height="112" rx="10" stroke="#38bdf8"/><rect x="250" y="248" width="180" height="112" rx="10" stroke="#34d399"/><rect x="478" y="248" width="180" height="112" rx="10" stroke="#34d399"/><rect x="706" y="248" width="212" height="112" rx="10" stroke="#34d399"/></g><g fill="#fce7f3" font-size="14" font-weight="700" text-anchor="middle"><text x="112" y="281">Event E-481</text><text x="340" y="281">Idempotency store</text><text x="568" y="281">Fulfillment</text><text x="812" y="281">Replay E-481</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="112" y="316">stable event key</text><text x="340" y="312">claim key before effect</text><text x="340" y="334">processing → done</text><text x="568" y="316">use the same key once</text><text x="812" y="312">key claimed or done</text><text x="812" y="334">wait or stored result</text></g><g fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#day6-worker-incident-arrow)"><path d="M202 304 L244 304"/><path d="M430 304 L472 304"/><path d="M658 304 L700 304"/></g><text x="470" y="400" fill="#a9b7cb" font-size="12" text-anchor="middle">Verification injects the same key twice and observes one committed fulfillment record.</text></svg><figcaption>Figure 6.4: Supplied incident example. The first row shows how termination between a side effect and its record enables a duplicate; the corrected row shows a stable-key state machine. The downstream fulfillment boundary must honor the same key, and the diagram does not prove atomicity in a real store.</figcaption></figure>
+     <p><strong>Verification and residual risk:</strong> inject the same synthetic event key before and after a graceful restart and confirm one committed fulfillment plus a replay result that references the original decision. Retrying an external carrier call may still need the same idempotency key at that boundary; process supervision alone cannot provide exactly-once business behavior.</p>
+    </article>
+   </section>
+   <section class="part" id="part-4">
+    <h2>
+     4 · Step-by-step labs for each topic
+    </h2>
+    <article class="topic-card lab" id="topic-01-lab">
+     <h3>
+      Exercise 1 · Inspect a private configuration path
+     </h3>
+     <p>
+      <strong>
+       Goal:
+      </strong>
+      Observe identity and file-mode behavior without elevated privileges.
+      <strong>
+       Mode:
+      </strong>
+      local Linux terminal in the Day 1 repository.
+     </p>
+     <p><strong>Expected Result:</strong> identify the current process credentials, create a private directory and file, observe owner-only modes, read the file as its owner, and remove only the disposable fixture.</p>
+     <p><strong>Preflight:</strong> use an ordinary non-root Linux shell. Confirm the required local commands before creating the fixture:</p>
+     <pre><code class="language-sh">command -v id pwd mkdir printf chmod stat cat rm rmdir
+test "$(id -u)" -ne 0 &amp;&amp; printf 'preflight: ordinary user\n'
+</code></pre>
+     <p>Expected: each command prints a path or shell builtin name, followed by <code>preflight: ordinary user</code>. No Google Cloud account, credential or billable resource is involved.</p>
+     <h4>
+      Step 1 — Identify the current user
+     </h4>
+     <p>
+      Open a terminal and run:
+     </p>
+     <pre><code class="language-sh">id
+pwd
+</code></pre>
+     <p>
+      Expected: your user ID, primary/supplementary groups and current directory. Record the values; they vary by machine. The command is read-only.
+     </p>
+     <h4>
+      Step 2 — Create a private sample
+     </h4>
+     <pre><code class="language-sh">mkdir -p ~/gcp-architect-learning/day-006-permissions
+printf 'synthetic-config=true\n' &gt; ~/gcp-architect-learning/day-006-permissions/sample.txt
+chmod 700 ~/gcp-architect-learning/day-006-permissions
+chmod 600 ~/gcp-architect-learning/day-006-permissions/sample.txt
+stat -c '%A %U %G %n' ~/gcp-architect-learning/day-006-permissions/sample.txt
+</code></pre>
+     <p>
+      Expected: the file's symbolic mode begins with
+      <code>
+       -rw-------
+      </code>
+      , followed by your user and group. The directory mode is private as well. In your note, explain why another ordinary user should not be able to read this file through these mode bits. Do not place a real credential in the sample.
+     </p>
+     <h4>
+      Step 3 — Compare read and write permission
+     </h4>
+     <pre><code class="language-sh">chmod 400 ~/gcp-architect-learning/day-006-permissions/sample.txt
+stat -c '%A %n' ~/gcp-architect-learning/day-006-permissions/sample.txt
+cat ~/gcp-architect-learning/day-006-permissions/sample.txt
+</code></pre>
+     <p>
+      Expected mode
+      <code>
+       -r--------
+      </code>
+      and the synthetic line printed. The owner can read but lacks ordinary write permission. Do not test this as root, because privileged access changes the result. Restore the safe private mode:
+     </p>
+     <pre><code class="language-sh">chmod 600 ~/gcp-architect-learning/day-006-permissions/sample.txt
+</code></pre>
+     <p>
+      <strong>
+       Verification:
+      </strong>
+      save the
+      <code>
+       id
+      </code>
+      result and before/after modes in the Day 6 note.
+      <strong>
+       Cleanup:
+      </strong>
+      keep the synthetic sample if it supports your evidence; otherwise, after confirming the exact path, remove the file and directory:
+     </p>
+     <pre><code class="language-sh">rm ~/gcp-architect-learning/day-006-permissions/sample.txt
+rmdir ~/gcp-architect-learning/day-006-permissions
+</code></pre>
+     <p>
+      No cloud resource or billable service exists.
+     </p>
+     <p><strong>Troubleshooting:</strong> if <code>stat</code> lacks GNU <code>-c</code> support, record the full output of <code>stat sample.txt</code> instead. If the read behaves differently, confirm that the shell is not privileged and inspect ACLs with <code>getfacl</code> when that command is available.</p>
+     <p><strong>Artifact Acceptance:</strong> the Day 6 note contains the actual UID and groups, the <code>-rw-------</code> and <code>-r--------</code> modes, the synthetic line, the cleanup result, and an explanation of directory search versus file read permission.</p>
+     <p>
+      <label class="check">
+       <input data-progress="lab-6-topic-01" type="checkbox"/>
+       I completed and checked this topic exercise
+      </label>
+     </p>
+    </article>
+    <article class="topic-card lab" id="topic-02-lab">
+     <h3>
+      Exercise 2 · Compare graceful and forced worker termination
+     </h3>
+     <p>
+      <strong>
+       Goal:
+      </strong>
+      Compare graceful termination with forced termination and inspect service evidence.
+      <strong>
+       Mode:
+      </strong>
+      local Linux terminal; the optional journal step needs a working user systemd manager. No sudo or cloud account is needed.
+     </p>
+     <p><strong>Expected Result:</strong> SIGTERM produces a timestamped cleanup line and exit status 0; SIGKILL produces no cleanup line and normally yields Bash wait status 137. The evidence must use only the PID captured from the disposable worker.</p>
+     <p><strong>Preflight:</strong> open an ordinary Bash shell in <code>~/gcp-architect-learning</code> and verify the local tools:</p>
+     <pre><code class="language-sh">cd ~/gcp-architect-learning
+command -v bash python3 ps kill
+python3 --version
+</code></pre>
+     <p>Expected: command paths plus a Python 3 version. The systemd journal step is optional and must be skipped when the per-user service manager is unavailable.</p>
+     <h4>
+      Step 1 — Create a disposable worker
+     </h4>
+     <p>
+      Open a terminal in the Day 1 repository and create the script:
+     </p>
+     <pre><code class="language-sh">cd ~/gcp-architect-learning
+cat &gt; day-006-worker.py &lt;&lt;'PY'
+from datetime import datetime, timezone
+import os
+import signal
+import time
+
+def stamp(message):
+    now = datetime.now(timezone.utc).isoformat()
+    print(f'{now} {message}', flush=True)
+
+def stop(signum, frame):
+    stamp(f'graceful stop pid={os.getpid()} signal={signum}')
+    raise SystemExit(0)
+
+signal.signal(signal.SIGTERM, stop)
+stamp(f'started pid={os.getpid()}')
+while True:
+    time.sleep(1)
+PY
+</code></pre>
+     <p>
+      The file contains synthetic process behavior only. The handler writes an observable line when SIGTERM arrives.
+     </p>
+     <h4>
+      Step 2 — Start and gracefully stop it
+     </h4>
+     <p>
+      Keep the same terminal open and run:
+     </p>
+     <pre><code class="language-sh">python3 -u day-006-worker.py &gt; day-006-graceful.log 2&gt;&amp;1 &amp;
+worker_pid=$!
+sleep 1
+ps -p "$worker_pid" -o pid,stat,comm
+kill -TERM "$worker_pid"
+wait "$worker_pid"
+graceful_status=$?
+printf 'graceful exit=%s\n' "$graceful_status"
+cat day-006-graceful.log
+</code></pre>
+     <p>
+      Expected:
+      <code>
+       ps
+      </code>
+      lists the Python process, the log has
+      <code>
+       started
+      </code>
+      and
+      <code>
+       graceful stop
+      </code>
+      , and the exit status is 0. PID and timestamps vary. Record the actual PID and result.
+     </p>
+     <h4>
+      Step 3 — Compare a forced stop
+     </h4>
+     <pre><code class="language-sh">python3 -u day-006-worker.py &gt; day-006-forced.log 2&gt;&amp;1 &amp;
+worker_pid=$!
+sleep 1
+kill -KILL "$worker_pid"
+wait "$worker_pid"
+forced_status=$?
+printf 'forced exit=%s\n' "$forced_status"
+cat day-006-forced.log
+</code></pre>
+     <p>
+      Expected: the log has
+      <code>
+       started
+      </code>
+      but no
+      <code>
+       graceful stop
+      </code>
+      . In Bash, the forced exit is commonly 137 (128 plus signal 9); record the observed value. The shell may also print a “Killed” message. Do not send a kill signal to any PID other than the one captured from this disposable process.
+     </p>
+     <h4>
+      Step 4 — Inspect the journal when available
+     </h4>
+     <p>
+      If your Linux VM has a user systemd manager, run the following in the same repository. Skip and record “user manager unavailable” if the first command cannot connect; do not install or enable a system service just for this lesson.
+     </p>
+     <pre><code class="language-sh">systemctl --user status --no-pager
+python_path="$(command -v python3)"
+systemd-run --user --unit=gcp-day6-lab --collect "$python_path" "$PWD/day-006-worker.py"
+systemctl --user status gcp-day6-lab --no-pager
+journalctl --user -u gcp-day6-lab --since '5 minutes ago' --no-pager
+systemctl --user stop gcp-day6-lab
+journalctl --user -u gcp-day6-lab --since '5 minutes ago' --no-pager
+</code></pre>
+     <p>
+      Expected: the unit shows a running PID, then the journal shows start and graceful-stop messages with timestamps. Journal access and exact formatting depend on the VM's configuration.
+      <strong>
+       Verification:
+      </strong>
+      save commands, PID, exit codes and log or journal timestamps; explain which stop allowed cleanup.
+      <strong>
+       Cleanup:
+      </strong>
+      confirm the user unit is stopped and the captured PIDs no longer appear. Keep the script and logs as evidence or delete them after recording; no cloud resource exists.
+     </p>
+     <h4>Step 5 — Clean up in reverse dependency order</h4>
+     <pre><code class="language-sh">systemctl --user stop gcp-day6-lab 2&gt;/dev/null || true
+rm -f ~/gcp-architect-learning/day-006-graceful.log
+rm -f ~/gcp-architect-learning/day-006-forced.log
+rm -f ~/gcp-architect-learning/day-006-worker.py
+test ! -e ~/gcp-architect-learning/day-006-worker.py &amp;&amp; printf 'cleanup: complete\n'
+</code></pre>
+     <p>Expected final line: <code>cleanup: complete</code>. Stop the optional unit before deleting the executable it references.</p>
+     <p><strong>Troubleshooting:</strong> if <code>wait</code> reports a different nonzero forced status, record the shell and observed status rather than changing it to 137. If the graceful log is empty, confirm Python was started with <code>-u</code> and that the captured PID belongs to the disposable worker.</p>
+     <p><strong>Artifact Acceptance:</strong> the note includes both PIDs, UTC log timestamps, the observed graceful and forced exit statuses, the presence or absence of the cleanup line, optional journal evidence or an explicit skip reason, and a statement that replay safety comes from durable idempotency rather than the service manager.</p>
+     <p>
+      <label class="check">
+       <input data-progress="lab-6-topic-02" type="checkbox"/>
+       I completed and checked this topic exercise
+      </label>
+     </p>
+    </article>
+   </section>
+   <section class="completion">
+    <h2>
+     Daily evidence
+    </h2>
+    <label class="check">
+     <input data-progress="read-6" type="checkbox"/>
+     I read and reviewed the day
+    </label>
+    <label class="check">
+     <input data-progress="artifact-6" type="checkbox"/>
+     I saved the exit artifact
+    </label>
+   </section>
+   <nav aria-label="Day pagination" class="pager">
+    <a href="day-005.html">
+     ← Day 5
+     <small>
+      VPN, load balancers and firewalls
+     </small>
+    </a>
+    <a href="../index.html">
+     All 180 days
+     <small>
+      Browse the roadmap
+     </small>
+    </a>
+    <a href="day-007.html">
+     Day 7 →
+     <small>
+      SSH, scripts and process inspection
+     </small>
+    </a>
+   </nav>
+   <p class="shortcut">
+    Keyboard: P or [ previous · N or ] next · I index
+   </p>
+  </main>
+  <footer class="site-footer">
+   GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.
+  </footer>
+ </body>
+</html>

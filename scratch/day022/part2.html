@@ -1,0 +1,477 @@
+    <section class="part" id="part-2" aria-labelledby="part-2-title">
+      <h2 id="part-2-title">2 · Architecture, control flow, boundaries, and limits</h2>
+
+      <article class="topic-card" id="topic-01-technical">
+        <h3>Hierarchical IAM policy inheritance, downward flow, and additive access calculation</h3>
+        <p>Google Cloud organizes all infrastructure into a formal parent-child container hierarchy: the <strong>Organization node</strong> sits at the apex, containing <strong>Folders</strong> (which can nest up to 300 levels deep, with enterprise architectures generally utilizing 2 to 4 tiers), which contain <strong>Projects</strong>, which house <strong>Leaf Resources</strong> (such as Cloud Spanner databases, Compute Engine instances, Cloud Storage buckets, and Pub/Sub topics). Security governance across this tree is driven by the Identity and Access Management (IAM) Policy Evaluation Engine.</p>
+
+        <h4>Downward Propagation and the Additive Union Principle</h4>
+        <p>In standard Google Cloud IAM, access policies flow strictly downward from parent containers to their children. When an administrator grants an IAM role binding at an ancestor node (such as an Organization or Folder), that grant automatically applies to all descendant containers and resources. Crucially, IAM allow policies are strictly <strong>additive</strong>: the effective permissions possessed by a security principal on a target resource are computed as the mathematical union of all role bindings assigned across all ancestor containers in the resource path:</p>
+
+        <div class="callout">
+          <strong>Mathematical Formalization of Effective IAM Permissions:</strong>
+          <p>Given a target leaf resource <em>R</em> located in project <em>P</em> with ancestor folders <em>F<sub>1</sub>, F<sub>2</sub>, &hellip;, F<sub>k</sub></em> descending from organization <em>O</em>, the effective permission set <em>P<sub>effective</sub>(R)</em> for principal <em>u</em> is defined as:</p>
+          <p><code>P_effective(u, R) = P_org(u, O) &cup; (&cup; P_folder(u, F_i)) &cup; P_project(u, P) &cup; P_resource(u, R)</code></p>
+        </div>
+
+        <p>Because the evaluation engine computes a mathematical set union, <strong>IAM allow policies have no subtractive capability</strong>. There is no mechanism within standard IAM allow bindings to revoke, mask, restrict, or attenuate a permission at a lower node that was granted at a higher node. If a principal is granted <code>roles/editor</code> at a parent Folder, that principal retains complete write and administrative privileges across every single project inside that folder, even if a well-meaning security administrator explicitly assigns them the restrictive <code>roles/viewer</code> role at the child project level.</p>
+
+        <h4>IAM Deny Policies: The Explicit Subtractive Guardrail</h4>
+        <p>To establish hard negative boundaries that standard IAM allow bindings cannot provide, Google Cloud introduced <strong>IAM Deny Policies</strong>. Unlike allow policies, which are additive and evaluated as a union, Deny policies enforce non-negotiable negative constraints:</p>
+        <ul>
+          <li><strong>Evaluation Precedence:</strong> When an API request is received, the IAM policy evaluation engine evaluates Deny policies <em>before</em> allow policies. If an applicable Deny rule matches the principal and the requested permission, the request is immediately rejected, regardless of any inherited or direct allow bindings.</li>
+          <li><strong>Downward Inheritance of Deny:</strong> Deny policies flow downward through the hierarchy. A Deny policy configured at the Organization or Folder level (for example, denying <code>iam.serviceAccounts.delete</code> or <code>spanner.databases.drop</code>) cannot be overridden, bypassed, or relaxed by any project administrator or developer.</li>
+          <li><strong>Principle of Least Privilege Alignment:</strong> Architects should reserve broad folder-level bindings strictly for read-only auditor roles (such as <code>roles/viewer</code> or <code>roles/securityReviewer</code>) and delegate write or administrative roles exclusively at the leaf project tier.</li>
+        </ul>
+
+        <h4>Control Plane Limits and Latency Boundaries</h4>
+        <p>When designing hierarchical governance, architects must design within Google Cloud's documented platform limits:</p>
+        <ul>
+          <li><strong>Folder Nesting Depth:</strong> Maximum of 300 levels of nested folders. Production enterprise landing zones typically adopt a depth of 2 to 4 folders (e.g. <code>Org &rarr; Business Unit &rarr; Environment &rarr; Project</code>) to maintain auditability.</li>
+          <li><strong>IAM Policy Size Limits:</strong> An individual IAM policy on a project, folder, or organization cannot exceed 250 KB in total size, with a maximum of 1,500 member bindings across all role assignments. Large enterprises must bind roles to Cloud Identity Google Groups rather than individual users to prevent hitting policy size limits.</li>
+          <li><strong>Propagation Latency:</strong> IAM policy modifications are globally replicated using eventual consistency. Changes take effect across regional control planes within seconds, but global edge caches and distributed API frontends may take up to 60 seconds to reflect updated bindings.</li>
+        </ul>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Hierarchy Levels, Policy Attachment, and Additive Union Behavior</caption>
+            <thead>
+              <tr>
+                <th scope="col">Hierarchy Level</th>
+                <th scope="col">Evaluated Policy Types</th>
+                <th scope="col">Downward Flow Target</th>
+                <th scope="col">Additive Union Impact</th>
+                <th scope="col">Blast Radius &amp; Governance Guardrails</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Organization Apex</th>
+                <td>IAM Allow, IAM Deny, Organization Policies, Tag Definitions</td>
+                <td>All folders, all projects, all resources across the enterprise</td>
+                <td>Grants baseline enterprise permissions (e.g. Security Reviewer, Org Policy Admin). Additive down to all leaves.</td>
+                <td>Maximum blast radius. Accidental write role grants here compromise entire enterprise estate.</td>
+              </tr>
+              <tr>
+                <th scope="row">Intermediate Folder</th>
+                <td>IAM Allow, IAM Deny, Organization Policies, Tag Bindings</td>
+                <td>Descendant sub-folders, child projects, and underlying resources</td>
+                <td>Grants department or environment baseline (e.g. Network Admin on Shared VPC folder). Additive across all child projects.</td>
+                <td>High blast radius. A write grant at this level cannot be revoked by child project bindings.</td>
+              </tr>
+              <tr>
+                <th scope="row">Project Container</th>
+                <td>IAM Allow, IAM Deny, Tag Bindings, Service Enablement</td>
+                <td>All infrastructure resources instantiated within the project</td>
+                <td>Grants application-scoped permissions (e.g. Cloud SQL Admin, Spanner Database Admin, Pub/Sub Publisher).</td>
+                <td>Project-contained blast radius. Ideal locus for assigning developer and CI/CD pipeline write roles.</td>
+              </tr>
+              <tr>
+                <th scope="row">Leaf Resource</th>
+                <td>Resource-level IAM Allow (where supported: GCS, Spanner, KMS)</td>
+                <td>Single target resource (e.g. specific GCS bucket or Cloud KMS key)</td>
+                <td>Grants fine-grained, object-specific access (e.g. Storage Object Creator on an incoming batch bucket).</td>
+                <td>Micro-scoped blast radius. Protects individual sensitive cryptographic keys or audit storage buckets.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+<figure class="diagram-figure" id="fig-22-1">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig22-1-title fig22-1-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig22-1-title">Google Cloud Hierarchical IAM Policy Inheritance and Additive Union Flow</title>
+      <desc id="fig22-1-desc">Architectural diagram illustrating how IAM allow policies flow downward through the Google Cloud resource hierarchy and form a mathematical union at the leaf resource, demonstrating that project-level bindings cannot subtract folder-level permissions.</desc>
+      <defs>
+        <linearGradient id="p22-f1-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <linearGradient id="p22-f1-node-org" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1e293b"/>
+          <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
+        <linearGradient id="p22-f1-node-folder" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1e293b"/>
+          <stop offset="100%" stop-color="#1e1b4b"/>
+        </linearGradient>
+        <linearGradient id="p22-f1-node-proj" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1e293b"/>
+          <stop offset="100%" stop-color="#172554"/>
+        </linearGradient>
+        <linearGradient id="p22-f1-union" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1c1917"/>
+          <stop offset="100%" stop-color="#292524"/>
+        </linearGradient>
+        <marker id="p22-f1-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#38bdf8"/>
+        </marker>
+        <marker id="p22-f1-arrow-warn" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e"/>
+        </marker>
+      </defs>
+
+      <!-- Background Canvas -->
+      <rect width="960" height="520" rx="12" fill="url(#p22-f1-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header Label -->
+      <text x="32" y="36" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">HIERARCHICAL IAM EVALUATION ENGINE: ADDITIVE POLICY UNION</text>
+      <text x="32" y="56" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Policies flow downward; effective permissions equal the mathematical union of all ancestor allow bindings.</text>
+
+      <!-- Top Container: Organization Node -->
+      <g transform="translate(40, 80)">
+        <rect width="400" height="85" rx="8" fill="url(#p22-f1-node-org)" stroke="#38bdf8" stroke-width="1.5"/>
+        <rect x="0" y="0" width="8" height="85" rx="4" fill="#38bdf8"/>
+        <text x="24" y="24" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, -apple-system, sans-serif">ORGANIZATION APEX: organizations/714029482103</text>
+        <text x="24" y="42" fill="#38bdf8" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Domain: brightloaf.com</text>
+        <text x="24" y="60" fill="#cbd5e1" font-size="11" font-family="ui-monospace, monospace">Principal: sec-team@brightloaf.com &rarr; roles/securityReviewer</text>
+        <text x="24" y="74" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">Permissions: {resourcemanager.organizations.get, iam.roles.list}</text>
+      </g>
+
+      <!-- Hierarchy Arrow Org -> Folder -->
+      <line x1="240" y1="165" x2="240" y2="195" stroke="#38bdf8" stroke-width="2" marker-end="url(#p22-f1-arrow)"/>
+      <text x="250" y="185" fill="#38bdf8" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Inherits Downward</text>
+
+      <!-- Middle Container: Folder Tier -->
+      <g transform="translate(40, 200)">
+        <rect width="400" height="95" rx="8" fill="url(#p22-f1-node-folder)" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="8" height="95" rx="4" fill="#f43f5e"/>
+        <text x="24" y="24" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INTERMEDIATE FOLDER: folders/839102482019</text>
+        <text x="24" y="42" fill="#f43f5e" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Display Name: Production-Fulfillment</text>
+        <text x="24" y="60" fill="#fca5a5" font-size="11" font-weight="600" font-family="ui-monospace, monospace">CRITICAL: contractor-group@ &rarr; roles/editor</text>
+        <text x="24" y="74" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Injected: {spanner.databases.drop, compute.instances.create, ...}</text>
+        <text x="24" y="88" fill="#f43f5e" font-size="9" font-style="italic" font-family="system-ui, -apple-system, sans-serif">Cannot be attenuated by lower nodes</text>
+      </g>
+
+      <!-- Hierarchy Arrow Folder -> Project -->
+      <line x1="240" y1="295" x2="240" y2="325" stroke="#38bdf8" stroke-width="2" marker-end="url(#p22-f1-arrow)"/>
+      <text x="250" y="315" fill="#38bdf8" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Inherits Downward</text>
+
+      <!-- Bottom Container: Project Tier -->
+      <g transform="translate(40, 330)">
+        <rect width="400" height="90" rx="8" fill="url(#p22-f1-node-proj)" stroke="#f59e0b" stroke-width="1.5"/>
+        <rect x="0" y="0" width="8" height="90" rx="4" fill="#f59e0b"/>
+        <text x="24" y="24" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, -apple-system, sans-serif">PROJECT LEAF: bl-order-fulfill-prod</text>
+        <text x="24" y="42" fill="#f59e0b" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Project Number: 109283746152</text>
+        <text x="24" y="60" fill="#fde68a" font-size="11" font-family="ui-monospace, monospace">Local Binding Attempt: contractor-group@ &rarr; roles/viewer</text>
+        <text x="24" y="76" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">FALLACY: Binding "viewer" does NOT revoke parent "editor"!</text>
+      </g>
+
+      <!-- Hierarchy Arrow Project -> Leaf Resource -->
+      <line x1="240" y1="420" x2="240" y2="445" stroke="#38bdf8" stroke-width="2" marker-end="url(#p22-f1-arrow)"/>
+
+      <!-- Leaf Target Resource -->
+      <g transform="translate(40, 448)">
+        <rect width="400" height="52" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+        <text x="24" y="22" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">TARGET RESOURCE: Cloud Spanner Database</text>
+        <text x="24" y="38" fill="#94a3b8" font-size="10" font-family="ui-monospace, monospace">projects/bl-order-fulfill-prod/instances/bl-spanner/databases/orders-db</text>
+      </g>
+
+      <!-- Right Panel: Mathematical Union Engine -->
+      <g transform="translate(480, 80)">
+        <rect width="440" height="420" rx="10" fill="url(#p22-f1-union)" stroke="#334155" stroke-width="1.5"/>
+        <rect x="0" y="0" width="440" height="38" rx="10" fill="#1e293b"/>
+        <text x="20" y="24" fill="#38bdf8" font-size="13" font-weight="700" font-family="system-ui, -apple-system, sans-serif">EVALUATION LOGIC: MATHEMATICAL SET UNION</text>
+
+        <!-- Formula Box -->
+        <g transform="translate(20, 52)">
+          <rect width="400" height="56" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+          <text x="14" y="22" fill="#e2e8f0" font-size="11" font-family="ui-monospace, monospace">P_effective(R) = P(Org) &cup; P(Folder) &cup; P(Project) &cup; P(Resource)</text>
+          <text x="14" y="42" fill="#22c55e" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">&check; Principle: Permissions are purely additive across all ancestors.</text>
+        </g>
+
+        <!-- Evaluation Walkthrough -->
+        <text x="20" y="132" fill="#f8fafc" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Evaluation for contractor-group@brightloaf.com:</text>
+
+        <rect x="20" y="142" width="400" height="60" rx="6" fill="#111827" stroke="#1e293b" stroke-width="1"/>
+        <text x="30" y="162" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">1. Query Org Policy:</text>
+        <text x="170" y="162" fill="#cbd5e1" font-size="10" font-family="ui-monospace, monospace">No direct grant &rarr; &empty;</text>
+        <text x="30" y="180" fill="#f43f5e" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Query Folder Policy:</text>
+        <text x="170" y="180" fill="#fca5a5" font-size="10" font-family="ui-monospace, monospace">roles/editor &rarr; {spanner.databases.drop, ...}</text>
+        <text x="30" y="196" fill="#f59e0b" font-size="10" font-family="system-ui, -apple-system, sans-serif">3. Query Project Policy:</text>
+        <text x="170" y="196" fill="#cbd5e1" font-size="10" font-family="ui-monospace, monospace">roles/viewer &rarr; {spanner.databases.get, ...}</text>
+
+        <!-- Calculation Result -->
+        <g transform="translate(20, 215)">
+          <rect width="400" height="90" rx="6" fill="#3f1219" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="14" y="24" fill="#fca5a5" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">RESULT: PRIVILEGE ESCALATION VIA INHERITANCE</text>
+          <text x="14" y="44" fill="#fecaca" font-size="11" font-family="system-ui, -apple-system, sans-serif">Action attempted: spanner.databases.drop</text>
+          <text x="14" y="62" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">Check: spanner.databases.drop &isin; ({editor} &cup; {viewer}) = TRUE</text>
+          <text x="14" y="80" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">DECISION: ALLOWED &rarr; Table dropped unintentionally!</text>
+        </g>
+
+        <!-- Correct Architectural Remedy -->
+        <g transform="translate(20, 318)">
+          <rect width="400" height="86" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.2"/>
+          <text x="14" y="22" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">ARCHITECTURAL REMEDIES:</text>
+          <text x="14" y="40" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">1. Restrict broad roles to leaf non-production projects only.</text>
+          <text x="14" y="56" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">2. Use environment-first folder separation (/Prod vs /NonProd).</text>
+          <text x="14" y="72" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">3. Apply IAM Deny policies to block deletion at the project boundary.</text>
+        </g>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 22.1: Google Cloud Hierarchical IAM Policy Inheritance and Additive Union Flow.</strong>
+    Demonstrates the downward propagation of IAM allow bindings across Organization, Folder, and Project tiers. Because IAM permissions are evaluated as the mathematical union of all ancestor policies, granting broad roles at a parent folder exposes leaf project resources to unintended administrative actions that cannot be revoked at the project level.
+  </figcaption>
+</figure>
+
+
+        <div class="callout note">
+          <strong>Further Study · Hierarchical Access Control</strong>
+          <p>Review the primary Google Cloud documentation on access inheritance mechanics and role definitions:</p>
+          <ul>
+            <li><a href="https://cloud.google.com/iam/docs/resource-hierarchy-access-control">Google Cloud IAM &mdash; Resource Hierarchy Access Control</a></li>
+            <li><a href="https://cloud.google.com/iam/docs/understanding-roles">Google Cloud IAM &mdash; Understanding Roles and Permissions</a></li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-technical">
+        <h3>Disambiguating metadata: Labels vs. Resource Manager Tags vs. Network Tags</h3>
+        <p>A widespread source of architectural defects, billing confusion, and security vulnerabilities in Google Cloud environments is the conflation of three distinct metadata mechanisms: <strong>Resource Labels</strong>, <strong>Resource Manager Tags</strong>, and <strong>Network Tags</strong>. While all three attach metadata to cloud assets, they operate in completely distinct control planes, serve incompatible functional purposes, enforce vastly different security semantics, and exhibit different inheritance behaviors.</p>
+
+        <h4>Plane 1: Resource Labels (Operations &amp; Cost Allocation)</h4>
+        <p><strong>Resource Labels</strong> are lightweight, client-managed key-value metadata pairs directly attached to individual cloud resources (such as Compute Engine VMs, Cloud Storage buckets, Cloud SQL databases, BigQuery datasets, and persistent disks). They are primarily designed for cost accounting, billing attribution, and operational scripting:</p>
+        <ul>
+          <li><strong>API &amp; Attachment Plane:</strong> Stored directly within the resource metadata via individual service APIs (such as <code>compute.instances.setLabels</code> or <code>storage.buckets.patch</code>).</li>
+          <li><strong>Syntax &amp; Constraints:</strong> Keys and values are restricted to lowercase letters, numeric characters, underscores, and dashes, with a maximum length of 63 characters each. Keys may optionally include an internationalized character set or DNS prefix. A single resource can hold up to 64 labels.</li>
+          <li><strong>Inheritance:</strong> <em>Labels do NOT inherit</em>. A label set on an Organization, Folder, or Project does not flow down to child resources within that project. Each resource must be labeled explicitly or stamped by automated deployment pipelines.</li>
+          <li><strong>Billing Integration:</strong> Labels are automatically exported into the detailed Cloud Billing export in BigQuery, enabling granular chargeback queries (e.g. breaking down monthly spend by <code>cost-center</code> or <code>application-id</code>).</li>
+          <li><strong>Security Boundary:</strong> Labels provide <strong>zero security or access control enforcement</strong>. They cannot be referenced in IAM conditions and have no effect on VPC firewall rules. Anyone with resource update permissions can freely modify or delete labels.</li>
+        </ul>
+
+        <h4>Plane 2: Resource Manager Tags (Centralized Governance &amp; IAM Enforcement)</h4>
+        <p><strong>Resource Manager Tags</strong> (often referred to as <em>Secure Tags</em>) are first-class, centrally managed Google Cloud resources created under the Organization or Folder tree. Tags consist of a parent <code>TagKey</code> and child <code>TagValue</code> resources, which are bound to projects, folders, or individual resources via a <code>TagBinding</code>:</p>
+        <ul>
+          <li><strong>Centralized Lifecycle:</strong> Defined centrally at the Organization level (e.g. <code>tagKeys/714029482103/environment</code> with values <code>tagValues/production</code> and <code>tagValues/staging</code>).</li>
+          <li><strong>Inheritance:</strong> <em>Tags inherit automatically down the resource hierarchy</em>. A tag bound to an intermediate folder automatically applies to all projects and supported resources within that branch, unless explicitly overridden at a lower tier.</li>
+          <li><strong>Security &amp; IAM Protection:</strong> Tag assignment is strictly governed by dedicated Cloud Resource Manager IAM roles: <code>roles/resourcemanager.tagAdmin</code> (who can create and delete tag keys and values) and <code>roles/resourcemanager.tagUser</code> (who is authorized to bind a tag value to a resource). A project administrator or developer cannot attach or remove a tag unless explicitly granted the <code>tagUser</code> role on that specific tag value.</li>
+          <li><strong>IAM Conditions &amp; Org Policy Integration:</strong> Tags can be evaluated in conditional IAM policy bindings using the Common Expression Language (CEL) function <code>resource.matchTag('organizations/123/environment', 'production')</code>. They can also be evaluated by Organization Policy constraints to enforce compliance across tagged resources.</li>
+          <li><strong>Limits:</strong> Up to 1,000 tag keys per organization, up to 1,000 tag values per key, and a maximum of 50 tag bindings per resource.</li>
+        </ul>
+
+        <h4>Plane 3: Network Tags (Compute Engine VPC Packet Filtering)</h4>
+        <p><strong>Network Tags</strong> are simple, unvalidated string attributes attached strictly to Compute Engine virtual machine instances and Instance Templates. They exist exclusively within the VPC networking plane:</p>
+        <ul>
+          <li><strong>Scope &amp; Attachment:</strong> Can only be attached to Compute Engine VM instances. They cannot be attached to Cloud Storage buckets, Cloud SQL databases, BigQuery datasets, or Folders.</li>
+          <li><strong>Inheritance:</strong> <em>Network tags do NOT inherit</em>. They are per-instance attributes defined at VM creation or modified dynamically.</li>
+          <li><strong>Purpose:</strong> Used exclusively by VPC Firewall Rules (via <code>targetTags</code> and <code>sourceTags</code>) and VPC custom route tables (via <code>tags</code>) to filter network traffic and steer packet routing at the virtual network layer.</li>
+          <li><strong>Security Vulnerability:</strong> Modifying network tags requires only Compute Engine instance update privileges (<code>compute.instances.setTags</code>). If a developer has permission to edit a VM, they can change its network tags, potentially modifying which firewall rules apply to that VM. Consequently, network tags do not constitute an impenetrable security boundary against untrusted internal actors. For strict security isolation, Google Cloud recommends using Resource Manager Tags with Hierarchical Firewall Policies or Network Firewall Policies.</li>
+        </ul>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Comprehensive Architectural Comparison: Labels vs. Resource Manager Tags vs. Network Tags</caption>
+            <thead>
+              <tr>
+                <th scope="col">Architectural Attribute</th>
+                <th scope="col">Resource Labels</th>
+                <th scope="col">Resource Manager Tags (Secure Tags)</th>
+                <th scope="col">Network Tags (Instance Tags)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Operational Plane</th>
+                <td>Resource Metadata &amp; Billing Plane</td>
+                <td>Resource Manager &amp; IAM Governance Plane</td>
+                <td>Compute Engine &amp; VPC Data Plane</td>
+              </tr>
+              <tr>
+                <th scope="row">Attachment Targets</th>
+                <td>Compute VMs, Disks, Buckets, SQL, BigQuery, Subnets</td>
+                <td>Organizations, Folders, Projects, Supported Resources</td>
+                <td>Compute Engine VM instances &amp; Instance Templates ONLY</td>
+              </tr>
+              <tr>
+                <th scope="row">Hierarchical Inheritance</th>
+                <td>None (Must be stamped on each resource individually)</td>
+                <td>Yes (Inherits downward from Org &rarr; Folder &rarr; Project)</td>
+                <td>None (Local attribute on specific VM instance)</td>
+              </tr>
+              <tr>
+                <th scope="row">Access Control Mechanism</th>
+                <td>Resource update permission (e.g. <code>compute.instances.setLabels</code>)</td>
+                <td>Dedicated IAM roles (<code>tagAdmin</code>, <code>tagUser</code>)</td>
+                <td>Compute update permission (<code>compute.instances.setTags</code>)</td>
+              </tr>
+              <tr>
+                <th scope="row">IAM Condition Evaluation</th>
+                <td>Unsupported (Cannot be evaluated in IAM CEL expressions)</td>
+                <td>Fully Supported via <code>resource.matchTag()</code> in CEL</td>
+                <td>Unsupported (Cannot be evaluated in IAM policies)</td>
+              </tr>
+              <tr>
+                <th scope="row">VPC Firewall Filtering</th>
+                <td>None (VPC firewalls completely ignore labels)</td>
+                <td>Supported in Cloud Next-Gen Firewall policies (Secure Tags)</td>
+                <td>Standard VPC Firewall evaluation (<code>targetTags</code>, <code>sourceTags</code>)</td>
+              </tr>
+              <tr>
+                <th scope="row">Cloud Billing Export</th>
+                <td>Exported directly to BigQuery for cost breakdown queries</td>
+                <td>Exported to BigQuery billing with tag key/value taxonomy</td>
+                <td>Not exported to billing (No financial relevance)</td>
+              </tr>
+              <tr>
+                <th scope="row">Platform Limits</th>
+                <td>Max 64 labels per resource; key/val max 63 characters</td>
+                <td>Max 50 tags per resource; 1,000 keys per organization</td>
+                <td>Max 64 tags per VM instance; max 63 characters</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+<figure class="diagram-figure" id="fig-22-2">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig22-2-title fig22-2-desc" viewBox="0 0 960 540" width="960" height="540" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig22-2-title">Three-Plane Architectural Taxonomy: Labels vs. Resource Manager Tags vs. Network Tags</title>
+      <desc id="fig22-2-desc">A three-column comparative architectural diagram differentiating Resource Labels for billing, Resource Manager Tags for IAM governance, and Network Tags for VPC firewall packet filtering.</desc>
+      <defs>
+        <linearGradient id="p22-f2-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <linearGradient id="p22-f2-col1" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#0e2a38"/>
+          <stop offset="100%" stop-color="#0b1726"/>
+        </linearGradient>
+        <linearGradient id="p22-f2-col2" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#3b111e"/>
+          <stop offset="100%" stop-color="#180b18"/>
+        </linearGradient>
+        <linearGradient id="p22-f2-col3" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#382609"/>
+          <stop offset="100%" stop-color="#1a1205"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Canvas Background -->
+      <rect width="960" height="540" rx="12" fill="url(#p22-f2-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">ARCHITECTURAL TAXONOMY: THREE METADATA &amp; FILTERING PLANES</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Comparing Resource Labels, Resource Manager Tags, and Network Tags across purpose, scope, and security boundaries.</text>
+
+      <!-- COLUMN 1: Resource Labels -->
+      <g transform="translate(32, 75)">
+        <rect width="280" height="380" rx="10" fill="url(#p22-f2-col1)" stroke="#38bdf8" stroke-width="1.5"/>
+        <rect x="0" y="0" width="280" height="42" rx="10" fill="#0369a1"/>
+        <text x="14" y="26" fill="#ffffff" font-size="13" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1 · RESOURCE LABELS</text>
+        <text x="14" y="60" fill="#7dd3fc" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Plane: Operations &amp; Billing</text>
+
+        <!-- Key Specs -->
+        <g transform="translate(12, 72)">
+          <text x="0" y="16" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">TARGET / ATTACHMENT:</text>
+          <text x="0" y="32" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">VMs, Buckets, SQL, Disks, Datasets</text>
+
+          <text x="0" y="60" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INHERITANCE:</text>
+          <text x="0" y="76" fill="#f43f5e" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">NONE (Per-resource attribute)</text>
+
+          <text x="0" y="104" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">SYNTAX &amp; LIMITS:</text>
+          <text x="0" y="120" fill="#cbd5e1" font-size="10" font-family="ui-monospace, monospace">key:value (max 63 chars, regex)</text>
+          <text x="0" y="134" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Max 64 labels per resource</text>
+
+          <text x="0" y="162" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">PRIMARY USES:</text>
+          <text x="0" y="178" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">&bull; BigQuery Cloud Billing breakdown</text>
+          <text x="0" y="194" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">&bull; Cost attribution / chargebacks</text>
+          <text x="0" y="210" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">&bull; Inventory filtering via gcloud/API</text>
+
+          <text x="0" y="238" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">SECURITY / ACCESS CONTROL:</text>
+          <text x="0" y="254" fill="#f87171" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">&cross; NO IAM condition support</text>
+          <text x="0" y="268" fill="#f87171" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">&cross; ZERO effect on VPC firewalls</text>
+          <text x="0" y="284" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">Mutated via resource update API</text>
+        </g>
+      </g>
+
+      <!-- COLUMN 2: Resource Manager Tags -->
+      <g transform="translate(340, 75)">
+        <rect width="280" height="380" rx="10" fill="url(#p22-f2-col2)" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="280" height="42" rx="10" fill="#be123c"/>
+        <text x="14" y="26" fill="#ffffff" font-size="13" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2 · RESOURCE MANAGER TAGS</text>
+        <text x="14" y="60" fill="#fda4af" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Plane: Central Governance &amp; IAM</text>
+
+        <!-- Key Specs -->
+        <g transform="translate(12, 72)">
+          <text x="0" y="16" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">TARGET / ATTACHMENT:</text>
+          <text x="0" y="32" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">Orgs, Folders, Projects, Cloud Res</text>
+
+          <text x="0" y="60" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INHERITANCE:</text>
+          <text x="0" y="76" fill="#22c55e" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">&check; YES (Inherited down tree)</text>
+
+          <text x="0" y="104" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">SYNTAX &amp; LIMITS:</text>
+          <text x="0" y="120" fill="#cbd5e1" font-size="10" font-family="ui-monospace, monospace">tagKeys/123 &rarr; tagValues/456</text>
+          <text x="0" y="134" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Max 50 tags bound per resource</text>
+
+          <text x="0" y="162" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">PRIMARY USES:</text>
+          <text x="0" y="178" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">&bull; Conditional IAM: resource.matchTag()</text>
+          <text x="0" y="194" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">&bull; Organization Policy constraints</text>
+          <text x="0" y="210" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">&bull; Secure Tags for Next-Gen Firewalls</text>
+
+          <text x="0" y="238" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">SECURITY / ACCESS CONTROL:</text>
+          <text x="0" y="254" fill="#86efac" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">&check; Protected by TagAdmin/TagUser</text>
+          <text x="0" y="268" fill="#86efac" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">&check; Tamper-resistant against devs</text>
+          <text x="0" y="284" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">First-class Google Cloud resource</text>
+        </g>
+      </g>
+
+      <!-- COLUMN 3: Network Tags -->
+      <g transform="translate(648, 75)">
+        <rect width="280" height="380" rx="10" fill="url(#p22-f2-col3)" stroke="#f59e0b" stroke-width="1.5"/>
+        <rect x="0" y="0" width="280" height="42" rx="10" fill="#b45309"/>
+        <text x="14" y="26" fill="#ffffff" font-size="13" font-weight="700" font-family="system-ui, -apple-system, sans-serif">3 · NETWORK TAGS</text>
+        <text x="14" y="60" fill="#fcd34d" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Plane: VPC Virtual Data Plane</text>
+
+        <!-- Key Specs -->
+        <g transform="translate(12, 72)">
+          <text x="0" y="16" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">TARGET / ATTACHMENT:</text>
+          <text x="0" y="32" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">Compute Engine VMs &amp; Templates ONLY</text>
+
+          <text x="0" y="60" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INHERITANCE:</text>
+          <text x="0" y="76" fill="#f43f5e" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">NONE (Per-VM instance attribute)</text>
+
+          <text x="0" y="104" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">SYNTAX &amp; LIMITS:</text>
+          <text x="0" y="120" fill="#cbd5e1" font-size="10" font-family="ui-monospace, monospace">string (lowercase, dashes, max 63)</text>
+          <text x="0" y="134" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Max 64 tags per VM instance</text>
+
+          <text x="0" y="162" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">PRIMARY USES:</text>
+          <text x="0" y="178" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">&bull; VPC Firewall targetTags / sourceTags</text>
+          <text x="0" y="194" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">&bull; VPC Custom Route next-hop targets</text>
+          <text x="0" y="210" fill="#e2e8f0" font-size="11" font-family="system-ui, -apple-system, sans-serif">&bull; Virtual distributed packet filtering</text>
+
+          <text x="0" y="238" fill="#94a3b8" font-size="10" font-weight="700" font-family="system-ui, -apple-system, sans-serif">SECURITY / ACCESS CONTROL:</text>
+          <text x="0" y="254" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">&cross; Mutable via compute.instances.setTags</text>
+          <text x="0" y="268" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">&cross; Any VM editor can bypass firewall</text>
+          <text x="0" y="284" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">Not a hardened security perimeter</text>
+        </g>
+      </g>
+
+      <!-- Bottom Alert Callout -->
+      <g transform="translate(32, 470)">
+        <rect width="896" height="52" rx="8" fill="#450a0a" stroke="#f43f5e" stroke-width="1.2"/>
+        <text x="18" y="22" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">ARCHITECTURAL PITFALL WARNING:</text>
+        <text x="18" y="38" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">Resource Labels have ZERO impact on VPC firewall rules or IAM policies. Applying 'role: order-db' as a label does NOT filter network traffic; firewalls require Network Tags or Secure Tags!</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 22.2: Three-Plane Architectural Taxonomy: Labels vs. Resource Manager Tags vs. Network Tags.</strong>
+    Systematically compares the three metadata mechanisms in Google Cloud across attachment scope, inheritance mechanics, syntax, primary use cases, and security boundaries. Labels manage operational billing; Resource Manager Tags enforce centralized hierarchical governance; Network Tags execute distributed VPC packet filtering.
+  </figcaption>
+</figure>
+
+
+        <div class="callout note">
+          <strong>Further Study · Tagging &amp; Labeling Documentation</strong>
+          <p>Review the primary Google Cloud documentation for implementing resource metadata, secure tags, and network controls:</p>
+          <ul>
+            <li><a href="https://cloud.google.com/resource-manager/docs/tags/tags-overview">Google Cloud Resource Manager &mdash; Tags Overview</a></li>
+            <li><a href="https://cloud.google.com/resource-manager/docs/creating-managing-labels">Google Cloud Resource Manager &mdash; Creating and Managing Labels</a></li>
+            <li><a href="https://cloud.google.com/vpc/docs/add-remove-network-tags">Google Cloud VPC Networking &mdash; Adding and Removing Network Tags</a></li>
+          </ul>
+        </div>
+      </article>
+    </section>

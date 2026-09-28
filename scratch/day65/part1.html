@@ -1,0 +1,50 @@
+<main id="main" class="container day" data-day="65" data-prev="day-064.html" data-next="day-066.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 65 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">local exercise</span>
+<span class="pill">Topics 021</span>
+</div>
+<h1>Day 65 — Integrate one order-service path</h1>
+<p class="lead"><strong>Outcome:</strong> Connect one chosen runtime to one datastore and trace a request, response and fulfillment event; use local substitutes for services outside the budget.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-064.html">Day 64</a>, <a href="day-047.html">Day 47</a>, <a href="day-054.html">Day 54</a>; bring their exit artifacts.</p></div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>An end-to-end request/data/identity diagram with logs and one rejected unauthorized request.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Integrate a single selected runtime, datastore and message consumer for the retailer</span>
+<a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Preserve request IDs, identities and business invariants</span>
+<a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a>
+</div>
+</aside>
+
+<section id="part-1" class="part"><h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>Integrate a single selected runtime, datastore and message consumer for the retailer</h3>
+<p>Modern cloud retail architectures require integrating disparate managed services into a cohesive, secure, and resilient transactional fabric. For enterprise retailer Brightloaf, this baseline integrates a single end-to-end order processing path: public client ingress terminates on a Global external Application Load Balancer (ALB) protected by Cloud Armor security policies and Google-managed TLS certificates. Ingress traffic routes to a containerized <code>order-service</code> executing on Cloud Run with Direct VPC Egress, running under a least-privilege service account (<code>sa-order-service@...</code>). The order service connects securely to a Regional High Availability Cloud SQL for PostgreSQL database instance across Private Service Connect (PSC) using a private <code>/32</code> forwarding rule endpoint, eliminating exposure to public IP addresses while leveraging Cloud SQL Auth Proxy or native IAM database authentication. Connection pool health is continuously validated using distinct <code>/healthz</code> (liveness) and <code>/readyz</code> (readiness) endpoints to prevent the load balancer from admitting user requests to containers before internal connection pools are established. Upon successful transaction commit, the runtime emits an order event to an asynchronous Cloud Pub/Sub topic (<code>orders.v1</code>) configured with an <code>ordering_key = order_id</code> and a Dead Letter Topic (<code>orders.v1.deadletter</code>), which is consumed via a Pull subscription by an asynchronous background Fulfillment Worker (<code>fulfillment-service</code>). Service-to-service communication is locked down using Cloud Run Invoker IAM roles (<code>roles/run.invoker</code>), verifying OpenID Connect (OIDC) identity bearer tokens signed by Google's public key infrastructure before admission.</p>
+<p>A misconfigured readiness probe on Cloud Run admits ingress traffic before database connection pools initialize, while Direct VPC Egress subnet exhaustion drops Private Service Connect calls to Cloud SQL. The resulting cascading connection failure causes ALB GFE to return HTTP 503 errors on 18,500 checkout requests, stranding $129,500 in retail orders during a national flash sale.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Preserve request IDs, identities and business invariants</h3>
+<p>In distributed microservices, operational observability and transactional correctness require strict propagation of context and uncompromising invariant enforcement. As an HTTP request enters the Google Front End (GFE) load balancer, the platform injects or normalizes a W3C Trace Context header (<code>traceparent: 00-<trace_id>-<parent_id>-01</code>) and a unique correlation header (<code>X-Request-Id</code>). The <code>order-service</code> runtime must capture this trace context, propagate it through internal database query comments (SQLCommenter) and transaction audit logs, and explicitly inject it into Cloud Pub/Sub message envelope attributes so that downstream background fulfillment workers and dead-letter consumers maintain an unbroken, unified trace graph in Cloud Trace and Cloud Logging. Concurrently, the service perimeter strictly enforces identity verification, immediately rejecting unauthenticated requests with <code>HTTP 401 Unauthorized</code> (missing or expired OIDC tokens) and unauthorized callers with <code>HTTP 403 Forbidden</code> (valid tokens lacking required IAM invoker claims). Across this distributed data path, four foundational business invariants must remain inviolable: (1) <strong>Atomicity of Order and Outbox</strong>, ensuring the customer order record and outbox dispatch event are committed in the identical ACID relational transaction; (2) <strong>Inventory Integrity</strong>, strictly preventing overselling via database-level <code>CHECK (inventory_count >= 0)</code> constraints and pessimistic row-level locking (<code>SELECT ... FOR UPDATE</code>) rather than fragile application-level checks; (3) <strong>Exactly-One Fulfillment per Order</strong>, enforcing idempotency in the asynchronous consumer via a dedicated <code>processed_events</code> deduplication table to eliminate duplicate packaging or billing when Pub/Sub redelivers at-least-once messages; and (4) <strong>Monotonic State Progression</strong>, enforcing that order state transitions adhere strictly to a forward-only finite state machine (<code>CREATED</code> &rarr; <code>PAID</code> &rarr; <code>PROCESSING</code> &rarr; <code>FULFILLED</code> or <code>CANCELLED</code>) without illegal state regression.</p>
+<p>An unpropagated W3C traceparent header across the asynchronous Pub/Sub boundary blinds operations during an outage, while concurrent checkout transactions bypass application-layer inventory checks to oversell 150 artisan loaves beyond zero stock. The missing database check constraint and unverified fulfillment token trigger $34,000 in customer refunds, manual inventory write-downs, and silent duplicate deliveries.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+</section>

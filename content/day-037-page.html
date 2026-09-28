@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 37: Disks, metadata and persistence · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+</style>
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-036.html" aria-label="Previous day">← Day 36</a>
+<a href="day-038.html" aria-label="Next day">Day 38 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html" selected>Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="37" data-prev="day-036.html" data-next="day-038.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 37 of 180</div>
+
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 37</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">tabletop + optional cloud lab</span>
+<span class="pill">Topic 013</span>
+</div>
+<h1>Day 37 — Disks, metadata and persistence</h1>
+<p class="lead"><strong>Outcome:</strong> Understand the Persistent Disk type family (including Hyperdisk and Local SSD), distinguish zonal from regional PDs, attach and verify data persistence across a VM restart, and read a redacted metadata flow from the Compute Engine metadata server.</p>
+<div>
+<strong>Entry prerequisites:</strong>
+<p><a href="day-036.html">Day 36</a> sizing sheet, <a href="day-013.html">Day 13</a> (state, availability and recovery vocabulary); bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>Persistence evidence (a file written before restart, present after) and a block-storage comparison table that explicitly distinguishes ephemeral from durable data. Tabletop traces are acceptable when cloud access is unavailable; label each result accordingly.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-27; disk type names, IOPS and throughput limits sourced from GCP Persistent Disk and Hyperdisk documentation and subject to product change. Verify current figures before provisioning. A tabletop result is a design exercise, not a production benchmark.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Persistent Disk types (standard, balanced, SSD, extreme), Hyperdisk, Local SSD (ephemeral)</span>
+<a href="#topic-01-overview">overview</a> ·
+<a href="#topic-01-technical">discussion</a> ·
+<a href="#topic-01-problem">problem</a> ·
+<a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Zonal vs regional persistent disks</span>
+<a href="#topic-02-overview">overview</a> ·
+<a href="#topic-02-technical">discussion</a> ·
+<a href="#topic-02-problem">problem</a> ·
+<a href="#topic-02-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Startup scripts and metadata server</span>
+<a href="#topic-03-overview">overview</a> ·
+<a href="#topic-03-technical">discussion</a> ·
+<a href="#topic-03-problem">problem</a> ·
+<a href="#topic-03-lab">lab</a>
+</div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════ PART 1 ══ -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Persistent Disk types (standard, balanced, SSD, extreme), Hyperdisk, Local SSD (ephemeral)</h3>
+<p>
+  Storage performance shapes application behaviour at least as much as CPU or network. GCP offers a spectrum of block-storage options distinguished by durability, IOPS ceiling, throughput, and cost. At one end, <strong>Local SSD</strong> delivers the highest IOPS but loses all data when the VM is stopped or migrated. At the other, <strong>Persistent Disk Extreme</strong> and <strong>Hyperdisk Extreme</strong> offer very high provisioned IOPS with full zonal durability. Knowing which type fits a given access pattern prevents both under-provisioned storage (throttling) and over-provisioned storage (wasted spend).
+</p>
+<p>
+  For Brightloaf, the Order API's boot disk needs only moderate sequential read performance; the fulfillment worker's write-ahead log needs consistent low-latency writes; the analytics batch needs high sequential throughput. These three workloads land on different disk types.
+</p>
+<p class="small"><em>Problem preview:</em> The Brightloaf fulfillment worker is deployed on a standard pd-standard boot disk. Under sustained write load the disk IOPS ceiling is reached and writes queue, causing the write-ahead log to stall. Acknowledgement latency rises. Business impact: orders are queued rather than confirmed, potentially triggering customer-facing timeouts and retry storms from the Order API.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Zonal vs regional persistent disks</h3>
+<p>
+  A zonal Persistent Disk is replicated within a single zone's storage infrastructure. A regional Persistent Disk replicates synchronously across two zones in the same region, enabling a failover scenario where a standby VM in the secondary zone can attach the disk without waiting for data replay. The trade-off: regional PDs have higher cost per GB and may have lower maximum IOPS than the equivalent zonal type. They are appropriate when the application requires sub-minute failover RPO and cannot tolerate restoring from snapshot.
+</p>
+<p class="small"><em>Problem preview:</em> A Brightloaf database VM uses a zonal PD in <code>us-central1-a</code>. The zone experiences a brief outage. Recovery requires restoring from the most recent snapshot, which is two hours old. Two hours of order data may be replayed from the fulfillment queue, but the reconciliation process takes the team several hours to verify. Business impact: extended downtime and operator effort that a regional PD with a pre-configured failover VM would have reduced to a zone-failover attach operation.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Startup scripts and metadata server</h3>
+<p>
+  The <strong>Compute Engine metadata server</strong> (<code>metadata.google.internal</code>, IP <code>169.254.169.254</code>) is a link-local HTTP endpoint accessible only from inside the VM. It provides instance identity, project information, custom metadata key-value pairs, and — crucially — a short-lived access token for the instance's attached service account. A <strong>startup script</strong> is executed by the guest OS on first boot (and on each subsequent boot if configured). It can read metadata values to configure the application without baking secrets or environment-specific values into the image.
+</p>
+<p class="small"><em>Problem preview:</em> A Brightloaf engineer adds a startup script that retrieves a database password from a custom metadata key and writes it to a local config file. An infrastructure auditor later discovers the password was visible in plaintext in the GCP Console's instance metadata tab, accessible to anyone with Compute Viewer rights on the project. Business impact: a sensitive credential is exposed through the metadata API to a wider audience than intended, violating the least-privilege requirement established in Day 25.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 2 ══ -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Persistent Disk types (standard, balanced, SSD, extreme), Hyperdisk, Local SSD (ephemeral)</h3>
+
+<h4>The durability–performance spectrum</h4>
+<p>GCP block storage falls into two broad categories: <strong>network-attached Persistent Disk</strong> (durable, survives VM stop/delete if configured) and <strong>Local SSD</strong> (physically attached NVMe, ephemeral). Within Persistent Disk, four standard types plus the Hyperdisk family cover the range from lowest-cost to highest-IOPS provisioned storage.</p>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Type</th>
+<th>Underlying media</th>
+<th>Max IOPS (read/write)</th>
+<th>Max throughput</th>
+<th>Durability</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>pd-standard</strong></td>
+<td>HDD</td>
+<td>Low (~3,000 read / 3,000 write per disk, varies with size)</td>
+<td>Moderate sequential</td>
+<td>Zonal; replicated within zone</td>
+<td>Boot disks for low-traffic VMs, infrequent-access data</td>
+</tr>
+<tr>
+<td><strong>pd-balanced</strong></td>
+<td>SSD</td>
+<td>Higher; balanced between cost and performance</td>
+<td>Good sequential + random</td>
+<td>Zonal</td>
+<td>General-purpose VMs, databases with moderate IOPS needs</td>
+</tr>
+<tr>
+<td><strong>pd-ssd</strong></td>
+<td>SSD</td>
+<td>Higher than balanced; suitable for most production databases</td>
+<td>High sequential + random</td>
+<td>Zonal</td>
+<td>Production databases, high-throughput workloads</td>
+</tr>
+<tr>
+<td><strong>pd-extreme</strong></td>
+<td>SSD</td>
+<td>Provisioned IOPS up to 120,000 (read and write)</td>
+<td>High</td>
+<td>Zonal; available on select machine types</td>
+<td>Latency-sensitive databases, SAP HANA, very high IOPS</td>
+</tr>
+<tr>
+<td><strong>Hyperdisk Balanced</strong></td>
+<td>SSD (disaggregated)</td>
+<td>Provisioned; adjustable without re-creating disk</td>
+<td>Provisioned throughput</td>
+<td>Zonal or regional</td>
+<td>Workloads needing on-demand IOPS/throughput adjustment</td>
+</tr>
+<tr>
+<td><strong>Hyperdisk Extreme</strong></td>
+<td>SSD (disaggregated)</td>
+<td>Up to 350,000 IOPS provisioned</td>
+<td>Very high</td>
+<td>Zonal; select machine types only</td>
+<td>Highest-performance databases, analytics</td>
+</tr>
+<tr>
+<td><strong>Hyperdisk Throughput</strong></td>
+<td>HDD (disaggregated)</td>
+<td>Lower IOPS; high sequential throughput</td>
+<td>Provisioned; up to 2,400 MB/s</td>
+<td>Zonal</td>
+<td>Big-data streaming, Kafka, log aggregation</td>
+</tr>
+<tr>
+<td><strong>Local SSD</strong></td>
+<td>NVMe, physically attached</td>
+<td>Very high; typically 680,000+ IOPS per disk</td>
+<td>Very high</td>
+<td><strong>Ephemeral</strong> — lost on VM stop, live migrate, or preemption</td>
+<td>Caches, temp files, scratch space, high-performance computing scratch</td>
+</tr>
+</tbody>
+</table>
+
+<h4>IOPS and throughput limits: disk vs VM</h4>
+<p>
+  IOPS and throughput are bounded by <em>both</em> the disk type's per-disk limits <em>and</em> the machine type's per-VM storage performance limit. A large pd-ssd may support higher IOPS than a small e2 VM can actually drive. Always check both limits when sizing. For Persistent Disk, IOPS generally scales with disk size up to the type's maximum.
+</p>
+
+<h4>Hyperdisk vs Persistent Disk: the key difference</h4>
+<p>
+  Classic Persistent Disk IOPS and throughput are coupled to disk size — you provision more capacity to get more performance. <strong>Hyperdisk</strong> decouples storage capacity from performance: you independently specify the IOPS and throughput you need. You can also resize IOPS and throughput without recreating the disk (subject to limits). This is valuable when a workload's performance requirements are known in advance and differ from what disk-size-coupled scaling would deliver.
+</p>
+
+<h4>Local SSD: the ephemeral guarantee</h4>
+<p>
+  Local SSD is physically attached to the host machine. Data on Local SSD is lost when the VM is:
+  <ul>
+    <li>Stopped (not just restarted).</li>
+    <li>Live-migrated to a different host (Google maintenance).</li>
+    <li>Preempted (if a Spot VM).</li>
+    <li>Terminated due to a host error.</li>
+  </ul>
+  Local SSD data <em>survives</em> a guest OS reboot (while the VM keeps running on the same host). Using Local SSD for anything other than a cache or scratch space requires a checkpoint/reload mechanism on every start or migration.
+</p>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/disks" rel="noopener noreferrer">Storage options overview</a> — GCP Compute Engine documentation; covers all disk types, IOPS/throughput limits by type and machine type, and Local SSD behaviour. (Publisher documentation; 2026-09-27.)</p>
+<p><a href="https://cloud.google.com/compute/docs/disks/hyperdisks" rel="noopener noreferrer">Hyperdisk overview</a> — provisioned IOPS, throughput, adjustment limits, and supported machine types. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Zonal vs regional persistent disks</h3>
+
+<h4>Replication model</h4>
+<p>
+  A <strong>zonal Persistent Disk</strong> stores its data across multiple physical storage nodes within a single zone's infrastructure. This provides durability against individual storage-node failure but does not protect against a full zone outage. Zonal PDs are by far the most common choice.
+</p>
+<p>
+  A <strong>regional Persistent Disk</strong> (regional PD) synchronously replicates data across two zones in the same region. Each write is confirmed only after both zones acknowledge it. If one zone becomes unavailable, a standby VM in the secondary zone can attach the disk and continue operations with near-zero data loss (RPO ≈ 0 for confirmed writes). The failover is not automatic — the operator or an orchestration system must force-attach the disk to the standby VM.
+</p>
+
+<h4>Comparison</h4>
+<table class="comparison">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Zonal PD</th>
+<th>Regional PD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Replication</td>
+<td>Within one zone</td>
+<td>Across two zones in one region</td>
+</tr>
+<tr>
+<td>Zone-outage RPO</td>
+<td>Restore from snapshot (RPO = age of last snapshot)</td>
+<td>Near zero (confirmed writes replicated synchronously)</td>
+</tr>
+<tr>
+<td>Zone-outage RTO</td>
+<td>Time to restore snapshot + verify data</td>
+<td>Time to force-attach to standby VM (minutes with runbook)</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Standard rate</td>
+<td>Higher (approx. 2× storage cost for the replicated data)</td>
+</tr>
+<tr>
+<td>IOPS / throughput limit</td>
+<td>Full type limit</td>
+<td>May be lower for some types; verify in documentation</td>
+</tr>
+<tr>
+<td>Attachment</td>
+<td>One VM at a time (read-write); multiple VMs (read-only)</td>
+<td>One VM at a time per zone; force-attach during failover</td>
+</tr>
+<tr>
+<td>Typical use</td>
+<td>Most workloads; pair with snapshots for backup</td>
+<td>Stateful services with zone-failover SLA; database primaries</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Force-attach and the failover procedure</h4>
+<p>
+  To use a regional PD for failover: (1) pre-provision a standby VM in the secondary zone; (2) when the primary zone fails, force-detach the disk from the (unreachable) primary VM using the GCP API; (3) attach it to the standby VM. The <code>--disk-scope=regional</code> flag and the force-attach capability are required. This procedure must be documented and tested before a real failure.
+</p>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/disks/regional-persistent-disk" rel="noopener noreferrer">Regional Persistent Disk</a> — replication model, force-attach procedure, failover limitations, and cost considerations. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Startup scripts and metadata server</h3>
+
+<h4>The metadata server</h4>
+<p>
+  Every Compute Engine VM can reach the metadata server at <code>http://metadata.google.internal/computeMetadata/v1/</code> (or <code>http://169.254.169.254/computeMetadata/v1/</code>). Requests must include the header <code>Metadata-Flavor: Google</code>; requests without this header are rejected to prevent SSRF-induced metadata leakage from applications that blindly proxy URLs.
+</p>
+
+<h4>Key metadata paths</h4>
+<table class="comparison">
+<thead>
+<tr>
+<th>Path</th>
+<th>Returns</th>
+<th>Security note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>instance/name</code></td>
+<td>VM instance name</td>
+<td>Safe; no secrets</td>
+</tr>
+<tr>
+<td><code>instance/zone</code></td>
+<td>Zone identifier (full resource path)</td>
+<td>Safe</td>
+</tr>
+<tr>
+<td><code>instance/service-accounts/default/token</code></td>
+<td>Short-lived OAuth 2.0 access token for the attached service account</td>
+<td>Treat as a secret; do not log or expose</td>
+</tr>
+<tr>
+<td><code>instance/service-accounts/default/scopes</code></td>
+<td>OAuth scopes granted to the service account at VM creation</td>
+<td>Safe; describes capabilities only</td>
+</tr>
+<tr>
+<td><code>project/project-id</code></td>
+<td>GCP project ID</td>
+<td>Safe</td>
+</tr>
+<tr>
+<td><code>instance/attributes/KEY</code></td>
+<td>Custom key-value set at VM creation or via the API</td>
+<td><strong>Not secret:</strong> visible to any principal with Compute Viewer on the project; do not store secrets here</td>
+</tr>
+<tr>
+<td><code>project/attributes/KEY</code></td>
+<td>Project-level custom key-value</td>
+<td>Same as instance attributes — visible to project viewers; not a secrets store</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Startup scripts</h4>
+<p>
+  A startup script is set via the <code>startup-script</code> metadata key (for inline scripts) or <code>startup-script-url</code> (for a GCS URL). The guest OS agent runs it as root on first boot and on each subsequent boot unless the metadata is removed. Common uses:
+</p>
+<ul>
+  <li>Install packages from a private repository whose URL is stored in metadata.</li>
+  <li>Pull the latest application version from Cloud Storage.</li>
+  <li>Read the instance's zone and set a local environment variable for configuration.</li>
+  <li>Register the instance with a service registry.</li>
+</ul>
+
+<h4>Secrets in startup scripts: the anti-pattern</h4>
+<p>
+  A startup script should <strong>never</strong> read a secret from instance or project attributes. Those attributes are visible to any principal with <code>roles/compute.viewer</code>. Instead, the startup script should use the service account token from the metadata server to authenticate to <strong>Secret Manager</strong> and retrieve the secret at runtime. This keeps the secret out of instance metadata entirely.
+</p>
+
+<pre><code># Correct: retrieve secret via metadata token → Secret Manager
+TOKEN=$(curl -s -H "Metadata-Flavor: Google" \
+  http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+SECRET=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://secretmanager.googleapis.com/v1/projects/PROJECT_ID/secrets/db-password/versions/latest:access" \
+  | python3 -c "import sys,json,base64; print(base64.b64decode(json.load(sys.stdin)['payload']['data']).decode())")
+</code></pre>
+<p class="small">The above is a tabletop illustration. In practice, use the Secret Manager client library or <kbd>gcloud secrets versions access</kbd> within the startup script. The service account must have <code>roles/secretmanager.secretAccessor</code> for the specific secret.</p>
+
+<!-- Part 2 SVG: storage type decision map + metadata flow -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 480" role="img" aria-labelledby="d37-arch-title d37-arch-desc">
+<title id="d37-arch-title">Compute Engine block storage decision map and metadata server access flow</title>
+<desc id="d37-arch-desc">A left-to-right diagram split into two horizontal bands. The upper band shows the disk-type decision path from a workload's durability and IOPS requirements through zonal-vs-regional branching to the chosen disk type (pd-standard, pd-balanced, pd-ssd, pd-extreme, Hyperdisk, or Local SSD). The lower band shows the metadata server access flow: VM startup script queries the metadata server with the required Metadata-Flavor header to get the service account token, then uses that token to call Secret Manager, with a crossed-out direct path from startup script to instance attributes marked as the anti-pattern.</desc>
+<defs>
+<marker id="d37-a-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#38bdf8"/>
+</marker>
+<marker id="d37-g-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#4ade80"/>
+</marker>
+<marker id="d37-r-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="480" rx="8"/>
+
+<!-- ─── TOP BAND: Disk decision ─── -->
+<text fill="#38bdf8" font-size="11" font-weight="700" x="20" y="24">DISK SELECTION PATH (upper)</text>
+
+<!-- Durability requirement -->
+<polygon points="90,56 158,38 226,56 158,74" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+<text fill="#f8fafc" font-size="11" x="158" y="52" text-anchor="middle">Durable?</text>
+<text fill="#f8fafc" font-size="11" x="158" y="67" text-anchor="middle">(survive stop)</text>
+
+<!-- No → Local SSD -->
+<rect class="box" x="236" y="38" width="114" height="36" rx="6"/>
+<text x="293" y="61" text-anchor="middle" fill="#fda4af">Local SSD</text>
+<path stroke="#f43f5e" stroke-width="2" marker-end="url(#d37-r-arr)" fill="none" d="M226 56 H236"/>
+<text fill="#f43f5e" font-size="10" x="230" y="50" text-anchor="middle">No</text>
+
+<rect fill="#450a0a" fill-opacity="0.4" stroke="#f43f5e" stroke-width="1" x="236" y="80" width="114" height="24" rx="4"/>
+<text fill="#fda4af" font-size="10" x="293" y="96" text-anchor="middle">EPHEMERAL – data lost</text>
+<text fill="#fda4af" font-size="10" x="293" y="109" text-anchor="middle">on stop / migrate / preempt</text>
+
+<!-- Yes → IOPS question -->
+<polygon points="376,56 456,38 536,56 456,74" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+<text fill="#f8fafc" font-size="11" x="456" y="52" text-anchor="middle">IOPS/</text>
+<text fill="#f8fafc" font-size="11" x="456" y="67" text-anchor="middle">throughput need?</text>
+<path class="path" marker-end="url(#d37-a-arr)" d="M226 56 Q300 56 376 56"/>
+<text fill="#4ade80" font-size="10" x="302" y="50" text-anchor="middle">Yes</text>
+
+<!-- Low → pd-standard -->
+<rect class="box" x="548" y="20" width="124" height="36" rx="6"/>
+<text x="610" y="43" text-anchor="middle">pd-standard</text>
+<path class="path" marker-end="url(#d37-a-arr)" d="M536 45 Q542 38 548 38"/>
+<text fill="#94a3b8" font-size="10" x="540" y="36" text-anchor="middle">Low</text>
+
+<!-- Moderate → pd-balanced -->
+<rect class="box" x="548" y="62" width="124" height="36" rx="6"/>
+<text x="610" y="85" text-anchor="middle">pd-balanced</text>
+<path class="path" marker-end="url(#d37-a-arr)" d="M536 58 Q542 80 548 80"/>
+<text fill="#94a3b8" font-size="10" x="540" y="73" text-anchor="middle">Mod</text>
+
+<!-- High SSD → pd-ssd -->
+<rect class="box" x="548" y="104" width="124" height="36" rx="6"/>
+<text x="610" y="127" text-anchor="middle">pd-ssd</text>
+<path class="path" marker-end="url(#d37-a-arr)" d="M536 70 Q542 122 548 122"/>
+<text fill="#94a3b8" font-size="10" x="538" y="114" text-anchor="middle">High</text>
+
+<!-- Provisioned → Hyperdisk / Extreme -->
+<rect class="box" x="548" y="148" width="200" height="36" rx="6"/>
+<text x="648" y="171" text-anchor="middle">Hyperdisk / pd-extreme</text>
+<path class="path" marker-end="url(#d37-a-arr)" d="M536 70 Q540 166 548 166"/>
+<text fill="#94a3b8" font-size="10" x="536" y="154" text-anchor="middle">Provisioned</text>
+
+<!-- Zonal vs regional branch for durable PDs -->
+<polygon points="762,90 836,72 910,90 836,108" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+<text fill="#f8fafc" font-size="11" x="836" y="87" text-anchor="middle">Zone</text>
+<text fill="#f8fafc" font-size="11" x="836" y="102" text-anchor="middle">failover SLA?</text>
+<path class="path" marker-end="url(#d37-a-arr)" d="M672 90 H762"/>
+
+<rect fill="#052e16" stroke="#22c55e" stroke-width="2" x="914" y="60" width="50" height="62" rx="6"/>
+<text fill="#4ade80" font-size="11" x="939" y="84" text-anchor="middle">Regional</text>
+<text fill="#4ade80" font-size="11" x="939" y="99" text-anchor="middle">PD</text>
+<path stroke="#22c55e" stroke-width="2" marker-end="url(#d37-g-arr)" fill="none" d="M910 80 H914"/>
+<text fill="#4ade80" font-size="10" x="912" y="74" text-anchor="middle">Yes</text>
+
+<rect class="box" x="914" y="128" width="50" height="36" rx="6"/>
+<text x="939" y="151" text-anchor="middle">Zonal PD</text>
+<path class="path" marker-end="url(#d37-a-arr)" d="M910 100 Q912 146 914 146"/>
+<text fill="#94a3b8" font-size="10" x="911" y="120" text-anchor="middle">No</text>
+
+<!-- ─── BOTTOM BAND: Metadata flow ─── -->
+<line stroke="#1e293b" stroke-width="1" x1="18" y1="210" x2="962" y2="210"/>
+<text fill="#38bdf8" font-size="11" font-weight="700" x="20" y="230">METADATA SERVER ACCESS FLOW (lower)</text>
+
+<!-- VM / startup script -->
+<rect class="box" x="20" y="248" width="160" height="76" rx="8"/>
+<text x="100" y="280" text-anchor="middle">VM Startup Script</text>
+<text class="small-label" x="100" y="300" text-anchor="middle">runs as root on boot</text>
+<text class="small-label" x="100" y="314" text-anchor="middle">needs config values</text>
+
+<!-- Metadata server -->
+<rect class="box" x="240" y="248" width="200" height="76" rx="8"/>
+<text x="340" y="280" text-anchor="middle">Metadata Server</text>
+<text class="small-label" x="340" y="300" text-anchor="middle">metadata.google.internal</text>
+<text class="small-label" x="340" y="314" text-anchor="middle">Metadata-Flavor: Google required</text>
+
+<!-- Token path: startup → metadata → token -->
+<path class="path" marker-end="url(#d37-a-arr)" d="M180 286 H240"/>
+<text fill="#38bdf8" font-size="10" x="210" y="280" text-anchor="middle">token request</text>
+
+<!-- Token response -->
+<path stroke="#4ade80" stroke-width="2" stroke-dasharray="5 3" fill="none" d="M240 300 H180"/>
+<text fill="#4ade80" font-size="10" x="210" y="316" text-anchor="middle">short-lived token</text>
+
+<!-- Secret Manager -->
+<rect fill="#052e16" stroke="#22c55e" stroke-width="2" x="506" y="248" width="200" height="76" rx="8"/>
+<text fill="#4ade80" x="606" y="280" text-anchor="middle">Secret Manager</text>
+<text class="small-label" x="606" y="300" text-anchor="middle">roles/secretmanager</text>
+<text class="small-label" x="606" y="314" text-anchor="middle">.secretAccessor required</text>
+
+<path stroke="#22c55e" stroke-width="2" marker-end="url(#d37-g-arr)" fill="none" d="M180 270 Q340 240 506 270"/>
+<text fill="#4ade80" font-size="10" x="340" y="240" text-anchor="middle">token + API call → secret value</text>
+
+<!-- Anti-pattern: instance attributes as secrets -->
+<rect class="failbox" x="506" y="356" width="200" height="76" rx="8"/>
+<text fill="#fda4af" x="606" y="385" text-anchor="middle">Instance Attributes</text>
+<text class="small-label" x="606" y="404" text-anchor="middle">visible to Compute Viewer</text>
+<text class="small-label" x="606" y="418" text-anchor="middle">NOT a secrets store</text>
+
+<path stroke="#f43f5e" stroke-width="2" stroke-dasharray="8 5" fill="none" d="M180 310 Q340 370 506 392"/>
+<text fill="#f43f5e" font-size="10" x="330" y="370" text-anchor="middle">✕ ANTI-PATTERN: secret in attribute</text>
+
+<!-- Legend strip -->
+<rect fill="#1e293b" fill-opacity="0.5" x="740" y="248" width="222" height="76" rx="6"/>
+<text fill="#38bdf8" font-size="10" font-weight="700" x="754" y="268">Legend</text>
+<line stroke="#4ade80" stroke-width="2" x1="754" y1="282" x2="784" y2="282"/>
+<text fill="#4ade80" font-size="10" x="790" y="286">Correct path</text>
+<line stroke="#f43f5e" stroke-width="2" stroke-dasharray="6 4" x1="754" y1="300" x2="784" y2="300"/>
+<text fill="#f43f5e" font-size="10" x="790" y="304">Anti-pattern</text>
+<line stroke="#38bdf8" stroke-width="2" x1="754" y1="318" x2="784" y2="318"/>
+<text fill="#38bdf8" font-size="10" x="790" y="322">Neutral path</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> two conceptual flows — (upper) a decision path for selecting a Compute Engine block-storage type based on durability and IOPS requirements, including the zonal vs regional PD branch; (lower) the correct metadata server flow from startup script to Secret Manager via a short-lived token, contrasted with the anti-pattern of storing secrets in instance attributes. <strong>What it does not prove:</strong> exact IOPS figures for any specific disk size (not shown; verify in current GCP documentation); performance comparisons between families are conceptual, not benchmarked; the metadata token path is illustrative, not a tested implementation.
+</figcaption>
+</figure>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/compute/docs/metadata/overview" rel="noopener noreferrer">VM metadata overview</a> — covers metadata server paths, the Metadata-Flavor header requirement, custom attributes, and service account token retrieval. (Publisher documentation; 2026-09-27.)</p>
+<p><a href="https://cloud.google.com/compute/docs/instances/startup-scripts/linux" rel="noopener noreferrer">Run startup scripts on Linux VMs</a> — inline vs URL-based scripts, execution order, and debugging. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 3 ══ -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problems and solutions</h2>
+<p class="small"><em>The scenarios below are illustrative examples grounded in Day 37 topics. They are not observed production incidents. Values and conditions are design assumptions, not measured results.</em></p>
+
+<!-- ── Problem 1 ── -->
+<article id="topic-01-problem" class="topic-card">
+<h3>Topic 1 field case — pd-standard boot disk throttles fulfillment worker WAL writes</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  The Brightloaf fulfillment worker is deployed on a VM whose boot disk is <code>pd-standard</code> (HDD-backed). The worker's write-ahead log (WAL) is written to this boot disk. Under normal queue depth the boot disk IOPS budget is sufficient, but during a promotional event the queue depth spikes and WAL write frequency increases proportionally. The pd-standard disk's IOPS ceiling is reached; writes queue inside the kernel's I/O scheduler. The fulfillment worker's WAL flush latency rises, causing the consumer to stall. Unacknowledged Pub/Sub messages accumulate, triggering backoff in the Order API. Customer-facing order confirmation latency rises above the SLO threshold.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>The boot disk cannot be swapped while the VM is running; a stop-resize-start or a disk snapshot-and-replace operation is required.</li>
+  <li>WAL data must not be lost during the transition; a snapshot must be taken before any disk change.</li>
+  <li>The fix must not require application code changes — only infrastructure changes.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  The boot disk type was chosen for cost (pd-standard is the cheapest) without analysing the WAL write IOPS pattern. The WAL is a write-intensive, latency-sensitive workload that belongs on a pd-ssd or pd-balanced disk at minimum, not an HDD-backed standard disk.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Observe disk write IOPS and write throughput via Cloud Monitoring (<code>compute.googleapis.com/instance/disk/write_ops_count</code>) during the incident window.</li>
+  <li>Compare observed IOPS against the pd-standard ceiling for the disk size in use.</li>
+  <li>Confirm that WAL writes are the dominant I/O pattern (sequential, small, frequent).</li>
+  <li>Decide whether to move the WAL to a separate pd-ssd data disk, or to reprovision the boot disk as pd-ssd.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Stop the fulfillment worker VM. Snapshot the pd-standard boot disk. Create a new pd-ssd boot disk from the snapshot. Attach the pd-ssd disk to the VM as the boot disk. Restart the VM and verify the WAL write latency returns to baseline.
+</p>
+
+<h4>Verification</h4>
+<p>
+  After the change: observe disk write IOPS and write latency under a simulated load that matches the promotional-event queue depth. Confirm that IOPS remain below the pd-ssd ceiling and that WAL flush latency is within the fulfillment worker's acceptable window. Record the before/after comparison in the block-storage comparison table (exit artifact).
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Moving the WAL off the boot disk entirely (to a dedicated secondary pd-ssd) is more operationally complex but avoids contention between OS I/O and WAL I/O on the same disk. If future queue depth growth is expected, plan for a Hyperdisk Balanced with provisioned IOPS that can be adjusted without recreating the disk.
+</p>
+
+<!-- Incident SVG 1 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 460" role="img" aria-labelledby="d37-i1-title d37-i1-desc">
+<title id="d37-i1-title">pd-standard IOPS ceiling throttles fulfillment WAL writes — incident and corrected path</title>
+<desc id="d37-i1-desc">The upper dashed lane shows the fulfillment worker hitting the pd-standard IOPS ceiling during a queue spike, causing WAL flush stalls and rising order confirmation latency. The lower solid lane stops the VM, snapshots the disk, creates a pd-ssd replacement, and crosses the verification boundary with WAL latency back within bounds.</desc>
+<defs>
+<marker id="d37-i1-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/></marker>
+<marker id="d37-i1-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/></marker>
+</defs>
+<rect class="canvas" width="980" height="460" rx="8"/>
+<rect class="lane-failed" x="18" y="18" width="944" height="190" rx="8"/>
+<text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · pd-standard IOPS CEILING → WAL STALL → SLO BREACH</text>
+<rect class="lane-corrected" x="18" y="256" width="944" height="188" rx="8"/>
+<text class="lane-label" x="34" y="278" fill="#4ade80">CORRECTED PATH · SNAPSHOT → pd-ssd → VERIFY WAL LATENCY</text>
+
+<rect class="box" x="36" y="72" width="148" height="80" rx="8"/>
+<text x="110" y="104" text-anchor="middle">Queue spike</text>
+<text class="small-label" x="110" y="124" text-anchor="middle">WAL writes increase</text>
+<text class="small-label" x="110" y="140" text-anchor="middle">pd-standard disk</text>
+
+<rect class="failbox" x="240" y="60" width="218" height="104" rx="8"/>
+<text x="349" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="349" y="114" text-anchor="middle">IOPS ceiling reached</text>
+<text class="small-label" x="349" y="137" text-anchor="middle">root cause: HDD disk for WAL</text>
+
+<rect class="failbox" x="524" y="72" width="192" height="80" rx="8"/>
+<text x="620" y="104" text-anchor="middle">WAL flush stalls</text>
+<text class="small-label" x="620" y="124" text-anchor="middle">consumer backpressure</text>
+<text class="small-label" x="620" y="140" text-anchor="middle">confirms stall queued</text>
+
+<rect class="failbox" x="778" y="72" width="166" height="80" rx="8"/>
+<text x="861" y="100" text-anchor="middle">SLO breach</text>
+<text x="861" y="118" text-anchor="middle">order confirmation late</text>
+<text class="small-label" x="861" y="141" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d37-i1-f)" d="M184 112 H240"/>
+<path class="failed" marker-end="url(#d37-i1-f)" d="M458 112 H524"/>
+<path class="failed" marker-end="url(#d37-i1-f)" d="M716 112 H778"/>
+
+<rect class="box" x="36" y="312" width="148" height="80" rx="8"/>
+<text x="110" y="344" text-anchor="middle">Same queue spike</text>
+<text class="small-label" x="110" y="364" text-anchor="middle">VM stopped first</text>
+<text class="small-label" x="110" y="380" text-anchor="middle">snapshot taken</text>
+
+<rect class="box" x="240" y="300" width="218" height="104" rx="8"/>
+<text x="349" y="332" text-anchor="middle">Corrected control</text>
+<text x="349" y="354" text-anchor="middle">pd-ssd from snapshot</text>
+<text class="small-label" x="349" y="376" text-anchor="middle">boot disk replaced</text>
+
+<rect class="box" x="524" y="312" width="192" height="80" rx="8"/>
+<text x="620" y="344" text-anchor="middle">VM restarted</text>
+<text class="small-label" x="620" y="364" text-anchor="middle">WAL on pd-ssd</text>
+<text class="small-label" x="620" y="380" text-anchor="middle">IOPS headroom confirmed</text>
+
+<rect class="verifybox" x="778" y="300" width="166" height="104" rx="8"/>
+<text x="861" y="332" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="861" y="354" text-anchor="middle">WAL latency</text>
+<text x="861" y="372" text-anchor="middle">within bounds</text>
+<text class="small-label" x="861" y="392" text-anchor="middle">IOPS below ceiling</text>
+
+<path class="corrected" marker-end="url(#d37-i1-c)" d="M184 352 H240"/>
+<path class="corrected" marker-end="url(#d37-i1-c)" d="M458 352 H524"/>
+<path class="corrected" marker-end="url(#d37-i1-c)" d="M716 352 H778"/>
+<rect class="boundary" x="764" y="286" width="194" height="132" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> the fulfillment worker writes a WAL to its pd-standard (HDD-backed) boot disk; during a queue-depth spike, WAL write frequency increased; the disk IOPS ceiling was reached; writes queued and WAL flush latency rose; consumer backpressure propagated to the Order API; order confirmation latency exceeded the SLO threshold. <strong>Architectural inference:</strong> a write-ahead log is a write-intensive, latency-sensitive workload that requires a low-latency disk type; the pd-standard IOPS ceiling is lower than pd-ssd for the same disk size; the exact IOPS figure is not stated because it depends on disk size and machine type; no downtime duration is implied. <strong>Expected post-fix behavior:</strong> after stopping the VM, snapshotting the pd-standard disk, creating a pd-ssd replacement from the snapshot, and restarting, WAL flush latency returns to within the fulfillment worker's acceptable window; IOPS remain below the pd-ssd ceiling during a repeated queue-depth spike.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 2 ── -->
+<article id="topic-02-problem" class="topic-card">
+<h3>Topic 2 field case — Zonal PD zone outage causes hours of recovery instead of minutes</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  The Brightloaf order database VM runs on a zonal Persistent Disk in <code>us-central1-a</code>. The team takes daily snapshots at 02:00 UTC. At 11:30 UTC the zone experiences a partial infrastructure outage that makes the VM and its disk unreachable. The recovery procedure requires restoring the snapshot from 02:00 UTC (9.5 hours of data loss), replaying the fulfillment queue to reconcile missing writes, and verifying data consistency — a process that takes the on-call team several hours. During this window no new orders can be written to the database. Business impact: order acceptance is suspended for several hours; customers receive errors; the on-call team performs unplanned weekend work.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>The zone outage prevents attaching the original disk to any VM in the same zone.</li>
+  <li>A regional PD would have required a pre-provisioned standby VM in the secondary zone.</li>
+  <li>The failover procedure must have been documented and tested before the outage — a procedure written during an outage is unreliable.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  The recovery plan relied on daily snapshots but did not include a zone-failover option. A regional PD with a standby VM would have enabled a force-attach failover with near-zero data loss. The decision to use a zonal PD was not re-evaluated against the recovery time objective (RTO) and recovery point objective (RPO) when the SLO was tightened.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  Migrate the database disk to a regional PD. Pre-provision a standby VM in <code>us-central1-b</code>. Write and test the force-attach failover runbook. Increase snapshot frequency to reduce the RPO for scenarios where force-attach is not applicable (e.g., regional-level failure, which a regional PD cannot protect against).
+</p>
+
+<h4>Verification</h4>
+<p>
+  Conduct a planned failover drill: stop the primary VM, force-attach the regional PD to the standby VM, start the standby, and verify the database is accessible with all confirmed writes present. Record the RTO (time from primary stop to standby ready) and RPO (zero, as confirmed writes were replicated). The drill result goes into the block-storage comparison table as the post-fix evidence.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  A regional PD protects only against a single-zone outage within one region. A regional outage requires a cross-region backup strategy (e.g., scheduled cross-region snapshot copies). The higher cost of regional PD (approximately 2× zonal) must be justified by the RTO/RPO requirement.
+</p>
+
+<!-- Incident SVG 2 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 460" role="img" aria-labelledby="d37-i2-title d37-i2-desc">
+<title id="d37-i2-title">Zonal PD zone outage forces snapshot restore instead of fast failover — incident and corrected path</title>
+<desc id="d37-i2-desc">The upper dashed lane shows the primary zone failing, the zonal PD becoming unreachable, and recovery requiring a snapshot restore taking several hours. The lower solid lane has a regional PD pre-provisioned with a standby VM; the force-attach failover is completed in minutes, crossing the verification boundary with the database accessible and confirmed writes present.</desc>
+<defs>
+<marker id="d37-i2-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/></marker>
+<marker id="d37-i2-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/></marker>
+</defs>
+<rect class="canvas" width="980" height="460" rx="8"/>
+<rect class="lane-failed" x="18" y="18" width="944" height="190" rx="8"/>
+<text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · ZONE OUTAGE → ZONAL PD UNREACHABLE → HOURS OF SNAPSHOT RESTORE</text>
+<rect class="lane-corrected" x="18" y="256" width="944" height="188" rx="8"/>
+<text class="lane-label" x="34" y="278" fill="#4ade80">CORRECTED PATH · REGIONAL PD + STANDBY VM → FORCE-ATTACH → MINUTES TO RECOVERY</text>
+
+<rect class="box" x="36" y="72" width="148" height="80" rx="8"/>
+<text x="110" y="104" text-anchor="middle">Zone us-c1-a</text>
+<text class="small-label" x="110" y="124" text-anchor="middle">outage begins</text>
+<text class="small-label" x="110" y="140" text-anchor="middle">VM unreachable</text>
+
+<rect class="failbox" x="240" y="60" width="218" height="104" rx="8"/>
+<text x="349" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="349" y="114" text-anchor="middle">zonal PD unreachable</text>
+<text class="small-label" x="349" y="137" text-anchor="middle">root cause: no zone-failover plan</text>
+
+<rect class="failbox" x="524" y="72" width="192" height="80" rx="8"/>
+<text x="620" y="100" text-anchor="middle">Restore from snapshot</text>
+<text class="small-label" x="620" y="120" text-anchor="middle">02:00 UTC snapshot</text>
+<text class="small-label" x="620" y="136" text-anchor="middle">data gap to reconcile</text>
+
+<rect class="failbox" x="778" y="72" width="166" height="80" rx="8"/>
+<text x="861" y="100" text-anchor="middle">Hours of downtime</text>
+<text x="861" y="118" text-anchor="middle">orders suspended</text>
+<text class="small-label" x="861" y="141" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d37-i2-f)" d="M184 112 H240"/>
+<path class="failed" marker-end="url(#d37-i2-f)" d="M458 112 H524"/>
+<path class="failed" marker-end="url(#d37-i2-f)" d="M716 112 H778"/>
+
+<rect class="box" x="36" y="312" width="148" height="80" rx="8"/>
+<text x="110" y="344" text-anchor="middle">Same zone outage</text>
+<text class="small-label" x="110" y="364" text-anchor="middle">Regional PD in use</text>
+<text class="small-label" x="110" y="380" text-anchor="middle">Standby VM ready</text>
+
+<rect class="box" x="240" y="300" width="218" height="104" rx="8"/>
+<text x="349" y="332" text-anchor="middle">Corrected control</text>
+<text x="349" y="354" text-anchor="middle">force-attach to standby</text>
+<text class="small-label" x="349" y="376" text-anchor="middle">us-central1-b VM</text>
+
+<rect class="box" x="524" y="312" width="192" height="80" rx="8"/>
+<text x="620" y="344" text-anchor="middle">DB starts on standby</text>
+<text class="small-label" x="620" y="364" text-anchor="middle">confirmed writes present</text>
+<text class="small-label" x="620" y="380" text-anchor="middle">RPO ≈ 0</text>
+
+<rect class="verifybox" x="778" y="300" width="166" height="104" rx="8"/>
+<text x="861" y="332" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="861" y="354" text-anchor="middle">DB accessible</text>
+<text x="861" y="372" text-anchor="middle">writes verified</text>
+<text class="small-label" x="861" y="392" text-anchor="middle">minutes not hours</text>
+
+<path class="corrected" marker-end="url(#d37-i2-c)" d="M184 352 H240"/>
+<path class="corrected" marker-end="url(#d37-i2-c)" d="M458 352 H524"/>
+<path class="corrected" marker-end="url(#d37-i2-c)" d="M716 352 H778"/>
+<rect class="boundary" x="764" y="286" width="194" height="132" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> the order database VM ran on a zonal Persistent Disk in us-central1-a; daily snapshots were taken at 02:00 UTC; at 11:30 UTC the zone became unreachable; recovery required restoring from the 02:00 snapshot, leaving a data gap; reconciliation required several hours of operator work; order acceptance was suspended during the recovery window. <strong>Architectural inference:</strong> a regional PD synchronously replicates writes across two zones; a pre-provisioned standby VM in the secondary zone can attach the disk via force-attach after the primary zone fails; the exact recovery time for force-attach depends on runbook readiness and operator response, not on disk I/O; a regional PD cannot protect against a full regional outage. <strong>Expected post-fix behavior:</strong> after migrating to a regional PD with a tested failover runbook, a zone outage triggers a force-attach operation that makes the database available on the standby VM within minutes; confirmed writes are present with RPO near zero; the drill result documents RTO and RPO.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 3 ── -->
+<article id="topic-03-problem" class="topic-card">
+<h3>Topic 3 field case — Database password stored in instance attribute; visible to Compute Viewers</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  A Brightloaf engineer writes a startup script for the fulfillment worker that retrieves a database password from the instance attribute <code>db-password</code> and writes it to <code>/etc/fulfillment/db.conf</code>. The attribute is set at VM creation time using <kbd>--metadata=db-password=SECRET_VALUE</kbd>. An infrastructure auditor with <code>roles/compute.viewer</code> on the project discovers the password by browsing the instance's Custom Metadata section in the GCP Console. The auditor cannot connect to the database (correct — they lack the firewall access), but the password itself is now visible to any principal with Compute Viewer rights on the project. Business impact: the credential must be rotated, a rotation procedure must be tested under production traffic, and the team must audit all other VMs for the same pattern.
+</p>
+
+<h4>Root cause</h4>
+<p>
+  Instance and project metadata attributes are not a secrets store. They are accessible to any principal with Compute Viewer rights via the API and console. The engineer treated metadata as a convenient configuration channel without considering its visibility. Secrets belong in Secret Manager, not in metadata.
+</p>
+
+<h4>Defensible solution</h4>
+<ol>
+  <li>Rotate the database password immediately.</li>
+  <li>Remove the <code>db-password</code> attribute from the instance.</li>
+  <li>Create a Secret Manager secret for the database password and set it to the new value.</li>
+  <li>Grant the fulfillment worker's service account <code>roles/secretmanager.secretAccessor</code> on that specific secret.</li>
+  <li>Update the startup script to retrieve the secret via the metadata server token and the Secret Manager API (as shown in the Part 2 code example).</li>
+  <li>Audit all other VMs for sensitive values in custom metadata.</li>
+</ol>
+
+<h4>Verification</h4>
+<p>
+  After remediation: confirm the <code>db-password</code> attribute is absent from the instance describe output. Confirm the startup script retrieves the secret from Secret Manager and the fulfillment worker connects to the database. Confirm that a Compute Viewer cannot see the password — they should see only the Secret Manager secret resource name, not the secret value.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  If the startup script logs the secret value (e.g., via an inadvertent <code>set -x</code> in bash), the secret will appear in Cloud Logging and be visible to log readers. Always ensure startup scripts do not echo or log secret values. Use <code>set +x</code> around secret retrieval sections.
+</p>
+
+<!-- Incident SVG 3 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 460" role="img" aria-labelledby="d37-i3-title d37-i3-desc">
+<title id="d37-i3-title">Database password in instance attribute exposed to Compute Viewer — incident and corrected path</title>
+<desc id="d37-i3-desc">The upper dashed lane shows the startup script reading a database password from an instance attribute, the attribute being visible to a Compute Viewer via the console, and the credential being exposed without database access being granted. The lower solid lane moves the secret to Secret Manager, grants only secretAccessor to the service account, and the startup script retrieves the value via the metadata token; a Compute Viewer sees only the secret resource name, not the value; the verification boundary confirms no attribute contains the password.</desc>
+<defs>
+<marker id="d37-i3-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/></marker>
+<marker id="d37-i3-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/></marker>
+</defs>
+<rect class="canvas" width="980" height="460" rx="8"/>
+<rect class="lane-failed" x="18" y="18" width="944" height="190" rx="8"/>
+<text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · SECRET IN INSTANCE ATTRIBUTE → COMPUTE VIEWER READS PASSWORD</text>
+<rect class="lane-corrected" x="18" y="256" width="944" height="188" rx="8"/>
+<text class="lane-label" x="34" y="278" fill="#4ade80">CORRECTED PATH · SECRET MANAGER + SA TOKEN → VIEWER SEES ONLY RESOURCE NAME</text>
+
+<rect class="box" x="36" y="72" width="148" height="80" rx="8"/>
+<text x="110" y="104" text-anchor="middle">Startup script</text>
+<text class="small-label" x="110" y="124" text-anchor="middle">reads db-password</text>
+<text class="small-label" x="110" y="140" text-anchor="middle">from instance attribute</text>
+
+<rect class="failbox" x="240" y="60" width="218" height="104" rx="8"/>
+<text x="349" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="349" y="114" text-anchor="middle">attribute visible to viewers</text>
+<text class="small-label" x="349" y="137" text-anchor="middle">root cause: metadata ≠ secrets store</text>
+
+<rect class="failbox" x="524" y="72" width="192" height="80" rx="8"/>
+<text x="620" y="100" text-anchor="middle">Compute Viewer</text>
+<text class="small-label" x="620" y="120" text-anchor="middle">reads password from console</text>
+<text class="small-label" x="620" y="136" text-anchor="middle">no DB access needed</text>
+
+<rect class="failbox" x="778" y="72" width="166" height="80" rx="8"/>
+<text x="861" y="96" text-anchor="middle">Credential exposed</text>
+<text x="861" y="114" text-anchor="middle">must rotate + audit</text>
+<text class="small-label" x="861" y="141" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d37-i3-f)" d="M184 112 H240"/>
+<path class="failed" marker-end="url(#d37-i3-f)" d="M458 112 H524"/>
+<path class="failed" marker-end="url(#d37-i3-f)" d="M716 112 H778"/>
+
+<rect class="box" x="36" y="312" width="148" height="80" rx="8"/>
+<text x="110" y="344" text-anchor="middle">Same startup script</text>
+<text class="small-label" x="110" y="364" text-anchor="middle">metadata token used</text>
+<text class="small-label" x="110" y="380" text-anchor="middle">SA: secretAccessor</text>
+
+<rect class="box" x="240" y="300" width="218" height="104" rx="8"/>
+<text x="349" y="332" text-anchor="middle">Corrected control</text>
+<text x="349" y="354" text-anchor="middle">Secret Manager call</text>
+<text class="small-label" x="349" y="376" text-anchor="middle">token → secret value</text>
+
+<rect class="box" x="524" y="312" width="192" height="80" rx="8"/>
+<text x="620" y="344" text-anchor="middle">Compute Viewer sees</text>
+<text class="small-label" x="620" y="364" text-anchor="middle">only secret resource name</text>
+<text class="small-label" x="620" y="380" text-anchor="middle">not the secret value</text>
+
+<rect class="verifybox" x="778" y="300" width="166" height="104" rx="8"/>
+<text x="861" y="332" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="861" y="354" text-anchor="middle">no attribute contains</text>
+<text x="861" y="372" text-anchor="middle">password value</text>
+<text class="small-label" x="861" y="392" text-anchor="middle">worker connects correctly</text>
+
+<path class="corrected" marker-end="url(#d37-i3-c)" d="M184 352 H240"/>
+<path class="corrected" marker-end="url(#d37-i3-c)" d="M458 352 H524"/>
+<path class="corrected" marker-end="url(#d37-i3-c)" d="M716 352 H778"/>
+<rect class="boundary" x="764" y="286" width="194" height="132" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> a startup script read a database password from an instance attribute named <code>db-password</code>; the attribute was visible in the GCP Console to a principal with <code>roles/compute.viewer</code>; the auditor did not have database network access; the credential was exposed and required rotation. <strong>Architectural inference:</strong> Compute Engine instance attributes are accessible to any principal with Compute Viewer rights via the API and console; they are not a secrets store; moving the secret to Secret Manager and granting only <code>roles/secretmanager.secretAccessor</code> to the service account limits the secret's visibility to the service account identity, not to project viewers; the startup script retrieves the value at boot via the metadata server token. <strong>Expected post-fix behavior:</strong> after rotating the password, removing the attribute, creating a Secret Manager secret, and updating the startup script, a Compute Viewer can see the secret's resource name but not its value; the fulfillment worker retrieves and uses the correct password at startup; the instance describe output contains no sensitive attribute values.
+</figcaption>
+</figure>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 4 ══ -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1 — Block-storage comparison table: map disk types to Brightloaf workloads</h3>
+<p><strong>Goal:</strong> Produce a block-storage comparison table that explicitly distinguishes ephemeral from durable storage and maps each disk type to a Brightloaf workload.</p>
+<p><strong>Mode:</strong> tabletop + optional cloud lab · <strong>Prerequisites:</strong> <a href="day-013.html">Day 13</a> (state and durability vocabulary); <a href="day-036.html">Day 36</a> sizing sheet.</p>
+
+<ol>
+<li><strong>Create the comparison table.</strong> Open <code>day-037-persistence.md</code>. Add a table with columns: Disk type | Media | Durable? | Max IOPS (relative) | Max throughput (relative) | Brightloaf workload fit | Notes.</li>
+<li><strong>Fill in each row.</strong> Include: pd-standard, pd-balanced, pd-ssd, pd-extreme, Hyperdisk Balanced, Hyperdisk Extreme, Hyperdisk Throughput, Local SSD. For each, state: durable (Yes/No — emphatic No for Local SSD), relative IOPS category (Low / Medium / High / Provisioned), and which Brightloaf component it would fit.</li>
+<li><strong>Mark the ephemeral boundary.</strong> Add a bold separator between the last durable type and Local SSD. Write one sentence that captures the invariant: "Local SSD data is lost when the VM is stopped, live-migrated, or preempted — it must never hold data that cannot be recreated."</li>
+<li><strong>Assign workloads.</strong> For Brightloaf: Order API boot disk → pd-balanced (moderate IOPS, cost-effective); fulfillment worker WAL → pd-ssd (consistent low-latency writes); analytics batch sequential scan → Hyperdisk Throughput (high sequential, lower IOPS); session cache → Local SSD (ephemeral, reload from Redis on restart).</li>
+<li><strong>Optional cloud: inspect a running disk.</strong> If access is available:
+<pre><code>gcloud compute disks describe DISK_NAME \
+  --zone=us-central1-a \
+  --project=PROJECT_ID \
+  --format="yaml(name,type,sizeGb,status)"</code></pre>
+Record the type and confirm it matches the expected value. Label the result as "observed."
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A completed comparison table with all disk types, explicit ephemeral/durable distinction, and Brightloaf workload assignments. The exit artifact requirement "block-storage comparison that distinguishes ephemeral from durable data" is satisfied by this table.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-37-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2 — Persistence evidence: write a file, restart VM, confirm file survives</h3>
+<p><strong>Goal:</strong> Demonstrate data persistence across a VM restart (persistent disk survives; Local SSD does not). Produce persistence evidence for the exit artifact.</p>
+<p><strong>Mode:</strong> cloud sandbox (preferred) or supplied trace · <strong>Prerequisites:</strong> Day 36 VM lifecycle skills; active identity confirmed (Day 35 G2 artifact).</p>
+
+<div class="callout">
+<strong>Preflight</strong>
+<p>Confirm active project and account. Confirm Compute Engine API enabled. If cloud access is unavailable, describe the expected result as a tabletop prediction and label it accordingly.</p>
+</div>
+
+<ol>
+<li><strong>Create a test VM.</strong>
+<pre><code>gcloud compute instances create bf-persist-test \
+  --project=PROJECT_ID \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --image-family=debian-12 \
+  --image-project=debian-cloud \
+  --boot-disk-type=pd-balanced \
+  --no-address \
+  --labels=env=lab,owner=day37</code></pre>
+</li>
+<li><strong>Write a file to the persistent boot disk.</strong> SSH into the VM and create a marker file:
+<pre><code>gcloud compute ssh bf-persist-test \
+  --project=PROJECT_ID \
+  --zone=us-central1-a \
+  --command="echo 'day37-persist-test' | sudo tee /var/bf-persist-marker.txt"</code></pre>
+</li>
+<li><strong>Restart the VM.</strong>
+<pre><code>gcloud compute instances stop bf-persist-test \
+  --project=PROJECT_ID --zone=us-central1-a
+gcloud compute instances start bf-persist-test \
+  --project=PROJECT_ID --zone=us-central1-a</code></pre>
+</li>
+<li><strong>Verify the file survived.</strong>
+<pre><code>gcloud compute ssh bf-persist-test \
+  --project=PROJECT_ID \
+  --zone=us-central1-a \
+  --command="cat /var/bf-persist-marker.txt"</code></pre>
+Expected output: <code>day37-persist-marker</code>. Record this output as the persistence evidence.
+</li>
+<li><strong>Note the ephemeral contrast.</strong> Write in <code>day-037-persistence.md</code>: "If this file were written to a Local SSD, it would not survive step 3 (VM stop). The persistent boot disk retains the file because it is a network-attached durable disk."</li>
+<li><strong>Zonal vs regional note.</strong> In the same file, add: "This boot disk is zonal (pd-balanced in us-central1-a). If the zone became unavailable, the disk would be unreachable until the zone recovered. A regional PD in us-central1-a/b would enable a force-attach failover to a standby VM in us-central1-b."</li>
+<li><strong>Delete the VM and confirm cleanup.</strong>
+<pre><code>gcloud compute instances delete bf-persist-test \
+  --project=PROJECT_ID --zone=us-central1-a --quiet
+
+gcloud compute instances list \
+  --project=PROJECT_ID \
+  --filter="labels.env=lab AND labels.owner=day37"</code></pre>
+Confirm zero rows.
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The exit artifact contains: (1) the marker file content seen after VM restart ("day37-persist-test"), (2) the emphatic note that Local SSD would not have survived the stop, (3) the zonal vs regional observation, (4) a deletion confirmation with empty label inventory.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If SSH fails: confirm the VM is RUNNING with <kbd>gcloud compute instances describe bf-persist-test</kbd>; check that no firewall rule blocks SSH (IAP tunnel may be needed with <kbd>--tunnel-through-iap</kbd>). If the file is missing after restart: confirm the <code>tee</code> command was run as sudo and the path is on the persistent boot disk (not a tmpfs mount).</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete the VM after step 7. An e2-micro stopped VM incurs no CPU charge but the boot disk continues to accrue storage cost if not deleted. Confirm deletion with an empty label inventory. Check whether the boot disk was auto-deleted (default when <kbd>--no-boot-disk-auto-delete</kbd> was not passed).</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-37-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3 — Metadata server flow: read instance name and zone; identify safe vs unsafe attributes</h3>
+<p><strong>Goal:</strong> Read metadata values from the metadata server via the correct header, identify which paths are safe and which must not contain secrets, and add the metadata flow to the persistence evidence file.</p>
+<p><strong>Mode:</strong> cloud sandbox (preferred) or supplied trace · <strong>Prerequisites:</strong> Exercise 2 VM or any running VM.</p>
+
+<ol>
+<li><strong>Read instance name from the metadata server.</strong> From inside the VM (via SSH):
+<pre><code>curl -s -H "Metadata-Flavor: Google" \
+  http://metadata.google.internal/computeMetadata/v1/instance/name</code></pre>
+Expected: the instance name (e.g., <code>bf-persist-test</code>). This is a safe path with no secrets.
+</li>
+<li><strong>Read the zone.</strong>
+<pre><code>curl -s -H "Metadata-Flavor: Google" \
+  http://metadata.google.internal/computeMetadata/v1/instance/zone</code></pre>
+Expected: a full zone resource path. Extract the zone name (last segment). Record both in the persistence file.
+</li>
+<li><strong>Attempt to read the service account token.</strong>
+<pre><code>curl -s -H "Metadata-Flavor: Google" \
+  "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"</code></pre>
+Record the response structure (token_type, access_token, expires_in). Do not log or save the actual token value. Note: "This token is a short-lived credential. It must be treated as a secret and never logged."
+</li>
+<li><strong>Test the header requirement.</strong>
+<pre><code>curl -s http://metadata.google.internal/computeMetadata/v1/instance/name</code></pre>
+Expected: an error (request without the required header is rejected). Record the response and note why the header is required (SSRF defence).
+</li>
+<li><strong>Document the safe vs unsafe attribute policy.</strong> In <code>day-037-persistence.md</code>, add a table: Metadata path | Contains secrets? | Visibility | Safe to store in attributes?
+  <ul>
+    <li>instance/name — No — VM-level — Yes (no secrets)</li>
+    <li>instance/zone — No — VM-level — Yes</li>
+    <li>instance/service-accounts/default/token — Yes (treat as secret) — VM-only (link-local) — Never log or expose</li>
+    <li>instance/attributes/KEY — Depends on value — Project Compute Viewer can read — Never store secrets here</li>
+  </ul>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The persistence file contains: metadata server read results for name and zone (labeled observed or tabletop), the token structure with the value redacted, the header-rejection response, and the safe/unsafe attribute policy table. The exit artifact satisfies "inspect a redacted metadata flow."</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If the metadata server is unreachable: confirm you are running the command from inside the VM (not from the Cloud Shell external to the VM). The metadata server IP <code>169.254.169.254</code> is link-local and not routable from outside. If the VM has no default service account, the token path returns a 404; use <kbd>gcloud compute instances describe</kbd> to check the <code>serviceAccounts</code> field.</p>
+</div>
+<div class="callout">
+<strong>Cleanup</strong>
+<p>No additional cloud resources are created in this exercise. Ensure the VM from Exercise 2 is deleted before filing the exit artifact.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-37-topic-03"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-037-persistence.md</code> containing: (1) block-storage comparison table (all types, durable/ephemeral distinction, Brightloaf workload assignments), (2) persistence evidence (marker file content after VM restart, or tabletop prediction labeled as such), (3) ephemeral contrast note (Local SSD would not survive stop), (4) zonal vs regional PD observation, (5) metadata server read results (name, zone, redacted token structure), (6) header-rejection response, (7) safe/unsafe attribute policy table, (8) deletion confirmation with empty label inventory. Label every result as observed or tabletop prediction.</p>
+<label class="check"><input type="checkbox" data-progress="read-37"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-37"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-036.html">← Day 36<small>VM sizing and image choices</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-038.html">Day 38 →<small>Templates, MIGs and scaling</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

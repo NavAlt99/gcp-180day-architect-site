@@ -1,0 +1,1 @@
+The Google Cloud Console is the browser interface for selecting a project, finding services and viewing their resources. The navigation menu groups products; the project picker sets the active project context; pinned products are shortcuts. A shortcut does not change the project or grant access.

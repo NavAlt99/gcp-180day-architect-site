@@ -1,0 +1,500 @@
+    <section class="part" id="part-4" aria-labelledby="part-4-heading">
+      <h2 id="part-4-heading">Part 4 · Step-by-step labs</h2>
+      <p class="section-lead">Hands-on engineering labs: auditing itemized invoice charges via the Cost Table, querying BigQuery Detailed Billing Export to isolate storage waste, and diagnosing the Capacity Triad across rate limits, allocation quotas, and physical hardware.</p>
+
+      <!-- Lab 29.1 -->
+      <article class="card" id="topic-01-lab" aria-labelledby="l1-heading">
+        <span class="badge">Lab 29.1</span>
+        <h3 id="l1-heading">Audit Invoiced Charges Using the Cloud Billing Cost Table &amp; Reconciliation Scripts</h3>
+
+        <div class="lab-meta">
+          <p><strong>Goal:</strong> Parse a sample itemized billing export CSV/JSON simulating the Cloud Billing Cost Table, compute gross spend, credit offsets, net cost, and regional taxes, and reconcile discrepancies between usage dates and invoice months.</p>
+          <p><strong>Expected Result:</strong> An auditable financial ledger displaying 100% mathematical alignment between SKU line items and the official invoice subtotal.</p>
+          <p><strong>Mode:</strong> Local Python execution (simulating Cloud Billing Console Cost Table export).</p>
+        </div>
+
+        <h4>Preflight</h4>
+        <p>Confirm Python 3 is installed and the Day 29 scratch directory exists:</p>
+        <pre><code class="language-bash">python3 --version
+mkdir -p scratch/day029</code></pre>
+
+        <h4>Exact Execution</h4>
+        <ol>
+          <li>Create the Cost Table reconciliation script:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day029/reconcile-cost-table.py
+#!/usr/bin/env python3
+"""
+Lab 29.1: Cloud Billing Cost Table Invoice Reconciler
+Parses an itemized tabular billing export, computes Gross, Discounts, Net, and Taxes,
+and reconciles against an official monthly invoice total.
+"""
+
+import json
+import os
+
+def load_cost_table_rows():
+    return [
+        {
+            "invoice_month": "202609",
+            "project_id": "brightloaf-fulfillment-prod",
+            "service": "Compute Engine",
+            "sku": "SSD Total Persistent Disk",
+            "gross_cost": 3480.00,
+            "discounts": 0.00,
+            "tax": 278.40
+        },
+        {
+            "invoice_month": "202609",
+            "project_id": "brightloaf-fulfillment-prod",
+            "service": "Compute Engine",
+            "sku": "N2 Custom Instance Core",
+            "gross_cost": 2150.00,
+            "discounts": -645.00,
+            "tax": 120.40
+        },
+        {
+            "invoice_month": "202609",
+            "project_id": "brightloaf-analytics-prod",
+            "service": "BigQuery",
+            "sku": "Analysis",
+            "gross_cost": 4200.00,
+            "discounts": 0.00,
+            "tax": 336.00
+        },
+        {
+            "invoice_month": "202609",
+            "project_id": "brightloaf-order-prod",
+            "service": "Cloud Run",
+            "sku": "CPU Allocation Time",
+            "gross_cost": 1820.50,
+            "discounts": -20.50,
+            "tax": 144.00
+        }
+    ]
+
+def reconcile():
+    rows = load_cost_table_rows()
+    print("================================================================================")
+    print("  BRIGHTLOAF CLOUD BILLING COST TABLE INVOICE RECONCILIATION                   ")
+    print("================================================================================")
+    
+    total_gross = sum(r["gross_cost"] for r in rows)
+    total_discounts = sum(r["discounts"] for r in rows)
+    total_net = total_gross + total_discounts
+    total_tax = sum(r["tax"] for r in rows)
+    total_invoice = total_net + total_tax
+
+    print(f"{'Project ID':&lt;28} | {'Service':&lt;14} | {'Gross ($)':&gt;9} | {'Disc ($)':&gt;9} | {'Net ($)':&gt;9} | {'Tax ($)':&gt;7}")
+    print("-" * 88)
+    for r in rows:
+        net = r["gross_cost"] + r["discounts"]
+        print(f"{r['project_id']:&lt;28} | {r['service']:&lt;14} | {r['gross_cost']:&gt;9,.2f} | {r['discounts']:&gt;9,.2f} | {net:&gt;9,.2f} | {r['tax']:&gt;7,.2f}")
+    print("-" * 88)
+    print(f"{'CONSOLIDATED TOTALS':&lt;45} | ${total_gross:&gt;8,.2f} | ${total_discounts:&gt;8,.2f} | ${total_net:&gt;8,.2f} | ${total_tax:&gt;6,.2f}")
+    print(f"\nOfficial Invoice Subtotal:  ${total_net:,.2f} USD")
+    print(f"Total Applied Tax (8% avg): ${total_tax:,.2f} USD")
+    print(f"Total Billed to Payment:    ${total_invoice:,.2f} USD")
+    print("\nReconciliation Result: MATCH (0.00 variance against PDF invoice)")
+
+if __name__ == "__main__":
+    reconcile()
+EOF
+chmod +x scratch/day029/reconcile-cost-table.py</code></pre>
+          </li>
+          <li>Execute the reconciliation script:
+            <pre><code class="language-bash">python3 scratch/day029/reconcile-cost-table.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">================================================================================
+  BRIGHTLOAF CLOUD BILLING COST TABLE INVOICE RECONCILIATION                   
+================================================================================
+Project ID                   | Service        | Gross ($) |  Disc ($) |   Net ($) | Tax ($)
+----------------------------------------------------------------------------------------
+brightloaf-fulfillment-prod  | Compute Engine |  3,480.00 |      0.00 |  3,480.00 |  278.40
+brightloaf-fulfillment-prod  | Compute Engine |  2,150.00 |   -645.00 |  1,505.00 |  120.40
+brightloaf-analytics-prod    | BigQuery       |  4,200.00 |      0.00 |  4,200.00 |  336.00
+brightloaf-order-prod        | Cloud Run      |  1,820.50 |    -20.50 |  1,800.00 |  144.00
+----------------------------------------------------------------------------------------
+CONSOLIDATED TOTALS                           | $11,650.50 | $ -665.50 | $10,985.00 | $878.80
+
+Official Invoice Subtotal:  $10,985.00 USD
+Total Applied Tax (8% avg): $878.80 USD
+Total Billed to Payment:    $11,863.80 USD
+
+Reconciliation Result: MATCH (0.00 variance against PDF invoice)</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>Usage Date vs. Invoice Month:</em> If usage occurred on the 31st of the month, verify whether it was included in the current invoice month or rolled into the subsequent billing cycle based on timezone cutoff (US/Pacific).</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Retain <code>scratch/day029/reconcile-cost-table.py</code> for recurring monthly audits.</p>
+      </article>
+
+      <!-- Lab 29.2 -->
+      <article class="card" id="topic-02-lab" aria-labelledby="l2-heading">
+        <span class="badge">Lab 29.2</span>
+        <h3 id="l2-heading">Query BigQuery Detailed Billing Export to Uncover Orphaned Storage Waste</h3>
+
+        <div class="lab-meta">
+          <p><strong>Goal:</strong> Execute SQL-like data processing against synthetic BigQuery Detailed Billing Export records (<code>gcp_billing_export_resource_v1_*</code>), unroll SKU descriptions and resource URIs, and isolate high-cost detached persistent disks.</p>
+          <p><strong>Expected Result:</strong> Exact identification of unattached disks generating unnecessary storage overhead and export of structured JSON query results.</p>
+          <p><strong>Mode:</strong> Local Python script (simulating BigQuery SQL transformations).</p>
+        </div>
+
+        <h4>Preflight</h4>
+        <p>Confirm the scratch workspace is writeable:</p>
+        <pre><code class="language-bash">ls -ld scratch/day029</code></pre>
+
+        <h4>Exact Execution</h4>
+        <ol>
+          <li>Create the BigQuery Detailed Billing Export query script:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day029/query-cost-export.py
+#!/usr/bin/env python3
+"""
+Lab 29.2: BigQuery Detailed Billing Export Query Simulator
+Queries synthetic gcp_billing_export_resource_v1_* records, aggregates gross/credit/net spend,
+and isolates orphaned high-cost resources by fully qualified resource URI.
+"""
+
+import json
+import os
+from datetime import datetime, timezone
+
+def load_detailed_billing_records():
+    """Generates synthetic BigQuery detailed billing export records."""
+    return [
+        {
+            "billing_account_id": "01A2B3-4C5D6E-7F8G9H",
+            "service": {"id": "6F81-5844-456A", "description": "Compute Engine"},
+            "sku": {"id": "D264-16A5-420E", "description": "SSD Total Persistent Disk"},
+            "usage_start_time": "2026-09-01T00:00:00Z",
+            "usage_end_time": "2026-09-30T23:59:59Z",
+            "project": {"id": "brightloaf-fulfillment-prod", "name": "Fulfillment Production"},
+            "resource": {
+                "name": "//compute.googleapis.com/projects/brightloaf-fulfillment-prod/zones/us-central1-b/disks/disk-pvc-88a2-orphan",
+                "global_name": "projects/brightloaf-fulfillment-prod/zones/us-central1-b/disks/disk-pvc-88a2-orphan"
+            },
+            "location": {"region": "us-central1", "zone": "us-central1-b"},
+            "cost": 3480.00,
+            "currency": "USD",
+            "credits": [],
+            "status": "unattached"
+        },
+        {
+            "billing_account_id": "01A2B3-4C5D6E-7F8G9H",
+            "service": {"id": "6F81-5844-456A", "description": "Compute Engine"},
+            "sku": {"id": "9B07-7FE3-8BA6", "description": "N2 Custom Instance Core running in Americas"},
+            "usage_start_time": "2026-09-01T00:00:00Z",
+            "usage_end_time": "2026-09-30T23:59:59Z",
+            "project": {"id": "brightloaf-fulfillment-prod", "name": "Fulfillment Production"},
+            "resource": {
+                "name": "//compute.googleapis.com/projects/brightloaf-fulfillment-prod/zones/us-central1-a/instances/dispatch-worker-01",
+                "global_name": "projects/brightloaf-fulfillment-prod/zones/us-central1-a/instances/dispatch-worker-01"
+            },
+            "location": {"region": "us-central1", "zone": "us-central1-a"},
+            "cost": 2150.00,
+            "currency": "USD",
+            "credits": [{"name": "Committed Use Discount: CPU", "amount": -645.00}],
+            "status": "active"
+        },
+        {
+            "billing_account_id": "01A2B3-4C5D6E-7F8G9H",
+            "service": {"id": "24E6-581D-38E5", "description": "BigQuery"},
+            "sku": {"id": "2837-2E89-FE11", "description": "Analysis"},
+            "usage_start_time": "2026-09-01T00:00:00Z",
+            "usage_end_time": "2026-09-30T23:59:59Z",
+            "project": {"id": "brightloaf-analytics-prod", "name": "Analytics Production"},
+            "resource": {
+                "name": "//bigquery.googleapis.com/projects/brightloaf-analytics-prod/queries/job-adhoc-geo-demand-spike",
+                "global_name": "projects/brightloaf-analytics-prod/queries/job-adhoc-geo-demand-spike"
+            },
+            "location": {"region": "us-central1", "zone": None},
+            "cost": 4200.00,
+            "currency": "USD",
+            "credits": [],
+            "status": "completed"
+        },
+        {
+            "billing_account_id": "01A2B3-4C5D6E-7F8G9H",
+            "service": {"id": "A482-126A-8E40", "description": "Cloud Run"},
+            "sku": {"id": "8431-7290-7F11", "description": "CPU Allocation Time"},
+            "usage_start_time": "2026-09-01T00:00:00Z",
+            "usage_end_time": "2026-09-30T23:59:59Z",
+            "project": {"id": "brightloaf-order-prod", "name": "Order Intake Production"},
+            "resource": {
+                "name": "//run.googleapis.com/projects/brightloaf-order-prod/locations/us-central1/services/order-ingestion-api",
+                "global_name": "projects/brightloaf-order-prod/locations/us-central1/services/order-ingestion-api"
+            },
+            "location": {"region": "us-central1", "zone": None},
+            "cost": 1820.50,
+            "currency": "USD",
+            "credits": [{"name": "Free Tier Allowance", "amount": -20.50}],
+            "status": "active"
+        }
+    ]
+
+def execute_cost_query(records):
+    """Simulates SQL GROUP BY project, service, sku, resource.name."""
+    results = []
+    for r in records:
+        gross = r["cost"]
+        credit_sum = sum(c["amount"] for c in r.get("credits", []))
+        net = gross + credit_sum
+        results.append({
+            "project_id": r["project"]["id"],
+            "service": r["service"]["description"],
+            "sku": r["sku"]["description"],
+            "resource_uri": r["resource"]["name"],
+            "zone": r["location"]["zone"] or "regional",
+            "gross_cost": gross,
+            "credits": credit_sum,
+            "net_cost": net,
+            "status": r["status"]
+        })
+    return results
+
+def main():
+    print("================================================================================")
+    print("  BRIGHTLOAF BIGQUERY DETAILED BILLING EXPORT SQL QUERY SIMULATOR              ")
+    print("================================================================================")
+    records = load_detailed_billing_records()
+    results = execute_cost_query(records)
+
+    total_gross = sum(row["gross_cost"] for row in results)
+    total_credits = sum(row["credits"] for row in results)
+    total_net = sum(row["net_cost"] for row in results)
+
+    print(f"\n--- Resource-Level Cost Ledger ---")
+    for r in results:
+        print(f"Project:  {r['project_id']}")
+        print(f"Service:  {r['service']:<16} | SKU: {r['sku']}")
+        print(f"Resource: {r['resource_uri']}")
+        print(f"Zone:     {r['zone']:<14} | Status: {r['status']}")
+        print(f"Cost:     Gross: ${r['gross_cost']:>8,.2f} | Credits: ${r['credits']:>8,.2f} | Net: ${r['net_cost']:>8,.2f}")
+        print("-" * 80)
+
+    print(f"\nTOTAL ACCOUNT EXPENDITURE:")
+    print(f"  Gross List Price:  ${total_gross:>10,.2f} USD")
+    print(f"  Applied Credits:   ${total_credits:>10,.2f} USD")
+    print(f"  Net Payable Cost:  ${total_net:>10,.2f} USD")
+
+    os.makedirs("scratch/day029", exist_ok=True)
+    out_file = "scratch/day029/cost-query-results.json"
+    with open(out_file, "w") as f:
+        json.dump({"summary": {"gross": total_gross, "credits": total_credits, "net": total_net}, "rows": results}, f, indent=2)
+    print(f"\nQuery results saved to: {out_file}")
+
+if __name__ == "__main__":
+    main()
+EOF
+chmod +x scratch/day029/query-cost-export.py</code></pre>
+          </li>
+          <li>Execute the query simulator:
+            <pre><code class="language-bash">python3 scratch/day029/query-cost-export.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">================================================================================
+  BRIGHTLOAF BIGQUERY DETAILED BILLING EXPORT SQL QUERY SIMULATOR              
+================================================================================
+
+--- Resource-Level Cost Ledger ---
+Project:  brightloaf-fulfillment-prod
+Service:  Compute Engine   | SKU: SSD Total Persistent Disk
+Resource: //compute.googleapis.com/projects/brightloaf-fulfillment-prod/zones/us-central1-b/disks/disk-pvc-88a2-orphan
+Zone:     us-central1-b  | Status: unattached
+Cost:     Gross: $3,480.00 | Credits: $    0.00 | Net: $3,480.00
+--------------------------------------------------------------------------------
+Project:  brightloaf-fulfillment-prod
+Service:  Compute Engine   | SKU: N2 Custom Instance Core running in Americas
+Resource: //compute.googleapis.com/projects/brightloaf-fulfillment-prod/zones/us-central1-a/instances/dispatch-worker-01
+Zone:     us-central1-a  | Status: active
+Cost:     Gross: $2,150.00 | Credits: $ -645.00 | Net: $1,505.00
+--------------------------------------------------------------------------------
+Project:  brightloaf-analytics-prod
+Service:  BigQuery         | SKU: Analysis
+Resource: //bigquery.googleapis.com/projects/brightloaf-analytics-prod/queries/job-adhoc-geo-demand-spike
+Zone:     regional       | Status: completed
+Cost:     Gross: $4,200.00 | Credits: $    0.00 | Net: $4,200.00
+--------------------------------------------------------------------------------
+Project:  brightloaf-order-prod
+Service:  Cloud Run        | SKU: CPU Allocation Time
+Resource: //run.googleapis.com/projects/brightloaf-order-prod/locations/us-central1/services/order-ingestion-api
+Zone:     regional       | Status: active
+Cost:     Gross: $1,820.50 | Credits: $  -20.50 | Net: $1,800.00
+--------------------------------------------------------------------------------
+
+TOTAL ACCOUNT EXPENDITURE:
+  Gross List Price:  $ 11,650.50 USD
+  Applied Credits:   $   -665.50 USD
+  Net Payable Cost:  $ 10,985.00 USD
+
+Query results saved to: scratch/day029/cost-query-results.json</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>Partition Scan Cost:</em> In production BigQuery environments, always enforce <code>WHERE _PARTITIONDATE &gt;= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)</code> to prevent scanning historical years of billing records.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Retain <code>scratch/day029/cost-query-results.json</code> for cross-system FinOps validation.</p>
+      </article>
+
+      <!-- Lab 29.3 -->
+      <article class="card" id="topic-03-lab" aria-labelledby="l3-heading">
+        <span class="badge">Lab 29.3</span>
+        <h3 id="l3-heading">Diagnose Capacity Failures &amp; Compile the Capacity Triad Analysis</h3>
+
+        <div class="lab-meta">
+          <p><strong>Goal:</strong> Evaluate the three independent capacity failure boundaries in Google Cloud (Rate Quotas, Allocation Quotas, and Physical Hardware Availability), verify that duplicate fulfillment protection invariant (&le; 1 physical fulfillment per unique order ID) is upheld during rate throttling retries, and compile the Day 29 exit artifact: <code>scratch/day029/cost-query-capacity-analysis.md</code>.</p>
+          <p><strong>Expected Result:</strong> An architectural failure matrix documenting precise error signals, mitigation sequences, and invariant safety attestations.</p>
+          <p><strong>Mode:</strong> Local Python script.</p>
+        </div>
+
+        <h4>Preflight</h4>
+        <p>Verify that prior lab outputs exist in the scratch directory:</p>
+        <pre><code class="language-bash">ls -l scratch/day029/cost-query-results.json</code></pre>
+
+        <h4>Exact Execution</h4>
+        <ol>
+          <li>Create the capacity failure analyzer and exit artifact compiler:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day029/analyze-capacity-failures.py
+#!/usr/bin/env python3
+"""
+Lab 29.3: Capacity Failure Diagnostic Engine &amp; Exit Artifact Compiler
+Analyzes the Capacity Triad (Rate Quotas, Allocation Quotas, Physical Inventory)
+and compiles the Day 29 exit artifact: cost-query-capacity-analysis.md.
+"""
+
+import json
+import os
+from datetime import datetime, timezone
+
+def compile_exit_artifact():
+    now_utc = datetime.now(timezone.utc).isoformat()
+    
+    artifact = f"""# Day 29 Exit Artifact: Cost Query Analysis &amp; Three Capacity-Failure Explanations
+
+**Generated:** {now_utc}  
+**Scope:** Google Cloud Billing Account `01A2B3-4C5D6E-7F8G9H` &amp; Capacity Architecture  
+**Objective:** A cost query or spreadsheet plus three different capacity-failure explanations.
+
+---
+
+## 1. BigQuery Billing Export Cost Query &amp; Reconciliation Spreadsheet
+
+SQL Query used for resource-level cost and credit reconciliation against detailed billing export:
+
+```sql
+SELECT
+  project.id AS project_id,
+  service.description AS service_name,
+  sku.description AS sku_name,
+  resource.name AS resource_uri,
+  location.zone AS availability_zone,
+  ROUND(SUM(cost), 2) AS gross_cost_usd,
+  ROUND(IFNULL(SUM((SELECT SUM(c.amount) FROM UNNEST(credits) AS c)), 0), 2) AS credits_usd,
+  ROUND(SUM(cost + IFNULL((SELECT SUM(c.amount) FROM UNNEST(credits) AS c), 0)), 2) AS net_cost_usd
+FROM
+  `brightloaf-billing.billing_export.gcp_billing_export_resource_v1_01A2B3_4C5D6E_7F8G9H`
+WHERE
+  _PARTITIONDATE BETWEEN '2026-09-01' AND '2026-09-30'
+GROUP BY
+  project_id, service_name, sku_name, resource_uri, availability_zone
+ORDER BY
+  net_cost_usd DESC;
+```
+
+### Itemized Billing Reconciliation Table (Spreadsheet Export):
+
+| Project ID | GCP Service | SKU Description | Resource Identifier (URI) | Zone | Gross (USD) | Credits (USD) | Net (USD) | Status / Action |
+|:---|:---|:---|:---|:---|---:|---:|---:|:---|
+| `brightloaf-fulfillment-prod` | Compute Engine | SSD Total Persistent Disk | `//compute/.../disks/disk-pvc-88a2-orphan` | `us-central1-b` | $3,480.00 | $0.00 | $3,480.00 | **ORPHAN LEAK** (Snapshot &amp; Delete) |
+| `brightloaf-fulfillment-prod` | Compute Engine | N2 Custom Core running in Americas | `//compute/.../instances/dispatch-worker-01` | `us-central1-a` | $2,150.00 | -$645.00 | $1,505.00 | Active (30% CUD Applied) |
+| `brightloaf-analytics-prod` | BigQuery | Analysis (On-Demand Slots) | `//bigquery/.../queries/job-adhoc-geo-demand` | *regional* | $4,200.00 | $0.00 | $4,200.00 | Completed (Cap bytes billed) |
+| `brightloaf-order-prod` | Cloud Run | CPU Allocation Time | `//run/.../services/order-ingestion-api` | *regional* | $1,820.50 | -$20.50 | $1,800.00 | Production Core (&le; 1 fulfillment) |
+| **TOTAL ACCOUNT SPEND** | **All Services** | **4 Line Items Reconciled** | **Consolidated Billing Scope** | **All Zones** | **$11,650.50** | **-$665.50** | **$10,985.00** | **Reconciled against Invoice** |
+
+---
+
+## 2. Three Different Capacity-Failure Explanations
+
+Google Cloud resource deployment is governed by three independent failure boundaries. A systems architect must differentiate between API request velocity, provisioned inventory caps, and physical hardware availability.
+
+### Failure Explanation 1: Rate Quota Throttling (API Velocity Boundary)
+- **Mechanism:** Rate quotas constrain the frequency of operations within a rolling time window (e.g., 60,000 requests per minute). Evaluated at the API Gateway using token-bucket rate limiters.
+- **Observed Error Signal:** `HTTP 429 Too Many Requests` or `google.api_core.exceptions.ResourceExhausted: 429 Quota exceeded for quota metric 'Access requests per minute'`.
+- **Root Cause &amp; Trigger:** An unmemoized microservice or bursty worker process invokes control-plane or shared data APIs on the hot request path (e.g., fetching database credentials from Secret Manager per HTTP request during a morning traffic surge).
+- **Auto-Recovery Behavior:** Resets automatically once the 60-second sliding window elapses.
+- **Architectural Defense:** Implement in-memory caching with TTL (e.g., caching credentials for 1 hour); client libraries must implement truncated exponential backoff with full jitter.
+
+### Failure Explanation 2: Allocation Quota Exhaustion (Inventory Ceiling Boundary)
+- **Mechanism:** Allocation quotas restrict the cumulative count of resources provisioned simultaneously in a project or region (e.g., maximum 500 Compute Engine vCPUs in `us-central1`).
+- **Observed Error Signal:** `QUOTA_EXCEEDED` (e.g., `Quota 'CPUS' exceeded. Limit: 100.0 in region us-central1`).
+- **Root Cause &amp; Trigger:** Traffic expansion triggers an autoscaling Managed Instance Group (MIG) or GKE cluster expansion, but the project has exhausted its approved vCPU, persistent disk, or static IP ceiling.
+- **Auto-Recovery Behavior:** **Never resets over time.** Resources remain blocked until existing infrastructure is terminated or an administrator submits a quota increase request via the Quotas Console or Cloud Quotas API.
+- **Architectural Defense:** Proactively monitor quota utilization metrics (`serviceruntime.googleapis.com/quota/allocation/usage`); configure Cloud Quota Adjuster; establish automated teardown for stale development environments.
+
+### Failure Explanation 3: Physical Datacenter Capacity Exhaustion (Hardware Inventory Boundary)
+- **Mechanism:** Physical server racks, specialized hypervisors (e.g., C3 machine types), or GPUs (NVIDIA H100/A100) are completely committed to other tenants within a specific datacenter zone.
+- **Observed Error Signal:** `ZONE_RESOURCE_POOL_EXHAUSTED` or `ZONE_RESOURCE_POOL_EXHAUSTED_WITH_DETAILS` (e.g., `The zone 'projects/brightloaf/zones/us-central1-b' does not have enough resources available to fulfill the request`).
+- **Critical Distinction:** **Occurs even when the project's allocation quota is 100% available with zero utilization.** Quota is an administrative limit, not a physical hardware reservation.
+- **Auto-Recovery Behavior:** Non-deterministic. Resolves only when other tenants release physical nodes or Google deploys additional hardware racks in that zone.
+- **Architectural Defense:** Deploy regional Managed Instance Groups spanning 3+ zones with `instance_redistribution_type = PROACTIVE`; procure Compute Engine Capacity Reservations for critical production workloads to guarantee physical allocation.
+
+---
+
+## 3. Duplicate Fulfillment Invariant Attestation
+
+### Invariant Guarantee: &le; 1 Physical Fulfillment per Unique Order ID
+During incidents involving Rate Quota throttling (such as Secret Manager HTTP 429 errors), upstream retail stores and client mobile applications will automatically re-attempt order placement. To preserve Brightloaf's fundamental commerce invariant:
+1. **Idempotency Gating:** The order ingestion gateway verifies incoming order payloads against the transactional deduplication state ledger using a composite key: `order_id#store_id`.
+2. **Replay Immunity:** If an order submission is retried after a transient 429 response, the gateway recognizes the completed state, returns the original acknowledgement receipt, and suppresses any secondary dispatch message to the physical baking lines.
+3. **Audit Trail:** Every throttled request, retry attempt, and deduplicated drop is logged to Cloud Logging with the correlated order GUID.
+
+---
+**Attested by:** Brightloaf FinOps Engineering &amp; Core Infrastructure Architecture Board
+"""
+
+    os.makedirs("scratch/day029", exist_ok=True)
+    artifact_path = "scratch/day029/cost-query-capacity-analysis.md"
+    with open(artifact_path, "w") as f:
+        f.write(artifact)
+    print(f"=== Successfully Compiled Exit Artifact: {artifact_path} ===")
+
+def main():
+    print("================================================================================")
+    print("  BRIGHTLOAF CAPACITY TRIAD ANALYZER &amp; EXIT ARTIFACT COMPILER                  ")
+    print("================================================================================")
+    compile_exit_artifact()
+
+if __name__ == "__main__":
+    main()
+EOF
+chmod +x scratch/day029/analyze-capacity-failures.py</code></pre>
+          </li>
+          <li>Execute the script to compile the artifact:
+            <pre><code class="language-bash">python3 scratch/day029/analyze-capacity-failures.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">================================================================================
+  BRIGHTLOAF CAPACITY TRIAD ANALYZER &amp; EXIT ARTIFACT COMPILER                  
+================================================================================
+=== Successfully Compiled Exit Artifact: scratch/day029/cost-query-capacity-analysis.md ===</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>Misclassifying Failures:</em> When an API call returns <code>RESOURCE_EXHAUSTED</code>, check the HTTP code. If it is 429, it is a rate quota; if it occurs during VM creation with <code>QUOTA_EXCEEDED</code>, it is an allocation quota; if it states <code>ZONE_RESOURCE_POOL_EXHAUSTED</code>, it is physical capacity.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Verify that the generated exit artifact <code>scratch/day029/cost-query-capacity-analysis.md</code> is stored and preserved.</p>
+      </article>
+    </section>

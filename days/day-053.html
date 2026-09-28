@@ -1,0 +1,1496 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 53: Load-balancer architecture · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-052.html" aria-label="Previous day">← Day 52</a>
+<a href="day-054.html" aria-label="Next day">Day 54 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html" selected>Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="53" data-prev="day-052.html" data-next="day-054.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 53 of 180</div>
+<section class="hero">
+<div class="pills"><span class="pill">DAY 53</span><span class="pill">3–4 hours</span><span class="pill">production practice</span><span class="pill">Traffic &amp; Routing</span></div>
+<h1>Day 53 — Load-balancer architecture</h1>
+<p class="lead"><strong>Outcome:</strong> Choose a load balancer for the order service and label frontend, proxy or passthrough behavior, backend and health-check paths across global and regional topologies.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-052.html">Day 52</a>, <a href="day-005.html">Day 5</a>; bring their exit artifacts.</p></div>
+<div class="callout success"><strong>Exit artifact</strong><p>A selection ADR comparing two feasible load-balancer types for the Brightloaf platform, documented in <code>day-053-lb-selection-adr.md</code>.</p></div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>Load balancer taxonomy</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>Global external Application Load Balancer (HTTP/S)</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+<div class="toc-topic"><span>Regional external and internal Application Load Balancers</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+<div class="toc-topic"><span>External and internal proxy Network Load Balancers (TCP/SSL proxy)</span><a href="#topic-04-overview">overview</a> · <a href="#topic-04-technical">discussion</a> · <a href="#topic-04-problem">problem</a> · <a href="#topic-04-lab">lab</a></div>
+</aside>
+
+<!-- ================= PART 1 ================= -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Load balancer taxonomy: global vs regional, external vs internal, proxy vs passthrough, L4 vs L7</h3>
+<p>Google Cloud delivers a comprehensive spectrum of software-defined load balancing options categorized across four fundamental architectural axes: Scope (Global Anycast vs Regional), Ingress point (External public IPv4/IPv6 vs Internal RFC 1918), Processing layer (Layer 4 transport vs Layer 7 application awareness), and Architecture (Proxy connection termination vs Maglev Direct Server Return passthrough). Selecting the correct architectural permutation governs client latency, TLS offloading, high-availability multi-region failover, compliance boundaries, and backend protocol preservation.</p>
+<p>When an engineer provisions an Application Load Balancer to terminate high-frequency UDP telemetry from warehouse automated guided vehicles, every datagram is silently discarded because Layer 7 proxies only accept HTTP/gRPC traffic. The autonomous vehicle fleet enters emergency safety stops across the sorting depot, halting pallet distribution for eight hours and stranding $1.2 million in scheduled freight shipments.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Global external Application Load Balancer (HTTP/S): URL maps, backend services, backend buckets, host and path rules</h3>
+<p>The Global external Application Load Balancer terminates client HTTP/1.1, HTTP/2, HTTP/3 (QUIC), and gRPC sessions at Google Front End (GFE) Points of Presence worldwide over a single Anycast VIP. Declarative URL Maps act as the planetary control plane, evaluating host rules, path matchers, path rules, header matches, and weighted traffic splits to route requests dynamically across multi-region Managed Instance Groups (MIGs), Zonal Network Endpoint Groups (Zonal NEGs for container-native GKE Pod routing), Serverless NEGs for Cloud Run, or Cloud Storage Backend Buckets with integrated Cloud CDN caching.</p>
+<p>When an unvalidated URL map update containing an unanchored path prefix is deployed to the primary external ingress, all mobile checkout requests matching nested subpaths are intercepted by a legacy default service returning HTTP 404. Over 14,000 active shoppers abandon their shopping carts during the flash promotional window, generating $310,000 in immediate unrecoverable revenue loss.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Regional external and internal Application Load Balancers</h3>
+<p>When legal compliance and data residency regulations mandate that TLS termination and packet inspection must never cross a sovereign geographic border, Regional external Application Load Balancers deploy managed Envoy proxies strictly within that region. For microservice-to-microservice east-west traffic inside a VPC or across cross-project Shared VPCs, Internal Application Load Balancers deliver Layer 7 URL routing, canary traffic splitting, and zero-trust Private Service Connect endpoints, powered by a dedicated regional proxy-only subnet.</p>
+<p>When an internal microservice load balancer is deployed with an undersized proxy-only subnet during an unexpected morning traffic surge, the managed Envoy proxy fleet exhausts all available IP addresses and fails to autoscale. Internal east-west API calls immediately drop with HTTP 503 Service Unavailable across 60% of checkout attempts while backend pods sit completely idle.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-04-overview" class="topic-card">
+<h3>External and internal proxy Network Load Balancers (TCP/SSL proxy)</h3>
+<p>For non-HTTP enterprise workloads requiring Layer 4 performance with centralized SSL certificate management and global Anycast ingress—such as MQTT IoT gateways, database connection pools, gaming sockets, and custom TCP RPC protocols—Proxy Network Load Balancers terminate TCP and SSL sessions at the edge. Because reverse proxying terminates the client socket, the load balancer prepends a PROXY protocol v1 or v2 header to the backend TCP connection, preserving the original client IPv4/IPv6 address and port for downstream security audit logging and geolocation enforcement.</p>
+<p>When a TCP proxy load balancer is introduced in front of an enterprise authentication cluster without configuring PROXY protocol header injection, backend servers observe 100% of incoming TCP connections originating from a single internal Google Front End proxy IP. Platform rate limiters mistake aggregated user logins for a coordinated credential stuffing attack, triggering false lockouts for 85,000 legitimate enterprise users.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ================= PART 2 ================= -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<!-- Part 2 Architecture SVG: Google Cloud Load Balancer Decision & Traffic Routing Fabric -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d53-arch-title d53-arch-desc" viewBox="0 0 1000 520" width="100%" height="auto" style="background:#0a0f1d;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d53-arch-title">Google Cloud Load Balancing Architecture &amp; Control Flow Fabric</title>
+<desc id="d53-arch-desc">Comprehensive architectural diagram showing Global Anycast vs Regional ingress, Maglev passthrough layer with Direct Server Return, Envoy proxy fleet with Proxy-Only Subnet, Target Proxies and URL Map routing matrix, and backends including Zonal NEGs, MIGs, and Backend Buckets.</desc>
+<defs>
+<marker id="d53-http-flow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d53-int-flow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#a855f7"/>
+</marker>
+<marker id="d53-dsr-flow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d53-bucket-flow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+</defs>
+
+<!-- Outer Canvas -->
+<rect x="15" y="15" width="970" height="490" rx="8" fill="#0d1424" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="42" fill="#f8fafc" font-size="15" font-weight="700">Google Cloud Load Balancing Decision &amp; Control Flow Fabric</text>
+<text x="35" y="60" fill="#94a3b8" font-size="11">Global Anycast Ingress · Maglev L4 Passthrough (DSR) · Envoy Proxy Fleet &amp; Proxy-Only Subnet · URL Map Routing Matrix · Zonal NEGs &amp; Multi-Region Backends</text>
+
+<!-- Column 1: Client Ingress & Edge (x: 35 to 225) -->
+<rect x="35" y="80" width="190" height="405" rx="6" fill="#090d16" stroke="#38bdf8" stroke-width="1.5"/>
+<text x="48" y="104" fill="#38bdf8" font-size="12" font-weight="700">1. Ingress &amp; Edge VIPs</text>
+<text x="48" y="120" fill="#94a3b8" font-size="9.5">Worldwide BGP Anycast &amp; VPC VIPs</text>
+
+<!-- Global External Client -->
+<rect x="45" y="135" width="170" height="95" rx="4" fill="#131c31" stroke="#38bdf8" stroke-width="1"/>
+<text x="55" y="155" fill="#7dd3fc" font-size="11" font-weight="700">Global Anycast VIP</text>
+<text x="55" y="172" fill="#cbd5e1" font-size="9.5">VIP: 34.120.55.10 (Edge PoP)</text>
+<text x="55" y="188" fill="#cbd5e1" font-size="9.5">Layer 7: HTTPS / HTTP/3 / gRPC</text>
+<text x="55" y="204" fill="#94a3b8" font-size="9">BGP Announced at 100+ PoPs</text>
+<text x="55" y="218" fill="#94a3b8" font-size="8.5">Cloud Armor WAF / DDoS Mitigation</text>
+
+<!-- Regional External / Passthrough Client -->
+<rect x="45" y="245" width="170" height="95" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="55" y="265" fill="#86efac" font-size="11" font-weight="700">L4 Passthrough VIP</text>
+<text x="55" y="282" fill="#cbd5e1" font-size="9.5">VIP: 35.200.12.80 (Regional)</text>
+<text x="55" y="298" fill="#cbd5e1" font-size="9.5">Layer 4: UDP 9000 / TCP Raw</text>
+<text x="55" y="314" fill="#94a3b8" font-size="9">Direct Server Return (DSR)</text>
+<text x="55" y="328" fill="#94a3b8" font-size="8.5">No TLS Offload · Maglev Steer</text>
+
+<!-- Regional Internal Microservice Client -->
+<rect x="45" y="355" width="170" height="115" rx="4" fill="#2d1537" stroke="#a855f7" stroke-width="1"/>
+<text x="55" y="375" fill="#d8b4fe" font-size="11" font-weight="700">Internal ALB VIP</text>
+<text x="55" y="392" fill="#cbd5e1" font-size="9.5">VIP: 10.10.1.15 (RFC 1918)</text>
+<text x="55" y="408" fill="#cbd5e1" font-size="9.5">East-West Microservices Ingress</text>
+<text x="55" y="424" fill="#cbd5e1" font-size="9.5">Shared VPC &amp; PSC Consumers</text>
+<text x="55" y="440" fill="#94a3b8" font-size="9">Private Microservice Routing</text>
+<text x="55" y="456" fill="#94a3b8" font-size="8.5">Zero Internet Exposure</text>
+
+<!-- Column 2: Data Plane Engines (x: 245 to 445) -->
+<rect x="245" y="80" width="200" height="405" rx="6" fill="#0c1626" stroke="#475569" stroke-width="1.5"/>
+<text x="258" y="104" fill="#f1f5f9" font-size="12" font-weight="700">2. Forwarding Engines</text>
+<text x="258" y="120" fill="#94a3b8" font-size="9.5">GFE Edge, Envoy &amp; Maglev Layers</text>
+
+<!-- Engine A: GFE Edge Proxy -->
+<rect x="255" y="135" width="180" height="95" rx="4" fill="#172554" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="265" y="155" fill="#93c5fd" font-size="11" font-weight="700">Global Front End (GFE)</text>
+<text x="265" y="172" fill="#cbd5e1" font-size="9.5">• TLS 1.3 / QUIC Edge Offload</text>
+<text x="265" y="188" fill="#cbd5e1" font-size="9.5">• Google Backbone WAN Transit</text>
+<text x="265" y="204" fill="#cbd5e1" font-size="9.5">• Cloud CDN Edge Cache Engine</text>
+<text x="265" y="218" fill="#94a3b8" font-size="8.5">Dual-Socket Connection Model</text>
+
+<!-- Engine B: Maglev Kernel Passthrough -->
+<rect x="255" y="245" width="180" height="95" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.2"/>
+<text x="265" y="265" fill="#a7f3d0" font-size="11" font-weight="700">Maglev Passthrough</text>
+<text x="265" y="282" fill="#cbd5e1" font-size="9.5">• Consistent 5-Tuple Hashing</text>
+<text x="265" y="298" fill="#cbd5e1" font-size="9.5">• GRE/Geneve Packet Steering</text>
+<text x="265" y="314" fill="#cbd5e1" font-size="9.5">• Direct Server Return (DSR)</text>
+<text x="265" y="328" fill="#86efac" font-size="8.5">Native Client IP Preserved on Wire</text>
+
+<!-- Engine C: Regional Managed Envoy Pool -->
+<rect x="255" y="355" width="180" height="115" rx="4" fill="#3b0764" stroke="#a855f7" stroke-width="1.2"/>
+<text x="265" y="375" fill="#f3e8ff" font-size="11" font-weight="700">Envoy Proxy Fleet</text>
+<text x="265" y="392" fill="#cbd5e1" font-size="9.5">Proxy Subnet: 10.10.99.0/24</text>
+<text x="265" y="408" fill="#cbd5e1" font-size="9.5">purpose=REGIONAL_MANAGED_PROXY</text>
+<text x="265" y="424" fill="#cbd5e1" font-size="9.5">• Auto-scaling proxy instances</text>
+<text x="265" y="440" fill="#cbd5e1" font-size="9.5">• Internal TLS / Canary routing</text>
+<text x="265" y="456" fill="#d8b4fe" font-size="8.5">Requires /26 or /24 CIDR Pool</text>
+
+<!-- Column 3: Control Plane & URL Map (x: 465 to 705) -->
+<rect x="465" y="80" width="240" height="405" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+<text x="478" y="104" fill="#f8fafc" font-size="12" font-weight="700">3. Control Plane &amp; Routing Matrix</text>
+<text x="478" y="120" fill="#94a3b8" font-size="9.5">Target Proxies, Host Rules &amp; Path Matchers</text>
+
+<!-- Target Proxy Box -->
+<rect x="475" y="135" width="220" height="75" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+<text x="485" y="155" fill="#f1f5f9" font-size="10.5" font-weight="700">Target HTTPS / TCP Proxy</text>
+<text x="485" y="172" fill="#cbd5e1" font-size="9">• Google-managed SSL Certificates</text>
+<text x="485" y="188" fill="#cbd5e1" font-size="9">• SSL Policy (TLS 1.3 / MODERN Profile)</text>
+<text x="485" y="202" fill="#94a3b8" font-size="8.5">Optional PROXY_V2 Header Injection</text>
+
+<!-- URL Map Container -->
+<rect x="475" y="220" width="220" height="250" rx="4" fill="#131c31" stroke="#38bdf8" stroke-width="1"/>
+<text x="485" y="240" fill="#38bdf8" font-size="11" font-weight="700">URL Map: brightloaf-url-map</text>
+
+<!-- Host Rule 1: api.brightloaf.com -->
+<rect x="485" y="250" width="200" height="95" rx="3" fill="#1e293b" stroke="#3b82f6" stroke-width="1"/>
+<text x="495" y="268" fill="#93c5fd" font-size="10" font-weight="700">Host: api.brightloaf.com</text>
+<text x="495" y="284" fill="#cbd5e1" font-size="8.5">Path: /v1/orders/* → order-backend-svc</text>
+<text x="495" y="298" fill="#cbd5e1" font-size="8.5">Path: /v1/checkout/* → canary-split</text>
+<text x="495" y="312" fill="#fbbf24" font-size="8.5">  ├─ 90% Stable Backend Service</text>
+<text x="495" y="326" fill="#fbbf24" font-size="8.5">  └─ 10% Canary Backend Service</text>
+<text x="495" y="340" fill="#94a3b8" font-size="8">Header: X-Client-Tier=Gold override</text>
+
+<!-- Host Rule 2: cdn.brightloaf.com -->
+<rect x="485" y="355" width="200" height="50" rx="3" fill="#2a1d12" stroke="#f59e0b" stroke-width="1"/>
+<text x="495" y="373" fill="#fcd34d" font-size="10" font-weight="700">Host: cdn.brightloaf.com</text>
+<text x="495" y="389" fill="#cbd5e1" font-size="8.5">Path: /assets/* → static-asset-bucket</text>
+<text x="495" y="401" fill="#94a3b8" font-size="8">Cloud CDN TTL=86400s Cache-All</text>
+
+<!-- Internal L7 Microservice Rule -->
+<rect x="485" y="415" width="200" height="45" rx="3" fill="#2d1537" stroke="#a855f7" stroke-width="1"/>
+<text x="495" y="432" fill="#d8b4fe" font-size="10" font-weight="700">Path: /inventory/* → inv-neg-svc</text>
+<text x="495" y="448" fill="#cbd5e1" font-size="8.5">Routes to GKE Zonal NEG Pods</text>
+
+<!-- Column 4: Backends & Endpoints (x: 725 to 965) -->
+<rect x="725" y="80" width="240" height="405" rx="6" fill="#0c1626" stroke="#475569" stroke-width="1.5"/>
+<text x="738" y="104" fill="#f8fafc" font-size="12" font-weight="700">4. Heterogeneous Backends</text>
+<text x="738" y="120" fill="#94a3b8" font-size="9.5">MIGs, Zonal NEGs, Buckets &amp; DSR</text>
+
+<!-- Backend 1: US-East4 Multi-Region MIG -->
+<rect x="735" y="135" width="220" height="75" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="745" y="155" fill="#38bdf8" font-size="10.5" font-weight="700">MIG: order-svc (us-east4)</text>
+<text x="745" y="171" fill="#cbd5e1" font-size="9">Balancing Mode: RATE (100 RPS/inst)</text>
+<text x="745" y="185" fill="#86efac" font-size="8.5">Health Check: HTTP /healthz:8080</text>
+<text x="745" y="199" fill="#94a3b8" font-size="8.5">Spillover to europe-west1 on capacity</text>
+
+<!-- Backend 2: GKE Zonal NEGs -->
+<rect x="735" y="218" width="220" height="75" rx="4" fill="#1f112e" stroke="#a855f7" stroke-width="1.2"/>
+<text x="745" y="238" fill="#d8b4fe" font-size="10.5" font-weight="700">Zonal NEGs: Container-Native</text>
+<text x="745" y="254" fill="#cbd5e1" font-size="9">GKE Pod Endpoints (10.10.4.12:8080)</text>
+<text x="745" y="268" fill="#cbd5e1" font-size="8.5">Direct to Pod IP · 0 kube-proxy hops</text>
+<text x="745" y="282" fill="#86efac" font-size="8.5">Ingress allowed from Proxy Subnet /24</text>
+
+<!-- Backend 3: Maglev DSR Workload -->
+<rect x="735" y="300" width="220" height="85" rx="4" fill="#092416" stroke="#22c55e" stroke-width="1.2"/>
+<text x="745" y="320" fill="#86efac" font-size="10.5" font-weight="700">MIG: Telemetry Pool (DSR)</text>
+<text x="745" y="336" fill="#cbd5e1" font-size="9">Kernel listens on VIP port 9000</text>
+<text x="745" y="350" fill="#cbd5e1" font-size="8.5">Receives UDP packets via Geneve</text>
+<text x="745" y="364" fill="#4ade80" font-size="8.5">Replies directly to client via Internet GW!</text>
+<text x="745" y="378" fill="#94a3b8" font-size="8">DSR Bypasses Load Balancer Egress</text>
+
+<!-- Backend 4: Cloud Storage Backend Bucket -->
+<rect x="735" y="393" width="220" height="75" rx="4" fill="#2a1d12" stroke="#f59e0b" stroke-width="1.2"/>
+<text x="745" y="413" fill="#fcd34d" font-size="10.5" font-weight="700">Backend Bucket: static-assets</text>
+<text x="745" y="429" fill="#cbd5e1" font-size="9">GCS: gs://brightloaf-static-assets</text>
+<text x="745" y="443" fill="#cbd5e1" font-size="8.5">Cloud CDN Origin Shielding Enabled</text>
+<text x="745" y="457" fill="#94a3b8" font-size="8">Signed URLs &amp; Cache-Control headers</text>
+
+<!-- Connectors -->
+<!-- Ingress 1 -> Engine A -->
+<path d="M 215 180 L 255 180" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d53-http-flow)"/>
+<!-- Engine A -> Target Proxy -->
+<path d="M 435 180 L 475 160" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d53-http-flow)"/>
+<!-- Target Proxy -> URL Map -->
+<path d="M 585 210 L 585 220" fill="none" stroke="#38bdf8" stroke-width="2"/>
+<!-- URL Map Host 1 -> Backend 1 MIG -->
+<path d="M 685 280 L 735 170" fill="none" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#d53-http-flow)"/>
+<!-- URL Map Host 1 -> Backend 2 NEG -->
+<path d="M 685 300 L 735 240" fill="none" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#d53-http-flow)"/>
+<!-- URL Map Host 2 -> Backend 4 Bucket -->
+<path d="M 685 380 L 735 420" fill="none" stroke="#f59e0b" stroke-width="1.8" marker-end="url(#d53-bucket-flow)"/>
+
+<!-- Ingress 2 (L4) -> Maglev Engine -->
+<path d="M 215 290 L 255 290" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d53-dsr-flow)"/>
+<!-- Maglev Engine -> Backend 3 (MIG DSR) -->
+<path d="M 435 290 L 465 290 L 465 330 L 735 330" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d53-dsr-flow)"/>
+<!-- Backend 3 DSR return line back to outside -->
+<path d="M 955 350 L 975 350 L 975 480 L 130 480 L 130 340" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#d53-dsr-flow)"/>
+
+<!-- Ingress 3 (Internal) -> Envoy Engine -->
+<path d="M 215 410 L 255 410" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#d53-int-flow)"/>
+<!-- Envoy Engine -> Backend 2 NEG -->
+<path d="M 435 410 L 465 410 L 465 440 L 710 440 L 710 270 L 735 270" fill="none" stroke="#a855f7" stroke-width="1.8" marker-end="url(#d53-int-flow)"/>
+</svg>
+<figcaption>Figure 53.1: Google Cloud Load Balancing Decision &amp; Control Flow Fabric. Illustrates the interaction between Global Anycast GFE termination, regional managed Envoy proxies using a dedicated proxy-only subnet, Maglev Layer 4 Direct Server Return (DSR), URL Map host/path evaluation, and backend dispatching across multi-region MIGs, Zonal NEGs, and Cloud Storage buckets.</figcaption>
+</figure>
+
+<!-- TOPIC 01 TECHNICAL -->
+<article id="topic-01-technical" class="topic-card">
+<h3>Load balancer taxonomy: global vs regional, external vs internal, proxy vs passthrough, L4 vs L7</h3>
+<p>Architecting production load balancing in Google Cloud requires evaluating four independent, orthogonal architectural axes:</p>
+
+<h4>The Four Architectural Axes</h4>
+<ol>
+<li><strong>Scope (Global vs Regional):</strong>
+<ul>
+<li><strong>Global Load Balancers:</strong> Utilize a single Anycast IPv4 and IPv6 virtual IP (VIP) advertised globally via Border Gateway Protocol (BGP) from all Google edge points of presence (PoPs). Client TCP/TLS connections terminate at the closest edge PoP to minimize latency. Traffic traverses Google's private global fiber network to backends in any region. When backends in the local region reach capacity or fail health checks, Google Front Ends (GFEs) automatically spill traffic over to healthy backends in secondary regions with zero DNS change.</li>
+<li><strong>Regional Load Balancers:</strong> The VIP is bound to a single Google Cloud region. Traffic enters Google's network in that region and is distributed only to backends residing within that same region. Regional load balancers are required for strict data sovereignty compliance (such as GDPR Article 44–50, German BaFin, or Swiss FINMA banking regulations) where TLS keys, plaintext application payloads, and inspection logs must remain physically within a sovereign jurisdiction.</li>
+</ul>
+</li>
+<li><strong>Ingress Point (External vs Internal):</strong>
+<ul>
+<li><strong>External Load Balancers:</strong> Publicly reachable across the internet via globally or regionally routable public IP addresses. Protected against layer 3/4 volumetric floods by Google's global DDoS infrastructure and optionally shielded by Google Cloud Armor WAF at Layer 7.</li>
+<li><strong>Internal Load Balancers:</strong> Accessible only from within your private Virtual Private Cloud (VPC) networks, peered VPCs, or connected on-premises hybrid networks (via Cloud Interconnect or HA VPN) through private RFC 1918/RFC 6598 IP addresses.</li>
+</ul>
+</li>
+<li><strong>Processing Layer (Layer 4 vs Layer 7):</strong>
+<ul>
+<li><strong>Layer 4 Transport:</strong> Routes traffic based solely on IP 5-tuples (Source IP, Source Port, Destination IP, Destination Port, Protocol: TCP/UDP/ESP/ICMP/GRE). Fast, lightweight, and protocol-agnostic.</li>
+<li><strong>Layer 7 Application:</strong> Terminates HTTP/1.1, HTTP/2, HTTP/3 (QUIC), and gRPC sessions. Inspects host headers, URL request paths, HTTP methods, cookies, and custom headers to execute intelligent content-based routing, URL rewriting, redirects, and header manipulation.</li>
+</ul>
+</li>
+<li><strong>Architecture (Proxy vs Passthrough):</strong>
+<ul>
+<li><strong>Proxy Architecture (Envoy / GFE):</strong> The load balancer terminates the client connection (Socket 1: Client to Proxy) and establishes a separate, independent connection to the backend (Socket 2: Proxy to Backend). Enables TLS termination, HTTP header inspection, compression, and request routing, but masks the client's source IP address from backend network sockets.</li>
+<li><strong>Passthrough Architecture (Maglev):</strong> The load balancer does not terminate the connection. Google's distributed software router (Maglev) forwards raw IP packets directly to backend VM interfaces. Backends terminate the TCP or UDP socket directly and respond directly to the client via <strong>Direct Server Return (DSR)</strong>, bypassing the load balancer on the return path.</li>
+</ul>
+</li>
+</ol>
+
+<h4>Direct Server Return (DSR) vs. Dual-Connection Socket Model</h4>
+<p>Understanding the low-level socket and packet lifecycle differences between passthrough and proxy load balancers is vital for capacity planning and troubleshooting:</p>
+<ul>
+<li><strong>Passthrough Maglev Flow (Direct Server Return):</strong>
+<ol>
+<li>The client initiates a TCP handshake (SYN) to the load balancer VIP.</li>
+<li>Maglev receives the packet, computes a consistent hash on the 5-tuple, and encapsulates the packet in a Geneve/GRE tunnel inside the Andromeda virtual network fabric.</li>
+<li>The packet arrives at the backend VM's <code>eth0</code> interface without modifying the destination IP (which remains the VIP). A local route or kernel loopback alias directs the packet to the local application socket.</li>
+<li>The backend application accepts the connection. When sending the SYN-ACK response, the VM kernel crafts the packet with <code>Source IP = VIP</code> and <code>Destination IP = Client IP</code>.</li>
+<li>The return packet exits the VM directly through the VPC's default internet gateway (or Cloud NAT) and travels over the public internet back to the client. The return path completely bypasses Maglev! This asymmetric routing delivers massive egress throughput at line rate with near-zero latency overhead.</li>
+</ol>
+</li>
+<li><strong>Proxy Dual-Socket Flow (GFE / Envoy):</strong>
+<ol>
+<li>The client sends a SYN to the load balancer VIP. The GFE or regional Envoy terminates the TCP connection and completes the TLS handshake.</li>
+<li>The proxy buffers and parses the HTTP request headers or TCP stream.</li>
+<li>The proxy selects a backend instance based on the URL map, capacity limits, and health checks.</li>
+<li>The proxy initiates a second TCP handshake to the backend VM's internal IP address, drawing a source IP from Google Front End IP pools (for global ALB) or the dedicated Proxy-Only Subnet (for regional ALB).</li>
+<li>The backend sees the proxy's IP as the remote socket address. The original client IP is transmitted via the <code>X-Forwarded-For</code> HTTP header or the binary <strong>PROXY protocol v2</strong> header.</li>
+<li>Response packets must travel back to the proxy, which forwards them over the client socket. The load balancer must handle both ingress and egress bandwidth.</li>
+</ol>
+</li>
+</ul>
+
+<h4>The Regional Proxy-Only Subnet Mandate</h4>
+<p>Regional external ALBs, Regional internal ALBs, and Regional internal proxy NLBs are powered by managed Envoy proxy fleets running within the region. These Envoy instances require a dedicated <strong>Proxy-Only Subnet</strong> within the VPC:</p>
+<pre><code>gcloud compute networks subnets create proxy-only-us-east4   --purpose=REGIONAL_MANAGED_PROXY   --role=ACTIVE   --region=us-east4   --network=prod-shared-vpc   --range=10.10.99.0/24</code></pre>
+<ul>
+<li><strong>Subnet Sizing:</strong> Google Cloud mandates a minimum subnet prefix of <code>/26</code> (64 addresses, 60 usable) and strongly recommends <code>/24</code> (256 addresses, 252 usable) or <code>/23</code> for production environments. Each active Envoy proxy instance consumes internal IP addresses from this pool. As traffic scales up, Google Cloud automatically provisions additional Envoy instances. If the proxy subnet runs out of IP addresses, autoscaling fails, new connections are dropped, and existing connections suffer socket exhaustion.</li>
+<li><strong>Subnet Immutability:</strong> Once created, a proxy-only subnet cannot be expanded or edited in-place. If an undersized proxy subnet exhausts its IPs, an architect must create a second proxy-only subnet in the same region with <code>--role=ACTIVE</code>. Google Cloud will automatically demote the existing subnet to <code>--role=BACKUP</code> and gracefully migrate Envoy instances without dropping connections.</li>
+<li><strong>Subnet Scope and Isolation:</strong> Exactly one active proxy-only subnet can exist per VPC network per region. This subnet cannot be used for standard Compute Engine VMs, GKE Pods, Cloud SQL instances, or PSC endpoints.</li>
+<li><strong>Firewall Ingress Mandate:</strong> Workload subnets hosting backend instances or GKE pods must have an ingress firewall rule explicitly permitting traffic from the proxy-only subnet CIDR range on the application listening port.</li>
+</ul>
+
+<div class="table-wrap">
+<table>
+<caption>Table 53.1: Full Google Cloud Load Balancing Decision Matrix Across All Seven Types</caption>
+<thead>
+<tr>
+<th scope="col">Load Balancer Type</th>
+<th scope="col">Scope &amp; Ingress IP</th>
+<th scope="col">Layer &amp; Protocols</th>
+<th scope="col">Data Plane Architecture</th>
+<th scope="col">Proxy Subnet?</th>
+<th scope="col">Backend Types</th>
+<th scope="col">Client IP Handling</th>
+<th scope="col">WAF / CDN</th>
+<th scope="col">Primary Enterprise Workload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Global External ALB</th>
+<td>Global Anycast IPv4/IPv6</td>
+<td>Layer 7 (HTTP, HTTPS, HTTP/2, HTTP/3, gRPC)</td>
+<td>Proxy (Google Front End Edge PoPs)</td>
+<td>No (GFE Edge)</td>
+<td>MIGs, Zonal NEGs, Serverless NEGs, Hybrid NEGs, Buckets</td>
+<td><code>X-Forwarded-For</code> header</td>
+<td>Cloud Armor Edge WAF &amp; Cloud CDN</td>
+<td>Global web apps, APIs, SaaS platforms, CDN static asset delivery.</td>
+</tr>
+<tr>
+<th scope="row">Regional External ALB</th>
+<td>Regional Public IPv4/IPv6</td>
+<td>Layer 7 (HTTP, HTTPS, HTTP/2, gRPC)</td>
+<td>Proxy (Managed Envoy Pool in Region)</td>
+<td><strong>Yes</strong> (<code>/26</code> or <code>/24</code>)</td>
+<td>MIGs, Zonal NEGs, Serverless NEGs, Hybrid NEGs</td>
+<td><code>X-Forwarded-For</code> header</td>
+<td>Regional Cloud Armor WAF</td>
+<td>Strict data sovereignty compliance (GDPR, BaFin, FINMA) and localized ingress.</td>
+</tr>
+<tr>
+<th scope="row">Regional Internal ALB</th>
+<td>Regional Private RFC 1918</td>
+<td>Layer 7 (HTTP, HTTPS, HTTP/2, gRPC)</td>
+<td>Proxy (Managed Envoy Pool in Region)</td>
+<td><strong>Yes</strong> (<code>/26</code> or <code>/24</code>)</td>
+<td>MIGs, Zonal NEGs, Serverless NEGs, Hybrid NEGs</td>
+<td><code>X-Forwarded-For</code> header</td>
+<td>Regional Cloud Armor</td>
+<td>Internal microservice mesh ingress, east-west API routing, canary deployments.</td>
+</tr>
+<tr>
+<th scope="row">External Proxy NLB (TCP/SSL)</th>
+<td>Global Anycast / Regional Public</td>
+<td>Layer 4 (TCP, SSL/TLS)</td>
+<td>Proxy (GFE Edge or Regional Envoy)</td>
+<td>Yes if Regional; No if Global</td>
+<td>MIGs, Zonal NEGs, Hybrid NEGs</td>
+<td>PROXY protocol v1/v2 header injection</td>
+<td>Cloud Armor (Regional)</td>
+<td>Non-HTTP workloads: MQTT IoT gateways, gaming sockets, database connection pools.</td>
+</tr>
+<tr>
+<th scope="row">Internal Proxy NLB (TCP)</th>
+<td>Regional Private RFC 1918</td>
+<td>Layer 4 (TCP)</td>
+<td>Proxy (Managed Envoy Pool in Region)</td>
+<td><strong>Yes</strong> (<code>/26</code> or <code>/24</code>)</td>
+<td>MIGs, Zonal NEGs, Hybrid NEGs</td>
+<td>PROXY protocol v1/v2 header injection</td>
+<td>None</td>
+<td>Internal non-HTTP microservices requiring proxying or PROXY protocol preservation.</td>
+</tr>
+<tr>
+<th scope="row">External Passthrough NLB</th>
+<td>Regional Public IPv4/IPv6</td>
+<td>Layer 4 (TCP, UDP, ESP, ICMP, GRE)</td>
+<td>Passthrough (Maglev DSR Forwarding)</td>
+<td>No (Backend Subnet)</td>
+<td>MIGs, Target Pools</td>
+<td>Native (Packet source IP unchanged on wire)</td>
+<td>Cloud Armor (Network DDoS)</td>
+<td>Raw UDP streaming, VoIP, gaming servers, custom tunneling protocols.</td>
+</tr>
+<tr>
+<th scope="row">Internal Passthrough NLB</th>
+<td>Regional Private RFC 1918</td>
+<td>Layer 4 (TCP, UDP, ICMP, GRE)</td>
+<td>Passthrough (Andromeda / Maglev)</td>
+<td>No (Backend Subnet)</td>
+<td>MIGs, Zonal NEGs</td>
+<td>Native (Packet source IP unchanged on wire)</td>
+<td>None</td>
+<td>Internal databases, High-performance UDP, next-hop IP for custom NVA routers.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf needs a load balancer for a high-performance UDP streaming service for real-time warehouse barcode scanners in <code>us-central1</code>. Expected: Choose <strong>Regional External Passthrough Network Load Balancer</strong>. UDP requires Layer 4 passthrough; proxy load balancers do not support UDP.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview" rel="noopener noreferrer">Google Cloud Load Balancing Overview</a>.</p>
+</div>
+</article>
+
+<!-- TOPIC 02 TECHNICAL -->
+<article id="topic-02-technical" class="topic-card">
+<h3>Global external Application Load Balancer (HTTP/S): URL maps, backend services, backend buckets, host and path rules</h3>
+<p>The Global external Application Load Balancer provides Layer 7 reverse proxying and content-based routing at planetary scale.</p>
+
+<h4>End-to-End Packet and Control Flow</h4>
+<ol>
+<li><strong>Client Ingress to Anycast VIP:</strong> The client issues an HTTPS request. BGP Anycast routes the TCP handshake to the nearest Google edge PoP among hundreds distributed worldwide.</li>
+<li><strong>Global Forwarding Rule:</strong> Matches incoming packets on the VIP and specified port (TCP 80 or 443) and directs them to a Target HTTP(S) Proxy.</li>
+<li><strong>Target HTTPS Proxy:</strong>
+<ul>
+<li>Terminates the TLS connection using one or more Google-managed or self-managed SSL certificates (bound via Certificate Manager or SSL Certificate resources).</li>
+<li>Enforces an <strong>SSL Policy</strong> defining minimum TLS version (TLS 1.0, 1.1, 1.2, or 1.3) and cryptographic cipher profile (COMPATIBLE, MODERN, RESTRICTED, or CUSTOM).</li>
+<li>Negotiates HTTP/2 or HTTP/3 (QUIC) over UDP port 443.</li>
+<li>Forwards the decrypted HTTP request object to a URL Map.</li>
+</ul>
+</li>
+<li><strong>URL Map Routing Engine:</strong> Evaluates host headers and URL paths, matching request criteria to route traffic to specific Backend Services or Backend Buckets.</li>
+<li><strong>Backend Service:</strong> Manages session affinity, connection draining, outlier detection, and traffic balancing algorithms across backend instance groups or NEGs.</li>
+</ol>
+
+<h4>URL Map Anatomy and Advanced Traffic Management</h4>
+<p>URL Maps are declarative routing engines capable of sophisticated traffic manipulation:</p>
+<ul>
+<li><strong>Host Rules:</strong> Inspect the HTTP <code>Host</code> request header (e.g. <code>api.brightloaf.com</code> vs <code>cdn.brightloaf.com</code>). Host rules map specific domains or wildcards (<code>*.brightloaf.com</code>) to a Path Matcher.</li>
+<li><strong>Path Matchers and Path Rules:</strong> Match the request URI path against literal patterns or wildcard suffixes:
+<ul>
+<li>Exact match: <code>/api/v1/checkout/express</code></li>
+<li>Prefix match: <code>/api/v1/orders/*</code></li>
+<li>Catch-all default service: Handles any request that fails to match explicit path rules.</li>
+</ul>
+</li>
+<li><strong>Path Rule Precedence:</strong> URL Maps evaluate rules in a deterministic order: exact matches take precedence over prefix matches, and longer prefix matches take precedence over shorter prefix matches. However, unanchored patterns (e.g., <code>/api*</code> vs <code>/api/*</code>) can lead to accidental shadowing of subpaths.</li>
+<li><strong>URL Rewriting and Redirects:</strong> Automatically rewrite path prefixes (<code>pathPrefixRewrite: "/v2/orders"</code>) or issue HTTP 301/302 redirects (e.g., redirecting all HTTP port 80 traffic to HTTPS port 443 with <code>httpsRedirect: true</code>).</li>
+<li><strong>Header-Based and Cookie-Based Routing:</strong> Route requests to specialized backends based on custom headers (e.g. <code>X-Client-Tier: Enterprise</code>) or session cookies.</li>
+<li><strong>Weighted Traffic Splitting (Canary Deployments):</strong> Allocate percentage weights across multiple backend services (e.g., 95% to <code>orders-v1-stable</code> and 5% to <code>orders-v2-canary</code>) with optional header-based session pinning.</li>
+</ul>
+
+<h4>Backend Services: Instance Groups vs. Network Endpoint Groups (NEGs)</h4>
+<p>Backend services dispatch traffic to heterogeneous endpoint collections:</p>
+<ul>
+<li><strong>Managed Instance Groups (MIGs):</strong> Pools of Compute Engine VMs. Traffic balances to VM <code>eth0</code> interfaces. Requires containerized applications to rely on host port mapping or VM-level orchestration.</li>
+<li><strong>Zonal Network Endpoint Groups (Zonal NEGs):</strong> Contain <code>IP:Port</code> pairs for individual GKE Pods. Enables <strong>container-native load balancing</strong>:
+<ul>
+<li>GFE/Envoy routes packets directly to Pod IPs, bypassing <code>kube-proxy</code> and iptables NAT on the GKE worker node.</li>
+<li>Eliminates double-hopping (where a node receives a packet and routes it across the node network to a pod on a different node).</li>
+<li>Significantly reduces network latency, preserves pod-level health signals, and ensures optimal load distribution.</li>
+</ul>
+</li>
+<li><strong>Serverless NEGs:</strong> Point to serverless Google Cloud runtimes (Cloud Run services, Cloud Functions, App Engine). Enables placing Cloud Armor WAF and custom domain SSL certificates in front of Cloud Run.</li>
+<li><strong>Hybrid NEGs:</strong> Target on-premises or third-party cloud IP addresses reachable over Cloud Interconnect or HA VPN, allowing the global ALB to act as an external reverse proxy for legacy data centers.</li>
+<li><strong>Private Service Connect (PSC) NEGs:</strong> Target producer services published in other VPC networks or by third-party SaaS vendors without requiring VPC peering.</li>
+</ul>
+
+<h4>Balancing Modes and Capacity Scaling</h4>
+<p>Google Cloud ALBs use sophisticated capacity-based balancing algorithms:</p>
+<ul>
+<li><strong>RATE Balancing Mode:</strong> Defines the maximum requests per second (RPS) an instance or endpoint can handle (<code>maxRatePerInstance</code> or <code>maxRatePerEndpoint</code>). Ideal for I/O-bound microservices.</li>
+<li><strong>UTILIZATION Balancing Mode:</strong> Defines a target average backend CPU utilization (e.g. <code>maxUtilization = 0.80</code>). Ideal for CPU-intensive computing workloads.</li>
+<li><strong>Capacity Scaler:</strong> An adjustable multiplier (0.0 to 1.0) applied to an entire backend group. Setting the capacity scaler to <code>0.0</code> gracefully drains traffic from an instance group without deleting it or marking it unhealthy.</li>
+</ul>
+
+<h4>Backend Buckets and Cloud CDN Integration</h4>
+<p>When static assets (images, CSS, JavaScript, compiled media) are stored in Google Cloud Storage, a <strong>Backend Bucket</strong> routes requests directly from the URL map to the GCS bucket. Enabling <strong>Cloud CDN</strong> on the backend bucket caches static assets at all edge PoPs worldwide, reducing latency to single-digit milliseconds and dramatically lowering Cloud Storage egress charges.</p>
+
+<div class="table-wrap">
+<table>
+<caption>Table 53.2: Deep Architectural Comparison: Global External ALB vs Regional External ALB vs Regional Internal ALB</caption>
+<thead>
+<tr>
+<th scope="col">Architectural Dimension</th>
+<th scope="col">Global External ALB (HTTP/S)</th>
+<th scope="col">Regional External ALB (HTTP/S)</th>
+<th scope="col">Regional Internal ALB (HTTP/S)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Data Plane Engine</th>
+<td>Google Front End (GFE) distributed edge fleet</td>
+<td>Regional managed Envoy proxy pool</td>
+<td>Regional managed Envoy proxy pool</td>
+</tr>
+<tr>
+<th scope="row">IP Addressing &amp; Scope</th>
+<td>Global Anycast IPv4/IPv6 across 100+ PoPs</td>
+<td>Regional Public IP in single region</td>
+<td>Regional Private RFC 1918/6598 in VPC subnet</td>
+</tr>
+<tr>
+<th scope="row">Proxy-Only Subnet</th>
+<td><strong>Not Required</strong> (GFE operates outside VPC)</td>
+<td><strong>Mandatory</strong> (<code>REGIONAL_MANAGED_PROXY</code>)</td>
+<td><strong>Mandatory</strong> (<code>REGIONAL_MANAGED_PROXY</code>)</td>
+</tr>
+<tr>
+<th scope="row">Data Sovereignty &amp; Residency</th>
+<td>TLS terminates at closest global edge; packets traverse global private backbone</td>
+<td>Strictly within the chosen region; TLS keys and inspection never leave geographic boundary</td>
+<td>Strictly within the VPC network and chosen region; private internal traffic only</td>
+</tr>
+<tr>
+<th scope="row">Cross-Region Failover</th>
+<td>Automatic global spillover to secondary healthy regions on local capacity exhaustion</td>
+<td>None; traffic restricted to backends within the specified region</td>
+<td>None; traffic restricted to backends within the specified region</td>
+</tr>
+<tr>
+<th scope="row">Traffic Management (URL Map)</th>
+<td>Full support: host/path rules, redirects, rewrites, header matching, weighted canary splits</td>
+<td>Full support: host/path rules, redirects, rewrites, header matching, weighted canary splits</td>
+<td>Full support: host/path rules, redirects, rewrites, header matching, weighted canary splits</td>
+</tr>
+<tr>
+<th scope="row">Security &amp; WAF</th>
+<td>Google Cloud Armor Edge WAF, DDoS protection, Bot Management, Rate Limiting</td>
+<td>Regional Cloud Armor WAF policies</td>
+<td>Regional Cloud Armor security policies</td>
+</tr>
+<tr>
+<th scope="row">VPC &amp; Cross-Project Access</th>
+<td>Public internet ingress; connects to backends via VPC or Hybrid NEGs</td>
+<td>Public internet ingress; connects to regional VPC backends</td>
+<td>Private access via Shared VPC, VPC Peering, or Private Service Connect endpoints</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Customer traffic in Europe requests <code>https://api.brightloaf.com/v1/orders/123</code>. The US-East4 backend cluster is at 100% capacity. Expected: GFE detects that US-East4 capacity is saturated, and automatically routes the request across Google's private backbone to healthy backends in Europe-West1 without returning HTTP 503.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/load-balancing/docs/https" rel="noopener noreferrer">Global External Application Load Balancer Documentation</a>.</p>
+</div>
+</article>
+
+<!-- TOPIC 03 TECHNICAL -->
+<article id="topic-03-technical" class="topic-card">
+<h3>Regional external and internal Application Load Balancers</h3>
+<p>When enterprise regulations demand strict regional isolation or internal VPC microsegmentation, regional Application Load Balancers deploy Envoy proxies directly into the designated region.</p>
+
+<h4>Regional External Application Load Balancer Architecture</h4>
+<p>Regional external ALBs are purpose-built for workloads subject to stringent regulatory mandates:</p>
+<ul>
+<li><strong>Data Sovereignty and Jurisdictional Compliance:</strong> Many financial, healthcare, and governmental bodies (e.g. European Banking Authority, GDPR, German C5) require that cryptographic keys, TLS decryption, Layer 7 packet inspection, and web application firewall evaluation occur strictly within a designated geographic jurisdiction. Because Global ALBs terminate TLS at the nearest global GFE PoP (which might be outside the sovereign jurisdiction), Regional External ALBs ensure that TLS termination and proxying occur strictly inside the selected Google Cloud region.</li>
+<li><strong>Regional DDoS Fault Domain Isolation:</strong> By binding the load balancer to a single region, regional operational incidents or network anomalies cannot cascade across global infrastructure.</li>
+</ul>
+
+<h4>Regional Internal Application Load Balancer (Internal ALB) Architecture</h4>
+<p>Internal ALBs serve as private, secure ingress points for internal enterprise applications:</p>
+<ul>
+<li><strong>Private East-West Microservices Ingress:</strong> Modern microservice architectures require Layer 7 features—such as content-based path routing, gRPC load balancing, and header-based canary deployments—without exposing endpoints to the public internet. Internal ALBs provide these capabilities using private RFC 1918 IP addresses.</li>
+<li><strong>Shared VPC Integration:</strong> In enterprise hub-and-spoke topologies, the Internal ALB forwarding rule and proxy-only subnet can reside in the Shared VPC Host Project, while backend services point to Zonal NEGs or MIGs running in various Service Projects.</li>
+<li><strong>Private Service Connect (PSC) Consumer Integration:</strong> Workloads in consumer VPCs or remote on-premises networks can access an Internal ALB through a PSC endpoint (forwarding rule with private IP). This enables multi-tenant service consumption without the IP address overlapping conflicts or transitive routing limitations of VPC Network Peering.</li>
+</ul>
+
+<h4>Proxy-Only Subnet Lifecycle and Capacity Management</h4>
+<p>Because regional Envoy proxies execute inside the VPC data plane, managing the proxy-only subnet is a critical operational task:</p>
+<ul>
+<li><strong>Address Consumption Dynamics:</strong> Each Envoy proxy instance consumes one internal IP address from the proxy-only subnet for its management interface and additional IPs for backend connections. The number of Envoy instances autoscales based on active connections, new connection rate, and bandwidth.</li>
+<li><strong>Capacity Planning Formula:</strong> Plan for at least 1 Envoy instance per 1,000 active connections or 100 new connections per second. For high-volume production microservices, a <code>/24</code> subnet (252 usable IPs) provides ample headroom for thousands of concurrent proxy instances and seamless rolling upgrades.</li>
+<li><strong>Monitoring Proxy Subnet IP Exhaustion:</strong> Monitor the Cloud Monitoring metric <code>loadbalancing.googleapis.com/subnet/proxy/allocated_ip_addresses</code>. Alerting should trigger when allocation exceeds 70% of available subnet IPs.</li>
+</ul>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Internal payment pods in GKE need to call the checkout microservice with canary testing. Expected: Deploy an Internal Application Load Balancer with a <code>/24</code> proxy-only subnet, routing traffic based on URL Map route rules with 95/5 traffic split weights.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/load-balancing/docs/l7-internal" rel="noopener noreferrer">Internal Application Load Balancer Overview</a>.</p>
+</div>
+</article>
+
+<!-- TOPIC 04 TECHNICAL -->
+<article id="topic-04-technical" class="topic-card">
+<h3>External and internal proxy Network Load Balancers (TCP/SSL proxy)</h3>
+<p>When applications use non-HTTP protocols that still require reverse proxy benefits (such as global Anycast IP access, centralized SSL certificate management, and health checks), Proxy Network Load Balancers provide the optimal architectural solution.</p>
+
+<h4>Architectural Scope and Enterprise Workloads</h4>
+<p>Proxy Network Load Balancers bridge the gap between Layer 7 HTTP proxies and raw Layer 4 passthrough routers:</p>
+<ul>
+<li><strong>Target Workloads:</strong> MQTT IoT brokers (port 8883), PostgreSQL and MySQL database proxies (e.g. PgBouncer on port 5432, ProxySQL on port 3306), Redis cache clusters (port 6379), multiplayer gaming session daemons, financial FIX protocol streams, and proprietary binary RPC services.</li>
+<li><strong>Centralized TLS/SSL Offload:</strong> SSL Proxy NLBs terminate client SSL/TLS handshakes at Google edge GFEs, decrypt the payload, and forward plaintext TCP (or re-encrypted TLS) to backend VMs. This offloads cryptographic CPU overhead from application servers and centralizes SSL certificate renewal via Certificate Manager.</li>
+<li><strong>Global vs Regional Proxy NLB:</strong>
+<ul>
+<li><strong>Global External Proxy NLB:</strong> Anycast VIP advertised globally; terminates TCP/SSL at the edge GFE PoP and uses Google's backbone to reach backends in multiple regions.</li>
+<li><strong>Regional External / Internal Proxy NLB:</strong> Regional VIP terminated by managed Envoy proxy instances inside the VPC; requires a dedicated <code>REGIONAL_MANAGED_PROXY</code> proxy-only subnet.</li>
+</ul>
+</li>
+</ul>
+
+<h4>Preserving Client Identity with PROXY Protocol (v1 vs v2)</h4>
+<p>Because a proxy load balancer terminates the client TCP connection and opens a separate TCP connection to the backend, the backend operating system kernel records the proxy's IP address (a GFE IP or a proxy-only subnet IP) as the remote socket address. This breaks IP-based geolocation, security audit logging, and fraud detection algorithms.</p>
+<p>To preserve original client IP metadata across the proxy boundary, Proxy NLBs support the <strong>PROXY protocol</strong>:</p>
+<ul>
+<li><strong>PROXY Protocol v1 (Human-Readable ASCII):</strong> Prepends an ASCII string to the start of the TCP connection immediately after the handshake completes:
+<pre><code>PROXY TCP4 198.51.100.22 34.120.55.10 54321 8883\r\n</code></pre>
+Easy to read and debug, but incurs higher string-parsing overhead on backend socket listeners.</li>
+<li><strong>PROXY Protocol v2 (Compact Binary):</strong> Prepends a standardized 16-byte binary structure containing a magic signature (<code>\x0D\x0A\x0D\x0A\x00\x0D\x0A\x51\x55\x49\x54\x0A</code>), protocol version, address family (IPv4 vs IPv6), source IP, destination IP, source port, and destination port, followed by optional Type-Length-Value (TLV) extension fields. High performance and negligible bandwidth overhead.</li>
+<li><strong>Backend Software Configuration Mandate:</strong> The backend software (e.g., NGINX stream module, HAProxy, Envoy, Netty, or custom daemon) MUST be explicitly configured to decode the PROXY protocol header before reading application data:
+<pre><code># Backend Service configuration in Google Cloud
+gcloud compute backend-services update db-proxy-backend   --global   --proxy-header=PROXY_V2</code></pre>
+<p><strong>Critical Operational Warning:</strong> If PROXY protocol is enabled on the Google Cloud backend service but the backend software is not configured to decode it, the backend application will interpret the PROXY binary header as corrupted application payload, dropping connections immediately!</p>
+</li>
+</ul>
+
+<div class="table-wrap">
+<table>
+<caption>Table 53.3: Deep Architectural Comparison: Proxy Network Load Balancer vs Passthrough Network Load Balancer</caption>
+<thead>
+<tr>
+<th scope="col">Architectural Dimension</th>
+<th scope="col">Proxy Network Load Balancer (TCP/SSL Proxy)</th>
+<th scope="col">Passthrough Network Load Balancer (Maglev)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Supported Protocols</th>
+<td>TCP and SSL/TLS only (No UDP, ICMP, ESP, or GRE)</td>
+<td>TCP, UDP, ESP, ICMP, GRE (Full L4 transport suite)</td>
+</tr>
+<tr>
+<th scope="row">Connection Handling</th>
+<td><strong>Dual-Connection Termination:</strong> Proxy terminates client socket and opens a new socket to backend</td>
+<td><strong>Packet Forwarding:</strong> Packets forwarded directly to backend VM interfaces without socket termination</td>
+</tr>
+<tr>
+<th scope="row">Direct Server Return (DSR)</th>
+<td><strong>No:</strong> Response packets must flow back through the proxy to reach the client</td>
+<td><strong>Yes:</strong> Backend VM responds directly to client IP via VPC internet gateway, bypassing NLB</td>
+</tr>
+<tr>
+<th scope="row">Client IP Preservation</th>
+<td>Masked by proxy IP; requires <strong>PROXY protocol v1/v2</strong> header injection</td>
+<td><strong>Native:</strong> Original client IP and port preserved directly in the IP packet header on the wire</td>
+</tr>
+<tr>
+<th scope="row">TLS Offload &amp; Cipher Policies</th>
+<td>Fully supported; terminates TLS at edge or Envoy using Google-managed certificates and SSL policies</td>
+<td>Not supported; TLS must terminate directly on backend application software</td>
+</tr>
+<tr>
+<th scope="row">Proxy-Only Subnet Requirement</th>
+<td>Required for Regional External and Regional Internal variants; Not required for Global External</td>
+<td><strong>Never Required:</strong> Operates directly on the backend instances' native workload subnet</td>
+</tr>
+<tr>
+<th scope="row">Health Check Probing Ranges</th>
+<td><code>130.211.0.0/22</code> and <code>35.191.0.0/16</code> (GFE / Envoy health checking fleet)</td>
+<td><code>35.191.0.0/16</code>, <code>209.85.152.0/22</code>, <code>209.85.204.0/22</code></td>
+</tr>
+<tr>
+<th scope="row">Throughput &amp; Scaling Limits</th>
+<td>Scales to millions of concurrent TCP sessions; bound by proxy CPU and socket capacity</td>
+<td>Line-rate throughput; virtually unlimited scaling bound only by backend VM network interfaces</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An IoT fleet transmits telemetry over TLS-encrypted MQTT (TCP port 8883). The backend database requires logging the true client source IP for geolocation analysis. Expected: Deploy an External SSL Proxy Load Balancer with <code>--proxy-header=PROXY_V2</code>; configure MQTT brokers to decode PROXY protocol v2.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/load-balancing/docs/tcp" rel="noopener noreferrer">Proxy Network Load Balancer Overview</a>.</p>
+</div>
+</article>
+</section>
+
+<!-- ================= PART 3 ================= -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+
+<!-- INCIDENT 1 -->
+<article id="topic-01-problem" class="topic-card">
+<h3>Selecting Incompatible Load Balancer for Raw Non-HTTP Workload · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's warehouse operations team deployed an automated guided vehicle (AGV) tracking fleet in <code>us-central1</code>. The AGV robots communicate using a custom high-frequency UDP telemetry stream on port 9000. An infrastructure engineer provisioned an External Application Load Balancer (ALB) to terminate the traffic. When the AGV robots initiated broadcasts, zero telemetry packets reached backend servers. The AGVs entered safety lockouts, shutting down the automated pallet loading dock for 8 hours and delaying $1.2 million in scheduled freight shipments.</p>
+
+<p><strong>Constraints:</strong> AGV hardware firmware strictly supports UDP broadcasts; cannot modify vehicle firmware to use HTTP/REST or WebSockets; must provide high availability across multiple backend VM instances; client source IP must be preserved natively for robot spatial tracking.</p>
+
+<p><strong>Diagnostic sequence:</strong>
+1. <strong>Inspect Load Balancer Configuration:</strong> Executed CLI inspection on the active forwarding rule:
+<pre><code>gcloud compute forwarding-rules describe agv-telemetry-fwd-rule   --region=us-central1   --format="yaml(IPProtocol,loadBalancingScheme,target)"</code></pre>
+Observed <code>IPProtocol: TCP</code> and <code>target: .../targetHttpProxies/...</code>.
+2. <strong>Packet Capture on Backend VM:</strong> Captured network interfaces on the telemetry server pool:
+<pre><code>sudo tcpdump -nn -i eth0 udp port 9000</code></pre>
+Result: Exactly zero UDP packets arrived at the backend VM network interface.
+3. <strong>Edge Metric Inspection:</strong> Queried Cloud Monitoring metrics for the external ALB. Observed that GFE edge proxies logged zero successful HTTP requests and generated elevated TCP connection reset errors for incoming non-HTTP handshakes.
+</p>
+
+<p><strong>Root cause:</strong> The incident was caused by selecting an Application Load Balancer (ALB) for a UDP workload. Application Load Balancers operate strictly at Layer 7 and only accept HTTP, HTTPS, HTTP/2, and gRPC traffic. Furthermore, Proxy Network Load Balancers only support TCP. The correct architectural selection was a <strong>Regional External Passthrough Network Load Balancer</strong>. Passthrough NLB operates directly on Google's Maglev distributed forwarding layer, supporting raw UDP and TCP traffic with native client IP preservation and Direct Server Return (DSR).</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Deleted the incompatible ALB forwarding rule and target proxy.
+2. Created a regional health check supporting the telemetry application.
+3. Created a regional backend service with protocol <code>UDP</code> and balancing scheme <code>EXTERNAL</code>.
+4. Created a Regional External Passthrough NLB forwarding rule listening on UDP port 9000:
+<pre><code>gcloud compute forwarding-rules create agv-telemetry-nlb-rule   --region=us-central1   --load-balancing-scheme=EXTERNAL   --backend-service=agv-udp-backend-svc   --ip-protocol=UDP   --ports=9000</code></pre>
+Once applied, all AGVs re-established communication instantly and warehouse operations resumed.
+</p>
+
+<!-- Incident 1 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d53-i1-title d53-i1-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d53-i1-title">Incident 1: L7 ALB Dropping UDP vs Passthrough NLB Maglev Routing</title>
+<desc id="d53-i1-desc">Incident diagram showing failed path where an Application Load Balancer rejected UDP telemetry packets, followed by corrected path routing UDP through a Regional Passthrough NLB.</desc>
+<defs>
+<marker id="d53-i1-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d53-i1-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Application Load Balancer (ALB) Rejects UDP Telemetry</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">AGV Robot (Warehouse)</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">UDP Packet Port 9000</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Global External ALB (GFE)</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">REJECT: UDP Protocol Not Supported</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Telemetry Server Pool</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Zero Packets Received (Drop)</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d53-i1-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d53-i1-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Regional Passthrough NLB (Maglev Layer 4 Forwarding)</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">AGV Robot (Warehouse)</text>
+<text x="50" y="221" fill="#86efac" font-size="10">UDP Packet Port 9000</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Maglev Passthrough NLB</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Direct UDP Forwarding (DSR)</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Telemetry Server Pool</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Packets Ingested at Line Rate</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d53-i1-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d53-i1-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Maglev L4 Kernel</text>
+</svg>
+<figcaption>Figure 53.2: Incident 1 Root Cause and Remediation. <strong>Supplied facts:</strong> UDP warehouse telemetry failed to reach backends through an Application Load Balancer. <strong>Architectural inference:</strong> ALBs only terminate HTTP/gRPC protocols; non-HTTP UDP traffic requires Layer 4 Passthrough NLB. <strong>Expected post-fix behavior:</strong> Maglev forwards UDP datagrams directly to backend instances with zero protocol conversion latency.</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Passthrough NLB does not terminate TLS or decrypt traffic. If TLS is required for UDP (DTLS), encryption must terminate directly on backend VM software. Backend firewalls must explicitly permit UDP port 9000 from client ranges.</p>
+</article>
+
+<!-- INCIDENT 2 -->
+<article id="topic-02-problem" class="topic-card">
+<h3>URL Map Path Rule Ordering Causing Critical Blackhole · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf pushed an update to their Global external ALB to route new mobile checkout endpoints (<code>/api/v1/checkout/express</code>). Immediately after deploying the updated URL map, all mobile checkout requests returned HTTP 404 Not Found. Over 14,000 customers abandoned their shopping carts during the flash promo, resulting in a loss of $310,000 in revenue.</p>
+
+<p><strong>Constraints:</strong> Must maintain a single Anycast frontend IP for both legacy API and express checkout; cannot redeploy application containers or change client API paths.</p>
+
+<p><strong>Diagnostic sequence:</strong>
+1. <strong>Query Cloud Logging for HTTP 404 Errors:</strong>
+<pre><code>gcloud logging read 'resource.type="http_load_balancer" AND httpRequest.status=404'   --limit=10   --format="json(httpRequest.requestUrl,jsonPayload.statusDetails,jsonPayload.backendTargetProject)"</code></pre>
+Result: Logs showed requests to <code>/api/v1/checkout/express</code> routed to <code>legacy-api-backend-svc</code> instead of <code>checkout-backend-svc</code>, with status details <code>response_code_matched_backend</code>.
+2. <strong>Inspect URL Map Configuration YAML:</strong>
+<pre><code>gcloud compute url-maps export web-global-url-map</code></pre>
+Observed the pathMatcher structure:
+<pre><code>pathRules:
+- paths:
+  - "/api*"
+  service: projects/prod-net/global/backendServices/legacy-api-backend-svc
+- paths:
+  - "/api/v1/checkout/*"
+  service: projects/prod-net/global/backendServices/checkout-backend-svc</code></pre>
+</p>
+
+<p><strong>Root cause:</strong> In the URL Map, an engineer added the unanchored path pattern <code>/api*</code> (without a trailing slash) above the checkout rule. In URL map path matching, <code>/api*</code> matches any path beginning with the characters <code>/api</code>, including <code>/api/v1/checkout/express</code>. Because this rule appeared first and captured the request prefix, the express checkout traffic was intercepted and forwarded to the legacy backend, which returned HTTP 404.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Restructured the URL Map pathMatcher:
+<ul>
+<li>Defined explicit, unambiguous path rules (<code>/api/v1/checkout/*</code> and <code>/api/v1/checkout/express</code>).</li>
+<li>Anchored legacy API routes with explicit trailing delimiters (<code>/api/v1/legacy/*</code>).</li>
+<li>Set the default service of the pathMatcher to <code>api-default-backend</code>.</li>
+</ul>
+2. Validated the URL Map configuration using the CLI validation command before production deployment:
+<pre><code>gcloud compute url-maps validate   --url-map=web-global-url-map   --load-balancing-scheme=EXTERNAL_MANAGED</code></pre>
+3. Applied the corrected URL map. Mobile checkout transactions completed successfully with HTTP 200 OK.</p>
+
+<!-- Incident 2 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d53-i2-title d53-i2-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d53-i2-title">Incident 2: URL Map Prefix Conflict vs Explicit Path Rules</title>
+<desc id="d53-i2-desc">Diagram showing failed path where ambiguous path prefix routed express checkout traffic to a legacy backend returning 404, followed by corrected path with validated path matchers.</desc>
+<defs>
+<marker id="d53-i2-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d53-i2-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Ambiguous Prefix /api* Intercepts Express Checkout</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Mobile Client</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">GET /api/v1/checkout/express</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">URL Map Prefix Match</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Matched: /api* → Legacy Backend</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Legacy Backend Service</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">HTTP 404: Unknown Route</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d53-i2-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d53-i2-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Validated URL Map with Specific Path Matchers</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Mobile Client</text>
+<text x="50" y="221" fill="#86efac" font-size="10">GET /api/v1/checkout/express</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">URL Map Path Matcher</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Matched: /api/v1/checkout/*</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Express Checkout MIG</text>
+<text x="730" y="221" fill="#86efac" font-size="10">HTTP 200 OK (Payment Processed)</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d53-i2-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d53-i2-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: URL Map Parser</text>
+</svg>
+<figcaption>Figure 53.3: Incident 2 Root Cause and Remediation. <strong>Supplied facts:</strong> Express checkout requests returned 404 after URL map changes. <strong>Architectural inference:</strong> Broad prefix patterns can inadvertently match and shadow more specific service routes. <strong>Expected post-fix behavior:</strong> URL Map correctly disambiguates <code>/api/v1/checkout/*</code> to the express service, returning 200 OK.</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Always include automated unit tests in CI/CD pipelines that run URL Map validation against synthetic URL paths before applying changes to production load balancers:</p>
+<pre><code>gcloud compute url-maps validate --url-map=web-global-url-map</code></pre>
+</article>
+
+<!-- INCIDENT 3 -->
+<article id="topic-03-problem" class="topic-card">
+<h3>Internal ALB Dropping Microservice Traffic Due to Exhausted Proxy Subnet · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf implemented an Internal Application Load Balancer (ILB) in <code>us-east4</code> to manage east-west traffic between the frontend gateway and backend inventory pods. During a morning traffic surge, the internal load balancer began dropping 60% of requests with <code>HTTP 503 Service Unavailable</code>. The inventory microservice dashboards showed 0% CPU utilization and all pods were healthy, yet client calls failed with connection timeouts.</p>
+
+<p><strong>Constraints:</strong> Must preserve internal Layer 7 routing and path-based canary deployments; cannot expose microservices to external networks.</p>
+
+<p><strong>Diagnostic sequence:</strong>
+1. <strong>Verify Backend Pod Health:</strong> Checked GKE inventory pods in <code>us-east4</code>. CPU utilization was at 3%, memory normal, and health checks were passing 100%.
+2. <strong>Inspect Cloud Logging for ALB Status Details:</strong>
+<pre><code>gcloud logging read 'resource.type="http_load_balancer" AND httpRequest.status=503'   --limit=10   --format="yaml(jsonPayload.statusDetails,jsonPayload.responseCodeDetail)"</code></pre>
+Result: Status showed <code>failed_to_pick_backend</code> with response code detail <code>envoy_proxy_resource_exhaustion</code>.
+3. <strong>Inspect Proxy-Only Subnet IP Utilization:</strong>
+<pre><code>gcloud compute networks subnets describe proxy-only-east4   --region=us-east4   --format="yaml(ipCidrRange,purpose,role)"</code></pre>
+Observed that the proxy-only subnet was provisioned with CIDR <code>10.10.99.0/28</code> (only 16 total IP addresses, with only 12 usable host IPs). All 12 IP addresses were fully consumed by active Envoy proxy instances. When connection spikes arrived, Envoy could not autoscale additional proxy replicas, causing incoming client connections to be refused.
+</p>
+
+<p><strong>Root cause:</strong> Undersized <code>/28</code> proxy-only subnet ran out of IP addresses during the traffic spike. Because Envoy instances could not be provisioned, existing proxies suffered socket starvation and returned HTTP 503 errors.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Created a new proxy-only subnet in <code>us-east4</code> with a <code>/24</code> CIDR block (256 IP addresses) with active role:
+<pre><code>gcloud compute networks subnets create proxy-only-east4-v2   --purpose=REGIONAL_MANAGED_PROXY   --role=ACTIVE   --region=us-east4   --network=prod-shared-vpc   --range=10.10.100.0/24</code></pre>
+The previous subnet automatically transitioned to <code>BACKUP</code> role.
+2. Updated the backend firewall rule to permit ingress from the new proxy subnet:
+<pre><code>gcloud compute firewall-rules update allow-internal-alb-east4   --source-ranges=10.10.100.0/24</code></pre>
+3. Envoy automatically scaled to 32 instances. Dropped connections ceased immediately and HTTP 503 errors fell to 0.00%.
+</p>
+
+<!-- Incident 3 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d53-i3-title d53-i3-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d53-i3-title">Incident 3: Proxy-Only Subnet IP Depletion vs /24 Autoscale Pool</title>
+<desc id="d53-i3-desc">Diagram showing failed path where an undersized /28 proxy subnet blocked Envoy autoscaling, followed by corrected path with a /24 subnet accommodating peak proxy scale.</desc>
+<defs>
+<marker id="d53-i3-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d53-i3-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Undersized /28 Proxy Subnet Exhausted During Traffic Spike</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Client Pods (Surge Load)</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">2,500 Concurrent RPS</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Envoy Pool (/28 Subnet)</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Only 12 IPs: Cannot Autoscale</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Inventory Microservice</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">HTTP 503: Envoy Overloaded</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d53-i1-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d53-i1-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Sized /24 Proxy-Only Subnet Supporting Dynamic Autoscaling</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Client Pods (Surge Load)</text>
+<text x="50" y="221" fill="#86efac" font-size="10">2,500 Concurrent RPS</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Envoy Pool (/24 Subnet)</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">256 IPs: Scaled to 32 Envoys</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Inventory Microservice</text>
+<text x="730" y="221" fill="#86efac" font-size="10">HTTP 200: Healthy Response</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d53-i1-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d53-i1-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Proxy Subnet IPs</text>
+</svg>
+<figcaption>Figure 53.4: Incident 3 Root Cause and Remediation. <strong>Supplied facts:</strong> Internal ALB returned 503 errors during traffic spikes while backend microservices were idle. <strong>Architectural inference:</strong> Undersized /28 proxy subnet ran out of IP addresses, blocking Envoy autoscaling. <strong>Expected post-fix behavior:</strong> Sizing the proxy subnet to /24 allows Envoy to autoscale up to hundreds of instances, accommodating load without dropping connections.</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Ensure firewall rules on backend VMs allow ingress explicitly from the new <code>/24</code> proxy-only subnet range, otherwise all connections from newly spawned Envoy proxies will be blocked.</p>
+</article>
+
+<!-- INCIDENT 4 -->
+<article id="topic-04-problem" class="topic-card">
+<h3>Client IP Masking in TCP Proxy Breaking Fraud Detection · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's security risk engine flags fraudulent account takeovers by analyzing the true geographical origin IP of incoming password reset requests. After migrating their authentication proxy to an External TCP Proxy Load Balancer, the fraud engine logged 100% of incoming connections originating from a single internal Google IP (<code>130.211.0.4</code>). Because all global traffic appeared to originate from one address, rate-limiting algorithms engaged globally, locking 85,000 legitimate users out of their accounts.</p>
+
+<p><strong>Constraints:</strong> Workload uses a custom binary TCP authentication handshake; cannot switch to HTTP; fraud engine requires the true public IPv4/IPv6 client IP.</p>
+
+<p><strong>Diagnostic sequence:</strong>
+1. <strong>Inspect Backend Connection Logs:</strong> Analyzed incoming socket connections on the auth servers:
+<pre><code>sudo ss -tnp state established '( dport = :9000 )'</code></pre>
+Observed that every active connection had a remote peer address within <code>130.211.0.0/22</code> or <code>35.191.0.0/16</code> (Google Front End edge proxy pools).
+2. <strong>Inspect Backend Service Configuration:</strong>
+<pre><code>gcloud compute backend-services describe auth-tcp-backend   --global   --format="yaml(proxyHeader)"</code></pre>
+Observed <code>proxyHeader: NONE</code>.
+3. <strong>Verify Packet Flow:</strong> Confirmed that TCP Proxy terminates the client socket at the edge GFE and establishes a fresh TCP socket to the backend without prepending client metadata.
+</p>
+
+<p><strong>Root cause:</strong> TCP Proxy Load Balancers terminate the client TCP session at Google's edge GFEs. The GFE then establishes a second, independent TCP connection to the backend instances. Consequently, the backend socket sees the GFE's internal proxy IP as the remote address. To restore true client IP visibility without altering the transport layer, PROXY protocol v2 header injection must be enabled on the backend service and parsed by the backend socket application.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Updated the backend service configuration to enable <strong>PROXY Protocol v2</strong>:
+<pre><code>gcloud compute backend-services update auth-tcp-backend   --global   --proxy-header=PROXY_V2</code></pre>
+2. Updated the backend authentication server software configuration to enable PROXY protocol v2 decoding on its listening socket:
+<pre><code># Example NGINX stream block configuration:
+# server {
+#     listen 9000 proxy_protocol;
+#     proxy_pass backend_auth_cluster;
+# }</code></pre>
+3. Flushed the fraud detection rate limit cache. Authenticated client requests resumed, and fraud logs correctly attributed logins to users' true geographic origin IPs.
+</p>
+
+<!-- Incident 4 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d53-i4-title d53-i4-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d53-i4-title">Incident 4: TCP Proxy IP Masking vs PROXY Protocol v2 Injection</title>
+<desc id="d53-i4-desc">Diagram showing failed path where TCP proxy masked true client IP with a GFE address triggering global rate limits, followed by corrected path injecting PROXY protocol v2 headers.</desc>
+<defs>
+<marker id="d53-i4-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d53-i4-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Backend Sees Only GFE Proxy IP (130.211.0.4) → False Lockout</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">User Client (198.51.100.22)</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">TCP Handshake to VIP</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">External TCP Proxy</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Terminates TCP; Source IP Masked</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Auth Server &amp; Risk Engine</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">BLOCKED: Single IP Over-Limit</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d53-i1-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d53-i1-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: PROXY Protocol v2 Injected into Backend TCP Stream</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">User Client (198.51.100.22)</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Real Client IP Preserved</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">External TCP Proxy</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Appends PROXY_V2 Binary Header</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Auth Server &amp; Risk Engine</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Parses Real IP (Normal Risk Score)</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d53-i1-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d53-i1-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: PROXY v2 Header</text>
+</svg>
+<figcaption>Figure 53.5: Incident 4 Root Cause and Remediation. <strong>Supplied facts:</strong> TCP proxy load balancer caused all traffic to appear from Google GFE IPs, triggering global rate limits. <strong>Architectural inference:</strong> Proxy load balancers terminate connections; PROXY protocol v2 must be enabled on the backend service to transmit original client IP metadata. <strong>Expected post-fix behavior:</strong> Backend auth daemon parses the PROXY v2 header, correctly attributing traffic to real client IPs.</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> If backend software does not support PROXY protocol v2, enabling it on the backend service will corrupt incoming TCP payloads, causing applications to drop connections immediately. Health check probes will also fail if sent to a PROXY protocol port unless configured with PROXY headers.</p>
+</article>
+</section>
+
+<!-- ================= PART 4 ================= -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<!-- LAB 1 -->
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Evaluate and Select Load Balancers Using Architectural Constraints</h3>
+<p><strong>Goal:</strong> Formulate an architectural decision record (ADR) mapping workload constraints to Google Cloud load balancer types across the 4 core axes.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 52 exit artifacts.</p>
+<ol>
+<li><strong>Review the 4-Axis Decision Framework:</strong>
+<pre><code># Architectural selection rubric:
+# Axis 1 - Scope: Global Anycast (low latency, cross-region failover) vs Regional (data sovereignty)
+# Axis 2 - Ingress: External (Public IP, Cloud Armor) vs Internal (RFC 1918, VPC microservices)
+# Axis 3 - Layer: Layer 7 (HTTP/S, URL Maps, gRPC) vs Layer 4 (TCP, UDP, ICMP, GRE)
+# Axis 4 - Architecture: Proxy (TLS offload, PROXY protocol) vs Passthrough (Maglev, DSR, line-rate)</code></pre>
+</li>
+<li><strong>Formulate Workload Requirements for Brightloaf:</strong> Document constraints for:
+<ul>
+<li><strong>Public Order Web &amp; API:</strong> HTTPS, global client base, multi-region failover, URL path routing, Cloud Armor WAF.</li>
+<li><strong>Warehouse AGV Telemetry:</strong> High-throughput UDP port 9000, regional data residency, zero protocol conversion latency.</li>
+<li><strong>Internal Inventory Microservice:</strong> East-west internal RFC 1918 traffic, canary deployments, Private Service Connect.</li>
+<li><strong>Legacy Database Connection Pool:</strong> Non-HTTP TCP port 5432, TLS termination, client IP preservation.</li>
+<li><strong>Static Media Assets:</strong> Global CDN edge caching, Cloud Storage origin, signed URLs.</li>
+</ul>
+</li>
+<li><strong>Calculate Proxy-Only Subnet IP Capacity:</strong>
+<p>For each region deploying regional Envoy load balancers, calculate the required proxy subnet prefix based on expected peak concurrency (e.g. 5,000 concurrent RPS requiring at least 16–32 Envoy instances, demanding a minimum <code>/26</code> or recommended <code>/24</code> subnet).</p>
+</li>
+<li><strong>Draft the Decision Matrix:</strong> Complete the selection ADR comparing Global External ALB with Regional Passthrough NLB and documenting rejected alternatives.</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A completed load balancer selection matrix with clear architectural justification, rejected alternatives, proxy subnet sizing calculations, and operational trade-offs.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Ensure you never select an ALB for UDP or non-HTTP protocols, and never select a Passthrough NLB if Cloud Armor Layer 7 WAF inspection or URL path routing is required.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>No chargeable cloud resources created for this design evaluation exercise.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-53-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<!-- LAB 2 -->
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Build and Test a Global External Application Load Balancer</h3>
+<p><strong>Goal:</strong> Deploy a Global external ALB with an HTTP health check, backend service, Zonal NEG, backend bucket, and URL map path routing.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 52 exit artifacts.</p>
+<ol>
+<li><strong>Create HTTP Health Check:</strong>
+<pre><code>gcloud compute health-checks create http basic-http-check   --port=80   --request-path=/healthz   --check-interval=5s   --timeout=5s   --healthy-threshold=2   --unhealthy-threshold=3</code></pre>
+</li>
+<li><strong>Create Global Backend Service:</strong>
+<pre><code>gcloud compute backend-services create web-backend-svc   --protocol=HTTP   --port-name=http   --health-checks=basic-http-check   --global   --load-balancing-scheme=EXTERNAL_MANAGED   --enable-logging   --logging-sample-rate=1.0</code></pre>
+</li>
+<li><strong>Create Cloud Storage Backend Bucket for Static Assets:</strong>
+<pre><code>gcloud storage buckets create gs://brightloaf-static-assets-lab   --location=US
+
+gcloud compute backend-buckets create static-asset-bucket   --gcs-bucket-name=brightloaf-static-assets-lab   --enable-cdn</code></pre>
+</li>
+<li><strong>Create URL Map with Host and Path Rules:</strong>
+<pre><code>gcloud compute url-maps create web-global-url-map   --default-service=web-backend-svc
+
+gcloud compute url-maps add-path-matcher web-global-url-map   --path-matcher-name=static-matcher   --default-backend-bucket=static-asset-bucket   --backend-bucket-path-rules="/assets/*=static-asset-bucket"</code></pre>
+</li>
+<li><strong>Create Target HTTP Proxy and Global Forwarding Rule:</strong>
+<pre><code>gcloud compute target-http-proxies create web-target-proxy   --url-map=web-global-url-map
+
+gcloud compute forwarding-rules create web-global-forwarding-rule   --load-balancing-scheme=EXTERNAL_MANAGED   --network-tier=PREMIUM   --target-http-proxy=web-target-proxy   --global   --ports=80</code></pre>
+</li>
+<li><strong>Validate URL Map via CLI Validation Tool:</strong>
+<pre><code>gcloud compute url-maps validate   --url-map=web-global-url-map   --load-balancing-scheme=EXTERNAL_MANAGED</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The Global Forwarding Rule provisions with an Anycast public IP. URL map validation returns status <code>VALID</code>.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Global load balancer changes propagate across worldwide GFEs over 2–5 minutes. Allow time before issuing test curl requests.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete the forwarding rule, target proxy, URL map, backend service, backend bucket, and health check after verification.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-53-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<!-- LAB 3 -->
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Deploy Regional Internal Application Load Balancer with Proxy Subnet</h3>
+<p><strong>Goal:</strong> Provision a regional proxy-only subnet and configure an Internal ALB with canary traffic splitting.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 52 exit artifacts.</p>
+<ol>
+<li><strong>Create Regional Proxy-Only Subnet:</strong>
+<pre><code>gcloud compute networks subnets create proxy-only-east4   --purpose=REGIONAL_MANAGED_PROXY   --role=ACTIVE   --region=us-east4   --network=prod-shared-vpc   --range=10.10.99.0/24</code></pre>
+</li>
+<li><strong>Create Ingress Firewall Rule for Envoy Proxies:</strong>
+<pre><code>gcloud compute firewall-rules create allow-proxy-to-backends   --network=prod-shared-vpc   --action=ALLOW   --direction=INGRESS   --source-ranges=10.10.99.0/24   --rules=tcp:8080</code></pre>
+</li>
+<li><strong>Create Regional Health Check and Backend Services:</strong>
+<pre><code>gcloud compute health-checks create http internal-app-check   --region=us-east4   --port=8080   --request-path=/healthz
+
+gcloud compute backend-services create internal-backend-stable   --load-balancing-scheme=INTERNAL_MANAGED   --protocol=HTTP   --region=us-east4   --health-checks=internal-app-check
+
+gcloud compute backend-services create internal-backend-canary   --load-balancing-scheme=INTERNAL_MANAGED   --protocol=HTTP   --region=us-east4   --health-checks=internal-app-check</code></pre>
+</li>
+<li><strong>Create Regional URL Map and Forwarding Rule:</strong>
+<pre><code>gcloud compute url-maps create internal-url-map   --default-service=internal-backend-stable   --region=us-east4
+
+gcloud compute target-http-proxies create internal-target-proxy   --url-map=internal-url-map   --region=us-east4
+
+gcloud compute forwarding-rules create internal-alb-forwarding-rule   --load-balancing-scheme=INTERNAL_MANAGED   --network=prod-shared-vpc   --subnet=prod-app-us-east4   --region=us-east4   --target-http-proxy=internal-target-proxy   --ports=80</code></pre>
+</li>
+<li><strong>Verify Internal ALB VIP Allocation:</strong>
+<pre><code>gcloud compute forwarding-rules describe internal-alb-forwarding-rule   --region=us-east4   --format="yaml(IPAddress,loadBalancingScheme,subnet)"</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Internal ALB forwarding rule acquires an RFC 1918 internal IP address in the application subnet. Envoy proxies utilize the <code>/24</code> proxy-only subnet.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If forwarding rule creation fails with <code>MISSING_PROXY_SUBNET</code>, verify that the proxy subnet was created with <code>--purpose=REGIONAL_MANAGED_PROXY</code> in the exact same region.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Teardown regional forwarding rule, proxies, backend services, and proxy-only subnets.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-53-topic-03"> I completed and checked this topic exercise</label>
+</article>
+
+<!-- LAB 4 -->
+<article id="topic-04-lab" class="topic-card lab">
+<h3>Exercise 4: Configure TCP Proxy Load Balancer with PROXY Protocol v2</h3>
+<p><strong>Goal:</strong> Deploy an External TCP Proxy Load Balancer and configure PROXY protocol v2 header injection.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 52 exit artifacts.</p>
+<ol>
+<li><strong>Create TCP Health Check:</strong>
+<pre><code>gcloud compute health-checks create tcp tcp-service-check   --port=9000   --global</code></pre>
+</li>
+<li><strong>Create Backend Service with PROXY Protocol v2:</strong>
+<pre><code>gcloud compute backend-services create tcp-proxy-backend   --protocol=TCP   --health-checks=tcp-service-check   --proxy-header=PROXY_V2   --global</code></pre>
+</li>
+<li><strong>Create Target TCP Proxy and Global Forwarding Rule:</strong>
+<pre><code>gcloud compute target-tcp-proxies create tcp-target-proxy   --backend-service=tcp-proxy-backend
+
+gcloud compute forwarding-rules create tcp-forwarding-rule   --load-balancing-scheme=EXTERNAL   --target-tcp-proxy=tcp-target-proxy   --global   --ports=9000</code></pre>
+</li>
+<li><strong>Verify Header Injection Configuration:</strong>
+<pre><code>gcloud compute backend-services describe tcp-proxy-backend   --global   --format="get(proxyHeader)"</code></pre>
+Observe that the returned value confirms <code>PROXY_V2</code>.
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>TCP Proxy backend service confirms <code>proxyHeader: PROXY_V2</code>. Incoming TCP connections prepend binary client IP headers.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Ensure backend servers are configured to parse PROXY protocol v2 before routing live production traffic.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete forwarding rules, target TCP proxies, and backend services after testing.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-53-topic-04"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<!-- ================= COMPLETION ================= -->
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>Assemble your architecture evaluation into a markdown file named <code>day-053-lb-selection-adr.md</code>. Include your load balancer selection matrix, URL map routing definitions, and an architectural analysis comparing Global External ALB with Regional Passthrough NLB for the Brightloaf enterprise platform.</p>
+<label class="check"><input type="checkbox" data-progress="read-53"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-53"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-052.html">← Day 52<small>DNS, hybrid transit and network diagnosis</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-054.html">Day 54 →<small>Health checks, certificates and draining</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

@@ -1,0 +1,152 @@
+    <section class="part" id="part-2" aria-labelledby="part-2-heading">
+      <h2 id="part-2-heading">Part 2 · Technical discussion</h2>
+      <p class="section-lead">Architecting resilient and compliant enterprise systems requires evaluating the geographic topology of Google Cloud: balancing the five regional selection vectors and engineering across failure domains from zonal physical clusters to global Anycast networks.</p>
+
+      <article class="card" id="topic-01-technical" aria-labelledby="t1-tech-title">
+        <span class="badge">Deep Dive · Topic 01</span>
+        <h3 id="t1-tech-title">Regions and zones: how to pick one (latency, cost, compliance, service availability, carbon footprint)</h3>
+        <p>A Google Cloud <strong>region</strong> represents an independent geographic area containing three or more fault-isolated <strong>zones</strong>. Each zone is housed within one or more physical datacenters equipped with redundant power, cooling, and network infrastructure, interconnected via ultra-low-latency private optical fiber (&lt;1&nbsp;ms round-trip latency between zones in the same region). Selecting where to place workloads is not an arbitrary infrastructure detail; it governs application responsiveness, operational expenditures, legal exposure, hardware access, and environmental impact.</p>
+
+        <h4>The Five Regional Selection Criteria</h4>
+        <ul>
+          <li><strong>1. Client-to-Workload Latency:</strong> The speed of light in optical fiber introduces approximately 5&nbsp;ms of round-trip latency per 500&nbsp;km of physical distance. For interactive transactional systems—such as retail order placement, point-of-sale terminals, and dynamic web APIs—anchoring backend compute close to the user population minimizes latency overhead. While Google Cloud's Global External Application Load Balancers terminate TLS handshakes at edge Points of Presence (PoPs) globally, dynamic non-cacheable database queries must still transit to the backend region. Placing compute in <code>us-central1</code> (Iowa) provides symmetric ~20&nbsp;ms transit to Chicago, Dallas, and Midwestern distribution hubs, whereas hosting in <code>us-west1</code> (Oregon) adds 40–50&nbsp;ms RTT for East Coast clients.</li>
+          <li><strong>2. Regional Infrastructure Pricing Differential:</strong> Google Cloud prices identical compute, storage, and networking SKUs differently across geographic regions to reflect local real estate, electrical power, labor, and taxation costs. Regions are categorized into pricing tiers: baseline low-cost regions (such as <code>us-central1</code>, <code>us-east1</code>, and <code>europe-west1</code>) contrast with higher-cost locations (such as <code>southamerica-east1</code> in São Paulo or <code>europe-west6</code> in Zurich), where compute and persistent disk costs can be 20% to 35% higher. Furthermore, inter-zone egress within the same region costs $0.01 per GB, whereas inter-region egress across Google's private global backbone costs $0.02 to $0.08 per GB depending on the destination continent.</li>
+          <li><strong>3. Compliance, Data Sovereignty, and Residency:</strong> Regulatory mandates frequently constrain geographic placement. Under the European Union General Data Protection Regulation (GDPR), personal data of EU residents cannot be transferred to jurisdictions lacking equivalent adequacy decisions without explicit legal mechanisms. Similarly, healthcare workloads subject to HIPAA or financial systems bound by national central bank regulations mandate domestic storage and processing. In Google Cloud, architects enforce geographic boundaries using the Resource Locations Organization Policy constraint (<code>constraints/gcp.resourceLocations</code>), which restricts the allowed deployment locations for all projects within an organizational folder hierarchy.</li>
+          <li><strong>4. Service and Hardware Accelerator Availability:</strong> Not all Google Cloud services, machine families, or accelerators are available in every region upon initial launch. While standard general-purpose compute (such as <code>e2</code> and <code>n2</code>) and core managed services (Cloud Storage, Cloud SQL) are ubiquitous, advanced compute families (such as memory-optimized <code>m2</code>/<code>m3</code> instances, compute-optimized <code>c3</code> with Google Titanium offload engines) and specialized hardware accelerators (NVIDIA H100 GPUs, Cloud TPU v5e/v5p) are concentrated in anchor regions like <code>us-central1</code>, <code>us-east4</code>, and <code>europe-west4</code>. Selecting a region without verifying current hardware availability blocks machine learning and high-performance database deployments.</li>
+          <li><strong>5. Carbon Footprint and Clean Energy (CFE%):</strong> Google Cloud publishes an hourly matched Carbon Free Energy percentage (CFE%) and grid carbon intensity (gCO2eq/kWh) for each region. Regions operating on grids with abundant hydro, wind, and nuclear generation (such as <code>europe-north1</code> in Finland at 94% CFE or <code>us-west1</code> in Oregon at 89% CFE) offer significantly lower environmental impact than fossil-fuel-dependent grids (such as <code>asia-south1</code> in Mumbai at 18% CFE). Modern enterprise sustainability charters incorporate CFE% into infrastructure scoring, directing asynchronous batch processing and data analytics pipelines to high-CFE regions.</li>
+        </ul>
+
+        <h4>Table 30.1: Multi-Criteria Regional Comparison (Brightloaf Production Candidates)</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Evaluation Vector</th>
+                <th scope="col">Candidate 1: us-central1 (Iowa)</th>
+                <th scope="col">Candidate 2: us-east4 (N. Virginia)</th>
+                <th scope="col">Candidate 3: europe-west3 (Frankfurt)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Available Zones</th>
+                <td>4 zones (<code>us-central1-a, b, c, f</code>)</td>
+                <td>3 zones (<code>us-east4-a, b, c</code>)</td>
+                <td>3 zones (<code>europe-west3-a, b, c</code>)</td>
+              </tr>
+              <tr>
+                <th scope="row">Latency to US Midwest Clients</th>
+                <td><strong>Lowest (12–18 ms RTT)</strong></td>
+                <td>Moderate (28–35 ms RTT)</td>
+                <td>High (95–110 ms RTT transatlantic)</td>
+              </tr>
+              <tr>
+                <th scope="row">Relative Compute Cost</th>
+                <td>Tier 1 Baseline (1.00x - Lowest)</td>
+                <td>Tier 2 (+8% over us-central1)</td>
+                <td>Tier 2 (+12% over us-central1)</td>
+              </tr>
+              <tr>
+                <th scope="row">Carbon Free Energy (CFE%)</th>
+                <td>64% CFE (Moderate wind blend)</td>
+                <td>51% CFE (Grid fossil/nuclear mix)</td>
+                <td>76% CFE (High wind/solar mix)</td>
+              </tr>
+              <tr>
+                <th scope="row">Hardware &amp; Accelerators</th>
+                <td>Comprehensive: N2, C3, M3, TPU v5p, H100</td>
+                <td>High: N2, C3, A100, L4 GPUs</td>
+                <td>High: N2, C3, A100 GPUs; limited TPU</td>
+              </tr>
+              <tr>
+                <th scope="row">Data Sovereignty Domain</th>
+                <td>US Commercial &amp; FedRAMP High</td>
+                <td>US Commercial &amp; FedRAMP High</td>
+                <td>EU GDPR &amp; German BaFin Financial</td>
+              </tr>
+              <tr>
+                <th scope="row">Architectural Role</th>
+                <td><strong>Primary US Order Ingestion &amp; Dispatch</strong></td>
+                <td><strong>Asynchronous DR Standby (US)</strong></td>
+                <td><strong>Dedicated European Expansion Stack</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Figure 30.1: Multi-Criteria Region Selection Architecture -->
+        INJECT_FIG_30_1_HERE
+      </article>
+
+      <article class="card" id="topic-02-technical" aria-labelledby="t2-tech-title">
+        <span class="badge">Deep Dive · Topic 02</span>
+        <h3 id="t2-tech-title">Zonal vs regional vs multi-regional vs global resources</h3>
+        <p>In Google Cloud, every service and resource operates within an architectural failure boundary called its <strong>availability scope</strong>. Understanding where a resource sits on the spectrum between single-datacenter isolation and worldwide Anycast distribution determines how the overall system behaves during hardware breakdowns, maintenance events, and catastrophic natural disasters.</p>
+
+        <h4>The Four Resource Availability Scopes</h4>
+        <ul>
+          <li><strong>Zonal Resources:</strong> A zonal resource resides within a single, specific physical zone. If that zone loses utility power, cooling, or local network connectivity, the resource becomes unavailable. Examples include standalone Compute Engine virtual machines, zonal Persistent Disks (<code>pd-standard</code>, <code>pd-balanced</code>, <code>pd-ssd</code>), single-zone GKE node pools, and ephemeral internal IP addresses. Zonal resources offer the lowest latency and zero inter-zone cross-talk fees, but they represent a single point of failure (SPOF) if deployed without redundant peers.</li>
+          <li><strong>Regional Resources:</strong> A regional resource is distributed across at least three independent zones within a metropolitan area. Google Cloud manages synchronous replication or automatic horizontal scaling across these zones. If an entire zone suffers a total physical collapse, regional resources continue operating transparently with zero data loss or sub-minute automated failover. Examples include <strong>Regional Managed Instance Groups (MIGs)</strong> with proactive instance distribution, <strong>Regional Persistent Disks</strong> (which synchronously mirror block writes across two zones in the same region), <strong>Cloud SQL High Availability (HA)</strong> instances (featuring synchronous replication to a standby instance in an alternate zone), <strong>Cloud Run</strong> serverless containers, and <strong>Regional Cloud Storage buckets</strong>.</li>
+          <li><strong>Multi-Regional Resources:</strong> A multi-regional resource replicates data asynchronously or via distributed consensus across multiple distinct geographic regions separated by hundreds or thousands of miles. Examples include <strong>Multi-Region Cloud Storage buckets</strong> (e.g., <code>us</code>, <code>eu</code>, <code>asia</code>), <strong>BigQuery multi-region datasets</strong>, and <strong>Cloud Spanner multi-regional instance configurations</strong>. Multi-regional services survive continental catastrophic events and enable geo-distributed low-latency reads, but they incur higher storage pricing, cross-region replication fees, and distributed consensus write latencies.</li>
+          <li><strong>Global Resources:</strong> Global resources are decoupled from any individual datacenter or metropolitan region; they operate across Google's global Anycast software-defined network and global control plane. Examples include <strong>Virtual Private Cloud (VPC) networks</strong> (which span all regions worldwide with a single unified private IP routing space), <strong>Global External Application Load Balancers</strong> (which advertise a single Anycast IP from 100+ global edge PoPs), <strong>Cloud DNS</strong>, <strong>Cloud Identity and Access Management (Cloud IAM)</strong>, and <strong>Cloud Armor</strong> edge defense policies. A failure within an individual Google Cloud region has zero effect on global network routing or edge ingress termination.</li>
+        </ul>
+
+        <h4>Table 30.2: Resource Scope Availability &amp; Blast Radius Comparison</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Scope</th>
+                <th scope="col">Representative GCP Resources</th>
+                <th scope="col">Blast Radius / Isolation Boundary</th>
+                <th scope="col">High Availability Mechanism</th>
+                <th scope="col">Architectural Trade-Offs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Zonal</th>
+                <td>Compute Engine VMs, Zonal Persistent Disks, Zonal GKE Nodes, Ephemeral IPs</td>
+                <td>Single physical datacenter zone. Disrupted by local power/cooling/hardware failures.</td>
+                <td>None natively. Requires manual rebuild, snapshot restoration, or application-level clustering.</td>
+                <td>Lowest latency, zero cross-zone network charges. Unmitigated single point of failure (SPOF).</td>
+              </tr>
+              <tr>
+                <th scope="row">Regional</th>
+                <td>Regional MIGs, Regional PDs, Cloud SQL HA, Cloud Run, Regional Cloud Storage, Regional GKE Control Plane</td>
+                <td>Single metropolitan region. Survives the complete catastrophic collapse of any single zone.</td>
+                <td>Synchronous block replication (Regional PD), 3-zone control plane replication, automated failover.</td>
+                <td>Standard SLA 99.9% to 99.99%. Incurs inter-zone network traffic costs ($0.01/GB) and synchronous replication latency.</td>
+              </tr>
+              <tr>
+                <th scope="row">Multi-Regional</th>
+                <td>Multi-Region Cloud Storage (<code>us</code>, <code>eu</code>), BigQuery Multi-Regions, Cloud Spanner Multi-Region</td>
+                <td>Multiple geographic regions (&gt;100 miles apart). Survives entire regional or metropolitan grid collapse.</td>
+                <td>Geo-distributed asynchronous replication (Cloud Storage) or Paxos distributed consensus (Cloud Spanner).</td>
+                <td>Highest availability SLA (up to 99.999% for Spanner). Higher storage cost, consensus write latency overhead.</td>
+              </tr>
+              <tr>
+                <th scope="row">Global</th>
+                <td>VPC Networks, Global External Application Load Balancers, Cloud DNS, Cloud IAM, Cloud Armor</td>
+                <td>Decoupled from geographic facilities. Enforced across Google worldwide edge PoPs and Anycast backbone.</td>
+                <td>Worldwide Anycast edge routing; cell-based control plane replication with localized data plane caching.</td>
+                <td>Single IP front-door for global backends. Dependency on Google global control plane convergence.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Figure 30.2: Resource Scope Hierarchy -->
+        INJECT_FIG_30_2_HERE
+      </article>
+
+      <div class="callout tip">
+        <strong>Further study: Google Cloud official documentation</strong>
+        <ul>
+          <li><a href="https://cloud.google.com/about/locations" target="_blank" rel="noopener noreferrer">Google Cloud Locations: Regions and Zones Overview</a> — Comprehensive map of global regions, availability zones, and carbon-free energy scores.</li>
+          <li><a href="https://cloud.google.com/compute/docs/regions-zones" target="_blank" rel="noopener noreferrer">Compute Engine Regions and Zones Documentation</a> — Official breakdown of zonal, regional, and global compute resources and hardware family availability.</li>
+          <li><a href="https://cloud.google.com/storage/docs/locations" target="_blank" rel="noopener noreferrer">Cloud Storage Bucket Locations</a> — Architectural trade-offs between region, dual-region, and multi-region storage deployments.</li>
+          <li><a href="https://cloud.google.com/resource-manager/docs/organization-policy/defining-locations" target="_blank" rel="noopener noreferrer">Defining Resource Location Constraints</a> — Guide to governing regional deployments using the <code>constraints/gcp.resourceLocations</code> organization policy.</li>
+        </ul>
+      </div>
+    </section>

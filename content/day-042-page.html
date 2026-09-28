@@ -1,0 +1,1126 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 42: Kubernetes architecture and cluster choices · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+</style>
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-041.html" aria-label="Previous day">← Day 41</a>
+<a href="day-043.html" aria-label="Next day">Day 43 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html" selected>Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="42" data-prev="day-041.html" data-next="day-043.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 42 of 180</div>
+
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 42</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">tabletop / GKE architecture</span>
+<span class="pill">Topic 014</span>
+</div>
+<h1>Day 42 — Kubernetes architecture and cluster choices</h1>
+<p class="lead"><strong>Outcome:</strong> Trace the declarative Kubernetes reconciliation loop across control plane and worker node components, evaluate GKE Autopilot vs Standard operational and security boundaries, and architect Regional HA clusters over single-zone control planes.</p>
+<div>
+<strong>Entry prerequisites:</strong>
+<p><a href="day-041.html">Day 41</a> (VM operations), <a href="day-009.html">Day 9</a> (VM/container isolation), <a href="day-010.html">Day 10</a> (images, filesystems, and orchestration); bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A Kubernetes reconciliation trace document and cluster architecture decision sheet (<code>day-042-reconciliation.md</code>) contrasting desired vs observed state loops, Autopilot vs Standard operational ownership boundaries, and Zonal vs Regional control plane SLA models.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-27; Kubernetes components and Google Kubernetes Engine (GKE) operational modes sourced from upstream Kubernetes and GCP documentation. Architectural models represent design frameworks rather than production benchmarks.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Kubernetes architecture: control plane, nodes, etcd, kubelet, kube-proxy</span>
+<a href="#topic-01-overview">overview</a> ·
+<a href="#topic-01-technical">discussion</a> ·
+<a href="#topic-01-problem">problem</a> ·
+<a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Autopilot vs Standard mode (when to choose each)</span>
+<a href="#topic-02-overview">overview</a> ·
+<a href="#topic-02-technical">discussion</a> ·
+<a href="#topic-02-problem">problem</a> ·
+<a href="#topic-02-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Zonal vs regional clusters (regional for HA control plane)</span>
+<a href="#topic-03-overview">overview</a> ·
+<a href="#topic-03-technical">discussion</a> ·
+<a href="#topic-03-problem">problem</a> ·
+<a href="#topic-03-lab">lab</a>
+</div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════ PART 1 ══ -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Kubernetes architecture: control plane, nodes, etcd, kubelet, kube-proxy</h3>
+<p>
+  Kubernetes operates on a declarative reconciliation model governed by a split-plane architecture. The <strong>control plane</strong> consists of the stateless <code>kube-apiserver</code> (the front door handling authentication, authorization, and schema validation), <code>etcd</code> (a distributed, strongly consistent key-value store holding the single source of truth for desired and observed state), <code>kube-scheduler</code> (which assigns unassigned pods to optimal worker nodes based on resource requests and topology constraints), and <code>kube-controller-manager</code> (which executes non-terminating control loops to reconcile actual cluster state toward desired state).
+</p>
+<p>
+  On each <strong>worker node</strong>, the <code>kubelet</code> communicates with the API server to receive pod specifications and drives the local container runtime (e.g. <code>containerd</code> via CRI), while <code>kube-proxy</code> programs local virtual IP routing rules (via iptables or eBPF in Dataplane V2). When desired and observed state diverge, developers frequently confuse local worker node execution failures with control plane API outages.
+</p>
+<p class="small"><em>Problem preview:</em> After rolling out a new Order API Deployment manifest, developers observe pods stuck indefinitely in <code>ImagePullBackOff</code> and assume the GKE API server has crashed. In reality, the control plane successfully stored desired state in etcd and scheduled the pods, but the worker node kubelet is failing to authenticate against the private Artifact Registry due to a missing Kubernetes imagePullSecret.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Autopilot vs Standard mode (when to choose each)</h3>
+<p>
+  Google Kubernetes Engine (GKE) offers two operational paradigms: <strong>Standard</strong> and <strong>Autopilot</strong>. In GKE Standard, the customer manages the worker node pools, chooses underlying Compute Engine machine families, configures OS images (Container-Optimized OS or Ubuntu), tunes cluster autoscaler thresholds, and pays for the full physical capacity of provisioned node VMs regardless of actual pod allocation.
+</p>
+<p>
+  In GKE Autopilot, Google manages the entire node lifecycle, node security hardening, operating system upgrades, and automated bin-packing. Customers configure only pod manifests and pay strictly for requested pod vCPU, memory, and storage per second. However, Autopilot enforces strict security guardrails—disallowing privileged containers, hostPath volume mounts, and custom kernel modules—which breaks certain legacy or specialized infrastructure tooling.
+</p>
+<p class="small"><em>Problem preview:</em> An operations team attempts to deploy a third-party security daemonset that requires <code>privileged: true</code> and host filesystem access onto a newly provisioned GKE Autopilot cluster. The GKE Autopilot admission controller rejects the pod manifest with a webhook denial, blocking compliance visibility and stalling production migration.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Zonal vs regional clusters (regional for HA control plane)</h3>
+<p>
+  A GKE cluster's availability is governed by its control plane topology. A <strong>Zonal Cluster</strong> runs a single control plane replica located in a single availability zone. During automated master upgrades, control plane maintenance, or a zonal facility impairment, the single Kubernetes API server becomes unreachable. Although existing running pods continue to serve traffic, all control plane operations—including horizontal pod autoscaling (HPA), automated pod recreation, and deployment rollouts—completely halt.
+</p>
+<p>
+  A <strong>Regional Cluster</strong> provisions three replicated control plane masters distributed across three separate zones in the region, fronted by an internal load balancer. Regional clusters provide a 99.95% control plane SLA (compared to 99.5% for zonal) and ensure that scheduled master version upgrades occur rolling, zone-by-zone, with zero interruption to API access.
+</p>
+<p class="small"><em>Problem preview:</em> The production Order API is deployed on a Zonal GKE cluster in <code>us-central1-a</code>; during an unexpected morning traffic surge, Google initiates an automated control plane patch. The single API server goes offline for 12 minutes, preventing the Horizontal Pod Autoscaler from scaling out pods as traffic doubles, causing the surviving pods to crash from memory exhaustion and triggering widespread customer checkout failures.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 2 ══ -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Kubernetes architecture: control plane, nodes, etcd, kubelet, kube-proxy</h3>
+
+<h4>The declarative reconciliation loop</h4>
+<p>
+  Kubernetes does not execute imperative execution scripts; it continuously enforces a <strong>declarative state loop</strong>. An operator or CI/CD pipeline submits a desired state (e.g. <code>replicas: 5</code>) to <code>kube-apiserver</code>. The API server authenticates the caller, checks authorization via RBAC, validates schema against OpenAPI definitions, executes mutating and validating admission webhooks, and writes the object to <code>etcd</code>.
+</p>
+<p>
+  The control flow proceeds asynchronously:
+</p>
+<ol>
+  <li><strong>Controller Manager:</strong> The Deployment controller observes the new Deployment in etcd and creates a matching ReplicaSet. The ReplicaSet controller detects missing pods and writes 5 unassigned Pod manifests to etcd.</li>
+  <li><strong>Scheduler:</strong> The <code>kube-scheduler</code> continuously watches for Pods with <code>spec.nodeName</code> empty. It filters candidate nodes based on resource requests (CPU, memory), taints/tolerations, and node selectors, ranks the surviving nodes, and issues a <code>Bind</code> call assigning the pod to a node.</li>
+  <li><strong>Kubelet:</strong> The <code>kubelet</code> running on the target node watches the API server. Upon seeing a pod assigned to its node name, it calls the local container runtime (containerd) over the Container Runtime Interface (CRI) to pull container images, set up cgroups and namespaces, attach storage via CSI, configure networking via CNI, and start the application containers.</li>
+  <li><strong>Kube-proxy:</strong> Concurrently, <code>kube-proxy</code> configures kernel packet forwarding (iptables or eBPF maps) so cluster-internal Service virtual IPs route traffic directly to the newly allocated Pod IPs.</li>
+</ol>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Component</th>
+<th>Plane</th>
+<th>Primary Function</th>
+<th>State Storage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>kube-apiserver</strong></td>
+<td>Control Plane</td>
+<td>REST API entry point; authentication, authorization, validation</td>
+<td>Stateless (queries etcd)</td>
+</tr>
+<tr>
+<td><strong>etcd</strong></td>
+<td>Control Plane</td>
+<td>Distributed, consistent key-value store (Raft consensus)</td>
+<td>Persistent WAL and database</td>
+</tr>
+<tr>
+<td><strong>kube-scheduler</strong></td>
+<td>Control Plane</td>
+<td>Assigns unscheduled pods to eligible worker nodes</td>
+<td>Stateless (reads/writes via API)</td>
+</tr>
+<tr>
+<td><strong>kube-controller-manager</strong></td>
+<td>Control Plane</td>
+<td>Runs reconciliation loops (Deployment, Node, Endpoints)</td>
+<td>Stateless (reconciles etcd state)</td>
+</tr>
+<tr>
+<td><strong>kubelet</strong></td>
+<td>Worker Node</td>
+<td>Node agent; manages container lifecycle, probes, and status</td>
+<td>Local CRI/cgroups state</td>
+</tr>
+<tr>
+<td><strong>kube-proxy</strong></td>
+<td>Worker Node</td>
+<td>Programs network packet filter rules for Service VIPs</td>
+<td>Local iptables / eBPF state</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://kubernetes.io/docs/concepts/overview/components/" rel="noopener noreferrer">Kubernetes components overview</a> — Official upstream reference detailing control plane and node architecture. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Autopilot vs Standard mode (when to choose each)</h3>
+
+<h4>Shared responsibility and operational boundary</h4>
+<p>
+  GKE Autopilot shifts operational boundaries significantly compared to GKE Standard:
+</p>
+<table class="comparison">
+<thead>
+<tr>
+<th>Operational Area</th>
+<th>GKE Standard</th>
+<th>GKE Autopilot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Node Provisioning &amp; Sizing</strong></td>
+<td>Customer chooses machine type, series, and disk sizes</td>
+<td>Google automatically provisions nodes sized to fit pods</td>
+</tr>
+<tr>
+<td><strong>Node Pool Management</strong></td>
+<td>Customer defines, scales, and manages node pools</td>
+<td>No user-visible node pools; fully automated</td>
+</tr>
+<tr>
+<td><strong>Billing Metric</strong></td>
+<td>Billed for provisioned Compute Engine VM core/RAM</td>
+<td>Billed strictly for pod requested vCPU, RAM, and storage</td>
+</tr>
+<tr>
+<td><strong>Security Hardening</strong></td>
+<td>Customer configures Shielded GKE, COS, and policies</td>
+<td>Enforced by default: no privileged containers, read-only root FS</td>
+</tr>
+<tr>
+<td><strong>Node OS Upgrades</strong></td>
+<td>Configurable surge, blue-green, or manual maintenance</td>
+<td>Fully automated rolling upgrades managed by Google Cloud</td>
+</tr>
+<tr>
+<td><strong>Custom Daemonsets</strong></td>
+<td>Full host access, privileged hostPath permitted</td>
+<td>Restricted; hostPath disallowed without specific volume exceptions</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Autopilot security constraints</h4>
+<p>
+  Autopilot clusters enforce the GKE Hardening Guidelines via built-in admission webhooks:
+</p>
+<ul>
+  <li>Pods cannot run with <code>securityContext.privileged: true</code>.</li>
+  <li>Containers cannot add dangerous Linux capabilities (e.g. <code>CAP_SYS_ADMIN</code>, <code>CAP_NET_ADMIN</code>).</li>
+  <li>Host namespaces (<code>hostNetwork</code>, <code>hostPID</code>, <code>hostIPC</code>) are blocked.</li>
+  <li>Workloads requiring raw host network capture or hardware driver access must run on GKE Standard.</li>
+</ul>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview" rel="noopener noreferrer">GKE Autopilot overview</a> — Google Cloud documentation detailing architecture, pod-level billing, and capability limitations. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Zonal vs regional clusters (regional for HA control plane)</h3>
+
+<h4>Control plane redundancy and maintenance impact</h4>
+<p>
+  In GKE, Google manages the control plane VMs transparently. However, the geographic placement of those master VMs determines SLA and operational resilience:
+</p>
+<ul>
+  <li><strong>Zonal Cluster:</strong> One control plane replica runs in a single zone. If that zone suffers an infrastructure impairment, or when Google applies Kubernetes master version updates, the API server is unavailable. Running pods on worker nodes continue executing network traffic, but all control operations halt: HPA cannot scale out, crashed pods cannot be rescheduled, and <code>kubectl</code> commands fail. Control plane SLA: 99.5%.</li>
+  <li><strong>Regional Cluster:</strong> Three control plane replicas run in three separate zones within the region. An internal load balancer distributes API requests across all three replicas. During master upgrades, replicas are updated sequentially (one zone at a time), ensuring the API server remains continuously available with zero downtime. Control plane SLA: 99.95%.</li>
+</ul>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Zonal Cluster</th>
+<th>Regional Cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Control Plane Replicas</strong></td>
+<td>1 master in 1 zone</td>
+<td>3 masters across 3 distinct zones</td>
+</tr>
+<tr>
+<td><strong>Control Plane SLA</strong></td>
+<td>99.5% availability</td>
+<td>99.95% availability</td>
+</tr>
+<tr>
+<td><strong>Control Plane Upgrade Downtime</strong></td>
+<td>API downtime during master restarts (~10–15m)</td>
+<td>Zero API downtime (rolling master replacement)</td>
+</tr>
+<tr>
+<td><strong>HPA / Scaling during Outage</strong></td>
+<td>Stalled (HPA controller unreachable)</td>
+<td>Continuous (surviving masters process metrics)</td>
+</tr>
+<tr>
+<td><strong>Management Fee</strong></td>
+<td>Flat cluster fee ($0.10/hr, waived for 1 cluster)</td>
+<td>Flat cluster fee ($0.10/hr)</td>
+</tr>
+</tbody>
+</table>
+
+<!-- Part 2 Architecture SVG -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d42-arch-title d42-arch-desc">
+<title id="d42-arch-title">Kubernetes control plane reconciliation loop and GKE regional cluster topology</title>
+<desc id="d42-arch-desc">An architectural diagram illustrating the Kubernetes reconciliation engine and cluster deployment choices. On the left, the control plane components (API Server, etcd, Scheduler, Controller Manager) coordinate desired state against worker node components (Kubelet, Kube-proxy, containerd). In the center, a Regional GKE cluster distributes three control plane replicas across three availability zones (us-central1-a, b, c) behind an internal load balancer for high availability. On the right, the management boundary compares GKE Autopilot (Google managed nodes) with GKE Standard (customer managed node pools).</desc>
+<defs>
+<marker id="d42-a-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#38bdf8"/>
+</marker>
+<marker id="d42-g-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#4ade80"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Section 1: Reconciliation Loop -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="20" y="30" width="310" height="380" rx="8"/>
+<text fill="#38bdf8" font-size="12" font-weight="700" x="175" y="56" text-anchor="middle">DECLARATIVE RECONCILIATION</text>
+
+<rect class="box" x="36" y="76" width="130" height="60" rx="6"/>
+<text font-size="11" font-weight="700" x="101" y="98" text-anchor="middle">kube-apiserver</text>
+<text class="small-label" x="101" y="116" text-anchor="middle">Auth, RBAC, Webhooks</text>
+
+<rect fill="#161b30" stroke="#facc15" stroke-width="1.5" x="186" y="76" width="130" height="60" rx="6"/>
+<text fill="#facc15" font-size="11" font-weight="700" x="251" y="98" text-anchor="middle">etcd store</text>
+<text class="small-label" x="251" y="116" text-anchor="middle">Raft Single Truth</text>
+
+<path class="path" marker-end="url(#d42-a-arr)" d="M166 106 H186"/>
+
+<rect class="box" x="36" y="150" width="130" height="60" rx="6"/>
+<text font-size="11" font-weight="700" x="101" y="172" text-anchor="middle">Scheduler</text>
+<text class="small-label" x="101" y="190" text-anchor="middle">Node filtering &amp; bind</text>
+
+<rect class="box" x="186" y="150" width="130" height="60" rx="6"/>
+<text font-size="11" font-weight="700" x="251" y="172" text-anchor="middle">Controller-Mgr</text>
+<text class="small-label" x="251" y="190" text-anchor="middle">ReplicaSet, Nodes</text>
+
+<!-- Worker Node components -->
+<rect fill="#161b30" stroke="#4ade80" stroke-width="1.5" x="36" y="230" width="280" height="160" rx="6"/>
+<text fill="#4ade80" font-size="11" font-weight="700" x="176" y="254" text-anchor="middle">Worker Node Components</text>
+
+<rect class="box" x="48" y="270" width="120" height="50" rx="4"/>
+<text font-size="10" font-weight="700" x="108" y="292" text-anchor="middle">kubelet agent</text>
+<text class="small-label" x="108" y="308" text-anchor="middle">CRI containerd driver</text>
+
+<rect class="box" x="184" y="270" width="120" height="50" rx="4"/>
+<text font-size="10" font-weight="700" x="244" y="292" text-anchor="middle">kube-proxy</text>
+<text class="small-label" x="244" y="308" text-anchor="middle">Service VIP / eBPF</text>
+
+<rect fill="#052e16" stroke="#22c55e" stroke-width="1" x="48" y="330" width="256" height="46" rx="4"/>
+<text fill="#4ade80" font-size="10" x="176" y="352" text-anchor="middle">Running Pod: order-api</text>
+<text class="small-label" x="176" y="366" text-anchor="middle">cgroups, namespaces, probes healthy</text>
+
+<!-- Section 2: Regional HA Control Plane -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="350" y="30" width="310" height="380" rx="8"/>
+<text fill="#4ade80" font-size="12" font-weight="700" x="505" y="56" text-anchor="middle">REGIONAL HA CONTROL PLANE</text>
+
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="1.5" x="370" y="80" width="270" height="50" rx="6"/>
+<text fill="#38bdf8" font-size="11" font-weight="700" x="505" y="102" text-anchor="middle">Internal Regional Load Balancer</text>
+<text class="small-label" x="505" y="118" text-anchor="middle">VIP endpoint for kubectl &amp; kubelets</text>
+
+<!-- Masters across 3 zones -->
+<rect class="box" x="370" y="150" width="270" height="70" rx="6"/>
+<text font-size="10" font-weight="700" x="430" y="174">Zone A Master</text>
+<text class="small-label" x="430" y="192">apiserver + etcd replica 1</text>
+<circle cx="610" cy="185" r="8" fill="#22c55e"/>
+
+<rect class="box" x="370" y="230" width="270" height="70" rx="6"/>
+<text font-size="10" font-weight="700" x="430" y="254">Zone B Master</text>
+<text class="small-label" x="430" y="272">apiserver + etcd replica 2</text>
+<circle cx="610" cy="265" r="8" fill="#22c55e"/>
+
+<rect class="box" x="370" y="310" width="270" height="70" rx="6"/>
+<text font-size="10" font-weight="700" x="430" y="334">Zone C Master</text>
+<text class="small-label" x="430" y="352">apiserver + etcd replica 3</text>
+<circle cx="610" cy="345" r="8" fill="#22c55e"/>
+
+<path class="path" marker-end="url(#d42-a-arr)" d="M505 130 V150"/>
+
+<!-- Section 3: Autopilot vs Standard -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="680" y="30" width="280" height="380" rx="8"/>
+<text fill="#facc15" font-size="12" font-weight="700" x="820" y="56" text-anchor="middle">GKE OPERATIONAL MODES</text>
+
+<rect fill="#161b30" stroke="#4ade80" stroke-width="1.5" x="696" y="80" width="248" height="140" rx="6"/>
+<text fill="#4ade80" font-size="11" font-weight="700" x="820" y="104" text-anchor="middle">GKE Autopilot</text>
+<text class="small-label" x="820" y="126" text-anchor="middle">• Google manages all worker nodes</text>
+<text class="small-label" x="820" y="146" text-anchor="middle">• Billed per requested Pod vCPU/RAM</text>
+<text class="small-label" x="820" y="166" text-anchor="middle">• Automated OS patching &amp; scaling</text>
+<text class="small-label" x="820" y="186" text-anchor="middle">• Hardened: No privileged pods</text>
+<text fill="#4ade80" font-size="10" x="820" y="210" text-anchor="middle">Best for modern microservices</text>
+
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="1.5" x="696" y="240" width="248" height="150" rx="6"/>
+<text fill="#38bdf8" font-size="11" font-weight="700" x="820" y="264" text-anchor="middle">GKE Standard</text>
+<text class="small-label" x="820" y="286" text-anchor="middle">• Customer configures node pools</text>
+<text class="small-label" x="820" y="306" text-anchor="middle">• Billed per Compute Engine VM</text>
+<text class="small-label" x="820" y="326" text-anchor="middle">• Full control over kernel &amp; daemonsets</text>
+<text class="small-label" x="820" y="346" text-anchor="middle">• Supports privileged &amp; hostPath</text>
+<text fill="#38bdf8" font-size="10" x="820" y="374" text-anchor="middle">Best for custom kernel / legacy tools</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> Kubernetes core reconciliation loop between API server, etcd, scheduler, and node kubelet (left); Regional GKE high-availability control plane distributed across three zones (center); and the operational boundary between GKE Autopilot and GKE Standard (right). <strong>What it does not prove:</strong> Sub-millisecond etcd Raft consensus write latencies under cross-zone network jitter, container startup times during heavy container image pull contention, or custom admission webhook timeout behavior.
+</figcaption>
+</figure>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/kubernetes-engine/docs/concepts/regional-clusters" rel="noopener noreferrer">GKE regional cluster architecture</a> — Google Cloud reference on control plane high availability, multi-master replication, and maintenance rolling updates. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 3 ══ -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problems and solutions</h2>
+<p class="small"><em>The scenarios below represent realistic production engineering failure modes involving Kubernetes reconciliation diagnostics, Autopilot security constraints, and control plane topology selection.</em></p>
+
+<!-- ── Problem 1 ── -->
+<article id="topic-01-problem" class="topic-card">
+<h3>Topic 1 field case — Registry credential omission misdiagnosed as control plane API failure</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  During a major release of the Brightloaf Order API, the continuous deployment pipeline applies an updated Deployment manifest specifying image <code>us-central1-docker.pkg.dev/brightloaf-prod/order/api:v2.4.0</code>. Ten minutes after deployment, the on-call engineer notices that order endpoints return stale responses. Running <kbd>kubectl get pods</kbd> reveals all 6 new pods in an <code>ImagePullBackOff</code> state.
+</p>
+<p>
+  The engineer incorrectly assumes that the GKE control plane API server is corrupted or failing to schedule workloads and initiates a disruptive cluster control plane reboot. During the 15-minute reboot, API access is lost, while the underlying problem remains untouched: the GKE nodes lacked IAM permission to pull images from the newly created private Artifact Registry repository because Workload Identity was missing a required credential binding. Customer checkout is stalled for 35 minutes due to troubleshooting delays.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Engineers must diagnose reconciliation failures using structured Kubernetes control loop observability.</li>
+  <li>Must not perform destructive control plane actions when the failure resides in node-level execution.</li>
+  <li>Workloads must preserve the invariant that replaying an order event never triggers duplicate fulfillment.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  The control plane successfully reconciled desired state, creating ReplicaSets and binding pods to nodes. The failure was strictly localized to the node's <code>kubelet</code>, which encountered an HTTP 403 Forbidden from Artifact Registry due to an unconfigured service account binding. The engineer lacked understanding of the reconciliation boundary between the control plane and the kubelet.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Inspect pod status: <kbd>kubectl describe pod POD_NAME</kbd> immediately reveals under <code>Events:</code> the exact error: <code>Failed to pull image: rpc error: code = Unknown desc = failed to pull and unpack image ... 403 Forbidden</code>.</li>
+  <li>Check scheduler state: Confirm <code>spec.nodeName</code> is populated, proving <code>kube-scheduler</code> executed successfully.</li>
+  <li>Check API server state: Confirm API server responds cleanly to queries, proving control plane health.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Grant the GKE node service account <code>roles/artifactregistry.reader</code> on the target repository, or configure Workload Identity with a Kubernetes service account bound to a Google service account holding registry permissions. Trigger a rollout restart (<kbd>kubectl rollout restart deployment order-api</kbd>) to clear the backoff delay.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Describe the newly spawned pods: verify that <code>Events:</code> displays <code>Successfully pulled image</code> followed by <code>Started container order-api</code>. Pods transition to <code>Running</code> and pass HTTP readiness probes within 30 seconds.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  If container images are exceptionally large (>2GB), initial image pull duration may cause temporary timeouts if node disks experience severe I/O throttling.
+</p>
+
+<!-- Incident SVG 1 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d42-i1-title d42-i1-desc">
+<title id="d42-i1-title">Kubelet ImagePullBackOff misdiagnosed as API server failure vs Structured reconciliation diagnosis</title>
+<desc id="d42-i1-desc">A comparative diagram showing the failed path where an ImagePullBackOff error causes an operator to restart the GKE control plane in error, causing an API blackout. The corrected path uses kubectl describe to trace the reconciliation boundary, identifying the missing IAM registry permission and resolving the issue in minutes.</desc>
+<defs>
+<marker id="d42-i1-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d42-i1-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · KUBELET IMAGE PULL ERROR MISDIAGNOSED AS API CORRUPTION → DESTRUCTIVE REBOOT</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Deploy v2.4.0</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">Manifest applied</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">Stored in etcd</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Kubelet Pull Fails (403)</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: missing Artifact Registry role</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">False Panicked Reboot</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">Operator reboots master</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">API server offline 15m</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">Prolonged Outage</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">35m checkout stall</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d42-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d42-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d42-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · STRUCTURED DIAGNOSTIC TRACES RECONCILIATION LOOP → FIX IAM BINDING</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Deploy v2.4.0</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Manifest applied</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">Pods scheduled</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">kubectl describe pod</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Locates 403 on containerd pull</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Grant artifactregistry.reader</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">Service account authorized</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Kubelet pulls image</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Running &amp; Healthy</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Readiness HTTP 200</text>
+
+<path class="corrected" marker-end="url(#d42-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d42-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d42-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> An updated Deployment resulted in pods stuck in ImagePullBackOff; the on-call engineer suspected control plane corruption and initiated a master reboot; API access was offline for 15 minutes while the root cause was missing registry IAM roles. <strong>Architectural inference:</strong> ImagePullBackOff indicates successful control plane reconciliation and scheduling, but failure at the node kubelet/runtime layer; inspecting Pod events isolates the exact failing component. <strong>Expected post-fix behavior:</strong> Using <kbd>kubectl describe pod</kbd> exposes the registry authorization denial, allowing the operator to grant <code>roles/artifactregistry.reader</code> and achieve healthy pod execution in under 2 minutes.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 2 ── -->
+<article id="topic-02-problem" class="topic-card">
+<h3>Topic 2 field case — Privileged security agent blocked by GKE Autopilot admission webhook</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  To satisfy an enterprise cyber-insurance audit, Brightloaf is required to run a proprietary host-level intrusion detection daemonset across all Kubernetes clusters. The cluster was provisioned as <strong>GKE Autopilot</strong> to minimize maintenance toil for the small operations team.
+</p>
+<p>
+  When applying the daemonset manifest, the Kubernetes API server immediately rejects the submission: <code>admission webhook "autopilot.gke.io" denied the request: securityContext.privileged: true is not allowed in Autopilot</code>. The security team refuses to sign off on production go-live without the agent running, blocking a high-profile multi-million-dollar retail partnership launch scheduled for Monday morning.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Compliance requires host-level security observability across all running container workloads.</li>
+  <li>Must adhere to Google Cloud Kubernetes hardening guidelines.</li>
+  <li>Must select the defensible cluster operational mode based on workload technical requirements.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Architectural mismatch between workload requirements and GKE mode. GKE Autopilot enforces strict security guardrails that prohibit privileged containers, hostPath volume mounts, and custom Linux capabilities. The team selected Autopilot without evaluating legacy daemonset requirements.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  Evaluate the two architectural alternatives:
+</p>
+<ol>
+  <li><strong>Preferred:</strong> Replace the legacy privileged daemonset with a Google Cloud native managed solution (Security Command Center GKE Container Threat Detection) which monitors runtime events via the hypervisor without requiring privileged pods.</li>
+  <li><strong>Alternative:</strong> If the proprietary agent is legally mandated by contract, provision a <strong>GKE Standard</strong> regional cluster with a dedicated node pool, enabling <code>privileged: true</code> and host filesystem mounts under explicit custom RBAC controls.</li>
+</ol>
+
+<h4>Verification</h4>
+<p>
+  If deploying native Container Threat Detection: verify event generation in Security Command Center by triggering a benign test event. If deploying GKE Standard: verify the daemonset achieves <code>Running</code> state across all worker nodes and reports healthy heartbeat telemetry to the compliance dashboard.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Operating GKE Standard reintroduces operational toil: the team becomes responsible for node pool sizing, node auto-upgrades, and OS patch management.
+</p>
+
+<!-- Incident SVG 2 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d42-i2-title d42-i2-desc">
+<title id="d42-i2-title">Privileged daemonset blocked by GKE Autopilot vs Architectural resolution</title>
+<desc id="d42-i2-desc">A comparative diagram showing the failed path where a privileged security daemonset is rejected by GKE Autopilot admission webhooks, blocking a production release. The corrected path evaluates GKE Standard for legally mandated privileged workloads or replaces the agent with Cloud-native Container Threat Detection.</desc>
+<defs>
+<marker id="d42-i2-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d42-i2-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · PRIVILEGED DAEMONSET REJECTED BY AUTOPILOT WEBHOOK → PRODUCTION BLOCKED</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Security Audit</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">Mandates host daemonset</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">privileged: true</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Autopilot Admission Webhook</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: privileged containers forbidden</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Manifest Rejected</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">403 Webhook Denial</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">No pods created</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">Go-Live Halted</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">Audit unfulfilled</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d42-i2-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d42-i2-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d42-i2-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · EVALUATE WORKLOAD FIT → GKE STANDARD OR NATIVE CONTAINER THREAT DETECTION</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Security Audit</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Requirements analysis</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">Host observability</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Architecture Alignment</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Select GKE Standard for privileged</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Daemonset Deployed</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">COS node pool authorized</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">RBAC policy enforced</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Audit Approved</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Zero blocker launch</text>
+
+<path class="corrected" marker-end="url(#d42-i2-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d42-i2-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d42-i2-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> An enterprise audit mandated running a host-level security daemonset requiring privileged container rights; the manifest was rejected by GKE Autopilot admission webhooks; production launch was halted. <strong>Architectural inference:</strong> GKE Autopilot intentionally restricts privileged containers and hostPath mounts to guarantee cluster multi-tenant security; workloads strictly requiring host privileges belong on GKE Standard. <strong>Expected post-fix behavior:</strong> Matching workload requirements to cluster mode—either migrating to GKE Standard or adopting native agentless Container Threat Detection—resolves the policy denial and satisfies audit compliance.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 3 ── -->
+<article id="topic-03-problem" class="topic-card">
+<h3>Topic 3 field case — Zonal cluster control plane outage stalls HPA during peak surge</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  Brightloaf runs its production Order API on a <strong>Zonal GKE cluster</strong> located in <code>us-central1-a</code>. At 08:45 AM, as morning breakfast orders surge by 300%, Google Cloud initiates an automated control plane patch on the cluster master.
+</p>
+<p>
+  Because the cluster is zonal, there is only one control plane master VM. The API server goes offline for 11 minutes. While existing worker pods continue serving, the <strong>Horizontal Pod Autoscaler (HPA)</strong> cannot query the Metrics Server or issue scale-up commands to the API server. Inbound traffic saturates the existing 6 pods; their memory utilization spikes, and the Linux kernel out-of-memory (OOM) killer terminates 4 of the 6 pods. Because the control plane is offline, Kubernetes cannot reschedule or recreate the terminated pods. The remaining 2 pods collapse, resulting in total checkout failure for 15 minutes.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Cluster control plane must maintain high availability during automated Google Cloud master upgrades.</li>
+  <li>Horizontal Pod Autoscaling must operate continuously without interruption during peak traffic.</li>
+  <li>Preserve the invariant that replaying an order event never triggers a duplicate fulfillment.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Deploying a critical production service on a Zonal GKE cluster. A single control plane replica creates a single point of failure that disables autoscaling and pod rescheduling during master maintenance.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  Migrate the production workload to a <strong>Regional GKE cluster</strong> spanning <code>us-central1-a</code>, <code>us-central1-b</code>, and <code>us-central1-c</code>. Regional clusters maintain three replicated control plane masters behind an internal load balancer with a 99.95% availability SLA. When Google performs master upgrades, the masters are updated rolling, one zone at a time, ensuring continuous API server availability and uninterrupted HPA autoscaling.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Trigger an intentional master upgrade on a regional test cluster (<kbd>gcloud container clusters upgrade</kbd>). Simultaneously run a synthetic load test that forces HPA scale-out: verify that HPA continuously polls metrics, scales pod replicas from 6 to 18, and maintains 100% HTTP 200 responses throughout the upgrade window.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Regional clusters require worker node pools to be distributed across three zones, which can incur cross-zone data transfer costs if pods communicate heavily across zones without topology-aware routing.
+</p>
+
+<!-- Incident SVG 3 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d42-i3-title d42-i3-desc">
+<title id="d42-i3-title">Zonal cluster master upgrade stalls HPA vs Regional HA continuous scaling</title>
+<desc id="d42-i3-desc">A comparative diagram showing the failed path where a Zonal cluster master upgrade disables the API server, preventing HPA from scaling pods during a surge and crashing the service. The corrected path uses a Regional cluster with 3 replicated masters, maintaining continuous API availability and seamless autoscaling during upgrades.</desc>
+<defs>
+<marker id="d42-i3-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d42-i3-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · ZONAL MASTER UPGRADE OFFLINE → HPA STALLS → PODS OOM CRASH UNDER LOAD</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Traffic Triples</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">Morning rush spike</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">HPA needs to scale</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Single Master Patching</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: zonal cluster single master</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">API Server Down 11m</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">HPA cannot scale pods</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">Nodes OOM crash</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">100% Checkout Crash</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">Zero pod recovery</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d42-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d42-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d42-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · REGIONAL CLUSTER (3 MASTERS) ENSURES CONTINUOUS API AVAILABILITY &amp; HPA SCALING</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Traffic Triples</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Morning rush spike</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">HPA needs to scale</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Regional Cluster (3 Zones)</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Masters roll one at a time</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">API Stays 100% Online</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">HPA scales pods 6 → 18</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Surge absorbed cleanly</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Zero Downtime</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">99.95% SLA preserved</text>
+
+<path class="corrected" marker-end="url(#d42-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d42-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d42-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The production Order API ran on a Zonal GKE cluster; master patching took the single API server offline for 11 minutes; an incoming traffic surge could not trigger HPA scaling; existing pods suffered OOM crashes and could not be rescheduled. <strong>Architectural inference:</strong> Single-master zonal clusters cannot process control plane operations during master maintenance; production workloads requiring autoscaling and high availability mandate Regional clusters with 3 distributed masters. <strong>Expected post-fix behavior:</strong> Migrating to a Regional GKE cluster ensures that during control plane patching, surviving masters continue processing HPA scaling requests, seamlessly expanding pod capacity.
+</figcaption>
+</figure>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 4 ══ -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1 — Tracing declarative reconciliation from manifest to running container</h3>
+<p><strong>Goal:</strong> Step through the Kubernetes reconciliation loop and trace how an image pull failure appears in API telemetry versus node events.</p>
+<p><strong>Mode:</strong> local cluster (kind/minikube) or GKE sandbox · <strong>Prerequisites:</strong> Day 41 exit artifact.</p>
+
+<div class="callout">
+<strong>Preflight</strong>
+<p>Open <code>day-042-reconciliation.md</code>. Prepare a minimal deployment manifest <code>test-reconcile.yaml</code> targeting a non-existent or restricted container image.</p>
+</div>
+
+<ol>
+<li><strong>Apply the manifest.</strong>
+<pre><code>kubectl apply -f - &lt;&lt;EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reconcile-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reconcile-test
+  template:
+    metadata:
+      labels:
+        app: reconcile-test
+    spec:
+      containers:
+      - name: test-app
+        image: gcr.io/google-samples/invalid-image-tag:v999
+EOF</code></pre>
+</li>
+<li><strong>Observe control plane success.</strong> Run <kbd>kubectl get deployment reconcile-test</kbd> and <kbd>kubectl get rs</kbd>. Confirm that the API server accepted the desired state and the ReplicaSet created 2 pods.</li>
+<li><strong>Observe node-level failure.</strong> Run <kbd>kubectl describe pod -l app=reconcile-test</kbd>. Inspect the <code>Events:</code> section. Identify the exact line: <code>Failed to pull image ... ErrImagePull / ImagePullBackOff</code>. Document why the control plane is healthy despite pod failure.</li>
+<li><strong>Reconcile to healthy state.</strong> Update the image to a valid reference:
+<pre><code>kubectl set image deployment/reconcile-test test-app=mirror.gcr.io/library/nginx:alpine</code></pre>
+Verify that the kubelet immediately downloads the valid image and pods achieve <code>Running</code> status.
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A step-by-step reconciliation trace recorded in <code>day-042-reconciliation.md</code> distinguishing control plane state storage from node-level kubelet execution.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-42-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2 — GKE Autopilot vs Standard operational ownership and cost model comparison</h3>
+<p><strong>Goal:</strong> Construct a comprehensive architectural decision sheet comparing operational responsibility, capability restrictions, and cost profiles between GKE Autopilot and GKE Standard.</p>
+<p><strong>Mode:</strong> architectural analysis · <strong>Prerequisites:</strong> Exercise 1.</p>
+
+<ol>
+<li><strong>Map the ownership boundaries.</strong> In <code>day-042-reconciliation.md</code>, create a table contrasting: OS updates, node auto-repair, cluster autoscaler tuning, resource bin-packing, and security compliance.</li>
+<li><strong>Evaluate cost modeling.</strong>
+  <ul>
+    <li>Scenario A (GKE Standard): 3 nodes of <code>e2-standard-4</code> (12 vCPUs, 48 GB RAM). Billed for 100% of VM hours regardless of pod allocation.</li>
+    <li>Scenario B (GKE Autopilot): Workload requests 4 vCPUs and 16 GB RAM total. Billed strictly for 4 vCPUs and 16 GB RAM seconds.</li>
+    <li>Calculate the break-even utilization threshold where Standard becomes cheaper than Autopilot (typically ~65–75% steady-state cluster utilization).</li>
+  </ul>
+</li>
+<li><strong>Document the selection policy.</strong> State the bright-line rule: "Default to GKE Autopilot for all standard web microservices; mandate GKE Standard only when workloads require privileged security daemonsets or custom kernel configurations."</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A validated Autopilot vs Standard decision matrix in <code>day-042-reconciliation.md</code> with mathematical cost break-even points and capability guardrails.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-42-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3 — Regional vs Zonal cluster control plane SLA and blast radius analysis</h3>
+<p><strong>Goal:</strong> Formulate the declarative creation command for a production-grade Regional GKE cluster and model control plane upgrade availability.</p>
+<p><strong>Mode:</strong> tabletop design / cloud sandbox · <strong>Prerequisites:</strong> Exercises 1 and 2.</p>
+
+<ol>
+<li><strong>Formulate the Regional GKE creation command.</strong>
+<pre><code>gcloud container clusters create-auto order-platform-cluster \
+  --project=PROJECT_ID \
+  --region=us-central1 \
+  --release-channel=regular \
+  --network=default \
+  --subnetwork=default</code></pre>
+</li>
+<li><strong>Model the control plane maintenance sequence.</strong> In <code>day-042-reconciliation.md</code>, document how Google Cloud updates the three regional masters:
+  <ul>
+    <li>Master 1 in <code>us-central1-a</code> is taken offline; API requests route to Masters in <code>us-central1-b</code> and <code>us-central1-c</code>.</li>
+    <li>Master 1 is updated, validates Raft sync, and rejoins the cluster.</li>
+    <li>Sequence repeats for Zone B and Zone C. Net API downtime: 0 seconds.</li>
+  </ul>
+</li>
+<li><strong>Contrast with Zonal cluster failure.</strong> Calculate the annual allowable downtime: 99.5% (Zonal) allows ~43.8 hours of annual master downtime; 99.95% (Regional) allows only ~4.38 hours.</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A completed <code>day-042-reconciliation.md</code> exit artifact covering Kubernetes reconciliation traces, GKE Autopilot vs Standard ownership matrices, and Regional HA control plane specifications.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>If executed in a live cloud sandbox, delete test clusters to prevent management fees:</p>
+<pre><code>gcloud container clusters delete order-platform-cluster --region=us-central1 --quiet</code></pre>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-42-topic-03"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-042-reconciliation.md</code> containing: (1) Kubernetes reconciliation trace separating API server state storage from kubelet runtime execution, (2) GKE Autopilot vs Standard ownership and cost break-even analysis, (3) Regional HA control plane specification with zero-downtime rolling update trace. Label tabletop models clearly.</p>
+<label class="check"><input type="checkbox" data-progress="read-42"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-42"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-041.html">← Day 41<small>VM operations and resource diagnosis</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-043.html">Day 43 →<small>Scheduling, scaling and Kubernetes access</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

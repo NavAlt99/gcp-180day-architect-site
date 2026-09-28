@@ -1,0 +1,1657 @@
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Day 45: Probes, secrets and workload failures · GCP 180 days</title><link rel="stylesheet" href="../assets/site.css"><script defer src="../assets/site.js"></script></head><body><a class="skip" href="#main">Skip to content</a><header class="site-nav"><nav class="nav-inner" aria-label="Site navigation"><a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a><a href="../index.html">Day index</a><a href="../glossary.html">Glossary</a><a href="../sources.html">Sources</a><a href="../artifacts.html">Artifacts</a><a href="day-044.html" aria-label="Previous day">← Day 44</a><a href="day-046.html" aria-label="Next day">Day 46 →</a><label class="jump-label" for="day-jump">Jump to day</label><select id="day-jump" aria-label="Jump to day"><option value="">Choose a day…</option><optgroup label="Foundations"><option value="day-001.html">Day 1: Local workspace and learning baseline</option><option value="day-002.html">Day 2: IP addressing and packet paths</option><option value="day-003.html">Day 3: DNS, sockets and transport</option><option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option><option value="day-005.html">Day 5: VPN, load balancers and firewalls</option><option value="day-006.html">Day 6: Shell, processes and services</option><option value="day-007.html">Day 7: SSH, scripts and process inspection</option><option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option><option value="day-009.html">Day 9: VM and container isolation</option><option value="day-010.html">Day 10: Images, filesystems and orchestration</option><option value="day-011.html">Day 11: Cloud service models and responsibility</option><option value="day-012.html">Day 12: Regions, scaling and economics</option><option value="day-013.html">Day 13: State, availability and recovery vocabulary</option><option value="day-014.html">Day 14: Git, APIs and JSON</option><option value="day-015.html">Day 15: Small application and architecture styles</option><option value="day-016.html">Day 16: SQL foundations and business outcomes</option><option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option></optgroup><optgroup label="Cloud environment and identity"><option value="day-018.html">Day 18: Cloud sandbox and cost controls</option><option value="day-019.html">Day 19: CLI configuration and identity checks</option><option value="day-020.html">Day 20: APIs, client libraries and emulators</option><option value="day-021.html">Day 21: Resource hierarchy and ownership</option><option value="day-022.html">Day 22: Inheritance, labels and tags</option><option value="day-023.html">Day 23: Organization policies and lifecycle</option><option value="day-024.html">Day 24: Principals and workforce identity</option><option value="day-025.html">Day 25: Roles and authorization decisions</option><option value="day-026.html">Day 26: Credentials, tokens and impersonation</option><option value="day-027.html">Day 27: Billing roles and budget ownership</option><option value="day-028.html">Day 28: Cost attribution and notifications</option><option value="day-029.html">Day 29: Cost exports, quota and capacity</option><option value="day-030.html">Day 30: Region and resource-scope decisions</option><option value="day-031.html">Day 31: Network tiers and delivery paths</option><option value="day-032.html">Day 32: Support, inventory and learning tracker</option><option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option><option value="day-034.html">Day 34: First controlled cloud resource operation</option><option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option></optgroup><optgroup label="Core services and integrated practice"><option value="day-036.html">Day 36: VM sizing and image choices</option><option value="day-037.html">Day 37: Disks, metadata and persistence</option><option value="day-038.html">Day 38: Templates, MIGs and scaling</option><option value="day-039.html">Day 39: Autohealing and deployment changes</option><option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option><option value="day-041.html">Day 41: VM operations and resource diagnosis</option><option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option><option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option><option value="day-044.html">Day 44: Service networking and persistent volumes</option><option value="day-045.html" selected>Day 45: Probes, secrets and workload failures</option><option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option><option value="day-047.html">Day 47: Cloud Run and event-driven functions</option><option value="day-048.html">Day 48: Workflows and runtime selection</option><option value="day-049.html">Day 49: VPC address and route design</option><option value="day-050.html">Day 50: Firewall policy and private API access</option><option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option><option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option><option value="day-053.html">Day 53: Load-balancer architecture</option><option value="day-054.html">Day 54: Health checks, certificates and draining</option><option value="day-055.html">Day 55: CDN, WAF and traffic management</option><option value="day-056.html">Day 56: Hybrid topology and failure domains</option><option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option><option value="day-058.html">Day 58: Object storage and local durability</option><option value="day-059.html">Day 59: Transfers, block storage and restore</option><option value="day-060.html">Day 60: File systems and backup design</option><option value="day-061.html">Day 61: Relational databases and transactions</option><option value="day-062.html">Day 62: Distributed and nonrelational database choices</option><option value="day-063.html">Day 63: Caching, CDC and database selection</option><option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option><option value="day-065.html">Day 65: Integrate one order-service path</option><option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option><option value="day-067.html">Day 67: Gate 3 — Operate the core application</option></optgroup><optgroup label="Requirements, migration and architecture"><option value="day-068.html">Day 68: Requirements from observed behavior</option><option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option><option value="day-070.html">Day 70: Well-Architected review lenses</option><option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option><option value="day-072.html">Day 72: Application architecture patterns</option><option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option><option value="day-074.html">Day 74: Regional and tenant boundaries</option><option value="day-075.html">Day 75: Migration assessment and VMware fit</option><option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option><option value="day-077.html">Day 77: Migration waves and acceptance</option><option value="day-078.html">Day 78: Decision matrices grounded in experiments</option><option value="day-079.html">Day 79: ADRs, TCO and risk registers</option><option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option><option value="day-081.html">Day 81: First architecture defense</option><option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option></optgroup><optgroup label="Reliability and security"><option value="day-083.html">Day 83: Availability math and dependency risk</option><option value="day-084.html">Day 84: Failure domains and graceful degradation</option><option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option><option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option><option value="day-087.html">Day 87: Incidents, toil and capacity</option><option value="day-088.html">Day 88: Availability across infrastructure layers</option><option value="day-089.html">Day 89: Messaging, DNS and application health</option><option value="day-090.html">Day 90: Recovery targets and patterns</option><option value="day-091.html">Day 91: Backups and replication correctness</option><option value="day-092.html">Day 92: Failover and failback planning</option><option value="day-093.html">Day 93: Metrics, alerting and burn rates</option><option value="day-094.html">Day 94: Logs, traces and profiling</option><option value="day-095.html">Day 95: Central observability and audit evidence</option><option value="day-096.html">Day 96: Bounded failure experiment design</option><option value="day-097.html">Day 97: Run a recovery and overload experiment</option><option value="day-098.html">Day 98: Restore and failover acceptance</option><option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option><option value="day-100.html">Day 100: Workload federation and short-lived access</option><option value="day-101.html">Day 101: Workforce federation and remote access</option><option value="day-102.html">Day 102: Privileged access and break-glass</option><option value="day-103.html">Day 103: Defense in depth and network policy</option><option value="day-104.html">Day 104: Data perimeters and egress controls</option><option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option><option value="day-106.html">Day 106: Data classification and key lifecycle</option><option value="day-107.html">Day 107: Secrets and de-identification</option><option value="day-108.html">Day 108: Residency, confidentiality and data access</option><option value="day-109.html">Day 109: Compliance evidence and responsibility</option><option value="day-110.html">Day 110: Policy as code and audit retention</option><option value="day-111.html">Day 111: Regulated workload design</option><option value="day-112.html">Day 112: Threat detection and triage</option><option value="day-113.html">Day 113: Incident response and threat modelling</option><option value="day-114.html">Day 114: Artifact integrity and admission</option><option value="day-115.html">Day 115: Container and pipeline hardening</option><option value="day-116.html">Day 116: Integrate private access and key controls</option><option value="day-117.html">Day 117: Security handover and evidence repair</option><option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option></optgroup><optgroup label="Performance, delivery and operations"><option value="day-119.html">Day 119: Cost baseline and commitments</option><option value="day-120.html">Day 120: Storage, network and database costs</option><option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option><option value="day-122.html">Day 122: Unit economics and sensitivity</option><option value="day-123.html">Day 123: Caching correctness under load</option><option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option><option value="day-125.html">Day 125: Profiling and capacity evidence</option><option value="day-126.html">Day 126: Terraform baseline and state boundaries</option><option value="day-127.html">Day 127: Terraform testing, drift and recovery</option><option value="day-128.html">Day 128: Build and deployment pipeline</option><option value="day-129.html">Day 129: Release rollback and delivery measures</option><option value="day-130.html">Day 130: Service catalog and ownership</option><option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option><option value="day-132.html">Day 132: Customer success and platform outcomes</option><option value="day-133.html">Day 133: Operations integration and remediation</option></optgroup><optgroup label="Data, AI and distributed correctness"><option value="day-134.html">Day 134: Warehouse foundations and query costs</option><option value="day-135.html">Day 135: Warehouse security and reporting</option><option value="day-136.html">Day 136: Batch and streaming processing choices</option><option value="day-137.html">Day 137: Streaming correctness and CDC</option><option value="day-138.html">Day 138: Lakehouse and open table design</option><option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option><option value="day-140.html">Day 140: ML lifecycle and model selection</option><option value="day-141.html">Day 141: Build a small grounded-answer flow</option><option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option><option value="day-143.html">Day 143: AI security and evaluation</option><option value="day-144.html">Day 144: AI serving and infrastructure choices</option><option value="day-145.html">Day 145: Distributed state and regional correctness</option></optgroup><optgroup label="Discovery, cases and exam preparation"><option value="day-146.html">Day 146: Case analysis and discovery method</option><option value="day-147.html">Day 147: Extract facts and numeric requirements</option><option value="day-148.html">Day 148: Map requirements and conflicts</option><option value="day-149.html">Day 149: Discovery: business, load and recovery</option><option value="day-150.html">Day 150: Discovery: data, regulation and skills</option><option value="day-151.html">Day 151: Discovery: budget, risks and success</option><option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option><option value="day-153.html">Day 153: EHR Healthcare — defend the design</option><option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option><option value="day-155.html">Day 155: Altostrat Media — architecture defense</option><option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option><option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option><option value="day-158.html">Day 158: KnightMotives — modernization requirements</option><option value="day-159.html">Day 159: KnightMotives — architecture defense</option><option value="day-160.html">Day 160: Case synthesis and feedback</option><option value="day-161.html">Day 161: Changed-constraint design exercise</option><option value="day-162.html">Day 162: Exam domain mapping and sample questions</option><option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option><option value="day-164.html">Day 164: Readiness plan and remaining repairs</option></optgroup><optgroup label="Multi-team architecture and synthesis"><option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option><option value="day-166.html">Day 166: Production identity across teams</option><option value="day-167.html">Day 167: API contracts and compatibility</option><option value="day-168.html">Day 168: Sustainability and assisted operations</option><option value="day-169.html">Day 169: Capacity allocation and overload governance</option><option value="day-170.html">Day 170: Compute and database decision synthesis</option><option value="day-171.html">Day 171: Network decision synthesis</option><option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option><option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option></optgroup><optgroup label="Final gate and capstone defenses"><option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option><option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option><option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option><option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option><option value="day-178.html">Day 178: Capstone 4 — Migration defense</option><option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option></optgroup><optgroup label="Final review and rest"><option value="day-180.html">Day 180: Final review, logistics and rest</option></optgroup></select><button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button></nav></header><div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div><main id="main" class="container day" data-day="45" data-prev="day-044.html" data-next="day-046.html" data-index="../index.html"><div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 45 of 180</div><section class="hero"><div class="pills"><span class="pill">DAY 45</span><span class="pill">3–4 hours</span><span class="pill">tabletop / design</span><span class="pill">Topics 014</span></div><h1>Day 45 — Probes, secrets and workload failures</h1><p class="lead"><strong>Outcome:</strong> Use isolated fixtures for a failing startup probe, crash loop and memory-limit termination; correct one live/local failure and explain the others from traces.</p><div><strong>Entry prerequisites:</strong> <p><a href="day-044.html">Day 44</a>, <a href="day-026.html">Day 26</a>; bring their exit artifacts.</p></div><div class="callout success"><strong>Exit artifact</strong><p>A diagnostic decision tree, corrected probe/resource settings and a secret-access boundary (day-045-workload-failures.md) documenting Secret Manager CSI synchronization, Workload Identity token exchange, Dataplane V2 network segmentation, surge upgrade drain policies, three-stage probe lifecycles, and root-cause analysis for CrashLoopBackOff and OOMKilled states.</p></div><p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p></section><aside class="toc" aria-label="On this page"><strong>On this page</strong><a href="#part-1">1 · Topics</a><a href="#part-2">2 · Technical discussion</a><a href="#part-3">3 · Problems and solutions</a><a href="#part-4">4 · Labs</a><div class="toc-topic"><span>Config and secrets</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div><div class="toc-topic"><span>Workload Identity Federation for GKE</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div><div class="toc-topic"><span>Network Policies and Dataplane V2</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div><div class="toc-topic"><span>Release channels and upgrade strategies (surge upgrades, maintenance windows)</span><a href="#topic-04-overview">overview</a> · <a href="#topic-04-technical">discussion</a> · <a href="#topic-04-problem">problem</a> · <a href="#topic-04-lab">lab</a></div><div class="toc-topic"><span>Startup vs readiness vs liveness probes</span><a href="#topic-05-overview">overview</a> · <a href="#topic-05-technical">discussion</a> · <a href="#topic-05-problem">problem</a> · <a href="#topic-05-lab">lab</a></div><div class="toc-topic"><span>Troubleshoot CrashLoopBackOff and OOMKilled using kubectl describe, logs, events and…</span><a href="#topic-06-overview">overview</a> · <a href="#topic-06-technical">discussion</a> · <a href="#topic-06-problem">problem</a> · <a href="#topic-06-lab">lab</a></div></aside>
+
+<section id="part-1" class="part"><h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card"><h3>Config and secrets</h3>
+<p>Kubernetes configuration and secret management separates application runtime code from operational parameters and sensitive credentials. While ConfigMaps store non-confidential environment properties and configuration files, Kubernetes Secrets store base64-encoded credentials in the cluster's etcd database. For production Google Cloud environments, the Secret Store CSI Driver integrates GKE with Google Cloud Secret Manager, mounting centrally audited, customer-managed encryption key (CMEK) protected secrets directly into container filesystems as ephemeral volumes.</p>
+<p>This capability belongs on Day 45 because Day 44 established persistent storage and VPC networking; today we secure the data that flows into those workloads. Plain Kubernetes Secrets are only obfuscated rather than encrypted by default, vulnerable to overprivileged RBAC access and cluster backup leaks. Integrating Secret Manager ensures enterprise key versioning, automatic credential rotation, and granular Cloud IAM governance.</p>
+<p>Problem preview: The order fulfillment service pod fails to start with CreateContainerConfigError and volume mount failures when attempting to read missing local secret keys, while debug logs show unencrypted database passwords exposed across environment variables. Deployment rollouts freeze completely across the regional cluster, and security compliance auditing fails due to plaintext credential exposure in process tables.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p></article>
+
+<article id="topic-02-overview" class="topic-card"><h3>Workload Identity Federation for GKE</h3>
+<p>Workload Identity Federation for GKE establishes a cryptographic bridge between Kubernetes ServiceAccounts (KSAs) and Google Cloud IAM Service Accounts (GSAs). By mapping a KSA within a specific namespace to a GSA, applications running in pods authenticate to Google Cloud APIs without managing, mounting, or rotating long-lived service account private key JSON files.</p>
+<p>This topic belongs on Day 45 because Day 26 established IAM tokens and service account fundamentals; today we operationalize least-privilege pod identity. Hardcoded service account keys represent the single most common attack vector in cloud container deployments. Workload Identity replaces static secrets with projected OpenID Connect (OIDC) service account tokens that the GKE metadata server transparently exchanges for short-lived Google OAuth2 tokens.</p>
+<p>Problem preview: Newly deployed order analytics pods fail to export telemetry to BigQuery with 403 Forbidden errors because the pod cannot acquire credentials from the GKE metadata server. Analytical data pipelines stall for hours, and developers attempt to bypass the failure by downloading static service account keys, violating enterprise security policy.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p></article>
+
+<article id="topic-03-overview" class="topic-card"><h3>Network Policies and Dataplane V2</h3>
+<p>Kubernetes NetworkPolicies declare granular Layer 3 and Layer 4 packet filtering rules governing pod-to-pod and namespace-to-namespace network ingress and egress. In GKE Dataplane V2, network policy enforcement is powered by Cilium and eBPF programs loaded directly into the Linux kernel traffic control (tc) hooks on host worker nodes, replacing legacy iptables packet filtering.</p>
+<p>This topic belongs on Day 45 because Day 44 established cluster service networking; today we apply zero-trust microsegmentation. By default, Kubernetes networking is completely flat, permitting any pod to communicate with any other pod across all namespaces. Dataplane V2 enforces zero-trust boundaries at wire speed with minimal CPU overhead, containing lateral movement if an Internet-facing container is compromised.</p>
+<p>Problem preview: After an operator applies a cluster-wide default-deny NetworkPolicy, the checkout service cannot resolve internal DNS names or communicate with the upstream payment processor, dropping all customer transactions. Online storefront purchases halt immediately across all regions, causing revenue loss and generating thousands of connection timeout errors.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p></article>
+
+<article id="topic-04-overview" class="topic-card"><h3>Release channels and upgrade strategies (surge upgrades, maintenance windows)</h3>
+<p>GKE Release Channels (Rapid, Regular, Stable) automate Kubernetes version lifecycle management by balancing feature availability against operational stability. Upgrade strategies govern how worker node pools update their underlying operating system images and Kubernetes binaries, utilizing Surge Upgrades to provision temporary buffer instances or Blue-Green Upgrades to validate workloads on separate node pools within strictly controlled Maintenance Windows and Exclusions.</p>
+<p>This topic belongs on Day 45 because mission-critical workloads require deterministic upgrade lifecycles that honor PodDisruptionBudgets (PDBs) and prevent involuntary eviction during peak commercial business hours. Architecturally, release channels decouple cluster maintenance from ad-hoc manual interventions, ensuring continuous security patching without unexpected service interruptions.</p>
+<p>Problem preview: During a peak flash-sale event, an automated GKE node pool upgrade drains active worker nodes, evicting single-replica order pods and triggering 503 Service Unavailable errors. Customers experience aborted checkout flows during high-traffic sales, resulting in brand damage and lost revenue due to missing maintenance window configurations.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Step-by-step lab →</a></p></article>
+
+<article id="topic-05-overview" class="topic-card"><h3>Startup vs readiness vs liveness probes</h3>
+<p>Kubernetes container health checking relies on three distinct probe mechanisms: `startupProbe` detects when slow-initializing applications complete their boot sequence, temporarily suppressing other checks; `readinessProbe` verifies whether a container is ready to accept incoming network traffic, routing traffic only when healthy; and `livenessProbe` detects runtime deadlocks, restarting failed containers via the local kubelet.</p>
+<p>This topic belongs on Day 45 because probe misconfigurations are the primary source of cascading restart loops and service flapping in production microservices. Confusing liveness with readiness causes kubelet to violently kill slow-starting JVM or database containers before they can initialize caches or establish connection pools.</p>
+<p>Problem preview: A Java-based order processing microservice takes 75 seconds to compile internal caches on startup, but an aggressive liveness probe configured with a 15-second initial delay repeatedly kills the container. The microservice enters a permanent restart loop, preventing deployment rollouts and rendering order processing unavailable to clients.</p>
+<p><a href="#topic-05-technical">Technical discussion →</a> <a href="#topic-05-problem">Real-world problem →</a> <a href="#topic-05-lab">Step-by-step lab →</a></p></article>
+
+<article id="topic-06-overview" class="topic-card"><h3>Troubleshoot CrashLoopBackOff and OOMKilled using kubectl describe, logs, events and…</h3>
+<p>Kubernetes workload diagnostics requires a structured diagnostic method to isolate why containers fail to execute. `CrashLoopBackOff` indicates that a container repeatedly starts and exits with a non-zero exit code, triggering exponential restart backoff delays from the kubelet. `OOMKilled` (Exit Code 137) indicates that a container exceeded its assigned cgroup memory limit or the host node experienced severe kernel memory exhaustion.</p>
+<p>This topic belongs on Day 45 because it synthesizes all runtime primitives into an actionable troubleshooting workflow. Operators must systematically inspect `kubectl describe pod` termination states, review previous container logs (`kubectl logs -p`), evaluate cluster warning events, and analyze resource usage metrics rather than blindly guessing root causes.</p>
+<p>Problem preview: The inventory reservation pod suddenly crashes under load, entering CrashLoopBackOff with Exit Code 137, while operators misdiagnose the issue as CPU throttling and increase CPU limits without resolving the failure. Inventory holds fail across all retail locations, causing double-booking of stock and extended operational downtime.</p>
+<p><a href="#topic-06-technical">Technical discussion →</a> <a href="#topic-06-problem">Real-world problem →</a> <a href="#topic-06-lab">Step-by-step lab →</a></p></article>
+</section>
+
+<section id="part-2" class="part"><h2>2 · Technical discussion of each topic</h2>
+<article id="topic-01-technical" class="topic-card"><h3>Config and secrets</h3>
+<p>Managing operational state in Kubernetes demands strict separation between application configuration and sensitive cryptographic secrets. ConfigMaps store plaintext key-value pairs or complete configuration files (such as <code>nginx.conf</code> or application YAML files) mounted into pods as volume directories or injected as environment variables. However, Kubernetes Secrets only base64-encode data by default in etcd. While Application-layer Secrets Encryption can protect etcd at rest with Cloud KMS keys, native Secrets lack automated rotation, fine-grained access policies, and enterprise secret versioning.</p>
+<p>To establish an enterprise security boundary, Google Kubernetes Engine integrates with Google Cloud Secret Manager via the Secret Store CSI Driver (<code>secrets-store.csi.k8s.io</code>) and the Google Cloud Provider. When a Pod references a <code>SecretProviderClass</code> resource, the Secret Store CSI driver on the worker node communicates with the Secret Manager API using the Pod's Workload Identity. The secret payload is retrieved directly from Secret Manager and mounted as an ephemeral <code>tmpfs</code> volume inside the container filesystem. Sensitive keys never touch the cluster's etcd database, and rotation polling automatically updates mounted files when new secret versions are enabled in Secret Manager.</p>
+
+<table>
+<caption>Architecture Path: Kubernetes Native Secrets vs Secret Manager CSI Integration</caption>
+<thead>
+<tr>
+<th scope="col">Dimension</th>
+<th scope="col">Native Kubernetes Secret</th>
+<th scope="col">Secret Manager CSI Driver</th>
+<th scope="col">Architectural Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Storage Location</th>
+<td>etcd key-value store (cluster master)</td>
+<td>Google Cloud Secret Manager (centralized)</td>
+<td>Eliminates sensitive credential leakage during etcd snapshots.</td>
+</tr>
+<tr>
+<th scope="row">Encryption at Rest</th>
+<td>Base64 encoding (requires KMS for AES-CBC)</td>
+<td>Hardware Security Module (HSM) / Cloud KMS CMEK</td>
+<td>Guarantees FIPS 140-2 Level 3 envelope encryption.</td>
+</tr>
+<tr>
+<th scope="row">Access Governance</th>
+<td>Kubernetes RBAC (coarse namespace scope)</td>
+<td>Cloud IAM (fine-grained per-secret roles)</td>
+<td>Enforces dual-plane principle of least privilege.</td>
+</tr>
+<tr>
+<th scope="row">Lifecycle &amp; Rotation</th>
+<td>Manual manifest patching or third-party operators</td>
+<td>Automatic rotation polling &amp; version tracking</td>
+<td>Facilitates zero-downtime key rotation without pod restart.</td>
+</tr>
+<tr>
+<th scope="row">Audit Trail</th>
+<td>Kubernetes API server audit logs</td>
+<td>Cloud Audit Logs (Data Access &amp; Admin Activity)</td>
+<td>Provides immutable enterprise compliance and forensic tracing.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout"><strong>Apply it: Injection via Volume vs Environment Variable</strong><p>Always prefer mounting secrets as volume files rather than injecting them via <code>env</code> or <code>envFrom</code>. Environment variables are captured in crash dumps, child process tables (<code>/proc/$PID/environ</code>), and application diagnostic logs, creating severe security vulnerabilities.</p></div>
+
+<div class="callout"><strong>Further study</strong><p><a href="../sources.html#topic-014">Topic 014 source section</a> in this site, with original publisher links and the reading context.</p><p>Publisher: <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/secret-manager" rel="noopener noreferrer">GKE Secret Manager integration</a>. Verified fragment: Secret Store CSI Driver installation, SecretProviderClass specification, and rotation synchronization.</p></div>
+</article>
+
+<article id="topic-02-technical" class="topic-card"><h3>Workload Identity Federation for GKE</h3>
+<p>Historically, container workloads running inside Kubernetes that required access to Google Cloud services (such as Cloud Storage, BigQuery, or Secret Manager) relied on downloading long-lived service account private keys (JSON format) and mounting them into pods as Kubernetes Secrets. This pattern introduced massive security liabilities: private keys could be leaked through container image layers, committed to source control, or extracted by unauthorized operators, and they lacked automatic expiration or rotation.</p>
+<p>Workload Identity Federation for GKE eliminates static private keys by binding Kubernetes ServiceAccounts (KSAs) directly to Google Cloud IAM Service Accounts (GSAs). Under this architecture, the GKE cluster acts as an OpenID Connect (OIDC) identity provider. When Workload Identity is enabled, GKE deploys the GKE Metadata Server as a DaemonSet on every worker node. When a pod makes an HTTP call to the Compute Engine metadata server (<code>http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token</code>), the GKE Metadata Server intercepts the request, reads the pod's projected KSA token, validates its signature against the cluster's OIDC discovery endpoint, and calls Google Cloud IAM Credentials API to generate a short-lived (1-hour) OAuth2 access token for the bound GSA.</p>
+
+<table>
+<caption>Architecture Path: Static Service Account Keys vs Workload Identity Federation</caption>
+<thead>
+<tr>
+<th scope="col">Evaluation Vector</th>
+<th scope="col">Static Service Account JSON Keys</th>
+<th scope="col">Workload Identity Federation</th>
+<th scope="col">Security &amp; Operational Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Credential Lifecycle</th>
+<td>Long-lived (valid up to 10 years unless revoked)</td>
+<td>Short-lived OAuth2 tokens (maximum 3600 seconds)</td>
+<td>Limits blast radius of compromised container tokens.</td>
+</tr>
+<tr>
+<th scope="row">Key Storage Boundary</th>
+<td>Stored in etcd, container filesystem, or disk</td>
+<td>Never stored on disk; held purely in ephemeral RAM</td>
+<td>Prevents credential recovery from stolen node snapshots.</td>
+</tr>
+<tr>
+<th scope="row">Identity Binding</th>
+<td>Node-level VM service account or shared Secret</td>
+<td>Granular Pod-level KSA-to-GSA namespace mapping</td>
+<td>Prevents sibling pods on same node from sharing IAM roles.</td>
+</tr>
+<tr>
+<th scope="row">Revocation Speed</th>
+<td>Manual key deletion via gcloud / console</td>
+<td>Instantaneous by removing IAM policy binding</td>
+<td>Enforces immediate access revocation during security incidents.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout"><strong>Apply it: The Three-Way Binding Rule</strong><p>Workload Identity requires three configuration steps: (1) Annotate the KSA with <code>iam.gke.io/gcp-service-account=GSA_EMAIL</code>; (2) Bind IAM role <code>roles/iam.workloadIdentityUser</code> on the GSA to member <code>serviceAccount:PROJECT_ID.svc.id.goog[NAMESPACE/KSA_NAME]</code>; (3) Specify <code>serviceAccountName: KSA_NAME</code> in the Pod specification.</p></div>
+
+<div class="callout"><strong>Further study</strong><p><a href="../sources.html#topic-014">Topic 014 source section</a> in this site, with original publisher links and the reading context.</p><p>Publisher: <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity" rel="noopener noreferrer">GKE Workload Identity</a>. Verified fragment: architectural token exchange, GKE metadata server mechanics, and IAM binding syntax.</p></div>
+</article>
+
+<article id="topic-03-technical" class="topic-card"><h3>Network Policies and Dataplane V2</h3>
+<p>Kubernetes operates on a default open networking model: every pod can route packets to every other pod across all namespaces without restriction. While this simplicity accelerates early development, enterprise cloud architectures mandate microsegmentation to enforce zero-trust security perimeters. The Kubernetes NetworkPolicy API allows platform architects to specify declarative packet filtering rules using label selectors for pods (<code>podSelector</code>), namespaces (<code>namespaceSelector</code>), and CIDR blocks (<code>ipBlock</code>) across both Ingress and Egress directions.</p>
+<p>In standard GKE clusters without Dataplane V2, network policies were historically implemented using Calico or kube-iptables, which generated thousands of Linux kernel iptables rules. In large clusters, updating iptables chains introduced high CPU lock contention, slow policy convergence, and packet latency spikes. GKE Dataplane V2 replaces iptables entirely with Cilium and eBPF (extended Berkeley Packet Filter). In Dataplane V2, network policies are compiled into highly optimized eBPF bytecode loaded directly into the kernel's traffic control (tc) hooks on container <code>veth</code> interfaces. Packet filtering decisions occur in nanoseconds via eBPF map lookups (such as <code>cilium_policy_v2</code>), scaling effortlessly to thousands of pods and hundreds of policy rules.</p>
+
+<table>
+<caption>Architecture Path: Default Flat Network vs Dataplane V2 eBPF Zero-Trust Policy</caption>
+<thead>
+<tr>
+<th scope="col">Boundary Component</th>
+<th scope="col">Default Kubernetes Network</th>
+<th scope="col">Dataplane V2 NetworkPolicy</th>
+<th scope="col">Architectural Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Inter-Pod Access</th>
+<td>Unrestricted (any-to-any across cluster)</td>
+<td>Default-deny with explicit whitelist rules</td>
+<td>Restricts lateral movement following container compromise.</td>
+</tr>
+<tr>
+<th scope="row">Enforcement Engine</th>
+<td>Linux kernel iptables (linear chain search)</td>
+<td>eBPF bytecode programs in kernel traffic control</td>
+<td>O(1) packet lookup overhead; zero iptables lock contention.</td>
+</tr>
+<tr>
+<th scope="row">DNS Resolution Control</th>
+<td>Unfiltered UDP/TCP port 53 access</td>
+<td>Explicit egress rule required to kube-dns / CoreDNS</td>
+<td>Prevents covert DNS tunneling and data exfiltration.</td>
+</tr>
+<tr>
+<th scope="row">External Egress Control</th>
+<td>Unrestricted outbound Internet access via NAT</td>
+<td>Restricted to approved CIDR blocks and ports</td>
+<td>Blocks outbound command-and-control (C2) channel callbacks.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout"><strong>Apply it: The DNS Egress Gotcha</strong><p>When you apply an egress NetworkPolicy that isolates a pod (such as <code>policyTypes: [Egress]</code>), you MUST explicitly include an egress allow rule targeting the <code>kube-system</code> namespace on UDP and TCP port 53. If omitted, the pod will be unable to resolve internal Service names (CoreDNS), causing all microservice calls to fail with DNS timeouts.</p></div>
+
+<div class="callout"><strong>Further study</strong><p><a href="../sources.html#topic-014">Topic 014 source section</a> in this site, with original publisher links and the reading context.</p><p>Publisher: <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/dataplane-v2" rel="noopener noreferrer">GKE Dataplane V2 and Network Policies</a>. Verified fragment: eBPF architecture, Cilium integration, and NetworkPolicy enforcement rules.</p></div>
+</article>
+
+<article id="topic-04-technical" class="topic-card"><h3>Release channels and upgrade strategies (surge upgrades, maintenance windows)</h3>
+<p>Maintaining high availability across a Kubernetes fleet requires deliberate control over cluster upgrade cadences and worker node evacuation sequences. GKE automates Kubernetes minor and patch upgrades across three distinct Release Channels: <strong>Rapid</strong> (receives Kubernetes releases immediately for early testing; no SLA), <strong>Regular</strong> (default production channel; releases soaked for 2–3 months), and <strong>Stable</strong> (mission-critical enterprise workloads; conservative cadence receiving releases only after extensive global production validation).</p>
+<p>When upgrading worker node pools, GKE provides two upgrade strategies: <strong>Surge Upgrades</strong> and <strong>Blue-Green Upgrades</strong>. In Surge Upgrades, GKE creates additional node VMs (controlled by <code>maxSurge</code>, e.g. 1 extra node) to maintain cluster compute capacity while cordoning and draining existing nodes (controlled by <code>maxUnavailable</code>, typically 0 for zero-downtime). Blue-Green Upgrades provision an entirely separate node pool of the new version, soak workload traffic on the new pool, and delete the old pool only after operational validation. To ensure upgrades never occur during business-critical operations, architects configure <strong>Maintenance Windows</strong> (specifying allowed 4–24 hour upgrade blocks) and <strong>Maintenance Exclusions</strong> (blocking all minor and patch upgrades for up to 30 consecutive days during peak retail events).</p>
+
+<table>
+<caption>Architecture Path: GKE Node Pool Upgrade Strategies</caption>
+<thead>
+<tr>
+<th scope="col">Dimension</th>
+<th scope="col">Surge Upgrade (maxSurge=1, maxUnavailable=0)</th>
+<th scope="col">Blue-Green Upgrade (Batch Soaking)</th>
+<th scope="col">Selection Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Capacity Overhead</th>
+<td>Low (requires 1–2 temporary surge node VMs)</td>
+<td>High (requires 100% duplicate node pool quota)</td>
+<td>Surge is cost-effective; Blue-Green requires high compute quota.</td>
+</tr>
+<tr>
+<th scope="row">Rollback Speed</th>
+<td>Slow (must re-drain nodes back to old version)</td>
+<td>Instantaneous (traffic cut back to Blue pool)</td>
+<td>Blue-Green is preferred for mission-critical core banking.</td>
+</tr>
+<tr>
+<th scope="row">Pod Disruption Handling</th>
+<td>Strictly honors PodDisruptionBudgets (PDBs)</td>
+<td>Honors PDBs during drain phase</td>
+<td>Misconfigured PDBs with minAvailable=100% will block upgrades.</td>
+</tr>
+<tr>
+<th scope="row">Validation Window</th>
+<td>Continuous rolling drain per node</td>
+<td>Configurable soak duration (hours to days)</td>
+<td>Blue-Green allows extended soaking before committing.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout"><strong>Apply it: PodDisruptionBudgets (PDBs)</strong><p>Always pair surge upgrades with <code>PodDisruptionBudget</code> manifests. A PDB ensures that GKE's node drain controller will never evict pods below your declared threshold (e.g. <code>minAvailable: 2</code> or <code>maxUnavailable: 1</code>), guaranteeing continuous service availability throughout the upgrade process.</p></div>
+
+<div class="callout"><strong>Further study</strong><p><a href="../sources.html#topic-014">Topic 014 source section</a> in this site, with original publisher links and the reading context.</p><p>Publisher: <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/cluster-upgrades" rel="noopener noreferrer">GKE Cluster upgrades and maintenance windows</a>. Verified fragment: release channels, surge vs blue-green mechanics, and maintenance exclusions.</p></div>
+</article>
+
+<article id="topic-05-technical" class="topic-card"><h3>Startup vs readiness vs liveness probes</h3>
+<p>Container health checking in Kubernetes is divided across three distinct lifecycle phases executed locally by the node's kubelet: <strong>startupProbe</strong>, <strong>readinessProbe</strong>, and <strong>livenessProbe</strong>. Conflating these three probes is one of the most frequent causes of cascading cluster failures.</p>
+<p>The <strong>startupProbe</strong> is designed for slow-starting applications (such as legacy Java enterprise applications, ML model inference servers, or workloads performing database schema migrations). When a startup probe is defined, all liveness and readiness checks are disabled until the startup probe succeeds. This provides a protected startup window (e.g. <code>failureThreshold: 30</code> with <code>periodSeconds: 5</code> gives 150 seconds of boot headroom) without loosening ongoing runtime liveness checks. The <strong>readinessProbe</strong> verifies whether the container is currently capable of serving incoming user requests. If readiness fails (due to overloaded connection pools or backend dependency drops), the pod's endpoint is removed from Service routing and load balancer NEGs; the container is NOT killed. The <strong>livenessProbe</strong> determines if the application process is deadlocked, hung, or corrupted. If the liveness probe fails, kubelet terminates the container process and restarts it according to its <code>restartPolicy</code>.</p>
+
+<table>
+<caption>Architecture Path: Kubernetes Container Probe Matrix</caption>
+<thead>
+<tr>
+<th scope="col">Probe Type</th>
+<th scope="col">Operational Purpose</th>
+<th scope="col">Action on Consecutive Failure</th>
+<th scope="col">Traffic &amp; Routing Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">startupProbe</th>
+<td>Guards container initialization &amp; cache warm-up</td>
+<td>Kills container and restarts pod</td>
+<td>Disables liveness &amp; readiness until startup passes.</td>
+</tr>
+<tr>
+<th scope="row">readinessProbe</th>
+<td>Validates application capacity to accept requests</td>
+<td>Keeps container alive; flags pod Unready</td>
+<td>Removes Pod IP from Service ClusterIP &amp; Load Balancer NEGs.</td>
+</tr>
+<tr>
+<th scope="row">livenessProbe</th>
+<td>Detects unrecoverable deadlocks &amp; frozen loops</td>
+<td>Sends SIGTERM then SIGKILL to restart container</td>
+<td>Traffic remains routed until readiness or termination takes effect.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout"><strong>Apply it: Never Mirror Liveness to Readiness</strong><p>Never configure liveness probes to inspect external dependencies (such as downstream databases or payment gateways). If the external database experiences a brief outage, all liveness probes will fail simultaneously, causing kubelet to reboot every pod in the cluster, creating a catastrophic restart storm.</p></div>
+
+<div class="callout"><strong>Further study</strong><p><a href="../sources.html#topic-014">Topic 014 source section</a> in this site, with original publisher links and the reading context.</p><p>Publisher: <a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/" rel="noopener noreferrer">Kubernetes Pod Probes</a>. Verified fragment: probe handlers (HTTP, TCP, Exec), threshold parameters, and startup probe interaction.</p></div>
+</article>
+
+<article id="topic-06-technical" class="topic-card"><h3>Troubleshoot CrashLoopBackOff and OOMKilled using kubectl describe, logs, events and…</h3>
+<p>Workload failure diagnosis requires a systematic investigation sequence. When a pod enters a degraded state, platform architects navigate four primary diagnostic artifacts: pod termination state and exit codes via <kbd>kubectl describe pod</kbd>, previous process logs via <kbd>kubectl logs --previous</kbd>, chronological warning events via <kbd>kubectl get events</kbd>, and real-time container resource consumption via <kbd>kubectl top pod</kbd>.</p>
+<p>The two most pervasive workload failure states are <strong>CrashLoopBackOff</strong> and <strong>OOMKilled</strong>. CrashLoopBackOff is not an error itself, but an exponential backoff state imposed by kubelet (10s, 20s, 40s, up to 300s) after a container process exits unexpectedly. Investigating the container's <code>Exit Code</code> reveals the root cause: Exit Code 0 indicates premature process completion; Exit Code 1 indicates application configuration or dependency exceptions; Exit Code 137 indicates the container was forcefully terminated by signal 9 (<code>SIGKILL</code>), typically triggered by the Linux kernel Out-Of-Memory Killer when memory usage breaches <code>resources.limits.memory</code>. Exit Code 143 indicates an orderly <code>SIGTERM</code> shutdown (such as during node drain or scaling down).</p>
+
+<table>
+<caption>Architecture Path: Diagnostic Matrix for Pod Termination Signals</caption>
+<thead>
+<tr>
+<th scope="col">Observed State</th>
+<th scope="col">Exit Code</th>
+<th scope="col">Underlying Mechanism</th>
+<th scope="col">Prescribed Remediation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">OOMKilled</th>
+<td>137 (128 + 9)</td>
+<td>cgroup memory limit exceeded; kernel OOM killer invoked</td>
+<td>Increase <code>resources.limits.memory</code>; tune runtime heap (e.g. MaxRAMPercentage).</td>
+</tr>
+<tr>
+<th scope="row">Application Crash</th>
+<td>1 (or 2..127)</td>
+<td>Unhandled runtime exception, missing file, or syntax error</td>
+<td>Inspect <kbd>kubectl logs -p</kbd>; verify ConfigMaps, Secrets, and dependencies.</td>
+</tr>
+<tr>
+<th scope="row">Premature Exit</th>
+<td>0</td>
+<td>Main container process finished execution (batch script)</td>
+<td>Verify entrypoint command; ensure server process runs in foreground.</td>
+</tr>
+<tr>
+<th scope="row">Segmentation Fault</th>
+<td>139 (128 + 11)</td>
+<td>Native memory corruption or invalid memory pointer access</td>
+<td>Inspect native C/C++ libraries or JVM native memory interface crashes.</td>
+</tr>
+<tr>
+<th scope="row">Node Eviction</th>
+<td>N/A</td>
+<td>Kubelet evicted pod due to node disk pressure or memory pressure</td>
+<td>Inspect <kbd>kubectl describe node</kbd>; configure cluster autoscaling headroom.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout"><strong>Apply it: The `--previous` Flag</strong><p>When a container crashes and restarts, running <kbd>kubectl logs pod-name</kbd> prints logs from the <em>newly started</em> container instance. To see the stack trace or fatal error that caused the previous instance to crash, you MUST run <kbd>kubectl logs pod-name --previous</kbd> (or <kbd>kubectl logs pod-name -c container-name -p</kbd>).</p></div>
+
+<div class="callout"><strong>Further study</strong><p><a href="../sources.html#topic-014">Topic 014 source section</a> in this site, with original publisher links and the reading context.</p><p>Publisher: <a href="https://kubernetes.io/docs/tasks/debug/debug-application/" rel="noopener noreferrer">Kubernetes application troubleshooting</a>. Verified fragment: debug application, pod termination states, and event log inspection.</p></div>
+</article>
+
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d45-arch-title d45-arch-desc">
+<title id="d45-arch-title">Workload runtime security perimeters, three-stage probe lifecycles, and failure diagnosis tree</title>
+<desc id="d45-arch-desc">An architectural flow illustrating the end-to-end Kubernetes workload runtime boundaries and diagnostic decision tree. On the left, Workload Identity Federation authenticates Pods to Google Cloud Secret Manager via the GKE metadata server, mounting secrets into container filesystems. In the center, the three-stage probe lifecycle illustrates startupProbe guarding initialization, readinessProbe gating load balancer traffic, and livenessProbe detecting deadlocks, all enclosed within Dataplane V2 eBPF network policy boundaries. On the right, a systematic diagnostic decision tree routes failed workloads through Exit Code analysis, differentiating Exit Code 137 OOMKilled from Exit Code 1 application crashes and volume mount failures.</desc>
+<defs>
+<marker id="d45-a-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/></marker>
+<marker id="d45-g-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/></marker>
+<linearGradient id="d45-box-grad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#121526"/><stop offset="100%" stop-color="#0b0e1b"/></linearGradient>
+</defs>
+
+<!-- Background -->
+<rect x="0" y="0" width="980" height="440" fill="#090d16" rx="8"/>
+
+<!-- Left Boundary: Secret Manager & Workload Identity Flow -->
+<rect x="15" y="15" width="300" height="410" fill="url(#d45-box-grad)" stroke="#1e293b" stroke-width="1.5" rx="6"/>
+<text x="30" y="40" fill="#38bdf8" font-size="12" font-weight="700">1. IDENTITY &amp; SECRETS BOUNDARY</text>
+<text x="30" y="56" fill="#94a3b8" font-size="10">Workload Identity → Secret Manager CSI</text>
+
+<rect x="25" y="70" width="280" height="50" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="35" y="88" fill="#f8fafc" font-size="10.5" font-weight="600">Pod KSA: order-sa (Namespace: prod)</text>
+<text x="35" y="104" fill="#38bdf8" font-size="9">Annotated: iam.gke.io/gcp-service-account=GSA</text>
+
+<path d="M 165 120 L 165 140" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#d45-a-arr)"/>
+
+<rect x="25" y="140" width="280" height="65" fill="#0f172a" stroke="#38bdf8" rx="4"/>
+<text x="35" y="158" fill="#38bdf8" font-size="10.5" font-weight="600">GKE Metadata Server (DaemonSet)</text>
+<text x="35" y="174" fill="#cbd5e1" font-size="9">Intercepts metadata token requests</text>
+<text x="35" y="190" fill="#22c55e" font-size="8.5">Exchanges KSA OIDC token for short-lived OAuth2</text>
+
+<path d="M 165 205 L 165 225" stroke="#22c55e" stroke-width="1.5" marker-end="url(#d45-g-arr)"/>
+
+<rect x="25" y="225" width="280" height="85" fill="#1e293b" stroke="#22c55e" rx="4"/>
+<text x="35" y="243" fill="#22c55e" font-size="10.5" font-weight="600">Secret Store CSI Driver</text>
+<text x="35" y="259" fill="#f8fafc" font-size="9">Fetches secret payload via Secret Manager API</text>
+<text x="35" y="275" fill="#cbd5e1" font-size="8.5">Mounts tmpfs ephemeral volume into /etc/secrets</text>
+<text x="35" y="291" fill="#94a3b8" font-size="8">Zero plain-text secret storage in etcd or env vars</text>
+
+<rect x="25" y="322" width="280" height="90" fill="#0b1720" stroke="#38bdf8" stroke-width="1" rx="4"/>
+<text x="35" y="340" fill="#38bdf8" font-size="10" font-weight="600">Security Control Verification:</text>
+<text x="35" y="356" fill="#cbd5e1" font-size="8.5">• No static JSON keys stored in secrets</text>
+<text x="35" y="370" fill="#cbd5e1" font-size="8.5">• KMS CMEK envelope encryption active</text>
+<text x="35" y="384" fill="#22c55e" font-size="8.5">• Automatic rotation polling enabled (2m)</text>
+<text x="35" y="398" fill="#94a3b8" font-size="8">• Cloud Audit Logs records secret access</text>
+
+<!-- Center Boundary: Probe Lifecycle & Dataplane V2 -->
+<rect x="330" y="15" width="320" height="410" fill="url(#d45-box-grad)" stroke="#1e293b" stroke-width="1.5" rx="6"/>
+<text x="345" y="40" fill="#38bdf8" font-size="12" font-weight="700">2. THREE-STAGE PROBES &amp; NETWORK POLICY</text>
+<text x="345" y="56" fill="#94a3b8" font-size="10">Startup / Readiness / Liveness &amp; eBPF Policy</text>
+
+<rect x="340" y="70" width="300" height="75" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="350" y="88" fill="#f8fafc" font-size="10.5" font-weight="600">Stage 1: startupProbe (Boot Guard)</text>
+<text x="350" y="104" fill="#cbd5e1" font-size="9">failureThreshold: 30 · periodSeconds: 5 (150s)</text>
+<text x="350" y="120" fill="#22c55e" font-size="9">Suppresses liveness &amp; readiness during JVM warm-up</text>
+<text x="350" y="134" fill="#94a3b8" font-size="8">Prevents premature container restart loops</text>
+
+<path d="M 490 145 L 490 165" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#d45-a-arr)"/>
+
+<rect x="340" y="165" width="300" height="70" fill="#0f172a" stroke="#38bdf8" rx="4"/>
+<text x="350" y="183" fill="#38bdf8" font-size="10.5" font-weight="600">Stage 2: readinessProbe (Traffic Gate)</text>
+<text x="350" y="199" fill="#f8fafc" font-size="9">httpGet /healthz/ready · period: 5s</text>
+<text x="350" y="215" fill="#cbd5e1" font-size="8.5">Failure removes Pod IP from Service &amp; Load Balancer</text>
+<text x="350" y="227" fill="#22c55e" font-size="8">Container remains alive; zero restart penalty</text>
+
+<path d="M 490 235 L 490 255" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#d45-a-arr)"/>
+
+<rect x="340" y="255" width="300" height="65" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="350" y="273" fill="#f8fafc" font-size="10.5" font-weight="600">Stage 3: livenessProbe (Deadlock Recovery)</text>
+<text x="350" y="289" fill="#cbd5e1" font-size="9">httpGet /healthz/live · failureThreshold: 3</text>
+<text x="350" y="303" fill="#f59e0b" font-size="8.5">Failure sends SIGTERM to restart hung container</text>
+
+<rect x="340" y="330" width="300" height="85" fill="#0f172a" stroke="#22c55e" stroke-width="1.5" rx="4"/>
+<text x="350" y="348" fill="#22c55e" font-size="10.5" font-weight="600">Dataplane V2 eBPF Network Policies</text>
+<text x="350" y="364" fill="#cbd5e1" font-size="9">Default-Deny Ingress/Egress microsegmentation</text>
+<text x="350" y="378" fill="#38bdf8" font-size="8.5">Explicit rule: Egress to kube-system UDP 53 (DNS)</text>
+<text x="350" y="392" fill="#22c55e" font-size="8.5">Restricts lateral pod movement at wire speed</text>
+<text x="350" y="404" fill="#94a3b8" font-size="8">Zero iptables lock contention</text>
+
+<!-- Right Boundary: Diagnostic Decision Tree -->
+<rect x="665" y="15" width="300" height="410" fill="url(#d45-box-grad)" stroke="#1e293b" stroke-width="1.5" rx="6"/>
+<text x="680" y="40" fill="#38bdf8" font-size="12" font-weight="700">3. DIAGNOSTIC DECISION TREE</text>
+<text x="680" y="56" fill="#94a3b8" font-size="10">Systematic Root-Cause Resolution Path</text>
+
+<rect x="675" y="70" width="280" height="50" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="685" y="88" fill="#f8fafc" font-size="10.5" font-weight="600">Symptom: Pod in CrashLoopBackOff</text>
+<text x="685" y="104" fill="#38bdf8" font-size="9">Execute: kubectl describe pod &lt;pod-name&gt;</text>
+
+<path d="M 815 120 L 815 140" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#d45-a-arr)"/>
+
+<rect x="675" y="140" width="280" height="120" fill="#0f172a" stroke="#f43f5e" rx="4"/>
+<text x="685" y="158" fill="#f43f5e" font-size="10.5" font-weight="600">Branch A: Exit Code 137 (OOMKilled)</text>
+<text x="685" y="174" fill="#f8fafc" font-size="9">Reason: OOMKilled: true (cgroup limit breach)</text>
+<text x="685" y="190" fill="#cbd5e1" font-size="8.5">1. Check limits.memory vs JVM heap settings</text>
+<text x="685" y="204" fill="#22c55e" font-size="8.5">2. Set -XX:MaxRAMPercentage=75.0</text>
+<text x="685" y="218" fill="#22c55e" font-size="8.5">3. Increase resources.limits.memory</text>
+<text x="685" y="232" fill="#94a3b8" font-size="8">4. Verify node memory pressure with top</text>
+<text x="685" y="246" fill="#38bdf8" font-size="8">Do NOT blindly increase CPU limit</text>
+
+<path d="M 815 260 L 815 280" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#d45-a-arr)"/>
+
+<rect x="675" y="280" width="280" height="130" fill="#0f172a" stroke="#38bdf8" rx="4"/>
+<text x="685" y="298" fill="#38bdf8" font-size="10.5" font-weight="600">Branch B: Exit Code 1 / 2 (Crash)</text>
+<text x="685" y="314" fill="#f8fafc" font-size="9">Execute: kubectl logs &lt;pod&gt; --previous</text>
+<text x="685" y="328" fill="#cbd5e1" font-size="8.5">1. Check for missing secret or config file</text>
+<text x="685" y="342" fill="#cbd5e1" font-size="8.5">2. Inspect kubectl get events --sort-by</text>
+<text x="685" y="356" fill="#22c55e" font-size="8.5">3. If CreateContainerConfigError: Fix Secret</text>
+<text x="685" y="370" fill="#22c55e" font-size="8.5">4. If Probe timeout: Add startupProbe</text>
+<text x="685" y="384" fill="#94a3b8" font-size="8">5. If DNS timeout: Fix NetworkPolicy egress</text>
+<text x="685" y="398" fill="#22c55e" font-size="8.5">Workload enters Running (Ready: 1/1)</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> GKE workload runtime security boundary and diagnostic decision tree, featuring Workload Identity Federation with Secret Manager CSI (left), three-stage probe lifecycles guarded by Dataplane V2 eBPF network policies (center), and systematic exit-code root-cause analysis for CrashLoopBackOff and OOMKilled states (right). <strong>Scope:</strong> Production Kubernetes workload configuration, runtime security enforcement, and container lifecycle troubleshooting in Google Cloud. <strong>What it does not prove:</strong> Kernel panic diagnostics resulting from underlying hypervisor hardware failure, or instantaneous application-level garbage collection tuning across third-party runtimes.
+</figcaption>
+</figure>
+</section>
+
+<section id="part-3" class="part"><h2>3 · Real-world problem and solution for each topic</h2>
+<article id="topic-01-problem" class="topic-card"><h3>Config and secrets · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's regional Order Fulfillment microservice failed during a major release rollout. All new replica pods entered a permanent <code>CreateContainerConfigError</code> state. Simultaneously, security monitoring detected that an emergency fallback patch had injected database connection strings containing plaintext passwords directly into container environment variables, exposing production credentials across container inspection logs and triggering an immediate PCI-DSS non-compliance escalation.</p>
+<p><strong>Constraints:</strong> Eliminate plaintext credentials from etcd and environment variables, automate credential synchronization from Google Cloud Secret Manager, preserve order fulfillment execution, and avoid hard restarts during credential rotation.</p>
+<p><strong>Evidence:</strong> Running <kbd>kubectl describe pod order-fulfillment-84f9b</kbd> revealed: <code>Error: secret "order-db-creds" not found</code>. In the preceding release, database passwords were passed via <code>env.valueFrom.secretKeyRef</code>, but the Secret had been purged during an automated namespace cleanup. An inspection of application container process tables on surviving nodes showed database passwords exposed in plaintext under <code>/proc/$PID/environ</code>.</p>
+<p><strong>Root cause:</strong> Workloads relied on decoupled, unversioned Kubernetes Secrets stored in etcd and injected via environment variables rather than utilizing centralized Secret Manager CSI volume mounts. When the static Secret was deleted, deployments broke, and plaintext credential injection breached security perimeters.</p>
+<p><strong>Diagnostic sequence:</strong>
+<ol>
+<li>Describe failing pods with <kbd>kubectl describe pod -l app=order-fulfillment</kbd> to identify the missing Secret reference in the container specification.</li>
+<li>Inspect node events with <kbd>kubectl get events --field-selector reason=FailedMount</kbd> to observe volume setup failures.</li>
+<li>Audit environment variable exposure by running <kbd>kubectl exec order-fulfillment-old -- env | grep -i pass</kbd> to confirm plaintext password presence.</li>
+<li>Verify Secret Manager API availability with <kbd>gcloud secrets list --filter="name~order-db"</kbd> to locate the authoritative central secret version.</li>
+</ol>
+</p>
+<p><strong>Defensible solution:</strong> Deploy the Secret Store CSI Driver and author a <code>SecretProviderClass</code> resource linking the pod to Google Cloud Secret Manager. Update the Deployment manifest to mount the secret as a volume under <code>/etc/secrets</code> rather than injecting environment variables. Configure the CSI driver with <code>enable-secret-rotation: "true"</code> and a 2-minute polling interval, allowing the fulfillment service to read rotated credentials from disk without requiring container restarts.</p>
+<p><strong>Verification:</strong> Apply the updated Deployment manifest and confirm all pods transition to <code>Running (1/1)</code>. Execute <kbd>kubectl exec -it order-fulfillment-new -- cat /etc/secrets/db-password</kbd> to confirm file presence while verifying that <kbd>env</kbd> contains zero password strings. Audit Cloud Secret Manager access logs in Cloud Logging to confirm that the Secret Store CSI driver successfully accessed the secret using Workload Identity.</p>
+<p><strong>Residual risk:</strong> If Secret Manager experiences regional API throttling, initial volume mounts may experience transient delays. Applications must cache active credentials in memory and handle read retries gracefully.</p>
+
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d45-i1-title d45-i1-desc">
+<title id="d45-i1-title">Plaintext secret environment injection failure vs Secret Manager CSI volume mount</title>
+<desc id="d45-i1-desc">A comparative incident diagram showing the failed path of hardcoded plaintext secrets in etcd and environment variables leading to CreateContainerConfigError and security breaches, contrasted with the corrected path where Secret Store CSI driver mounts secrets dynamically from Google Cloud Secret Manager as an ephemeral volume.</desc>
+<defs>
+<marker id="d45-i1-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e"/></marker>
+<marker id="d45-i1-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/></marker>
+</defs>
+
+<rect x="0" y="0" width="980" height="440" fill="#090d16" rx="8"/>
+
+<!-- Initiating Event (Left) -->
+<rect x="20" y="80" width="165" height="280" fill="#121526" stroke="#1e293b" stroke-width="1.5" rx="6"/>
+<text x="35" y="115" fill="#38bdf8" font-size="12" font-weight="700">RELEASE EVENT</text>
+<text x="35" y="140" fill="#f8fafc" font-size="11" font-weight="600">Order Fulfillment</text>
+<text x="35" y="160" fill="#94a3b8" font-size="9.5">Microservice Rollout</text>
+<text x="35" y="180" fill="#cbd5e1" font-size="9.5">Target: Cloud SQL DB</text>
+<text x="35" y="210" fill="#f59e0b" font-size="9">Constraint:</text>
+<text x="35" y="226" fill="#f59e0b" font-size="8.5">PCI-DSS compliance</text>
+<text x="35" y="250" fill="#94a3b8" font-size="9">Zero plain-text keys</text>
+<text x="35" y="266" fill="#94a3b8" font-size="8.5">in process table</text>
+<text x="35" y="295" fill="#94a3b8" font-size="9">Auto-rotation needed</text>
+<text x="35" y="311" fill="#94a3b8" font-size="8.5">without pod restart</text>
+
+<!-- Upper Lane: Failed Path -->
+<rect x="220" y="30" width="730" height="175" fill="#121526" stroke="#f43f5e" stroke-dasharray="4,4" rx="6"/>
+<text x="240" y="55" fill="#f43f5e" font-size="12" font-weight="700">FAILED PATH: STATIC ETCD SECRET &amp; ENV VARIABLE LEAK</text>
+
+<rect x="240" y="70" width="180" height="115" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="250" y="92" fill="#f8fafc" font-size="10.5" font-weight="600">Static K8s Secret</text>
+<text x="250" y="110" fill="#cbd5e1" font-size="9">secret "order-db-creds"</text>
+<text x="250" y="126" fill="#f43f5e" font-size="9">Stored base64 in etcd</text>
+<text x="250" y="146" fill="#f43f5e" font-size="8.5">Deleted during cleanup</text>
+<text x="250" y="162" fill="#f43f5e" font-size="8.5">Unversioned credential</text>
+
+<path d="M 420 125 L 470 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i1-f)"/>
+<text x="425" y="115" fill="#f43f5e" font-size="8" font-weight="700">ENV REF</text>
+
+<rect x="470" y="70" width="220" height="115" fill="#1e293b" stroke="#f43f5e" rx="4"/>
+<text x="480" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">FAILURE POINT: ConfigError &amp; Leak</text>
+<text x="480" y="110" fill="#f8fafc" font-size="9">CreateContainerConfigError</text>
+<text x="480" y="126" fill="#f43f5e" font-size="9">Surviving pods leak password in env</text>
+<text x="480" y="146" fill="#f43f5e" font-size="8.5">Root cause: Plaintext env injection</text>
+<text x="480" y="162" fill="#f43f5e" font-size="8.5">Exposed in /proc/$PID/environ</text>
+
+<path d="M 690 125 L 735 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i1-f)"/>
+
+<rect x="735" y="70" width="195" height="115" fill="#18181b" stroke="#f43f5e" rx="4"/>
+<text x="745" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">CRITICAL BUSINESS OUTCOME</text>
+<text x="745" y="112" fill="#f8fafc" font-size="9">Deployment frozen</text>
+<text x="745" y="130" fill="#f43f5e" font-size="9">PCI-DSS audit failure</text>
+<text x="745" y="148" fill="#94a3b8" font-size="8.5">Database password leaked</text>
+<text x="745" y="166" fill="#94a3b8" font-size="8.5">Warehouse dispatch halted</text>
+
+<!-- Lower Lane: Corrected Path -->
+<rect x="220" y="230" width="730" height="185" fill="#121526" stroke="#22c55e" stroke-width="1.5" rx="6"/>
+<text x="240" y="255" fill="#22c55e" font-size="12" font-weight="700">CORRECTED PATH: SECRET MANAGER CSI EPHEMERAL VOLUME MOUNT</text>
+
+<rect x="240" y="270" width="200" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="250" y="292" fill="#22c55e" font-size="10.5" font-weight="600">CORRECTED CONTROL</text>
+<text x="250" y="310" fill="#cbd5e1" font-size="9">SecretProviderClass defined</text>
+<text x="250" y="328" fill="#38bdf8" font-size="9">Google Cloud Secret Manager</text>
+<text x="250" y="346" fill="#22c55e" font-size="9">CSI volume: /etc/secrets</text>
+<text x="250" y="364" fill="#94a3b8" font-size="8.5">Zero etcd storage · CMEK keys</text>
+<text x="250" y="380" fill="#94a3b8" font-size="8.5">Rotation polling active (2m)</text>
+
+<path d="M 440 330 L 490 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i1-c)"/>
+<text x="445" y="320" fill="#22c55e" font-size="8" font-weight="700">MOUNT</text>
+
+<!-- Verify Boundary Box -->
+<rect x="490" y="260" width="225" height="145" fill="#0b1720" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" rx="4"/>
+<text x="500" y="280" fill="#38bdf8" font-size="9" font-weight="700">VERIFY BOUNDARY: CSI SYNC</text>
+<text x="500" y="300" fill="#f8fafc" font-size="10" font-weight="600">Pod Running (Ready: 1/1)</text>
+<text x="500" y="318" fill="#22c55e" font-size="9">File mounted: /etc/secrets/db-pass</text>
+<text x="500" y="336" fill="#cbd5e1" font-size="9">Zero passwords in env vars</text>
+<text x="500" y="354" fill="#94a3b8" font-size="8.5">Cloud Audit Logs verifies access</text>
+<text x="500" y="372" fill="#22c55e" font-size="8.5">Automatic rotation without restart</text>
+<text x="500" y="390" fill="#38bdf8" font-size="8.5">etcd contains 0 credential bytes</text>
+
+<path d="M 715 330 L 760 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i1-c)"/>
+
+<rect x="760" y="270" width="170" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="770" y="292" fill="#22c55e" font-size="10.5" font-weight="600">VERIFIED OUTCOME</text>
+<text x="770" y="312" fill="#f8fafc" font-size="9">Fulfillment restored</text>
+<text x="770" y="330" fill="#cbd5e1" font-size="9">0 Plaintext leaks</text>
+<text x="770" y="348" fill="#22c55e" font-size="9">PCI-DSS compliant</text>
+<text x="770" y="366" fill="#94a3b8" font-size="8.5">Automated key rotation</text>
+<text x="770" y="382" fill="#94a3b8" font-size="8.5">Zero deployment stalls</text>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The Order Fulfillment deployment stalled with CreateContainerConfigError across all replica pods due to a missing Kubernetes Secret; debug logs revealed plain-text database passwords previously injected via environment variables were visible in /proc/$PID/environ, violating PCI-DSS controls. <strong>Architectural inference:</strong> Relying on unversioned etcd Secrets injected into container environment variables creates brittle deployment dependencies and exposes credentials in process memory tables and crash dumps. <strong>Expected post-fix behavior:</strong> Mounting credentials dynamically via the Secret Store CSI Driver from Google Cloud Secret Manager eliminates credentials from etcd and environment variables, enforcing automatic rotation and full Cloud Audit Logging.
+</figcaption>
+</figure>
+</article>
+
+<article id="topic-02-problem" class="topic-card"><h3>Workload Identity Federation for GKE · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's data analytics engineering team deployed an automated batch ingestion service on GKE to export order settlement logs to Google Cloud BigQuery. Immediately upon pod startup, the application threw fatal authentication errors: <code>Google::Cloud::PermissionDeniedError: 403 Forbidden: Caller does not have required permission to use project</code>. In an attempt to restore the batch feed, an engineer downloaded a static service account private key JSON file and committed it to a secret, violating company security policy and triggering a threat detection alert.</p>
+<p><strong>Constraints:</strong> Eliminate all static service account keys, enforce least-privilege access using Workload Identity Federation, restrict BigQuery dataset write permissions strictly to the analytics pod, and ensure zero credential management overhead for developers.</p>
+<p><strong>Evidence:</strong> Inspecting the failing pod revealed that it ran under the <code>default</code> Kubernetes ServiceAccount without any annotations. The Google Cloud IAM service account <code>analytics-writer@brightloaf-prod.iam.gserviceaccount.com</code> existed with <code>roles/bigquery.dataEditor</code>, but no IAM binding connected it to the GKE cluster. The GKE cluster had Workload Identity enabled, but the pod had not declared a dedicated KSA and was attempting to query the GKE metadata server without an authorized identity.</p>
+<p><strong>Root cause:</strong> The application lacked the required three-way Workload Identity binding: a dedicated Kubernetes ServiceAccount was not created, the KSA lacked the <code>iam.gke.io/gcp-service-account</code> annotation, and the Google Service Account had not granted <code>roles/iam.workloadIdentityUser</code> to the pod's namespace identity principal.</p>
+<p><strong>Diagnostic sequence:</strong>
+<ol>
+<li>Check pod service account assignment with <kbd>kubectl get pod -l app=order-analytics -o jsonpath='{.items[0].spec.serviceAccountName}'</kbd>, observing it used <code>default</code>.</li>
+<li>Query GSA IAM policy bindings with <kbd>gcloud iam service-accounts get-iam-policy analytics-writer@brightloaf-prod.iam.gserviceaccount.com</kbd>, confirming zero <code>workloadIdentityUser</code> bindings.</li>
+<li>Test metadata server token retrieval by running an ephemeral container: <kbd>kubectl exec -it order-analytics-0 -- curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email</kbd>, observing that it returned the node's default compute service account rather than the analytics GSA.</li>
+</ol>
+</p>
+<p><strong>Defensible solution:</strong> Implement the complete Workload Identity Federation workflow:
+<ol>
+<li>Create a dedicated KSA named <code>analytics-ksa</code> in the <code>analytics</code> namespace.</li>
+<li>Annotate the KSA with the target GSA email: <code>iam.gke.io/gcp-service-account=analytics-writer@brightloaf-prod.iam.gserviceaccount.com</code>.</li>
+<li>Grant the KSA permission to impersonate the GSA using Cloud IAM: <kbd>gcloud iam service-accounts add-iam-policy-binding analytics-writer@brightloaf-prod.iam.gserviceaccount.com --role=roles/iam.workloadIdentityUser --member="serviceAccount:brightloaf-prod.svc.id.goog[analytics/analytics-ksa]"</kbd>.</li>
+<li>Update the Deployment manifest to specify <code>serviceAccountName: analytics-ksa</code>.</li>
+</ol>
+</p>
+<p><strong>Verification:</strong> Re-deploy the analytics pod and execute <kbd>kubectl exec -it order-analytics-new -- curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email</kbd>. Verify that the returned email matches <code>analytics-writer@brightloaf-prod.iam.gserviceaccount.com</code>. Confirm that the pod successfully streams order settlement rows into the BigQuery destination table with zero 403 authorization errors.</p>
+<p><strong>Residual risk:</strong> If an operator deletes the KSA or accidentally changes the namespace name, the IAM principal string in <code>workloadIdentityUser</code> will no longer match, immediately severing token exchange. Keep namespace and KSA definitions in version-controlled GitOps repositories.</p>
+
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d45-i2-title d45-i2-desc">
+<title id="d45-i2-title">Static service account key leak vs Workload Identity Federation token exchange</title>
+<desc id="d45-i2-desc">A comparative incident diagram contrasting the dangerous static service account JSON key pattern with the corrected Workload Identity Federation token exchange flow. In the upper failed lane, a static key file is committed to a secret and exposed, triggering threat detection alerts. In the lower corrected lane, a dedicated Kubernetes ServiceAccount is mapped to a Google Service Account via the GKE metadata server, issuing short-lived OAuth2 access tokens directly to the container.</desc>
+<defs>
+<marker id="d45-i2-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e"/></marker>
+<marker id="d45-i2-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/></marker>
+</defs>
+
+<rect x="0" y="0" width="980" height="440" fill="#090d16" rx="8"/>
+
+<!-- Initiating Event (Left) -->
+<rect x="20" y="80" width="165" height="280" fill="#121526" stroke="#1e293b" stroke-width="1.5" rx="6"/>
+<text x="35" y="115" fill="#38bdf8" font-size="12" font-weight="700">INTEGRATION</text>
+<text x="35" y="140" fill="#f8fafc" font-size="11" font-weight="600">BigQuery Export</text>
+<text x="35" y="160" fill="#94a3b8" font-size="9.5">Order Analytics Pod</text>
+<text x="35" y="180" fill="#cbd5e1" font-size="9.5">Namespace: analytics</text>
+<text x="35" y="210" fill="#f59e0b" font-size="9">Security Rule:</text>
+<text x="35" y="226" fill="#f59e0b" font-size="8.5">Zero static JSON keys</text>
+<text x="35" y="250" fill="#94a3b8" font-size="9">GSA: analytics-writer</text>
+<text x="35" y="266" fill="#94a3b8" font-size="8.5">BigQuery DataEditor</text>
+<text x="35" y="295" fill="#94a3b8" font-size="9">Least privilege</text>
+<text x="35" y="311" fill="#94a3b8" font-size="8.5">enforcement</text>
+
+<!-- Upper Lane: Failed Path -->
+<rect x="220" y="30" width="730" height="175" fill="#121526" stroke="#f43f5e" stroke-dasharray="4,4" rx="6"/>
+<text x="240" y="55" fill="#f43f5e" font-size="12" font-weight="700">FAILED PATH: DOWNLOADED SERVICE ACCOUNT KEY &amp; 403 PERMISSION DENIED</text>
+
+<rect x="240" y="70" width="180" height="115" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="250" y="92" fill="#f8fafc" font-size="10.5" font-weight="600">Static JSON Key File</text>
+<text x="250" y="110" fill="#f43f5e" font-size="9">key.json in K8s Secret</text>
+<text x="250" y="126" fill="#94a3b8" font-size="9">Unbound default KSA</text>
+<text x="250" y="146" fill="#f43f5e" font-size="8.5">Static credentials exported</text>
+<text x="250" y="162" fill="#f43f5e" font-size="8.5">Violates org security policy</text>
+
+<path d="M 420 125 L 470 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i2-f)"/>
+<text x="425" y="115" fill="#f43f5e" font-size="8" font-weight="700">UNAUTH</text>
+
+<rect x="470" y="70" width="220" height="115" fill="#1e293b" stroke="#f43f5e" rx="4"/>
+<text x="480" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">FAILURE POINT: 403 Forbidden</text>
+<text x="480" y="110" fill="#f8fafc" font-size="9">Metadata server returns node GSA</text>
+<text x="480" y="126" fill="#f43f5e" font-size="9">Node service account lacks BQ access</text>
+<text x="480" y="146" fill="#f43f5e" font-size="8.5">Root cause: Missing Workload Identity</text>
+<text x="480" y="162" fill="#f43f5e" font-size="8.5">Threat detection alert: Leaked key</text>
+
+<path d="M 690 125 L 735 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i2-f)"/>
+
+<rect x="735" y="70" width="195" height="115" fill="#18181b" stroke="#f43f5e" rx="4"/>
+<text x="745" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">CRITICAL BUSINESS OUTCOME</text>
+<text x="745" y="112" fill="#f8fafc" font-size="9">Analytics pipeline broken</text>
+<text x="745" y="130" fill="#f43f5e" font-size="9">Compliance audit violation</text>
+<text x="745" y="148" fill="#94a3b8" font-size="8.5">Executive dashboards blind</text>
+<text x="745" y="166" fill="#94a3b8" font-size="8.5">Manual key revocation required</text>
+
+<!-- Lower Lane: Corrected Path -->
+<rect x="220" y="230" width="730" height="185" fill="#121526" stroke="#22c55e" stroke-width="1.5" rx="6"/>
+<text x="240" y="255" fill="#22c55e" font-size="12" font-weight="700">CORRECTED PATH: WORKLOAD IDENTITY FEDERATION OIDC TOKEN EXCHANGE</text>
+
+<rect x="240" y="270" width="200" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="250" y="292" fill="#22c55e" font-size="10.5" font-weight="600">CORRECTED BINDING</text>
+<text x="250" y="310" fill="#cbd5e1" font-size="9">1. KSA: analytics-ksa created</text>
+<text x="250" y="328" fill="#38bdf8" font-size="9">2. iam.gke.io annotation set</text>
+<text x="250" y="346" fill="#22c55e" font-size="9">3. workloadIdentityUser bound</text>
+<text x="250" y="364" fill="#94a3b8" font-size="8.5">serviceAccount:PROJECT.svc.id.goog</text>
+<text x="250" y="380" fill="#94a3b8" font-size="8.5">4. Pod uses analytics-ksa</text>
+
+<path d="M 440 330 L 490 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i2-c)"/>
+<text x="445" y="320" fill="#22c55e" font-size="8" font-weight="700">TOKEN</text>
+
+<!-- Verify Boundary Box -->
+<rect x="490" y="260" width="225" height="145" fill="#0b1720" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" rx="4"/>
+<text x="500" y="280" fill="#38bdf8" font-size="9" font-weight="700">VERIFY BOUNDARY: METADATA</text>
+<text x="500" y="300" fill="#f8fafc" font-size="10" font-weight="600">Metadata server returns GSA:</text>
+<text x="500" y="318" fill="#22c55e" font-size="9">analytics-writer@brightloaf-prod</text>
+<text x="500" y="336" fill="#cbd5e1" font-size="9">Short-lived OAuth2 token (1h)</text>
+<text x="500" y="354" fill="#94a3b8" font-size="8.5">Zero static keys stored on disk</text>
+<text x="500" y="372" fill="#22c55e" font-size="8.5">Automatic hourly token refresh</text>
+<text x="500" y="390" fill="#38bdf8" font-size="8.5">BigQuery API accepts request: 200 OK</text>
+
+<path d="M 715 330 L 760 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i2-c)"/>
+
+<rect x="760" y="270" width="170" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="770" y="292" fill="#22c55e" font-size="10.5" font-weight="600">VERIFIED OUTCOME</text>
+<text x="770" y="312" fill="#f8fafc" font-size="9">BigQuery stream active</text>
+<text x="770" y="330" fill="#cbd5e1" font-size="9">0 Static private keys</text>
+<text x="770" y="348" fill="#22c55e" font-size="9">Zero threat alerts</text>
+<text x="770" y="366" fill="#94a3b8" font-size="8.5">Least-privilege enforced</text>
+<text x="770" y="382" fill="#94a3b8" font-size="8.5">Auditable IAM identity</text>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The Order Analytics ingestion pods failed with 403 Forbidden errors when exporting data to BigQuery; investigating the node revealed that pods lacked a Workload Identity binding and an operator had downloaded an unencrypted service account JSON key to bypass authentication. <strong>Architectural inference:</strong> Without Workload Identity Federation, pods cannot authenticate as specific Google Service Accounts and fall back to node VM service accounts or static keys, creating severe security vulnerabilities. <strong>Expected post-fix behavior:</strong> Configuring a dedicated KSA with the iam.gke.io annotation and granting workloadIdentityUser on the target GSA allows the GKE metadata server to issue short-lived OAuth2 tokens, restoring BigQuery streaming without static keys.
+</figcaption>
+</figure>
+</article>
+
+<article id="topic-03-problem" class="topic-card"><h3>Network Policies and Dataplane V2 · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's platform security team deployed a global zero-trust NetworkPolicy in the production namespace to satisfy ISO 27001 microsegmentation mandates. Within four seconds of applying the policy, the entire checkout pipeline crashed. Every microservice attempting to resolve internal cluster services (such as <code>order-db.production.svc.cluster.local</code>) or reach external credit card gateways failed with: <code>dial tcp: lookup order-db... on 10.30.0.10:53: read udp: i/o timeout</code>. Customer checkout transactions dropped to zero across all retail channels.</p>
+<p><strong>Constraints:</strong> Maintain strict zero-trust microsegmentation, prevent lateral container movement between unrelated namespaces, allow required inter-service communication, and restore cluster DNS and external egress paths.</p>
+<p><strong>Evidence:</strong> The security team had applied a <code>default-deny-all</code> NetworkPolicy that specified <code>policyTypes: [Ingress, Egress]</code> with empty rules. While this successfully blocked unauthorized lateral traffic, it simultaneously blocked all outbound egress from pods. Specifically, pods were prohibited from sending UDP/TCP packets to the cluster's CoreDNS service IP (<code>10.30.0.10:53</code> in the <code>kube-system</code> namespace) and could not reach external Google Cloud APIs or payment endpoints.</p>
+<p><strong>Root cause:</strong> The egress NetworkPolicy failed to include an explicit egress permit rule for Kubernetes DNS resolution (UDP/TCP port 53 targeting <code>kube-system</code>) and lacked an egress rule allowing HTTPS traffic (TCP port 443) to external payment providers.</p>
+<p><strong>Diagnostic sequence:</strong>
+<ol>
+<li>Describe applied network policies with <kbd>kubectl get networkpolicies -n production</kbd>, discovering <code>default-deny-all</code>.</li>
+<li>Inspect Cilium / Dataplane V2 packet drop logs via <kbd>kubectl logs -n kube-system -l k8s-app=cilium --tail=50 | grep -i drop</kbd>, identifying dropped egress packets targeting destination port 53.</li>
+<li>Test container socket connectivity from the order pod using <kbd>kubectl exec -it order-api-0 -- nc -zvw3 10.30.0.10 53</kbd>, observing connection timeout.</li>
+</ol>
+</p>
+<p><strong>Defensible solution:</strong> Replace the crude blanket deny policy with a production-grade zero-trust NetworkPolicy. Specifically, author an egress rule on all application pods that explicitly permits egress to <code>kube-system</code> on port 53 (UDP and TCP) for DNS resolution, allows egress to the database namespace on TCP port 5432, and permits outbound egress to the Internet on TCP port 443 for external payment gateways while maintaining strict ingress isolation.</p>
+<p><strong>Verification:</strong> Apply the updated NetworkPolicy. Execute <kbd>kubectl exec -it order-api-0 -- nslookup order-db.production.svc.cluster.local</kbd> and verify instant resolution in under 2ms. Execute <kbd>curl -I https://api.stripe.com</kbd> from the container to confirm external HTTPS egress is functional. Attempt to curl an unrelated admin pod in the <code>accounting</code> namespace and verify that Dataplane V2 drops the unauthorized packet, confirming microsegmentation integrity.</p>
+<p><strong>Residual risk:</strong> If third-party external services operate on non-standard ports, egress rules must be updated in tandem. Operators should validate network policies in staging environments using Cilium network flow logs before applying them to production.</p>
+
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d45-i3-title d45-i3-desc">
+<title id="d45-i3-title">Default-deny NetworkPolicy DNS blackhole vs Dataplane V2 eBPF microsegmentation</title>
+<desc id="d45-i3-desc">A comparative incident diagram contrasting the failed blanket default-deny NetworkPolicy that inadvertently blocked CoreDNS port 53 with the corrected Dataplane V2 eBPF network policy allowing explicit DNS resolution and authorized database egress.</desc>
+<defs>
+<marker id="d45-i3-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e"/></marker>
+<marker id="d45-i3-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/></marker>
+</defs>
+
+<rect x="0" y="0" width="980" height="440" fill="#090d16" rx="8"/>
+
+<!-- Initiating Event (Left) -->
+<rect x="20" y="80" width="165" height="280" fill="#121526" stroke="#1e293b" stroke-width="1.5" rx="6"/>
+<text x="35" y="115" fill="#38bdf8" font-size="12" font-weight="700">SECURITY AUDIT</text>
+<text x="35" y="140" fill="#f8fafc" font-size="11" font-weight="600">Zero-Trust Mandate</text>
+<text x="35" y="160" fill="#94a3b8" font-size="9.5">Apply NetworkPolicy</text>
+<text x="35" y="180" fill="#cbd5e1" font-size="9.5">Namespace: production</text>
+<text x="35" y="210" fill="#f59e0b" font-size="9">Intent: Stop lateral</text>
+<text x="35" y="226" fill="#f59e0b" font-size="8.5">container movement</text>
+<text x="35" y="250" fill="#94a3b8" font-size="9">Dataplane V2:</text>
+<text x="35" y="266" fill="#94a3b8" font-size="8.5">Cilium eBPF active</text>
+<text x="35" y="295" fill="#94a3b8" font-size="9">Checkout SLA:</text>
+<text x="35" y="311" fill="#94a3b8" font-size="8.5">Must maintain 99.99%</text>
+
+<!-- Upper Lane: Failed Path -->
+<rect x="220" y="30" width="730" height="175" fill="#121526" stroke="#f43f5e" stroke-dasharray="4,4" rx="6"/>
+<text x="240" y="55" fill="#f43f5e" font-size="12" font-weight="700">FAILED PATH: BLANKET DEFAULT-DENY BLOCKS DNS (PORT 53)</text>
+
+<rect x="240" y="70" width="180" height="115" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="250" y="92" fill="#f8fafc" font-size="10.5" font-weight="600">default-deny-all</text>
+<text x="250" y="110" fill="#f43f5e" font-size="9">policyTypes: [Egress]</text>
+<text x="250" y="126" fill="#f43f5e" font-size="9">Empty egress rules</text>
+<text x="250" y="146" fill="#94a3b8" font-size="8.5">Drops all outbound packets</text>
+<text x="250" y="162" fill="#f43f5e" font-size="8.5">No DNS exception specified</text>
+
+<path d="M 420 125 L 470 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i3-f)"/>
+<text x="425" y="115" fill="#f43f5e" font-size="8" font-weight="700">DROP 53</text>
+
+<rect x="470" y="70" width="220" height="115" fill="#1e293b" stroke="#f43f5e" rx="4"/>
+<text x="480" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">FAILURE POINT: DNS Timeout</text>
+<text x="480" y="110" fill="#f8fafc" font-size="9">lookup order-db: i/o timeout</text>
+<text x="480" y="126" fill="#f43f5e" font-size="9">CoreDNS UDP 53 packets dropped</text>
+<text x="480" y="146" fill="#f43f5e" font-size="8.5">Root cause: Missing DNS egress permit</text>
+<text x="480" y="162" fill="#f43f5e" font-size="8.5">External payment gateway blocked</text>
+
+<path d="M 690 125 L 735 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i3-f)"/>
+
+<rect x="735" y="70" width="195" height="115" fill="#18181b" stroke="#f43f5e" rx="4"/>
+<text x="745" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">CRITICAL BUSINESS OUTCOME</text>
+<text x="745" y="112" fill="#f8fafc" font-size="9">100% Checkout outage</text>
+<text x="745" y="130" fill="#f43f5e" font-size="9">Revenue loss: $45k/hr</text>
+<text x="745" y="148" fill="#94a3b8" font-size="8.5">Order pipeline paralyzed</text>
+<text x="745" y="166" fill="#94a3b8" font-size="8.5">High-severity incident</text>
+
+<!-- Lower Lane: Corrected Path -->
+<rect x="220" y="230" width="730" height="185" fill="#121526" stroke="#22c55e" stroke-width="1.5" rx="6"/>
+<text x="240" y="255" fill="#22c55e" font-size="12" font-weight="700">CORRECTED PATH: DATAPLANE V2 EBPF POLICY WITH EXPLICIT DNS EGRESS</text>
+
+<rect x="240" y="270" width="200" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="250" y="292" fill="#22c55e" font-size="10.5" font-weight="600">CORRECTED NETWORKPOLICY</text>
+<text x="250" y="310" fill="#cbd5e1" font-size="9">1. Egress: kube-system UDP 53</text>
+<text x="250" y="328" fill="#38bdf8" font-size="9">2. Egress: order-db TCP 5432</text>
+<text x="250" y="346" fill="#22c55e" font-size="9">3. Egress: 0.0.0.0/0 TCP 443</text>
+<text x="250" y="364" fill="#94a3b8" font-size="8.5">4. Ingress: Ingress-LB only</text>
+<text x="250" y="380" fill="#94a3b8" font-size="8.5">Enforced via eBPF tc programs</text>
+
+<path d="M 440 330 L 490 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i3-c)"/>
+<text x="445" y="320" fill="#22c55e" font-size="8" font-weight="700">PERMIT</text>
+
+<!-- Verify Boundary Box -->
+<rect x="490" y="260" width="225" height="145" fill="#0b1720" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" rx="4"/>
+<text x="500" y="280" fill="#38bdf8" font-size="9" font-weight="700">VERIFY BOUNDARY: eBPF MAP</text>
+<text x="500" y="300" fill="#f8fafc" font-size="10" font-weight="600">CoreDNS resolves in 1.4ms</text>
+<text x="500" y="318" fill="#22c55e" font-size="9">Database connection: ESTABLISHED</text>
+<text x="500" y="336" fill="#cbd5e1" font-size="9">Stripe payment gateway: 200 OK</text>
+<text x="500" y="354" fill="#94a3b8" font-size="8.5">Unauthorized lateral access dropped</text>
+<text x="500" y="372" fill="#22c55e" font-size="8.5">cilium monitor shows 0 drops</text>
+<text x="500" y="390" fill="#38bdf8" font-size="8.5">Zero-trust boundary verified</text>
+
+<path d="M 715 330 L 760 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i3-c)"/>
+
+<rect x="760" y="270" width="170" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="770" y="292" fill="#22c55e" font-size="10.5" font-weight="600">VERIFIED OUTCOME</text>
+<text x="770" y="312" fill="#f8fafc" font-size="9">Checkout restored</text>
+<text x="770" y="330" fill="#cbd5e1" font-size="9">0 DNS lookup errors</text>
+<text x="770" y="348" fill="#22c55e" font-size="9">ISO 27001 compliant</text>
+<text x="770" y="366" fill="#94a3b8" font-size="8.5">Wire-speed eBPF filter</text>
+<text x="770" y="382" fill="#94a3b8" font-size="8.5">Zero lateral movement</text>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The entire production checkout pipeline failed with read udp: i/o timeout on port 53 immediately after a default-deny NetworkPolicy was applied; checkout transactions halted across all regions resulting in extensive business impact. <strong>Architectural inference:</strong> Blanket egress default-deny policies block all outbound traffic including essential cluster services like CoreDNS unless explicit allow rules for UDP/TCP port 53 targeting kube-system are incorporated. <strong>Expected post-fix behavior:</strong> Authoring an explicit egress rule for CoreDNS and payment gateways within Dataplane V2 restores name resolution and outbound transaction processing while preserving zero-trust microsegmentation.
+</figcaption>
+</figure>
+</article>
+
+<article id="topic-04-problem" class="topic-card"><h3>Release channels and upgrade strategies (surge upgrades, maintenance windows) · field case</h3>
+<p><strong>Situation and impact:</strong> During Brightloaf's peak Black Friday promotional campaign, Google Kubernetes Engine initiated an automatic control plane and node pool patch upgrade. The cluster node pool began cordoning and draining worker nodes. Because the cluster lacked sufficient compute quota to provision temporary surge VMs and several microservices lacked PodDisruptionBudgets, single-replica inventory pods were forcibly evicted. Customers attempting to complete checkouts experienced continuous <code>503 Service Unavailable</code> errors for 38 minutes.</p>
+<p><strong>Constraints:</strong> Guarantee zero uncoordinated cluster upgrades during commercial peak periods, eliminate service downtime during routine patch updates, ensure compliance with PodDisruptionBudgets, and operate within provisioned cloud compute quotas.</p>
+<p><strong>Evidence:</strong> Inspecting cluster settings revealed that the GKE cluster was enrolled in the <strong>Regular</strong> release channel with no Maintenance Windows or Maintenance Exclusions configured. When GKE initiated the node pool upgrade, it attempted a Surge Upgrade with default settings (<code>maxSurge: 1</code>, <code>maxUnavailable: 0</code>). However, Compute Engine regional vCPU quota was at 98% utilization, preventing the surge VM from booting. GKE's upgrade controller then waited, timed out, and degraded to evicting pods without surge capacity.</p>
+<p><strong>Root cause:</strong> Absence of GKE Maintenance Windows and Maintenance Exclusions permitted upgrades during a high-revenue commercial event, while unallocated compute quota and missing PodDisruptionBudgets resulted in service downtime during node drainage.</p>
+<p><strong>Diagnostic sequence:</strong>
+<ol>
+<li>Inspect cluster maintenance settings with <kbd>gcloud container clusters describe prod-cluster --format="yaml(maintenancePolicy)"</kbd>, discovering an empty policy.</li>
+<li>Check GKE upgrade history via <kbd>gcloud logging read 'resource.type="gke_cluster" AND logName:"logs/container.googleapis.com%2Fcluster-upgrade"'</kbd> to identify upgrade trigger timestamps.</li>
+<li>Check regional Compute Engine quotas with <kbd>gcloud compute regions describe us-central1 --format="yaml(quotas)"</kbd>, confirming vCPU saturation.</li>
+<li>Inspect missing PDBs via <kbd>kubectl get pdb -A</kbd>, verifying zero disruption budgets were configured for the inventory service.</li>
+</ol>
+</p>
+<p><strong>Defensible solution:</strong> Configure a recurring off-peak Maintenance Window (e.g. Tuesdays 02:00–06:00 UTC) and declare a 30-day Maintenance Exclusion covering major holiday shopping events. Define PodDisruptionBudgets for all mission-critical microservices (e.g. <code>minAvailable: 2</code>). Increase regional Compute Engine vCPU quota by 25% to guarantee surge capacity, and configure node pool surge settings with <code>maxSurge: 1</code> and <code>maxUnavailable: 0</code>.</p>
+<p><strong>Verification:</strong> Verify maintenance policy configuration: <kbd>gcloud container clusters describe prod-cluster --format="yaml(maintenancePolicy)"</kbd>. Simulate an intentional node pool upgrade during the authorized maintenance window and monitor pod traffic. Confirm that GKE provisions the surge node, safely drains active pods while respecting the PDB, and achieves 0% 503 HTTP errors throughout the upgrade.</p>
+<p><strong>Residual risk:</strong> Maintenance exclusions cannot exceed 30 consecutive days, after which GKE will force critical security patch upgrades. Platform teams must schedule controlled maintenance before exclusions expire.</p>
+
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d45-i4-title d45-i4-desc">
+<title id="d45-i4-title">Unplanned peak-hour upgrade outage vs Maintenance window and surge upgrade buffer</title>
+<desc id="d45-i4-desc">A comparative incident diagram showing the failed path of an uncoordinated node upgrade during peak sales without maintenance windows resulting in pod evictions and 503 errors, contrasted with the corrected path using maintenance exclusion windows, surge node buffers, and PodDisruptionBudgets.</desc>
+<defs>
+<marker id="d45-i4-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e"/></marker>
+<marker id="d45-i4-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/></marker>
+</defs>
+
+<rect x="0" y="0" width="980" height="440" fill="#090d16" rx="8"/>
+
+<!-- Initiating Event (Left) -->
+<rect x="20" y="80" width="165" height="280" fill="#121526" stroke="#1e293b" stroke-width="1.5" rx="6"/>
+<text x="35" y="115" fill="#38bdf8" font-size="12" font-weight="700">BLACK FRIDAY</text>
+<text x="35" y="140" fill="#f8fafc" font-size="11" font-weight="600">Peak Sales Campaign</text>
+<text x="35" y="160" fill="#94a3b8" font-size="9.5">Traffic: 18,000 req/sec</text>
+<text x="35" y="180" fill="#cbd5e1" font-size="9.5">vCPU Quota: 98% utilized</text>
+<text x="35" y="210" fill="#f59e0b" font-size="9">SLA Mandate:</text>
+<text x="35" y="226" fill="#f59e0b" font-size="8.5">Zero downtime allowed</text>
+<text x="35" y="250" fill="#94a3b8" font-size="9">GKE Release Channel:</text>
+<text x="35" y="266" fill="#94a3b8" font-size="8.5">Regular (Auto-upgrade)</text>
+<text x="35" y="295" fill="#94a3b8" font-size="9">No maintenance window</text>
+<text x="35" y="311" fill="#94a3b8" font-size="8.5">configured initially</text>
+
+<!-- Upper Lane: Failed Path -->
+<rect x="220" y="30" width="730" height="175" fill="#121526" stroke="#f43f5e" stroke-dasharray="4,4" rx="6"/>
+<text x="240" y="55" fill="#f43f5e" font-size="12" font-weight="700">FAILED PATH: UNCOORDINATED UPGRADE &amp; SURGE QUOTA EXHAUSTION</text>
+
+<rect x="240" y="70" width="180" height="115" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="250" y="92" fill="#f8fafc" font-size="10.5" font-weight="600">Auto-Upgrade Triggers</text>
+<text x="250" y="110" fill="#f43f5e" font-size="9">Fires during peak sale</text>
+<text x="250" y="126" fill="#94a3b8" font-size="9">Surge node creation fails</text>
+<text x="250" y="146" fill="#f43f5e" font-size="8.5">vCPU quota exceeded</text>
+<text x="250" y="162" fill="#f43f5e" font-size="8.5">Zero maintenance window</text>
+
+<path d="M 420 125 L 470 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i4-f)"/>
+<text x="425" y="115" fill="#f43f5e" font-size="8" font-weight="700">DRAIN</text>
+
+<rect x="470" y="70" width="220" height="115" fill="#1e293b" stroke="#f43f5e" rx="4"/>
+<text x="480" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">FAILURE POINT: Forced Pod Eviction</text>
+<text x="480" y="110" fill="#f8fafc" font-size="9">Node cordoned &amp; drained</text>
+<text x="480" y="126" fill="#f43f5e" font-size="9">Single-replica inventory pod killed</text>
+<text x="480" y="146" fill="#f43f5e" font-size="8.5">Root cause: No PDB + unblocked upgrade</text>
+<text x="480" y="162" fill="#f43f5e" font-size="8.5">503 Service Unavailable storm</text>
+
+<path d="M 690 125 L 735 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i4-f)"/>
+
+<rect x="735" y="70" width="195" height="115" fill="#18181b" stroke="#f43f5e" rx="4"/>
+<text x="745" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">CRITICAL BUSINESS OUTCOME</text>
+<text x="745" y="112" fill="#f8fafc" font-size="9">38 Minutes of 503 errors</text>
+<text x="745" y="130" fill="#f43f5e" font-size="9">8,000 Checkouts dropped</text>
+<text x="745" y="148" fill="#94a3b8" font-size="8.5">Massive brand damage</text>
+<text x="745" y="166" fill="#94a3b8" font-size="8.5">Emergency rollback required</text>
+
+<!-- Lower Lane: Corrected Path -->
+<rect x="220" y="230" width="730" height="185" fill="#121526" stroke="#22c55e" stroke-width="1.5" rx="6"/>
+<text x="240" y="255" fill="#22c55e" font-size="12" font-weight="700">CORRECTED PATH: MAINTENANCE EXCLUSION, PDB, &amp; SURGE CAPACITY</text>
+
+<rect x="240" y="270" width="200" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="250" y="292" fill="#22c55e" font-size="10.5" font-weight="600">CORRECTED CONTROLS</text>
+<text x="250" y="310" fill="#cbd5e1" font-size="9">1. Maintenance Exclusion set (30d)</text>
+<text x="250" y="328" fill="#38bdf8" font-size="9">2. Off-peak window (Tue 02:00Z)</text>
+<text x="250" y="346" fill="#22c55e" font-size="9">3. PodDisruptionBudget: minAvailable=2</text>
+<text x="250" y="364" fill="#94a3b8" font-size="8.5">4. vCPU Quota increased +25%</text>
+<text x="250" y="380" fill="#94a3b8" font-size="8.5">maxSurge=1, maxUnavailable=0</text>
+
+<path d="M 440 330 L 490 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i4-c)"/>
+<text x="445" y="320" fill="#22c55e" font-size="8" font-weight="700">SURGE</text>
+
+<!-- Verify Boundary Box -->
+<rect x="490" y="260" width="225" height="145" fill="#0b1720" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" rx="4"/>
+<text x="500" y="280" fill="#38bdf8" font-size="9" font-weight="700">VERIFY BOUNDARY: ZERO OUTAGE</text>
+<text x="500" y="300" fill="#f8fafc" font-size="10" font-weight="600">Surge VM provisions in 45s</text>
+<text x="500" y="318" fill="#22c55e" font-size="9">PDB prevents premature eviction</text>
+<text x="500" y="336" fill="#cbd5e1" font-size="9">Workloads migrate seamlessly</text>
+<text x="500" y="354" fill="#94a3b8" font-size="8.5">Zero 503 errors during node upgrade</text>
+<text x="500" y="372" fill="#22c55e" font-size="8.5">Upgrades execute only off-peak</text>
+<text x="500" y="390" fill="#38bdf8" font-size="8.5">Black Friday traffic unaffected</text>
+
+<path d="M 715 330 L 760 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i4-c)"/>
+
+<rect x="760" y="270" width="170" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="770" y="292" fill="#22c55e" font-size="10.5" font-weight="600">VERIFIED OUTCOME</text>
+<text x="770" y="312" fill="#f8fafc" font-size="9">100% Checkout uptime</text>
+<text x="770" y="330" fill="#cbd5e1" font-size="9">0 Failed transactions</text>
+<text x="770" y="348" fill="#22c55e" font-size="9">Deterministic patching</text>
+<text x="770" y="366" fill="#94a3b8" font-size="8.5">SLA maintained: 99.99%</text>
+<text x="770" y="382" fill="#94a3b8" font-size="8.5">Order flow uninterrupted</text>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> An uncoordinated GKE node pool auto-upgrade initiated during a Black Friday traffic surge, triggering 38 minutes of 503 Service Unavailable errors and aborting over 8,000 checkout transactions due to quota starvation and missing PodDisruptionBudgets. <strong>Architectural inference:</strong> Unrestricted release channels without maintenance exclusion windows permit automated cluster modifications during commercial peaks; without surge quota headroom and PDB protection, node draining causes immediate service outages. <strong>Expected post-fix behavior:</strong> Configuring recurring off-peak maintenance windows, active exclusion windows during promotions, surge buffer quotas, and PDBs ensures zero-downtime rolling upgrades.
+</figcaption>
+</figure>
+</article>
+
+<article id="topic-05-problem" class="topic-card"><h3>Startup vs readiness vs liveness probes · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf launched a major upgrade to its Java-based Order Calculation engine. Immediately following deployment, all 10 replica pods entered an infinite restart crash loop. The pods failed to reach a ready state, and every 35 seconds, the kubelet killed the containers. CPU utilization across the node pool spiked to 100% as the JVM continually restarted, recompiled classes, and re-initialized connection pools without ever serving a single transaction.</p>
+<p><strong>Constraints:</strong> Accommodate a 70–80 second container initialization and warm-up window, detect genuine post-initialization deadlocks rapidly within 10 seconds, prevent traffic routing to uninitialized containers, and eliminate restart storms.</p>
+<p><strong>Evidence:</strong> Inspecting pod events with <kbd>kubectl describe pod order-calc-78bc</kbd> revealed: <code>Liveness probe failed: HTTP probe failed with statuscode: 503</code> followed immediately by <code>Killing container with id containerd://order-calc: Container failed liveness probe, will be restarted</code>. The pod manifest had declared only a liveness probe: <code>initialDelaySeconds: 15</code>, <code>periodSeconds: 10</code>, and <code>failureThreshold: 3</code>. The application required 75 seconds to initialize Hibernate caches and verify database schema migrations. Because 15 + (10 * 2) = 35 seconds, the liveness probe timed out and killed the container at the 35-second mark, long before boot completed.</p>
+<p><strong>Root cause:</strong> Misconfigured probe lifecycle. The deployment relied solely on an aggressive liveness probe without a <code>startupProbe</code>. The kubelet repeatedly executed liveness checks against an initializing container, mistaking slow boot times for fatal deadlocks.</p>
+<p><strong>Diagnostic sequence:</strong>
+<ol>
+<li>Describe the failing pod with <kbd>kubectl describe pod -l app=order-calc</kbd> to identify probe failure reasons and termination timestamps.</li>
+<li>Check previous container logs with <kbd>kubectl logs -l app=order-calc -p</kbd>, confirming the JVM was actively initializing Spring/Hibernate when it received <code>SIGTERM</code>.</li>
+<li>Measure cold start duration locally or in an isolated test container, recording an average boot duration of 72 seconds.</li>
+</ol>
+</p>
+<p><strong>Defensible solution:</strong> Decouple the health checks into a three-stage probe architecture:
+<ol>
+<li>Add a <code>startupProbe</code> configured with <code>httpGet: /healthz/startup</code>, <code>periodSeconds: 5</code>, and <code>failureThreshold: 20</code> (providing up to 100 seconds of boot protection).</li>
+<li>Configure the <code>readinessProbe</code> with <code>httpGet: /healthz/ready</code>, <code>periodSeconds: 5</code>, and <code>failureThreshold: 2</code> to gate traffic only when caches are loaded.</li>
+<li>Retain an agile <code>livenessProbe</code> configured with <code>httpGet: /healthz/live</code>, <code>periodSeconds: 5</code>, and <code>failureThreshold: 3</code> that only begins firing after the startup probe succeeds.</li>
+</ol>
+</p>
+<p><strong>Verification:</strong> Apply the updated deployment manifest. Observe pod startup via <kbd>kubectl get pods -w</kbd>. The pods remain in <code>Running (0/1)</code> during the 72-second initialization window without restarts, successfully transition to <code>Running (1/1)</code>, and register with load balancer NEGs. Simulate an intentional deadlock on a running container and confirm that the liveness probe restarts the deadlocked container within 15 seconds.</p>
+<p><strong>Residual risk:</strong> Setting excessively long startup probe thresholds (e.g. 15 minutes) can delay failure reporting if an image genuinely hangs due to corrupt binaries. Size the startup threshold to 1.3x–1.5x of the measured p99 cold boot time.</p>
+
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d45-i5-title d45-i5-desc">
+<title id="d45-i5-title">Premature liveness probe boot termination vs Dedicated startup probe headroom</title>
+<desc id="d45-i5-desc">A comparative incident diagram showing the failed path of premature liveness probe termination killing a slow-starting JVM container during boot, contrasted with the corrected path where a dedicated startupProbe provides 100 seconds of protected initialization headroom.</desc>
+<defs>
+<marker id="d45-i5-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e"/></marker>
+<marker id="d45-i5-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/></marker>
+</defs>
+
+<rect x="0" y="0" width="980" height="440" fill="#090d16" rx="8"/>
+
+<!-- Initiating Event (Left) -->
+<rect x="20" y="80" width="165" height="280" fill="#121526" stroke="#1e293b" stroke-width="1.5" rx="6"/>
+<text x="35" y="115" fill="#38bdf8" font-size="12" font-weight="700">COLD START</text>
+<text x="35" y="140" fill="#f8fafc" font-size="11" font-weight="600">Order Calculation</text>
+<text x="35" y="160" fill="#94a3b8" font-size="9.5">Java / Spring Boot JVM</text>
+<text x="35" y="180" fill="#cbd5e1" font-size="9.5">Boot Time: ~75 seconds</text>
+<text x="35" y="210" fill="#f59e0b" font-size="9">Initialization tasks:</text>
+<text x="35" y="226" fill="#f59e0b" font-size="8.5">• Hibernate warm-up</text>
+<text x="35" y="242" fill="#f59e0b" font-size="8.5">• Cache preloading</text>
+<text x="35" y="270" fill="#94a3b8" font-size="9">Constraint:</text>
+<text x="35" y="286" fill="#94a3b8" font-size="8.5">Must detect deadlock</text>
+<text x="35" y="302" fill="#94a3b8" font-size="8.5">rapidly post-boot</text>
+
+<!-- Upper Lane: Failed Path -->
+<rect x="220" y="30" width="730" height="175" fill="#121526" stroke="#f43f5e" stroke-dasharray="4,4" rx="6"/>
+<text x="240" y="55" fill="#f43f5e" font-size="12" font-weight="700">FAILED PATH: AGGRESSIVE LIVENESS PROBE KILLS BOOTING CONTAINER</text>
+
+<rect x="240" y="70" width="180" height="115" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="250" y="92" fill="#f8fafc" font-size="10.5" font-weight="600">Liveness-Only Config</text>
+<text x="250" y="110" fill="#f43f5e" font-size="9">initialDelaySeconds: 15</text>
+<text x="250" y="126" fill="#f43f5e" font-size="9">period: 10s · threshold: 3</text>
+<text x="250" y="146" fill="#94a3b8" font-size="8.5">No startupProbe defined</text>
+<text x="250" y="162" fill="#f43f5e" font-size="8.5">Fires checks at t=15, 25, 35s</text>
+
+<path d="M 420 125 L 470 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i5-f)"/>
+<text x="425" y="115" fill="#f43f5e" font-size="8" font-weight="700">KILL @ 35s</text>
+
+<rect x="470" y="70" width="220" height="115" fill="#1e293b" stroke="#f43f5e" rx="4"/>
+<text x="480" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">FAILURE POINT: Perpetual Reboot Loop</text>
+<text x="480" y="110" fill="#f8fafc" font-size="9">JVM at 45% boot when SIGTERM sent</text>
+<text x="480" y="126" fill="#f43f5e" font-size="9">Kubelet kills container every 35s</text>
+<text x="480" y="146" fill="#f43f5e" font-size="8.5">Root cause: Missing startupProbe</text>
+<text x="480" y="162" fill="#f43f5e" font-size="8.5">CPU spikes to 100% from restarts</text>
+
+<path d="M 690 125 L 735 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i5-f)"/>
+
+<rect x="735" y="70" width="195" height="115" fill="#18181b" stroke="#f43f5e" rx="4"/>
+<text x="745" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">CRITICAL BUSINESS OUTCOME</text>
+<text x="745" y="112" fill="#f8fafc" font-size="9">Calculation engine dead</text>
+<text x="745" y="130" fill="#f43f5e" font-size="9">100% Pods CrashLooping</text>
+<text x="745" y="148" fill="#94a3b8" font-size="8.5">Zero checkouts calculated</text>
+<text x="745" y="166" fill="#94a3b8" font-size="8.5">Cluster node CPU exhausted</text>
+
+<!-- Lower Lane: Corrected Path -->
+<rect x="220" y="230" width="730" height="185" fill="#121526" stroke="#22c55e" stroke-width="1.5" rx="6"/>
+<text x="240" y="255" fill="#22c55e" font-size="12" font-weight="700">CORRECTED PATH: STARTUP PROBE HEADROOM &amp; AGILITY DECOUPLING</text>
+
+<rect x="240" y="270" width="200" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="250" y="292" fill="#22c55e" font-size="10.5" font-weight="600">CORRECTED PROBES</text>
+<text x="250" y="310" fill="#cbd5e1" font-size="9">1. startupProbe: 100s window</text>
+<text x="250" y="328" fill="#38bdf8" font-size="9">period: 5s · threshold: 20</text>
+<text x="250" y="346" fill="#22c55e" font-size="9">2. readinessProbe: period: 5s</text>
+<text x="250" y="364" fill="#94a3b8" font-size="8.5">3. livenessProbe: period: 5s</text>
+<text x="250" y="380" fill="#94a3b8" font-size="8.5">Liveness fires only after startup</text>
+
+<path d="M 440 330 L 490 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i5-c)"/>
+<text x="445" y="320" fill="#22c55e" font-size="8" font-weight="700">BOOT OK</text>
+
+<!-- Verify Boundary Box -->
+<rect x="490" y="260" width="225" height="145" fill="#0b1720" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" rx="4"/>
+<text x="500" y="280" fill="#38bdf8" font-size="9" font-weight="700">VERIFY BOUNDARY: HEALTHY BOOT</text>
+<text x="500" y="300" fill="#f8fafc" font-size="10" font-weight="600">startupProbe succeeds at t=74s</text>
+<text x="500" y="318" fill="#22c55e" font-size="9">readinessProbe passes → Ready: 1/1</text>
+<text x="500" y="336" fill="#cbd5e1" font-size="9">Traffic routed via NEG</text>
+<text x="500" y="354" fill="#94a3b8" font-size="8.5">livenessProbe monitors runtime</text>
+<text x="500" y="372" fill="#22c55e" font-size="8.5">Zero premature container restarts</text>
+<text x="500" y="390" fill="#38bdf8" font-size="8.5">Deadlocks detected in under 15s</text>
+
+<path d="M 715 330 L 760 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i5-c)"/>
+
+<rect x="760" y="270" width="170" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="770" y="292" fill="#22c55e" font-size="10.5" font-weight="600">VERIFIED OUTCOME</text>
+<text x="770" y="312" fill="#f8fafc" font-size="9">Calculation engine live</text>
+<text x="770" y="330" fill="#cbd5e1" font-size="9">0 Boot restart loops</text>
+<text x="770" y="348" fill="#22c55e" font-size="9">Node CPU stabilizes</text>
+<text x="770" y="366" fill="#94a3b8" font-size="8.5">Full checkout availability</text>
+<text x="770" y="382" fill="#94a3b8" font-size="8.5">Resilient probe design</text>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The Order Calculation engine failed with repeated liveness probe timeouts every 35 seconds across all 10 replicas; the application required 75 seconds to initialize caches on cold boot, but was terminated prematurely by kubelet because only an aggressive liveness probe was defined. <strong>Architectural inference:</strong> Configuring a liveness probe with a short initial delay without a startup probe causes kubelet to misinterpret normal cold-boot initialization latency as an unrecoverable process deadlock. <strong>Expected post-fix behavior:</strong> Introducing a startupProbe with a 100-second window protects initialization, allowing the container to boot completely before readiness and liveness evaluations activate.
+</figcaption>
+</figure>
+</article>
+
+<article id="topic-06-problem" class="topic-card"><h3>Troubleshoot CrashLoopBackOff and OOMKilled using kubectl describe, logs, events and… · field case</h3>
+<p><strong>Situation and impact:</strong> During an unexpected spike in customer cart reservations, Brightloaf's Inventory Reservation microservice crashed across multiple worker nodes, entering a persistent <code>CrashLoopBackOff</code> state. On-call engineers assumed the issue was CPU starvation, edited the deployment to increase CPU limits from 500m to 2000m, and restarted the deployment. The pods crashed again immediately. Inventory reservations remained offline for 52 minutes, resulting in widespread checkout abandonment and database table lock contention.</p>
+<p><strong>Constraints:</strong> Identify the true termination root cause using standard Kubernetes diagnostic commands, prevent cascading node memory exhaustion, rightsize container resource requests and limits, and restore inventory reservation reliability.</p>
+<p><strong>Evidence:</strong> Running <kbd>kubectl describe pod inventory-reservation-69bc</kbd> immediately highlighted the true failure: under <code>Last State: Terminated</code>, the container reported <code>Exit Code: 137</code> and <code>Reason: OOMKilled</code>. The pod specification had defined <code>requests.memory: 256Mi</code> and <code>limits.memory: 512Mi</code>. Container process metrics revealed that during peak checkout bursts, in-memory reservation queues ballooned to 580MB, causing the Linux kernel cgroup controller to terminate the container process with <code>SIGKILL</code> (signal 9, exit code 128 + 9 = 137). Increasing CPU limits had zero impact because CPU throttling never causes an Exit Code 137 termination.</p>
+<p><strong>Root cause:</strong> The container was killed by the kernel cgroup Out-Of-Memory killer because active memory consumption exceeded the rigid 512Mi memory limit. Operators wasted 40 minutes troubleshooting CPU metrics because they did not inspect container termination states and exit codes.</p>
+<p><strong>Diagnostic sequence:</strong>
+<ol>
+<li>Run <kbd>kubectl describe pod &lt;pod-name&gt;</kbd> and inspect <code>Containers[].Last State</code>, verifying <code>Exit Code: 137</code> and <code>Reason: OOMKilled</code>.</li>
+<li>Inspect previous container logs via <kbd>kubectl logs &lt;pod-name&gt; -p</kbd>, noting that the application log terminated abruptly without an application exception stack trace.</li>
+<li>Check cluster events with <kbd>kubectl get events --field-selector reason=OOMKilled</kbd> to confirm widespread cgroup limit breaches.</li>
+<li>Inspect node memory saturation with <kbd>kubectl top node</kbd> and <kbd>kubectl top pod</kbd> to observe rapid memory consumption up to the 512Mi boundary.</li>
+</ol>
+</p>
+<p><strong>Defensible solution:</strong> Rightsize the container memory profile. Increase <code>requests.memory</code> to 512Mi and <code>limits.memory</code> to 1024Mi, providing sufficient headroom for bursty in-memory reservation queues. For JVM containers, configure <code>-XX:MaxRAMPercentage=75.0</code> to ensure the runtime leaves 25% of cgroup memory for native thread stacks and metaspace. Implement an in-memory queue bounded buffer that sheds excess requests gracefully rather than allocating unbounded heap memory.</p>
+<p><strong>Verification:</strong> Apply the updated manifest and execute load tests simulating 2x peak reservation volume. Monitor container memory consumption via <kbd>kubectl top pod -l app=inventory-reservation</kbd>, observing that memory peaks safely at 680Mi (well below the 1024Mi limit). Confirm zero Exit Code 137 terminations and 0% CrashLoopBackOff restarts.</p>
+<p><strong>Residual risk:</strong> Setting memory limits too high (or removing limits entirely) allows memory-leaking containers to consume host memory, potentially causing the node kernel to invoke the host-level OOM killer and terminate critical system daemon pods. Always pair container memory limits with node-level eviction thresholds.</p>
+
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d45-i6-title d45-i6-desc">
+<title id="d45-i6-title">Misdiagnosed CPU starvation vs Systematic Exit Code 137 OOMKilled remediation</title>
+<desc id="d45-i6-desc">A comparative incident diagram showing the failed path where an Exit Code 137 OOMKilled failure was misdiagnosed as CPU throttling and unsuccessfully remediated with higher CPU limits, contrasted with the corrected path where systematic describe and exit code analysis identifies cgroup memory breaches, solved by decoupling memory requests from limits.</desc>
+<defs>
+<marker id="d45-i6-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e"/></marker>
+<marker id="d45-i6-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/></marker>
+</defs>
+
+<rect x="0" y="0" width="980" height="440" fill="#090d16" rx="8"/>
+
+<!-- Initiating Event (Left) -->
+<rect x="20" y="80" width="165" height="280" fill="#121526" stroke="#1e293b" stroke-width="1.5" rx="6"/>
+<text x="35" y="115" fill="#38bdf8" font-size="12" font-weight="700">PEAK BURST</text>
+<text x="35" y="140" fill="#f8fafc" font-size="11" font-weight="600">Cart Reservations</text>
+<text x="35" y="160" fill="#94a3b8" font-size="9.5">Traffic Spike: 4x volume</text>
+<text x="35" y="180" fill="#cbd5e1" font-size="9.5">Queue Buffer: 580MB</text>
+<text x="35" y="210" fill="#f59e0b" font-size="9">Container Limits:</text>
+<text x="35" y="226" fill="#f59e0b" font-size="8.5">• CPU: 500m</text>
+<text x="35" y="242" fill="#f59e0b" font-size="8.5">• Memory: 512Mi</text>
+<text x="35" y="270" fill="#94a3b8" font-size="9">Symptom: Pods in</text>
+<text x="35" y="286" fill="#94a3b8" font-size="8.5">CrashLoopBackOff</text>
+<text x="35" y="302" fill="#94a3b8" font-size="8.5">during checkout rush</text>
+
+<!-- Upper Lane: Failed Path -->
+<rect x="220" y="30" width="730" height="175" fill="#121526" stroke="#f43f5e" stroke-dasharray="4,4" rx="6"/>
+<text x="240" y="55" fill="#f43f5e" font-size="12" font-weight="700">FAILED PATH: GUESSWORK INCREASES CPU · REPEATED OOM TERMINATION</text>
+
+<rect x="240" y="70" width="180" height="115" fill="#1e293b" stroke="#334155" rx="4"/>
+<text x="250" y="92" fill="#f8fafc" font-size="10.5" font-weight="600">Blind Guesswork</text>
+<text x="250" y="110" fill="#f43f5e" font-size="9">Assumes CPU throttling</text>
+<text x="250" y="126" fill="#94a3b8" font-size="9">Increases CPU limit to 2000m</text>
+<text x="250" y="146" fill="#f43f5e" font-size="8.5">Leaves memory limit at 512Mi</text>
+<text x="250" y="162" fill="#f43f5e" font-size="8.5">Ignored exit code signals</text>
+
+<path d="M 420 125 L 470 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i1-f)"/>
+<text x="425" y="115" fill="#f43f5e" font-size="8" font-weight="700">SIGKILL</text>
+
+<rect x="470" y="70" width="220" height="115" fill="#1e293b" stroke="#f43f5e" rx="4"/>
+<text x="480" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">FAILURE POINT: Exit Code 137</text>
+<text x="480" y="110" fill="#f8fafc" font-size="9">cgroup limit breach at 512Mi</text>
+<text x="480" y="126" fill="#f43f5e" font-size="9">Kernel OOM Killer sends SIGKILL (9)</text>
+<text x="480" y="146" fill="#f43f5e" font-size="8.5">Root cause: Memory limit breach</text>
+<text x="480" y="162" fill="#f43f5e" font-size="8.5">Pod dies immediately on restart</text>
+
+<path d="M 690 125 L 735 125" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#d45-i1-f)"/>
+
+<rect x="735" y="70" width="195" height="115" fill="#18181b" stroke="#f43f5e" rx="4"/>
+<text x="745" y="92" fill="#f43f5e" font-size="10.5" font-weight="600">CRITICAL BUSINESS OUTCOME</text>
+<text x="745" y="112" fill="#f8fafc" font-size="9">52 Minutes downtime</text>
+<text x="745" y="130" fill="#f43f5e" font-size="9">Reservations rejected</text>
+<text x="745" y="148" fill="#94a3b8" font-size="8.5">Double-booked stock</text>
+<text x="745" y="166" fill="#94a3b8" font-size="8.5">Wasted triage toil</text>
+
+<!-- Lower Lane: Corrected Path -->
+<rect x="220" y="230" width="730" height="185" fill="#121526" stroke="#22c55e" stroke-width="1.5" rx="6"/>
+<text x="240" y="255" fill="#22c55e" font-size="12" font-weight="700">CORRECTED PATH: SYSTEMATIC EXIT CODE 137 DIAGNOSIS &amp; MEMORY EXPANSION</text>
+
+<rect x="240" y="270" width="200" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="250" y="292" fill="#22c55e" font-size="10.5" font-weight="600">DIAGNOSTIC PROCESS</text>
+<text x="250" y="310" fill="#cbd5e1" font-size="9">1. kubectl describe pod</text>
+<text x="250" y="328" fill="#38bdf8" font-size="9">Identifies Exit Code: 137 (OOM)</text>
+<text x="250" y="346" fill="#22c55e" font-size="9">2. requests.memory: 512Mi</text>
+<text x="250" y="364" fill="#22c55e" font-size="9">3. limits.memory: 1024Mi</text>
+<text x="250" y="380" fill="#94a3b8" font-size="8.5">4. MaxRAMPercentage=75.0</text>
+
+<path d="M 440 330 L 490 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i6-c)"/>
+<text x="445" y="320" fill="#22c55e" font-size="8" font-weight="700">EXPAND</text>
+
+<!-- Verify Boundary Box -->
+<rect x="490" y="260" width="225" height="145" fill="#0b1720" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" rx="4"/>
+<text x="500" y="280" fill="#38bdf8" font-size="9" font-weight="700">VERIFY BOUNDARY: STABLE MEMORY</text>
+<text x="500" y="300" fill="#f8fafc" font-size="10" font-weight="600">Memory peaks at 680Mi</text>
+<text x="500" y="318" fill="#22c55e" font-size="9">Headroom below 1024Mi limit</text>
+<text x="500" y="336" fill="#cbd5e1" font-size="9">Zero cgroup OOM kills</text>
+<text x="500" y="354" fill="#94a3b8" font-size="8.5">Pod status: Running (Ready: 1/1)</text>
+<text x="500" y="372" fill="#22c55e" font-size="8.5">kubectl top pod shows stable heap</text>
+<text x="500" y="390" fill="#38bdf8" font-size="8.5">Reservation queue drains cleanly</text>
+
+<path d="M 715 330 L 760 330" stroke="#22c55e" stroke-width="2" marker-end="url(#d45-i6-c)"/>
+
+<rect x="760" y="270" width="170" height="125" fill="#0f172a" stroke="#22c55e" rx="4"/>
+<text x="770" y="292" fill="#22c55e" font-size="10.5" font-weight="600">VERIFIED OUTCOME</text>
+<text x="770" y="312" fill="#f8fafc" font-size="9">Reservations restored</text>
+<text x="770" y="330" fill="#cbd5e1" font-size="9">0 OOMKilled crashes</text>
+<text x="770" y="348" fill="#22c55e" font-size="9">Accurate stock records</text>
+<text x="770" y="366" fill="#94a3b8" font-size="8.5">Data-driven diagnosis</text>
+<text x="770" y="382" fill="#94a3b8" font-size="8.5">Eliminated guesswork</text>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The Inventory Reservation microservice entered CrashLoopBackOff under peak burst traffic; operators mistakenly suspected CPU starvation and increased CPU limits to 2000m, but pods continued crashing with Exit Code 137 resulting in 52 minutes of reservation outages. <strong>Architectural inference:</strong> Exit Code 137 indicates a process terminated by SIGKILL via the kernel OOM killer when cgroup memory limits are exceeded; CPU throttling never causes process termination, making CPU adjustments futile. <strong>Expected post-fix behavior:</strong> Inspecting kubectl describe termination states and expanding memory limits to 1024Mi with balanced JVM heap percentages provides sufficient queue headroom, permanently resolving OOM kills.
+</figcaption>
+</figure>
+</article>
+</section>
+
+<section id="part-4" class="part"><h2>4 · Step-by-step labs for each topic</h2>
+<article id="topic-01-lab" class="topic-card lab"><h3>Exercise 1: Secret Manager CSI Driver Integration &amp; Volume Mount</h3>
+<p><strong>Goal:</strong> Deploy the Secret Store CSI Driver, configure a SecretProviderClass linking a GKE pod to Google Cloud Secret Manager, mount the secret as an ephemeral volume, and verify that credentials never touch etcd or environment variables.</p>
+<p><strong>Expected result:</strong> The application pod mounts the secret file from Secret Manager under <code>/etc/secrets</code>, transparently rotates updated secret values, and leaves zero plaintext credentials in process environment tables.</p>
+<p><strong>Mode:</strong> tabletop / design · <strong>Prerequisite:</strong> Day 44, Day 26 exit artifacts.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Verify environment variables and Secret Manager API enablement:
+<pre><code>export PROJECT_ID="brightloaf-prod"
+export REGION="us-central1"
+export CLUSTER_NAME="brightloaf-gke"
+gcloud services enable secretmanager.googleapis.com
+gcloud config set project ${PROJECT_ID}</code></pre>
+</li>
+<li><strong>Create Secret in Google Cloud Secret Manager.</strong> Store a synthetic database password:
+<pre><code>printf "SuperSecureBakeryPassword2026!" | gcloud secrets create order-db-password \
+    --data-file=- \
+    --replication-policy="automatic"</code></pre>
+</li>
+<li><strong>Author the SecretProviderClass Manifest.</strong> Save this resource as <code>spc-secret-manager.yaml</code>:
+<pre><code>cat &lt;&lt;EOF &gt; spc-secret-manager.yaml
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: gcp-order-secrets
+  namespace: default
+spec:
+  provider: gcp
+  parameters:
+    secrets: |
+      - resourceName: "projects/${PROJECT_ID}/secrets/order-db-password/versions/latest"
+        path: "db-password.txt"
+EOF
+kubectl apply -f spc-secret-manager.yaml</code></pre>
+</li>
+<li><strong>Deploy Workload Mounting the CSI Secret Volume.</strong> Save and apply <code>fulfillment-deployment.yaml</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; fulfillment-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-fulfillment
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-fulfillment
+  template:
+    metadata:
+      labels:
+        app: order-fulfillment
+    spec:
+      serviceAccountName: fulfillment-ksa
+      containers:
+      - name: fulfillment
+        image: mirror.gcr.io/library/busybox:1.36
+        command: ["sh", "-c", "while true; do cat /etc/secrets/db-password.txt; sleep 30; done"]
+        volumeMounts:
+        - name: secret-volume
+          mountPath: "/etc/secrets"
+          readOnly: true
+      volumes:
+      - name: secret-volume
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "gcp-order-secrets"
+EOF
+kubectl apply -f fulfillment-deployment.yaml</code></pre>
+</li>
+<li><strong>Verification.</strong> Verify that the secret file is mounted and readable inside the container while absent from environment variables:
+<pre><code>kubectl get pods -l app=order-fulfillment
+POD_NAME=$(kubectl get pods -l app=order-fulfillment -o jsonpath='{.items[0].metadata.name}')
+kubectl exec ${POD_NAME} -- cat /etc/secrets/db-password.txt
+kubectl exec ${POD_NAME} -- env | grep -i pass</code></pre>
+Confirm that the command prints the secret text from the file mount, while the environment check returns zero matches.
+</li>
+<li><strong>Troubleshooting.</strong> If the pod reports <code>MountVolume.SetUp failed for volume "secret-volume"</code>:
+<pre><code>kubectl describe pod ${POD_NAME}
+kubectl get events -n default --field-selector reason=FailedMount</code></pre>
+Confirm that the Workload Identity binding has granted <code>roles/secretmanager.secretAccessor</code> on the secret to the pod's service account.
+</li>
+<li><strong>Cleanup.</strong> Delete deployment and SecretProviderClass:
+<pre><code>kubectl delete -f fulfillment-deployment.yaml
+kubectl delete -f spc-secret-manager.yaml
+gcloud secrets delete order-db-password --quiet</code></pre>
+</li>
+<li><strong>Artifact Acceptance.</strong> Record the verified output from step 5 proving file mounting and zero environment variable leaks into <code>day-045-workload-failures.md</code>.
+</li>
+</ol>
+<div class="callout success"><strong>Expected result / acceptance</strong><p>A confirmed file mount at /etc/secrets/db-password.txt populated directly from Secret Manager via CSI, with zero plain-text secrets in etcd or process environments.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>Never mount Secret Manager volumes to containers that run as untrusted root if multi-tenancy is active; use filePermission settings inside the SecretProviderClass to restrict access to specific POSIX UIDs.</p></div>
+<div class="callout"><strong>Cleanup and cost</strong><p>Deleting the secret and deployment eliminates API call costs; Secret Manager charges $0.06 per 10,000 API operations and $0.18 per secret version per month.</p></div>
+<label class="check"><input type="checkbox" data-progress="lab-45-topic-01"> I completed and checked this topic exercise</label></article>
+
+<article id="topic-02-lab" class="topic-card lab"><h3>Exercise 2: Workload Identity Federation KSA-to-GSA Binding &amp; Token Verification</h3>
+<p><strong>Goal:</strong> Establish Workload Identity Federation on GKE, create and annotate a Kubernetes ServiceAccount, bind it to a Google Cloud IAM Service Account, and verify short-lived OAuth2 token generation via the GKE metadata server.</p>
+<p><strong>Expected result:</strong> Application container queries the GKE metadata server and receives credentials for the dedicated Google Service Account with zero static JSON private keys.</p>
+<p><strong>Mode:</strong> tabletop / design · <strong>Prerequisite:</strong> Day 44, Day 26 exit artifacts.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Verify cluster Workload Identity pool:
+<pre><code>export PROJECT_ID="brightloaf-prod"
+export KSA_NAME="analytics-ksa"
+export KSA_NAMESPACE="default"
+export GSA_NAME="order-analytics-gsa"
+gcloud container clusters describe ${CLUSTER_NAME} --region=${REGION} --format="value(workloadIdentityConfig.workloadPool)"</code></pre>
+Confirm that the pool outputs <code>${PROJECT_ID}.svc.id.goog</code>.
+</li>
+<li><strong>Create Google Cloud IAM Service Account.</strong> Author the GSA and grant read-only storage permissions:
+<pre><code>gcloud iam service-accounts create ${GSA_NAME} \
+    --display-name="Order Analytics Workload Identity GSA"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" \
+    --role="roles/storage.objectViewer"</code></pre>
+</li>
+<li><strong>Create and Annotate Kubernetes ServiceAccount.</strong> Author the matching KSA:
+<pre><code>kubectl create serviceaccount ${KSA_NAME} --namespace ${KSA_NAMESPACE}
+
+kubectl annotate serviceaccount ${KSA_NAME} \
+    --namespace ${KSA_NAMESPACE} \
+    iam.gke.io/gcp-service-account=${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com</code></pre>
+</li>
+<li><strong>Establish the IAM Workload Identity User Binding.</strong> Allow the KSA to impersonate the GSA:
+<pre><code>gcloud iam service-accounts add-iam-policy-binding \
+    ${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com \
+    --role="roles/iam.workloadIdentityUser" \
+    --member="serviceAccount:${PROJECT_ID}.svc.id.goog[${KSA_NAMESPACE}/${KSA_NAME}]"</code></pre>
+</li>
+<li><strong>Deploy Identity Verification Container.</strong> Deploy a verification pod referencing the KSA:
+<pre><code>cat &lt;&lt;EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: workload-identity-test
+  namespace: ${KSA_NAMESPACE}
+spec:
+  serviceAccountName: ${KSA_NAME}
+  nodeSelector:
+    iam.gke.io/gke-metadata-server-enabled: "true"
+  containers:
+  - name: test
+    image: mirror.gcr.io/google/cloud-sdk:slim
+    command: ["sleep", "3600"]
+EOF</code></pre>
+</li>
+<li><strong>Verification.</strong> Verify that the pod acquires the GSA identity from the metadata server:
+<pre><code>kubectl wait --for=condition=Ready pod/workload-identity-test --timeout=60s
+kubectl exec -it workload-identity-test -- gcloud auth list
+kubectl exec -it workload-identity-test -- curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email</code></pre>
+Confirm that the active account matches <code>${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com</code>.
+</li>
+<li><strong>Troubleshooting.</strong> If the output shows the Compute Engine default service account:
+<pre><code>kubectl describe sa ${KSA_NAME}
+gcloud iam service-accounts get-iam-policy ${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com</code></pre>
+Ensure that the namespace in the IAM member string exactly matches the pod's namespace.
+</li>
+<li><strong>Cleanup.</strong> Delete test pod, KSA, and GSA:
+<pre><code>kubectl delete pod workload-identity-test
+kubectl delete sa ${KSA_NAME}
+gcloud iam service-accounts delete ${GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com --quiet</code></pre>
+</li>
+<li><strong>Artifact Acceptance.</strong> Save the successful metadata identity verification trace in <code>day-045-workload-failures.md</code>.
+</li>
+</ol>
+<div class="callout success"><strong>Expected result / acceptance</strong><p>A validated metadata token exchange returning the assigned Google Service Account email, proving seamless keyless cloud authentication.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>If node pools use custom node selectors or taints, verify that the gke-metadata-server daemonset can run on the target nodes.</p></div>
+<div class="callout"><strong>Cleanup and cost</strong><p>Deleting the GSA and IAM bindings eliminates unused IAM objects; Workload Identity features incur zero additional GCP charges.</p></div>
+<label class="check"><input type="checkbox" data-progress="lab-45-topic-02"> I completed and checked this topic exercise</label></article>
+
+<article id="topic-03-lab" class="topic-card lab"><h3>Exercise 3: Zero-Trust Microsegmentation with Dataplane V2 Network Policies</h3>
+<p><strong>Goal:</strong> Deploy a multi-tier microservice architecture under GKE Dataplane V2, enforce default-deny network policies, and configure explicit ingress/egress rules permitting database access and CoreDNS resolution.</p>
+<p><strong>Expected result:</strong> Frontend pods can only communicate with authorized backend API pods; unauthorized cross-namespace lateral access is dropped by kernel eBPF hooks without affecting DNS lookups.</p>
+<p><strong>Mode:</strong> tabletop / design · <strong>Prerequisite:</strong> Day 44, Day 5 exit artifacts.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Verify GKE Dataplane V2 status:
+<pre><code>kubectl get nodes -o custom-columns=NAME:.metadata.name,OS:.status.nodeInfo.osImage
+kubectl get pods -n kube-system -l k8s-app=cilium</code></pre>
+Confirm Cilium pods are active on all nodes.
+</li>
+<li><strong>Deploy Frontend and Backend Test Pods.</strong> Author two isolated services:
+<pre><code>kubectl create namespace zero-trust-test
+
+kubectl run order-frontend -n zero-trust-test --image=mirror.gcr.io/library/nginx:1.25-alpine --labels="app=frontend"
+kubectl run order-backend -n zero-trust-test --image=mirror.gcr.io/library/nginx:1.25-alpine --labels="app=backend"
+kubectl expose pod order-backend -n zero-trust-test --port=80</code></pre>
+</li>
+<li><strong>Apply Default-Deny and Explicit Egress NetworkPolicy.</strong> Save this definition as <code>network-policy-secure.yaml</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; network-policy-secure.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-policy
+  namespace: zero-trust-test
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  # Permit DNS resolution to kube-system CoreDNS
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Permit HTTP traffic strictly to backend service
+  - to:
+    - podSelector:
+        matchLabels:
+          app: backend
+    ports:
+    - protocol: TCP
+      port: 80
+EOF
+kubectl apply -f network-policy-secure.yaml</code></pre>
+</li>
+<li><strong>Verification.</strong> Verify authorized connectivity and DNS resolution from the frontend pod:
+<pre><code>kubectl exec -n zero-trust-test order-frontend -- wget -qO- --timeout=2 http://order-backend
+kubectl exec -n zero-trust-test order-frontend -- nslookup order-backend</code></pre>
+Confirm both commands succeed. Next, verify that unauthorized external egress is blocked:
+<pre><code>kubectl exec -n zero-trust-test order-frontend -- wget -qO- --timeout=2 http://1.1.1.1 || echo "Blocked by Dataplane V2 Policy"</code></pre>
+Confirm the request times out, verifying that unlisted egress is dropped by eBPF.
+</li>
+<li><strong>Troubleshooting.</strong> If DNS lookups fail:
+<pre><code>kubectl describe networkpolicy frontend-policy -n zero-trust-test
+kubectl get pods -n kube-system -l k8s-app=kube-dns --show-labels</code></pre>
+Confirm that the <code>matchLabels</code> for DNS in the egress rule matches the cluster's CoreDNS label.
+</li>
+<li><strong>Cleanup.</strong> Delete the test namespace:
+<pre><code>kubectl delete namespace zero-trust-test</code></pre>
+</li>
+<li><strong>Artifact Acceptance.</strong> Save the verified network policy manifest and connectivity test outputs in <code>day-045-workload-failures.md</code>.
+</li>
+</ol>
+<div class="callout success"><strong>Expected result / acceptance</strong><p>A confirmed zero-trust network perimeter where authorized pod-to-pod and CoreDNS traffic succeeds while all unauthorized lateral paths are blocked.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>In Dataplane V2, network policies apply to host and pod veth interfaces; do not test connectivity using hostNetwork: true pods, which bypass standard pod network policies.</p></div>
+<div class="callout"><strong>Cleanup and cost</strong><p>Deleting the namespace deletes all contained pods and policies; Dataplane V2 incurs zero additional Google Cloud licensing costs.</p></div>
+<label class="check"><input type="checkbox" data-progress="lab-45-topic-03"> I completed and checked this topic exercise</label></article>
+
+<article id="topic-04-lab" class="topic-card lab"><h3>Exercise 4: Configuring GKE Release Channels, Maintenance Windows, &amp; Surge Upgrades</h3>
+<p><strong>Goal:</strong> Configure a GKE cluster with an off-peak maintenance window, establish a 30-day maintenance exclusion, define a PodDisruptionBudget, and evaluate node pool surge upgrade settings.</p>
+<p><strong>Expected result:</strong> Documented maintenance policy preventing involuntary upgrades during commercial peak hours, paired with a PDB that guarantees zero-downtime rolling node evacuations.</p>
+<p><strong>Mode:</strong> tabletop / design · <strong>Prerequisite:</strong> Day 44, Day 43 exit artifacts.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Inspect existing maintenance policy and cluster release channel:
+<pre><code>export PROJECT_ID="brightloaf-prod"
+export REGION="us-central1"
+export CLUSTER_NAME="brightloaf-gke"
+gcloud container clusters describe ${CLUSTER_NAME} --region=${REGION} --format="yaml(releaseChannel,maintenancePolicy)"</code></pre>
+</li>
+<li><strong>Configure Weekly Maintenance Window.</strong> Author an off-peak recurring window (Saturdays 03:00 to 07:00 UTC):
+<pre><code>gcloud container clusters update ${CLUSTER_NAME} \
+    --region=${REGION} \
+    --maintenance-window="2026-10-03T03:00:00Z" \
+    --maintenance-window-duration="4h" \
+    --maintenance-window-recurrence="FREQ=WEEKLY;BYDAY=SA"</code></pre>
+</li>
+<li><strong>Configure Maintenance Exclusion for Peak Sales.</strong> Add an exclusion blocking minor and patch upgrades during holiday sales:
+<pre><code>gcloud container clusters update ${CLUSTER_NAME} \
+    --region=${REGION} \
+    --add-maintenance-exclusion-name="black-friday-cyber-week" \
+    --add-maintenance-exclusion-start="2026-11-20T00:00:00Z" \
+    --add-maintenance-exclusion-end="2026-12-05T00:00:00Z" \
+    --add-maintenance-exclusion-scope="no-upgrades"</code></pre>
+</li>
+<li><strong>Author PodDisruptionBudget for Critical Workload.</strong> Save and apply <code>order-pdb.yaml</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; order-pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: order-api-pdb
+  namespace: default
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: order-api
+EOF
+kubectl apply -f order-pdb.yaml</code></pre>
+</li>
+<li><strong>Configure Node Pool Surge Upgrade Settings.</strong> Update the node pool to use zero-unavailable surge upgrades:
+<pre><code>gcloud container node-pools update default-pool \
+    --cluster=${CLUSTER_NAME} \
+    --region=${REGION} \
+    --max-surge-upgrade=1 \
+    --max-unavailable-upgrade=0</code></pre>
+</li>
+<li><strong>Verification.</strong> Verify maintenance policies and PDB status:
+<pre><code>gcloud container clusters describe ${CLUSTER_NAME} --region=${REGION} --format="yaml(maintenancePolicy)"
+kubectl get pdb order-api-pdb</code></pre>
+Confirm that the maintenance window, exclusion window, and PDB <code>ALLOWED DISRUPTIONS</code> are active.
+</li>
+<li><strong>Troubleshooting.</strong> If an upgrade fails to proceed during testing:
+<pre><code>kubectl get pdb -A
+kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints</code></pre>
+Ensure that <code>minAvailable</code> does not equal total current replicas, which would deadlock the drain controller.
+</li>
+<li><strong>Cleanup.</strong> Remove the test maintenance exclusion:
+<pre><code>gcloud container clusters update ${CLUSTER_NAME} \
+    --region=${REGION} \
+    --remove-maintenance-exclusion="black-friday-cyber-week"
+kubectl delete -f order-pdb.yaml</code></pre>
+</li>
+<li><strong>Artifact Acceptance.</strong> Save the maintenance policy specification and PDB manifest in <code>day-045-workload-failures.md</code>.
+</li>
+</ol>
+<div class="callout success"><strong>Expected result / acceptance</strong><p>A confirmed recurring maintenance window with an active exclusion policy, paired with a validated PodDisruptionBudget and surge node configuration.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>Maintenance exclusions cannot exceed 30 consecutive calendar days; plan separate exclusion windows if promotional seasons extend beyond 30 days.</p></div>
+<div class="callout"><strong>Cleanup and cost</strong><p>Maintenance configuration commands modify control plane metadata and incur zero infrastructure cost.</p></div>
+<label class="check"><input type="checkbox" data-progress="lab-45-topic-04"> I completed and checked this topic exercise</label></article>
+
+<article id="topic-05-lab" class="topic-card lab"><h3>Exercise 5: Decoupled Startup, Readiness, &amp; Liveness Probe Calibration</h3>
+<p><strong>Goal:</strong> Deploy a simulated slow-starting microservice, demonstrate how premature liveness probes trigger CrashLoopBackOff, and calibrate a decoupled three-stage probe architecture (startup, readiness, liveness) to achieve zero-downtime initialization.</p>
+<p><strong>Expected result:</strong> Slow-starting container completes its 40-second boot sequence without premature termination, gates network traffic until ready, and recovers from deadlocks within 10 seconds.</p>
+<p><strong>Mode:</strong> tabletop / design · <strong>Prerequisite:</strong> Day 44, Day 43 exit artifacts.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Verify cluster namespace readiness:
+<pre><code>kubectl config current-context
+kubectl create namespace probe-test</code></pre>
+</li>
+<li><strong>Author Simulated Slow-Starting Service with Failing Liveness-Only Probe.</strong> Save as <code>failing-probe.yaml</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; failing-probe.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slow-service-failing
+  namespace: probe-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slow-service-failing
+  template:
+    metadata:
+      labels:
+        app: slow-service-failing
+    spec:
+      containers:
+      - name: app
+        image: mirror.gcr.io/library/busybox:1.36
+        # Simulates 40-second boot by sleeping before touching health file
+        command: ["sh", "-c", "sleep 40 && touch /tmp/healthy && sleep 3600"]
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 2
+EOF
+kubectl apply -f failing-probe.yaml</code></pre>
+</li>
+<li><strong>Observe Premature Liveness Kills.</strong> Watch the pod events and observe how kubelet kills the container at t=15s:
+<pre><code>sleep 20
+kubectl get pods -n probe-test
+kubectl describe pod -l app=slow-service-failing -n probe-test | grep -A 5 "Events:"</code></pre>
+Confirm that the event log reports: <code>Liveness probe failed: cat: can't open '/tmp/healthy': No such file or directory</code> followed by container termination.
+</li>
+<li><strong>Author Corrected Deployment with Decoupled Three-Stage Probes.</strong> Save and apply <code>corrected-probes.yaml</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; corrected-probes.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slow-service-corrected
+  namespace: probe-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slow-service-corrected
+  template:
+    metadata:
+      labels:
+        app: slow-service-corrected
+    spec:
+      containers:
+      - name: app
+        image: mirror.gcr.io/library/busybox:1.36
+        command: ["sh", "-c", "sleep 40 && touch /tmp/healthy && touch /tmp/ready && sleep 3600"]
+        startupProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          failureThreshold: 12
+          periodSeconds: 5
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/ready"]
+          periodSeconds: 5
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          periodSeconds: 5
+          failureThreshold: 2
+EOF
+kubectl apply -f corrected-probes.yaml</code></pre>
+</li>
+<li><strong>Verification.</strong> Monitor the corrected pod across its 40-second boot sequence:
+<pre><code>kubectl get pods -n probe-test -w</code></pre>
+Observe that the pod remains in <code>Running (0/1)</code> during the 40-second boot, experiences 0 restarts, and transitions smoothly to <code>Running (1/1)</code> once the startup probe succeeds.
+</li>
+<li><strong>Troubleshooting.</strong> If the corrected pod still restarts:
+<pre><code>kubectl describe pod -l app=slow-service-corrected -n probe-test</code></pre>
+Calculate: <code>failureThreshold * periodSeconds</code> (12 * 5 = 60s); ensure this product exceeds the observed boot duration.
+</li>
+<li><strong>Cleanup.</strong> Delete the test namespace:
+<pre><code>kubectl delete namespace probe-test</code></pre>
+</li>
+<li><strong>Artifact Acceptance.</strong> Record the before-and-after event logs and calibrated probe thresholds into <code>day-045-workload-failures.md</code>.
+</li>
+</ol>
+<div class="callout success"><strong>Expected result / acceptance</strong><p>A confirmed successful pod cold boot where startupProbe protects the 40-second initialization without container restarts, followed by healthy readiness routing.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>Do not use exec probes that invoke heavy shells or scripts on high-density nodes; HTTP probes against lightweight health endpoints are far more performant.</p></div>
+<div class="callout"><strong>Cleanup and cost</strong><p>Deleting the test namespace removes all pods and services, avoiding background compute resource consumption.</p></div>
+<label class="check"><input type="checkbox" data-progress="lab-45-topic-05"> I completed and checked this topic exercise</label></article>
+
+<article id="topic-06-lab" class="topic-card lab"><h3>Exercise 6: Diagnosing and Resolving CrashLoopBackOff &amp; OOMKilled Failure Modes</h3>
+<p><strong>Goal:</strong> Deploy synthetic failing workloads representing Exit Code 1 (application failure) and Exit Code 137 (OOMKilled memory limit breach), execute a systematic diagnostic command sequence, and apply precise code and cgroup remediations.</p>
+<p><strong>Expected result:</strong> Accurate differentiation between application crash loops and kernel memory terminations via container exit codes, followed by successful cgroup rightsizing.</p>
+<p><strong>Mode:</strong> tabletop / design · <strong>Prerequisite:</strong> Day 44, Day 8 exit artifacts.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Create a dedicated troubleshooting namespace:
+<pre><code>kubectl create namespace diag-test</code></pre>
+</li>
+<li><strong>Deploy Synthetic OOMKilled Workload (Exit Code 137).</strong> Save and apply <code>oom-workload.yaml</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; oom-workload.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom-victim
+  namespace: diag-test
+spec:
+  containers:
+  - name: memory-eater
+    image: mirror.gcr.io/library/busybox:1.36
+    # Allocates 150MB in RAM while limited to 64MB
+    command: ["sh", "-c", "head -c 150M /dev/urandom | tr -d '\\0' > /dev/null"]
+    resources:
+      requests:
+        memory: 32Mi
+      limits:
+        memory: 64Mi
+EOF
+kubectl apply -f oom-workload.yaml</code></pre>
+</li>
+<li><strong>Execute Diagnostic Inspection for Exit Code 137.</strong> Wait for the crash and inspect the pod state:
+<pre><code>sleep 5
+kubectl describe pod oom-victim -n diag-test | grep -E "(State:|Last State:|Exit Code:|Reason:)"</code></pre>
+Observe that the output reports:
+<pre><code>Last State:     Terminated
+  Reason:       OOMKilled
+  Exit Code:    137</code></pre>
+This confirms beyond doubt that the container was terminated by the kernel OOM killer due to exceeding its 64Mi limit.
+</li>
+<li><strong>Deploy Synthetic Application Crash Workload (Exit Code 1).</strong> Save and apply <code>app-crash.yaml</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; app-crash.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-crash-victim
+  namespace: diag-test
+spec:
+  containers:
+  - name: broken-app
+    image: mirror.gcr.io/library/busybox:1.36
+    # Simulates missing configuration file
+    command: ["sh", "-c", "cat /etc/config/missing-file.conf"]
+EOF
+kubectl apply -f app-crash.yaml</code></pre>
+</li>
+<li><strong>Execute Diagnostic Inspection for Exit Code 1.</strong> Inspect the termination state and previous logs:
+<pre><code>sleep 5
+kubectl describe pod app-crash-victim -n diag-test | grep -E "(Exit Code:|Reason:)"
+kubectl logs app-crash-victim -n diag-test --previous</code></pre>
+Observe:
+<pre><code>Exit Code:    1
+cat: can't open '/etc/config/missing-file.conf': No such file or directory</code></pre>
+This proves an application configuration error rather than a resource constraint.
+</li>
+<li><strong>Remediate OOMKilled Workload.</strong> Apply rightsized memory limits:
+<pre><code>kubectl delete pod oom-victim -n diag-test
+
+cat &lt;&lt;'EOF' | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom-resolved
+  namespace: diag-test
+spec:
+  containers:
+  - name: memory-eater
+    image: mirror.gcr.io/library/busybox:1.36
+    command: ["sh", "-c", "head -c 100M /dev/urandom | tr -d '\\0' > /dev/null && sleep 3600"]
+    resources:
+      requests:
+        memory: 128Mi
+      limits:
+        memory: 256Mi
+EOF</code></pre>
+</li>
+<li><strong>Verify Remediated Workload.</strong> Inspect pod status:
+<pre><code>kubectl get pod oom-resolved -n diag-test</code></pre>
+Confirm that the pod status is <code>Running</code> with 0 restarts.
+</li>
+<li><strong>Cleanup.</strong> Delete diagnostic namespace:
+<pre><code>kubectl delete namespace diag-test</code></pre>
+</li>
+<li><strong>Artifact Acceptance.</strong> Document the diagnostic comparison table distinguishing Exit Code 137 from Exit Code 1 and save in <code>day-045-workload-failures.md</code>.
+</li>
+</ol>
+<div class="callout success"><strong>Expected result / acceptance</strong><p>A confirmed forensic diagnosis distinguishing Exit Code 137 (OOMKilled) from Exit Code 1 (application crash), followed by successful memory limit rightsizing.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>If an OOMKilled container does not report Exit Code 137, inspect node kernel logs with journalctl -k to check if the host Linux kernel OOM killer terminated the container process.</p></div>
+<div class="callout"><strong>Cleanup and cost</strong><p>Deleting the test namespace removes all pods, avoiding background compute resource consumption.</p></div>
+<label class="check"><input type="checkbox" data-progress="lab-45-topic-06"> I completed and checked this topic exercise</label></article>
+</section>
+
+<section class="completion"><h2>Daily evidence</h2><p>File <code>day-045-workload-failures.md</code> containing: (1) Workload Identity Federation credential exchange trace, (2) Secret Store CSI Driver synchronization specification, (3) Dataplane V2 NetworkPolicy enforcement verification, (4) surge upgrade maintenance window plan, (5) three-stage probe (startup/readiness/liveness) configuration matrix, (6) step-by-step diagnostic decision tree resolving CrashLoopBackOff and OOMKilled failure modes. Label tabletop models clearly.</p><label class="check"><input type="checkbox" data-progress="read-45"> I read and reviewed the day</label><label class="check"><input type="checkbox" data-progress="artifact-45"> I saved the exit artifact</label></section><nav class="pager" aria-label="Day pagination"><a href="day-044.html">← Day 44<small>Service networking and persistent volumes</small></a><a href="../index.html">All 180 days<small>Browse the roadmap</small></a><a href="day-046.html">Day 46 →<small>Fleet, supply chain and mesh trade-offs</small></a></nav><p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p></main><footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer></body></html>

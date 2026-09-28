@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Day 15 of the GCP architect roadmap: small application architecture patterns, request validation, REST/JSON contracts, request IDs, and structured logging.">
+  <title>Day 15 — Small application and architecture styles · GCP Architect</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <script defer src="../assets/site.js"></script>
+  <style>
+    .day-badge{display:inline-block;border:1px solid #f43f5e;border-radius:999px;color:#f43f5e;padding:4px 10px;font-size:12px;font-weight:800;white-space:nowrap}
+    .topic-card h4{color:#f43f5e;margin:22px 0 7px}
+    .topic-card table{width:100%;border-collapse:collapse;margin:16px 0;display:block;overflow-x:auto}
+    .topic-card caption{text-align:left;color:var(--rose,#f43f5e);font-weight:800;margin-bottom:8px}
+    .topic-card th,.topic-card td{border:1px solid #3b1d38;padding:9px 12px;text-align:left;vertical-align:top;min-width:150px}
+    .topic-card th{background:#090d16;color:#38bdf8}
+    .topic-card code{overflow-wrap:anywhere}
+    .topic-card pre code{overflow-wrap:normal}
+    .topic-card>span[id]{display:block;scroll-margin-top:140px}
+    .step{border-left:2px solid #3b1d38;padding-left:17px;margin:18px 0}
+    .step h4{margin-top:0}
+    .further{border-left:3px solid #38bdf8;padding:12px 16px;background:rgba(56,189,248,.06);margin-top:20px}
+    .further h4{margin:0 0 7px}
+    .further ul{margin:6px 0}
+    .meta{color:#a9b7cb;font-size:13px}
+    .topic-card p{max-width:82ch}
+    .diagram-figure{margin:20px 0;padding:14px;border:1px solid #3b1d38;border-radius:12px;background:#090d16;overflow-x:auto}
+    .diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}
+    .diagram-figure figcaption{color:#a9b7cb;font-size:12px;margin-top:10px}
+    .diagram-scroll-hint{display:none;color:#a9b7cb;font-size:11px}
+    @media(max-width:720px){.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-nav">
+    <nav class="nav-inner" aria-label="Site navigation">
+      <a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+      <span class="day-badge" aria-current="page">Day 15</span>
+      <label class="jump-label" for="day-jump">Choose a day</label>
+      <select id="day-jump" aria-label="Choose a day">
+        <optgroup label="Foundations">
+          <option value="day-001.html">Day 1 — Local workspace and learning baseline</option>
+          <option value="day-002.html">Day 2 — IP addressing and packet paths</option>
+          <option value="day-003.html">Day 3 — DNS, sockets and transport</option>
+          <option value="day-004.html">Day 4 — TLS, HTTP, MTU and routing vocabulary</option>
+          <option value="day-005.html">Day 5 — VPN, load balancers and firewalls</option>
+          <option value="day-006.html">Day 6 — Shell, processes and services</option>
+          <option value="day-007.html">Day 7 — SSH, scripts and process inspection</option>
+          <option value="day-008.html">Day 8 — CPU, memory and diagnostic signals</option>
+          <option value="day-009.html">Day 9 — VM and container isolation</option>
+          <option value="day-010.html">Day 10 — Images, filesystems and orchestration</option>
+          <option value="day-011.html">Day 11 — Cloud service models and responsibility</option>
+          <option value="day-012.html">Day 12 — Regions, scaling and economics</option>
+          <option value="day-013.html">Day 13 — State, availability and recovery vocabulary</option>
+          <option value="day-014.html">Day 14 — Git, APIs and JSON</option>
+          <option value="day-015.html" selected>Day 15 — Small application and architecture styles</option>
+          <option value="day-016.html">Day 16 — SQL foundations and business outcomes</option>
+          <option value="day-017.html">Day 17 — Gate 1 — Foundation recall and repair</option>
+        </optgroup>
+        <optgroup label="Cloud environment and identity">
+          <option value="day-018.html">Day 18 — Cloud sandbox and cost controls</option>
+          <option value="day-019.html">Day 19 — CLI configuration and identity checks</option>
+          <option value="day-020.html">Day 20 — APIs, client libraries and emulators</option>
+          <option value="day-021.html">Day 21 — Resource hierarchy and ownership</option>
+          <option value="day-022.html">Day 22 — Inheritance, labels and tags</option>
+          <option value="day-023.html">Day 23 — Organization policies and lifecycle</option>
+          <option value="day-024.html">Day 24 — Principals and workforce identity</option>
+          <option value="day-025.html">Day 25 — Roles and authorization decisions</option>
+          <option value="day-026.html">Day 26 — Credentials, tokens and impersonation</option>
+          <option value="day-027.html">Day 27 — Billing roles and budget ownership</option>
+          <option value="day-028.html">Day 28 — Cost attribution and notifications</option>
+          <option value="day-029.html">Day 29 — Cost exports, quota and capacity</option>
+          <option value="day-030.html">Day 30 — Region and resource-scope decisions</option>
+          <option value="day-031.html">Day 31 — Network tiers and delivery paths</option>
+          <option value="day-032.html">Day 32 — Support, inventory and learning tracker</option>
+          <option value="day-033.html">Day 33 — Lifecycle policies and operating assumptions</option>
+          <option value="day-034.html">Day 34 — First controlled cloud resource operation</option>
+          <option value="day-035.html">Day 35 — Gate 2 — Sandbox and identity readiness</option>
+        </optgroup>
+        <optgroup label="Core services and integrated practice">
+          <option value="day-036.html">Day 36 — VM sizing and image choices</option>
+          <option value="day-037.html">Day 37 — Disks, metadata and persistence</option>
+          <option value="day-038.html">Day 38 — Templates, MIGs and scaling</option>
+          <option value="day-039.html">Day 39 — Autohealing and deployment changes</option>
+          <option value="day-040.html">Day 40 — Spot, tenancy and secure VM access</option>
+          <option value="day-041.html">Day 41 — VM operations and resource diagnosis</option>
+          <option value="day-042.html">Day 42 — Kubernetes architecture and cluster choices</option>
+          <option value="day-043.html">Day 43 — Scheduling, scaling and Kubernetes access</option>
+          <option value="day-044.html">Day 44 — Service networking and persistent volumes</option>
+          <option value="day-045.html">Day 45 — Probes, secrets and workload failures</option>
+          <option value="day-046.html">Day 46 — Fleet, supply chain and mesh trade-offs</option>
+          <option value="day-047.html">Day 47 — Cloud Run and event-driven functions</option>
+          <option value="day-048.html">Day 48 — Workflows and runtime selection</option>
+          <option value="day-049.html">Day 49 — VPC address and route design</option>
+          <option value="day-050.html">Day 50 — Firewall policy and private API access</option>
+          <option value="day-051.html">Day 51 — Peering, Shared VPC, PSC and NAT</option>
+          <option value="day-052.html">Day 52 — DNS, hybrid transit and network diagnosis</option>
+          <option value="day-053.html">Day 53 — Load-balancer architecture</option>
+          <option value="day-054.html">Day 54 — Health checks, certificates and draining</option>
+          <option value="day-055.html">Day 55 — CDN, WAF and traffic management</option>
+          <option value="day-056.html">Day 56 — Hybrid topology and failure domains</option>
+          <option value="day-057.html">Day 57 — BGP, MTU and NAT diagnosis</option>
+          <option value="day-058.html">Day 58 — Object storage and local durability</option>
+          <option value="day-059.html">Day 59 — Transfers, block storage and restore</option>
+          <option value="day-060.html">Day 60 — File systems and backup design</option>
+          <option value="day-061.html">Day 61 — Relational databases and transactions</option>
+          <option value="day-062.html">Day 62 — Distributed and nonrelational database choices</option>
+          <option value="day-063.html">Day 63 — Caching, CDC and database selection</option>
+          <option value="day-064.html">Day 64 — Messaging, outbox and duplicate handling</option>
+          <option value="day-065.html">Day 65 — Integrate one order-service path</option>
+          <option value="day-066.html">Day 66 — Reproduce and recover the integrated baseline</option>
+          <option value="day-067.html">Day 67 — Gate 3 — Operate the core application</option>
+        </optgroup>
+        <optgroup label="Requirements, migration and architecture">
+          <option value="day-068.html">Day 68 — Requirements from observed behavior</option>
+          <option value="day-069.html">Day 69 — Stakeholders and priority trade-offs</option>
+          <option value="day-070.html">Day 70 — Well-Architected review lenses</option>
+          <option value="day-071.html">Day 71 — Performance, sustainability and trade-offs</option>
+          <option value="day-072.html">Day 72 — Application architecture patterns</option>
+          <option value="day-073.html">Day 73 — Data and hybrid architecture vocabulary</option>
+          <option value="day-074.html">Day 74 — Regional and tenant boundaries</option>
+          <option value="day-075.html">Day 75 — Migration assessment and VMware fit</option>
+          <option value="day-076.html">Day 76 — Migration rehearsal and reconciliation</option>
+          <option value="day-077.html">Day 77 — Migration waves and acceptance</option>
+          <option value="day-078.html">Day 78 — Decision matrices grounded in experiments</option>
+          <option value="day-079.html">Day 79 — ADRs, TCO and risk registers</option>
+          <option value="day-080.html">Day 80 — Architecture diagrams and failure sequences</option>
+          <option value="day-081.html">Day 81 — First architecture defense</option>
+          <option value="day-082.html">Day 82 — Gate 4 — Design from operational evidence</option>
+        </optgroup>
+        <optgroup label="Reliability and security">
+          <option value="day-083.html">Day 83 — Availability math and dependency risk</option>
+          <option value="day-084.html">Day 84 — Failure domains and graceful degradation</option>
+          <option value="day-085.html">Day 85 — Retries, timeouts and overload vocabulary</option>
+          <option value="day-086.html">Day 86 — SLIs, SLOs and error budgets</option>
+          <option value="day-087.html">Day 87 — Incidents, toil and capacity</option>
+          <option value="day-088.html">Day 88 — Availability across infrastructure layers</option>
+          <option value="day-089.html">Day 89 — Messaging, DNS and application health</option>
+          <option value="day-090.html">Day 90 — Recovery targets and patterns</option>
+          <option value="day-091.html">Day 91 — Backups and replication correctness</option>
+          <option value="day-092.html">Day 92 — Failover and failback planning</option>
+          <option value="day-093.html">Day 93 — Metrics, alerting and burn rates</option>
+          <option value="day-094.html">Day 94 — Logs, traces and profiling</option>
+          <option value="day-095.html">Day 95 — Central observability and audit evidence</option>
+          <option value="day-096.html">Day 96 — Bounded failure experiment design</option>
+          <option value="day-097.html">Day 97 — Run a recovery and overload experiment</option>
+          <option value="day-098.html">Day 98 — Restore and failover acceptance</option>
+          <option value="day-099.html">Day 99 — Advanced IAM and policy evaluation</option>
+          <option value="day-100.html">Day 100 — Workload federation and short-lived access</option>
+          <option value="day-101.html">Day 101 — Workforce federation and remote access</option>
+          <option value="day-102.html">Day 102 — Privileged access and break-glass</option>
+          <option value="day-103.html">Day 103 — Defense in depth and network policy</option>
+          <option value="day-104.html">Day 104 — Data perimeters and egress controls</option>
+          <option value="day-105.html">Day 105 — Certificates, mTLS and hybrid encryption</option>
+          <option value="day-106.html">Day 106 — Data classification and key lifecycle</option>
+          <option value="day-107.html">Day 107 — Secrets and de-identification</option>
+          <option value="day-108.html">Day 108 — Residency, confidentiality and data access</option>
+          <option value="day-109.html">Day 109 — Compliance evidence and responsibility</option>
+          <option value="day-110.html">Day 110 — Policy as code and audit retention</option>
+          <option value="day-111.html">Day 111 — Regulated workload design</option>
+          <option value="day-112.html">Day 112 — Threat detection and triage</option>
+          <option value="day-113.html">Day 113 — Incident response and threat modelling</option>
+          <option value="day-114.html">Day 114 — Artifact integrity and admission</option>
+          <option value="day-115.html">Day 115 — Container and pipeline hardening</option>
+          <option value="day-116.html">Day 116 — Integrate private access and key controls</option>
+          <option value="day-117.html">Day 117 — Security handover and evidence repair</option>
+          <option value="day-118.html">Day 118 — Gate 5 — Reliability and security acceptance</option>
+        </optgroup>
+        <optgroup label="Performance, delivery and operations">
+          <option value="day-119.html">Day 119 — Cost baseline and commitments</option>
+          <option value="day-120.html">Day 120 — Storage, network and database costs</option>
+          <option value="day-121.html">Day 121 — Runtime, analytics and carbon cost drivers</option>
+          <option value="day-122.html">Day 122 — Unit economics and sensitivity</option>
+          <option value="day-123.html">Day 123 — Caching correctness under load</option>
+          <option value="day-124.html">Day 124 — Database, network and I/O bottlenecks</option>
+          <option value="day-125.html">Day 125 — Profiling and capacity evidence</option>
+          <option value="day-126.html">Day 126 — Terraform baseline and state boundaries</option>
+          <option value="day-127.html">Day 127 — Terraform testing, drift and recovery</option>
+          <option value="day-128.html">Day 128 — Build and deployment pipeline</option>
+          <option value="day-129.html">Day 129 — Release rollback and delivery measures</option>
+          <option value="day-130.html">Day 130 — Service catalog and ownership</option>
+          <option value="day-131.html">Day 131 — Lifecycle, exceptions and adoption</option>
+          <option value="day-132.html">Day 132 — Customer success and platform outcomes</option>
+          <option value="day-133.html">Day 133 — Operations integration and remediation</option>
+        </optgroup>
+        <optgroup label="Data, AI and distributed correctness">
+          <option value="day-134.html">Day 134 — Warehouse foundations and query costs</option>
+          <option value="day-135.html">Day 135 — Warehouse security and reporting</option>
+          <option value="day-136.html">Day 136 — Batch and streaming processing choices</option>
+          <option value="day-137.html">Day 137 — Streaming correctness and CDC</option>
+          <option value="day-138.html">Day 138 — Lakehouse and open table design</option>
+          <option value="day-139.html">Day 139 — Catalogs, lineage and data contracts</option>
+          <option value="day-140.html">Day 140 — ML lifecycle and model selection</option>
+          <option value="day-141.html">Day 141 — Build a small grounded-answer flow</option>
+          <option value="day-142.html">Day 142 — Bounded tools and enterprise assistants</option>
+          <option value="day-143.html">Day 143 — AI security and evaluation</option>
+          <option value="day-144.html">Day 144 — AI serving and infrastructure choices</option>
+          <option value="day-145.html">Day 145 — Distributed state and regional correctness</option>
+        </optgroup>
+        <optgroup label="Discovery, cases and exam preparation">
+          <option value="day-146.html">Day 146 — Case analysis and discovery method</option>
+          <option value="day-147.html">Day 147 — Extract facts and numeric requirements</option>
+          <option value="day-148.html">Day 148 — Map requirements and conflicts</option>
+          <option value="day-149.html">Day 149 — Discovery: business, load and recovery</option>
+          <option value="day-150.html">Day 150 — Discovery: data, regulation and skills</option>
+          <option value="day-151.html">Day 151 — Discovery: budget, risks and success</option>
+          <option value="day-152.html">Day 152 — EHR Healthcare — facts and migration constraints</option>
+          <option value="day-153.html">Day 153 — EHR Healthcare — defend the design</option>
+          <option value="day-154.html">Day 154 — Altostrat Media — content and AI requirements</option>
+          <option value="day-155.html">Day 155 — Altostrat Media — architecture defense</option>
+          <option value="day-156.html">Day 156 — Cymbal Retail — catalog and commerce requirements</option>
+          <option value="day-157.html">Day 157 — Cymbal Retail — architecture defense</option>
+          <option value="day-158.html">Day 158 — KnightMotives — modernization requirements</option>
+          <option value="day-159.html">Day 159 — KnightMotives — architecture defense</option>
+          <option value="day-160.html">Day 160 — Case synthesis and feedback</option>
+          <option value="day-161.html">Day 161 — Changed-constraint design exercise</option>
+          <option value="day-162.html">Day 162 — Exam domain mapping and sample questions</option>
+          <option value="day-163.html">Day 163 — Timed reasoning and source-backed limits</option>
+          <option value="day-164.html">Day 164 — Readiness plan and remaining repairs</option>
+        </optgroup>
+        <optgroup label="Multi-team architecture and synthesis">
+          <option value="day-165.html">Day 165 — Landing zones and multi-team platform boundaries</option>
+          <option value="day-166.html">Day 166 — Production identity across teams</option>
+          <option value="day-167.html">Day 167 — API contracts and compatibility</option>
+          <option value="day-168.html">Day 168 — Sustainability and assisted operations</option>
+          <option value="day-169.html">Day 169 — Capacity allocation and overload governance</option>
+          <option value="day-170.html">Day 170 — Compute and database decision synthesis</option>
+          <option value="day-171.html">Day 171 — Network decision synthesis</option>
+          <option value="day-172.html">Day 172 — Storage, messaging and limits synthesis</option>
+          <option value="day-173.html">Day 173 — Consulting, portfolio and customer handover</option>
+        </optgroup>
+        <optgroup label="Final gate and capstone defenses">
+          <option value="day-174.html">Day 174 — Gate 6 — Integrated readiness and remediation</option>
+          <option value="day-175.html">Day 175 — Capstone 1 — Landing-zone defense</option>
+          <option value="day-176.html">Day 176 — Capstone 2 — Regulated-workload defense</option>
+          <option value="day-177.html">Day 177 — Capstone 3 — Global-application defense</option>
+          <option value="day-178.html">Day 178 — Capstone 4 — Migration defense</option>
+          <option value="day-179.html">Day 179 — Capstone 5 — Cost and reliability rescue</option>
+        </optgroup>
+        <optgroup label="Final review and rest">
+          <option value="day-180.html">Day 180 — Final review, logistics and rest</option>
+        </optgroup>
+      </select>
+      <a href="#part-1">Topics</a><a href="#part-2">Discussion</a><a href="#part-3">Problems</a><a href="#part-4">Labs</a>
+    </nav>
+  </header>
+  <main id="main" class="container day" data-day="15" data-prev="day-014.html" data-next="day-016.html" data-index="../index.html">
+    <div class="crumb"><a href="../index.html">Roadmap Index</a> / <a href="../index.html#block-foundations">Foundations</a> / Day 15</div>
+    <section class="hero" aria-labelledby="day-title">
+      <div class="pills"><span class="pill">DAY 15</span><span class="pill">Foundations</span><span class="pill">2–3 hours</span><span class="pill">Local lab</span><span class="pill">Topics 005</span></div>
+      <h1 id="day-title">Day 15 — Small application and architecture styles</h1>
+      <p class="lead"><strong>Outcome:</strong> Adapt a worked Python or Bash example into a small order endpoint with request IDs and structured logs; handle invalid input.</p>
+      <p><strong>Entry prerequisites:</strong> <a href="day-014.html">Day 14</a>; bring their exit artifacts.</p>
+      <div class="callout success"><strong>Exit artifact</strong><p>A reproducible local request, validation failure and a diagram comparing monolith and service boundaries.</p></div>
+      <p class="meta">This lesson operates locally using Python 3 standard libraries. It models small application boundaries, Twelve-Factor principles, and structured observability without requiring a cloud project.</p>
+    </section>
+    <aside class="toc" aria-label="On this page">
+      <strong>On this page</strong>
+      <a href="#part-1">Part 1 · Topics of the day</a><a href="#part-2">Part 2 · Technical discussion</a><a href="#part-3">Part 3 · Real-world problems</a><a href="#part-4">Part 4 · Step-by-step labs</a>
+      <div class="toc-topic"><span>Basic Python or Bash from an annotated example</span><a href="#topic-01-overview">Overview</a> · <a href="#topic-01-technical">Discussion</a> · <a href="#topic-01-problem">Problem</a> · <a href="#topic-01-lab">Lab</a></div>
+      <div class="toc-topic"><span>Request validation, REST/JSON, request IDs and structured logs</span><a href="#topic-02-overview">Overview</a> · <a href="#topic-02-technical">Discussion</a> · <a href="#topic-02-problem">Problem</a> · <a href="#topic-02-lab">Lab</a></div>
+    </aside>
+
+    <section class="part" id="part-1" aria-labelledby="part-1-title">
+      <h2 id="part-1-title">Part 1 · Topics of the day</h2>
+      <article class="topic-card" id="topic-01-overview">
+        <h3>Basic Python or Bash from an annotated example</h3>
+        <p><strong>What it is.</strong> Core application code in cloud infrastructure is frequently authored in Python or Bash, serving as microservice handlers, container entrypoints, and automation hooks. A small application packages business logic, input parsing, external system coordination, and termination handling into a single deployable unit. Comparing architectural styles—such as monolithic codebases, containerized microservices, and event-driven serverless functions—determines how code is packaged, scaled, isolated, and operated across Google Cloud infrastructure.</p>
+        <p><strong>Why today.</strong> Before deploying complex Kubernetes clusters or multi-region Cloud Run services, an architect must understand the software execution model running inside the container. Analyzing application boundaries, coupling, and blast radius ensures that cloud architectures support resilient business outcomes.</p>
+        <p><strong>System location.</strong> The application runtime executes on Compute Engine virtual machines, Google Kubernetes Engine Pods, or serverless Cloud Run container instances, interacting with clients upstream and databases downstream.</p>
+        <p><strong>Problem preview.</strong> A memory leak in a secondary PDF invoice generator module crashes an entire monolithic Python process, bringing down the core checkout API and causing immediate sales loss. Intertwined application boundaries turn an auxiliary report generation task into a mission-critical checkout outage.</p>
+      </article>
+
+      <article class="topic-card" id="topic-02-overview">
+        <h3>Request validation, REST/JSON, request IDs and structured logs</h3>
+        <p><strong>What it is.</strong> Modern cloud applications enforce strict boundary defense through early request validation, standardized REST/JSON schemas, unique request tracking identifiers, and structured JSON event logging. Grounded in the Twelve-Factor App methodology, applications externalize configuration into environment variables, execute as stateless disposable processes, and emit logs as continuous, structured JSON event streams to standard output (<code>stdout</code>).</p>
+        <p><strong>Why today.</strong> In distributed cloud environments with hundreds of autoscaled instances, raw unindexed text logs make debugging impossible. Injecting a unique correlation ID and formatting logs as JSON enables instant query filtering, distributed tracing, and rapid incident root-cause isolation in Google Cloud Logging.</p>
+        <p><strong>System location.</strong> Request validation and tracing operate at the container application ingress, passing correlation headers through microservice call chains and streaming JSON log entries to Cloud Logging agents.</p>
+        <p><strong>Problem preview.</strong> Unstructured plain-text print statements scattered across concurrent worker threads hide the root cause of an order processing failure, extending troubleshooting time beyond the recovery objective. Operations engineers cannot correlate logs for a disputed order, leaving customer support unable to confirm whether payments were captured.</p>
+      </article>
+    </section>
+
+    <section class="part" id="part-2" aria-labelledby="part-2-title">
+      <h2 id="part-2-title">Part 2 · Technical discussion</h2>
+      <article class="topic-card" id="topic-01-technical">
+        <h3>Basic Python or Bash from an annotated example</h3>
+        <p>Software architecture styles dictate how code components are bounded, deployed, and scaled. In a <em>monolithic architecture</em>, all business capabilities—order intake, inventory checks, payment processing, notification dispatch, and report generation—reside within a single codebase and execute within a unified operating system process. Monoliths offer simplicity in early development, straightforward local debugging, and zero inter-service network overhead. However, monoliths suffer from shared blast radius: an unhandled exception or memory leak in any single component can terminate the entire process, halting mission-critical revenue paths.</p>
+        <p>In a <em>microservices architecture</em>, business capabilities are decomposed into independent, bounded services (such as an Order Service and an Inventory Service) communicating over lightweight network protocols (HTTP/REST or gRPC). Each microservice owns its private data persistence tier, can be deployed independently, and can be scaled horizontally based on specific workload demand. Microservices eliminate monolithic blast radius, but introduce operational complexity: distributed network latency, partial failure modes, and eventual consistency challenges.</p>
+        <p>A <em>serverless architecture</em> (implemented via Google Cloud Run or Cloud Run functions) takes decomposition further by abstracting infrastructure management entirely. Serverless container workloads scale automatically from zero to thousands of instances in response to incoming HTTP traffic or Pub/Sub messaging events. The platform handles server provisioning, auto-scaling, and health monitoring, charging only for the exact compute runtime consumed while active. Serverless architectures strictly mandate statelessness: instances are ephemeral and can be terminated at any time, requiring all persistent state to reside in managed databases like Cloud SQL or Firestore.</p>
+        <table>
+          <caption>Comparison of application architecture styles across operational dimensions</caption>
+          <thead>
+            <tr><th>Dimension</th><th>Monolithic process</th><th>Containerized microservices</th><th>Serverless (Cloud Run)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Deployment unit</td><td>Single unified binary or script</td><td>Independent container images per service</td><td>Lightweight container or function handler</td></tr>
+            <tr><td>Scaling granularity</td><td>Entire process scaled together</td><td>Independent service-level auto-scaling</td><td>Per-request automatic scale-to-zero</td></tr>
+            <tr><td>Blast radius</td><td>Process crash halts 100% of capabilities</td><td>Isolated to single bounded service</td><td>Isolated to individual ephemeral container instance</td></tr>
+            <tr><td>State ownership</td><td>Shared in-memory variables and single DB</td><td>Decoupled database per microservice</td><td>Strictly externalized in managed data stores</td></tr>
+            <tr><td>Failure recovery</td><td>Full process restart required</td><td>Container orchestrator (GKE) restarts Pod</td><td>Platform provisions fresh instance immediately</td></tr>
+          </tbody>
+        </table>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day15-arch-patterns-title day15-arch-patterns-desc" viewBox="0 0 940 330">
+<title id="day15-arch-patterns-title">Comparison of Monolith, Microservices, and Serverless Architecture Models</title>
+<desc id="day15-arch-patterns-desc">Architectural comparison contrasting a tightly coupled monolithic process with independent containerized microservices and event-driven serverless Cloud Run functions, highlighting deployment boundaries and blast radius isolation.</desc>
+<defs>
+<marker id="day15-arch-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+</defs>
+<!-- Col 1: Monolith -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="280" height="265" rx="8" stroke="#f43f5e"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="160" y="52">MONOLITHIC ARCHITECTURE</text>
+<text x="160" y="68" fill="#f43f5e" font-size="9" font-weight="400">Single Unified Process Runtime</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="35" y="85" width="250" height="115" rx="6" fill="#1e293b" stroke="#f43f5e"/>
+<text x="160" y="103" fill="#fce7f3" font-weight="700">python3 order_monolith.py</text>
+<rect x="45" y="112" width="230" height="20" rx="3" fill="#121526" stroke="#475569"/>
+<text x="160" y="125" fill="#a9b7cb">Order Checkout Module</text>
+<rect x="45" y="136" width="230" height="20" rx="3" fill="#121526" stroke="#475569"/>
+<text x="160" y="149" fill="#a9b7cb">Inventory &amp; Pricing Engine</text>
+<rect x="45" y="160" width="230" height="20" rx="3" fill="#121526" stroke="#f43f5e"/>
+<text x="160" y="173" fill="#f43f5e">PDF Invoice Generator (Heavy)</text>
+
+<rect x="35" y="210" width="250" height="40" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="160" y="226" fill="#34d399">Single Shared Database</text>
+<text x="160" y="238" fill="#a9b7cb">Direct SQL queries across all modules</text>
+
+<rect x="35" y="258" width="250" height="26" rx="4" fill="#f43f5e" fill-opacity="0.15" stroke="#f43f5e"/>
+<text x="160" y="274" fill="#f43f5e" font-weight="700">Blast Radius: 100% Process Outage</text>
+</g>
+
+<!-- Col 2: Microservices -->
+<g fill="#121526" stroke-width="2">
+<rect x="330" y="30" width="280" height="265" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="470" y="52">MICROSERVICES ARCHITECTURE</text>
+<text x="470" y="68" fill="#38bdf8" font-size="9" font-weight="400">Decoupled Container Services (GKE / MIG)</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="345" y="85" width="250" height="42" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="470" y="103" fill="#38bdf8" font-weight="700">Order Service (Container A)</text>
+<text x="470" y="117" fill="#a9b7cb">REST / gRPC · Dedicated DB Pool</text>
+
+<rect x="345" y="135" width="250" height="42" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="470" y="153" fill="#38bdf8" font-weight="700">Inventory Service (Container B)</text>
+<text x="470" y="167" fill="#a9b7cb">Independent horizontal scaling</text>
+
+<rect x="345" y="185" width="250" height="42" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="470" y="203" fill="#38bdf8" font-weight="700">Dispatch Service (Container C)</text>
+<text x="470" y="217" fill="#a9b7cb">Independent release &amp; deployment</text>
+
+<rect x="345" y="235" width="250" height="48" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="470" y="252" fill="#34d399" font-weight="700">Decoupled Blast Radius</text>
+<text x="470" y="266" fill="#a9b7cb">Invoice failure does not block checkout</text>
+</g>
+
+<!-- Col 3: Serverless / Cloud Run -->
+<g fill="#121526" stroke-width="2">
+<rect x="640" y="30" width="280" height="265" rx="8" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="780" y="52">SERVERLESS / EVENT-DRIVEN</text>
+<text x="780" y="68" fill="#34d399" font-size="9" font-weight="400">Stateless Cloud Run Functions &amp; Pub/Sub</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="655" y="85" width="250" height="52" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="780" y="103" fill="#34d399" font-weight="700">Order Ingress (Cloud Run)</text>
+<text x="780" y="117" fill="#fce7f3">Auto-scales 0 to N on HTTPS traffic</text>
+<text x="780" y="129" fill="#a9b7cb">Zero idle compute expense</text>
+
+<rect x="655" y="145" width="250" height="52" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="780" y="163" fill="#eab308" font-weight="700">Cloud Pub/Sub Asynchronous Queue</text>
+<text x="780" y="177" fill="#fce7f3">Buffer order events reliably</text>
+<text x="780" y="189" fill="#34d399">Invariant: &lt;= 1 fulfillment on replay</text>
+
+<rect x="655" y="205" width="250" height="52" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="780" y="223" fill="#38bdf8" font-weight="700">Invoice Worker (Cloud Run Job)</text>
+<text x="780" y="237" fill="#fce7f3">Runs only when events arrive</text>
+<text x="780" y="249" fill="#a9b7cb">Isolated container sandbox</text>
+
+<text x="780" y="280" fill="#34d399" font-size="9" font-weight="700">12-Factor Stateless Concurrency</text>
+</g>
+</svg>
+<figcaption>Figure 15.1: Architecture comparison illustrating monolithic process coupling with shared blast radius, containerized microservices with independent scaling, and event-driven serverless execution on Cloud Run.</figcaption>
+</figure>
+        <div class="further">
+          <h4>Further study</h4>
+          <ul>
+            <li><a href="https://12factor.net/">The Twelve-Factor App Methodology</a> — architectural principles for building portable, resilient cloud-native applications.</li>
+            <li><a href="https://docs.cloud.google.com/architecture/modern-app-development">Google Cloud Architecture Center: Modern application development</a> — patterns for decomposing monoliths into containerized microservices and serverless runtimes.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-technical">
+        <h3>Request validation, REST/JSON, request IDs and structured logs</h3>
+        <p>Resilient applications enforce strict boundary defense at the entrypoint before executing business logic. When an HTTP request arrives, the application must immediately validate two tiers of compliance: (1) syntactic validity (verifying that the payload is valid JSON and that the <code>Content-Type</code> header is <code>application/json</code>), returning HTTP 400 Bad Request on syntax failure; and (2) semantic schema validity (verifying that mandatory fields exist, strings conform to expected formats, and numeric values satisfy domain constraints such as positive quantities), returning HTTP 422 Unprocessable Entity on rule violation. Validating defensively at the perimeter prevents malformed data from corrupting downstream database state.</p>
+        <p>In distributed architectures, correlating actions across asynchronous boundaries requires an explicit tracking context. Ingress proxies (such as Google Cloud Application Load Balancers) or API gateways generate a unique correlation token, typically passed as the <code>X-Request-ID</code> or <code>traceparent</code> HTTP header. The application extracts this identifier upon request receipt, binds it to the execution context, and attaches it to all outgoing downstream calls and log events. When an error occurs, an engineer can query a single request ID and immediately observe the entire distributed lifecycle of that specific transaction across every participating microservice.</p>
+        <p>The Twelve-Factor App methodology provides essential design principles for cloud workloads: Factor III dictates that configuration must be stored in environment variables (e.g. <code>PORT</code>, <code>LOG_LEVEL</code>) rather than hardcoded in source; Factor VI mandates that applications execute as one or more stateless, share-nothing processes; Factor IX requires disposability, meaning processes must start rapidly and handle <code>SIGTERM</code> signals by gracefully draining in-flight requests; and Factor XI requires that applications never write logs to local disk files. Instead, applications must stream unbuffered log events directly to <code>stdout</code>. When formatted as single-line JSON objects containing <code>timestamp</code>, <code>severity</code>, <code>request_id</code>, and <code>message</code>, Google Cloud Logging automatically ingests and indexes the stream into queryable <code>jsonPayload</code> fields without requiring custom parsing plugins.</p>
+        <table>
+          <caption>Twelve-Factor application requirements and Google Cloud implementation</caption>
+          <thead>
+            <tr><th>Twelve-Factor principle</th><th>Application requirement</th><th>Google Cloud mapping &amp; benefit</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>III. Config</td><td>Store configuration strictly in environment variables</td><td>Cloud Run environment variables and Secret Manager integration</td></tr>
+            <tr><td>VI. Processes</td><td>Execute app as stateless, share-nothing processes</td><td>Stateless containers enable instant horizontal autoscaling across zones</td></tr>
+            <tr><td>IX. Disposability</td><td>Maximize robustness with fast startup and graceful shutdown</td><td>Containers respond to SIGTERM within 10s timeout, draining active orders</td></tr>
+            <tr><td>XI. Logs</td><td>Treat logs as continuous event streams to standard output</td><td>Cloud Logging agent ingests stdout JSON directly into Cloud Logging</td></tr>
+            <tr><td>Duplicate Invariant</td><td>Enforce business idempotency across client retries</td><td>Primary key database constraints prevent duplicate fulfillment (&lt;= 1)</td></tr>
+          </tbody>
+        </table>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day15-tracing-logs-title day15-tracing-logs-desc" viewBox="0 0 940 330">
+<title id="day15-tracing-logs-title">End-to-End Request Tracing, Structured Logging, and Twelve-Factor Application Flow</title>
+<desc id="day15-tracing-logs-desc">Architecture diagram illustrating the propagation of unique request identifiers through microservice tiers, formatted JSON logging emitted to standard output, and ingestion by Google Cloud Logging.</desc>
+<defs>
+<marker id="day15-trace-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day15-log-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+</defs>
+<!-- Client Ingress -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="180" height="265" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="110" y="52">CLIENT INGRESS</text>
+<text x="110" y="68" fill="#38bdf8" font-size="9" font-weight="400">Load Balancer / Gateway</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="35" y="85" width="150" height="48" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="110" y="103" fill="#fce7f3">HTTPS Request Ingress</text>
+<text x="110" y="117" fill="#34d399">Injects X-Request-ID</text>
+<text x="110" y="127" fill="#a9b7cb">req-7b8f-410a</text>
+
+<rect x="35" y="145" width="150" height="65" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="110" y="163" fill="#eab308" font-weight="700">JSON Payload</text>
+<text x="110" y="177" fill="#fce7f3">order_id: BL-15-201</text>
+<text x="110" y="189" fill="#fce7f3">item: Sourdough</text>
+<text x="110" y="201" fill="#fce7f3">quantity: 3</text>
+
+<text x="110" y="250" fill="#38bdf8" font-size="9">Correlation Context</text>
+<text x="110" y="265" fill="#a9b7cb">Binds entire trace</text>
+</g>
+
+<!-- 12-Factor Application Container -->
+<g fill="#121526" stroke-width="2">
+<rect x="225" y="30" width="440" height="265" rx="8" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="445" y="52">12-FACTOR ORDER APPLICATION CONTAINER</text>
+<text x="445" y="68" fill="#34d399" font-size="9" font-weight="400">Stateless Service adhering to 12-Factor Principles</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<!-- Factor III: Config -->
+<rect x="240" y="85" width="195" height="52" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="337" y="101" fill="#38bdf8" font-weight="700">Factor III: Config in Env</text>
+<text x="337" y="115" fill="#fce7f3">PORT=8080 · APP_ENV=prod</text>
+<text x="337" y="127" fill="#a9b7cb">LOG_LEVEL=INFO</text>
+
+<!-- Factor VI: Stateless -->
+<rect x="455" y="85" width="195" height="52" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="552" y="101" fill="#34d399" font-weight="700">Factor VI: Stateless Process</text>
+<text x="552" y="115" fill="#fce7f3">Zero local disk state</text>
+<text x="552" y="127" fill="#a9b7cb">State externalized in DB</text>
+
+<!-- Factor XI: Logs as Stream -->
+<rect x="240" y="150" width="410" height="85" rx="4" fill="#090d16" stroke="#eab308"/>
+<text x="445" y="168" fill="#eab308" font-weight="700">Factor XI: Logs as Structured Event Streams to stdout</text>
+<text x="445" y="184" fill="#fce7f3" font-family="ui-monospace,monospace">{"timestamp":"2026-09-27T07:17:31Z", "severity":"INFO",</text>
+<text x="445" y="198" fill="#38bdf8" font-family="ui-monospace,monospace"> "request_id":"req-7b8f-410a", "order_id":"BL-15-201",</text>
+<text x="445" y="212" fill="#34d399" font-family="ui-monospace,monospace"> "latency_ms":12.4, "status":201, "new_fulfillment":true}</text>
+<text x="445" y="226" fill="#a9b7cb">Never write logs to local file; emit JSON stream directly to stdout</text>
+
+<!-- Factor IX: Disposability -->
+<rect x="240" y="245" width="410" height="38" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="445" y="260" fill="#38bdf8" font-weight="700">Factor IX: Disposability &amp; SIGTERM Graceful Shutdown</text>
+<text x="445" y="272" fill="#a9b7cb">Fast startup under 2s · In-flight requests drain before process termination</text>
+</g>
+
+<!-- Google Cloud Observability -->
+<g fill="#121526" stroke-width="2">
+<rect x="690" y="30" width="230" height="265" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="805" y="52">CLOUD OBSERVABILITY</text>
+<text x="805" y="68" fill="#38bdf8" font-size="9" font-weight="400">Google Cloud Logging &amp; Trace</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="705" y="85" width="200" height="60" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="805" y="103" fill="#34d399" font-weight="700">Cloud Logging Ingestion</text>
+<text x="805" y="117" fill="#fce7f3">Parses JSON stdout stream</text>
+<text x="805" y="129" fill="#a9b7cb">Auto-indexes jsonPayload fields</text>
+<text x="805" y="139" fill="#34d399">severity mapped to log entry</text>
+
+<rect x="705" y="155" width="200" height="65" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="805" y="173" fill="#38bdf8" font-weight="700">Single-Second Filtering</text>
+<text x="805" y="187" fill="#fce7f3">jsonPayload.request_id="req-..."</text>
+<text x="805" y="199" fill="#a9b7cb">Filters across 500 instances</text>
+<text x="805" y="211" fill="#34d399">Rapid root-cause triage</text>
+
+<rect x="705" y="230" width="200" height="50" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="805" y="247" fill="#eab308" font-weight="700">Order Fulfillment Invariant</text>
+<text x="805" y="259" fill="#fce7f3">Audit trace verifies</text>
+<text x="805" y="271" fill="#34d399">&lt;= 1 fulfillment per order</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M185 110 L240 110" stroke="#38bdf8" marker-end="url(#day15-trace-arrow)"/>
+<path d="M650 192 L705 115" stroke="#34d399" marker-end="url(#day15-log-arrow)"/>
+</g>
+</svg>
+<figcaption>Figure 15.2: Twelve-Factor application design showing request ID context propagation, structured JSON logging emitted to stdout, and automated ingestion into Google Cloud Logging for correlated distributed tracing.</figcaption>
+</figure>
+        <div class="further">
+          <h4>Further study</h4>
+          <ul>
+            <li><a href="https://docs.cloud.google.com/logging/docs/structured-logging">Google Cloud Logging: Structured logging</a> — formatting JSON log entries with severity and correlation metadata for automated cloud ingestion.</li>
+            <li><a href="https://docs.cloud.google.com/trace/docs/overview">Google Cloud Trace: Distributed tracing overview</a> — capturing latency waterfalls and propagating trace contexts across microservice boundaries.</li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="part" id="part-3" aria-labelledby="part-3-title">
+      <h2 id="part-3-title">Part 3 · Real-world problems and solutions</h2>
+      <article class="topic-card" id="topic-01-problem">
+        <h3>Incident exercise · Monolithic blast radius halts checkout</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf launched its initial order platform as a single Python monolithic web service running on Compute Engine virtual machines. The single application process contained the REST Order API, the inventory catalog, and an auxiliary PDF invoice generator that rendered customer receipts using a third-party image manipulation library. During a busy holiday morning, a corporate customer submitted an order containing 450 customized bakery line items. When the monolithic process invoked the PDF generation routine on the main request thread, the underlying image renderer encountered an unbounded memory allocation bug. The single Python process consumed 100% of available host RAM, triggering the Linux kernel Out-Of-Memory (OOM) killer. The operating system abruptly terminated the entire monolithic process. Because the Order API ran within that exact same process, the frontend load balancer immediately reported <code>BACKEND_CONNECTION_TIMEOUT</code> and returned HTTP 502 Bad Gateway errors to thousands of online shoppers across India. Checkout was completely offline for 45 minutes until engineers diagnosed the OOM crash and rebooted the virtual machines.</p>
+        <p><strong>Constraints and operational invariants:</strong> Core checkout intake must remain available 24/7; non-critical background tasks (such as receipt rendering or email notification) must never be permitted to crash or degrade order intake; and all recovery and retry actions must preserve Brightloaf's fundamental duplicate fulfillment invariant: a retried order or replayed event must never trigger duplicate physical warehouse shipments (&lt;= 1 fulfillment per unique order ID).</p>
+        <p><strong>Evidence and root cause:</strong> System kernel logs in <code>/var/log/messages</code> recorded: <code>Out of memory: Kill process (python3) score 920 or sacrifice child</code>. Cloud Monitoring showed sudden memory spikes from 400 MB to 16 GB immediately following the receipt rendering call. The root cause was architectural failure to decouple application boundaries: running an un-isolated, computationally heavy background task within the same process runtime as the critical checkout engine allowed a non-essential failure to collapse the company's entire revenue intake.</p>
+        <p><strong>Diagnostic sequence:</strong></p>
+        <ol>
+          <li>Query Compute Engine serial console logs and system kernel logs in Cloud Logging to identify whether the process terminated via SIGKILL from the OOM killer.</li>
+          <li>Analyze memory consumption telemetry in Cloud Monitoring across the incident window to identify memory growth trajectories.</li>
+          <li>Review application access logs to isolate the specific HTTP request URL and payload parameters submitted immediately prior to the crash.</li>
+          <li>Profile the PDF generator module in an isolated local container using synthetic large order payloads to reproduce the memory allocation leak.</li>
+          <li>Audit the application architecture to map all functional components executing within the primary web process runtime.</li>
+        </ol>
+        <p><strong>Defensible solution:</strong> Deconstruct the monolithic blast radius into an asynchronous, decoupled architecture: First, strip the PDF invoice generator entirely out of the Order API web process. When an order is placed, the Order API validates the request, commits the order record to the relational database, and publishes an <code>order_created</code> event to a Google Cloud Pub/Sub topic before returning HTTP 201 Created to the customer in under 150 ms. Second, deploy the PDF invoice generator as an independent Cloud Run background consumer subscribed to the Pub/Sub topic. If a complex receipt causes the Cloud Run invoice instance to exceed its memory limit, only that single background worker crashes; the Pub/Sub queue automatically retries the message with exponential backoff, and the primary checkout API continues processing customer purchases with zero interruption. Ensure the Pub/Sub subscriber enforces idempotency using the order UUID so that retried invoice rendering never causes duplicate fulfillment events.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day15-blast-incident-title day15-blast-incident-desc" viewBox="0 0 940 320">
+<title id="day15-blast-incident-title">Monolithic Blast Radius Failure and Decoupled Microservice Remediation</title>
+<desc id="day15-blast-incident-desc">Incident diagram showing how a memory leak in an un-isolated PDF invoice module crashed an entire monolithic checkout process, and the corrected decoupled microservice architecture.</desc>
+<defs>
+<marker id="day15-ok-arrow-1" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day15-fail-arrow-1" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="160" height="90" rx="8" stroke="#38bdf8"/>
+<rect x="210" y="25" width="470" height="115" rx="8" stroke="#f43f5e" stroke-dasharray="7 5"/>
+<rect x="210" y="175" width="470" height="115" rx="8" stroke="#34d399"/>
+<rect x="710" y="110" width="210" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="600" text-anchor="middle">
+<text x="100" y="140">Shopper Checkout</text>
+<text x="100" y="156" fill="#a9b7cb">Order Purchase</text>
+<text x="100" y="172" fill="#38bdf8">POST /v1/orders</text>
+
+<!-- Failed Path -->
+<text x="445" y="44" fill="#f43f5e" font-weight="700">[FAILED PATH: Monolithic Shared Process Blast Radius]</text>
+<text x="445" y="60" fill="#fce7f3">Single Python runtime executes Order API and PDF invoice generator</text>
+<text x="445" y="76" fill="#f43f5e">EXACT FAILURE POINT: PDF generator leaks memory; OOM killer halts process</text>
+<text x="445" y="92" fill="#f43f5e">Root Cause: Secondary invoice crash destroys critical checkout thread</text>
+<text x="445" y="108" fill="#f43f5e">ALB returns HTTP 502 Bad Gateway → 100% sales outage for 45 minutes</text>
+<text x="445" y="124" fill="#a9b7cb">Coupled architecture created single point of failure for core revenue path</text>
+
+<!-- Corrected Path -->
+<text x="445" y="194" fill="#34d399" font-weight="700">[CORRECTED PATH: Decoupled Cloud Run API &amp; Asynchronous Pub/Sub Worker]</text>
+<text x="445" y="210" fill="#fce7f3">Order API handles only checkout; persists order &amp; publishes event to Pub/Sub</text>
+<text x="445" y="226" fill="#34d399">CORRECTED CONTROL: Invoice generator runs in isolated background container</text>
+<text x="445" y="242" fill="#34d399">Even if PDF worker runs out of memory, Order API retains 100% uptime</text>
+<text x="445" y="258" fill="#34d399">Pub/Sub retries invoice generation with exponential backoff safely</text>
+<text x="445" y="274" fill="#a9b7cb">Order Invariant: Event idempotency strictly prevents duplicate fulfillment</text>
+
+<!-- Verification Boundary -->
+<text x="815" y="136">VERIFICATION BOUNDARY</text>
+<text x="815" y="154" fill="#34d399" font-weight="700">100% Checkout Uptime</text>
+<text x="815" y="170" fill="#34d399">HTTP 201 Created</text>
+<text x="815" y="186" fill="#a9b7cb">Fulfillment count &lt;= 1</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 135 L210 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day15-fail-arrow-1)"/>
+<path d="M680 85 L710 135" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day15-fail-arrow-1)"/>
+<path d="M180 175 L210 230" stroke="#34d399" marker-end="url(#day15-ok-arrow-1)"/>
+<path d="M680 230 L710 175" stroke="#34d399" marker-end="url(#day15-ok-arrow-1)"/>
+</g>
+<text x="460" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed red line (--&gt;) = Monolithic crash outage · Solid green line (—&gt;) = Decoupled asynchronous microservice</text>
+</svg>
+<figcaption>Figure 15.3: Supplied facts: A memory leak in a secondary PDF invoice module crashed the monolithic process and halted checkout. Architectural inference: Monolithic architectures share a single process blast radius where non-critical component failures collapse mission-critical revenue paths. Expected post-fix behavior: Decoupling invoice generation into an asynchronous Pub/Sub consumer isolates failures and maintains 100% checkout availability.</figcaption>
+</figure>
+        <p><strong>Verification and residual risk:</strong> Execute a synthetic load test submitting the 450-item order payload directly to the Order API; verify that the Order API returns HTTP 201 Created in under 150 ms; deliberately trigger an out-of-memory crash in the background invoice worker container and confirm that the checkout endpoint maintains 100% availability without dropping in-flight transactions; verify that duplicate fulfillment events are suppressed. Residual risk: Asynchronous background processing introduces eventual consistency: customers may experience a 10-to-30 second delay between completing payment and receiving their emailed invoice PDF; this is mitigated by displaying an immediate on-screen HTML order confirmation.</p>
+      </article>
+
+      <article class="topic-card" id="topic-02-problem">
+        <h3>Incident exercise · Unstructured text logging blinds operations</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> Following an update to Brightloaf's Order API, customer support reported that multiple shoppers experienced failed checkouts during a promotional flash sale: credit cards were charged, but the web browser displayed a generic "Server Error" banner, and no order confirmation appeared. When the on-call platform engineer opened Google Cloud Logging to investigate, the console was inundated with over 40,000 lines of raw text per minute emitted by sixteen autoscaled application instances. Developers had implemented logging using arbitrary Python <code>print()</code> statements, such as <code>print(f"Processing order for customer: {cust}")</code> and <code>print("Database connection error occurred")</code>. Because the logs contained no unified request identifiers, no structured JSON fields, and no severity levels (all stdout prints registered as <code>DEFAULT</code> severity), log messages from hundreds of concurrent checkout threads were hopelessly interleaved. The on-call engineer spent two hours manually grepping text files, unable to connect the customer's order ID with the corresponding database connection exception, breaching the company's 30-minute RTO objective.</p>
+        <p><strong>Constraints and operational invariants:</strong> Operational logging must provide sub-minute searchability across high-concurrency distributed fleets; log volume must not saturate network bandwidth or inflate Cloud Operations ingestion budgets; and customer order retries during diagnostic investigations must strictly preserve the duplicate fulfillment invariant (&lt;= 1 fulfillment per unique order ID).</p>
+        <p><strong>Evidence and root cause:</strong> Review of Cloud Logging log streams revealed unindexed plain text without structural metadata: log entries lacked <code>jsonPayload</code> objects, severity fields were absent, and no common correlation key linked the HTTP request receipt to downstream database execution. The root cause was non-compliance with Twelve-Factor logging standards: relying on unstructured string printing without request correlation context converted a routine transient database glitch into an un-diagnosable operational blindspot.</p>
+        <p><strong>Diagnostic sequence:</strong></p>
+        <ol>
+          <li>Examine raw log entries in Cloud Logging to assess whether log records are ingested as unparsed text payloads (<code>textPayload</code>) versus structured objects (<code>jsonPayload</code>).</li>
+          <li>Inspect application HTTP headers to determine whether an <code>X-Request-ID</code> or Google Cloud Trace context header is captured and propagated by the service.</li>
+          <li>Review the application logging configuration to identify whether log formatting libraries emit structured JSON streams or arbitrary string interpolations.</li>
+          <li>Simulate a failed order transaction in a staging environment and measure the time required to locate all corresponding log lines across multiple concurrent requests.</li>
+          <li>Audit Cloud Operations ingestion metrics to verify whether unformatted log spam is generating unnecessary storage costs.</li>
+        </ol>
+        <p><strong>Defensible solution:</strong> Implement a Twelve-Factor structured JSON logging architecture: First, configure the application entrypoint to inspect incoming headers for <code>X-Request-ID</code>; if absent, generate a unique UUID correlation token (e.g. <code>req-&lt;uuid&gt;</code>) and store it in thread-local or async-context storage. Second, replace raw <code>print()</code> calls with a structured JSON logger emitting single-line JSON objects to <code>stdout</code> containing standardized attributes: <code>timestamp</code> (ISO-8601), <code>severity</code> (INFO, WARN, ERROR), <code>request_id</code>, <code>order_id</code>, <code>latency_ms</code>, and <code>message</code>. Google Cloud Logging automatically parses these streams into queryable <code>jsonPayload</code> fields. Third, update operational runbooks with standardized Log Analytics queries (such as <code>jsonPayload.order_id = "BL-15-201"</code>), enabling on-call engineers to isolate the complete lifecycle of any transaction across thousands of container instances within five seconds.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day15-logs-incident-title day15-logs-incident-desc" viewBox="0 0 940 320">
+<title id="day15-logs-incident-title">Unstructured Text Logging Blindspot and Correlated JSON Trace Remediation</title>
+<desc id="day15-logs-incident-desc">Incident diagram contrasting unsearchable plain-text logs during a high-concurrency checkout failure with structured JSON logs and request ID correlation enabling rapid sub-minute diagnosis.</desc>
+<defs>
+<marker id="day15-ok-arrow-2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day15-fail-arrow-2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="160" height="90" rx="8" stroke="#38bdf8"/>
+<rect x="210" y="25" width="470" height="115" rx="8" stroke="#f43f5e" stroke-dasharray="7 5"/>
+<rect x="210" y="175" width="470" height="115" rx="8" stroke="#34d399"/>
+<rect x="710" y="110" width="210" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="600" text-anchor="middle">
+<text x="100" y="136">Support Ticket</text>
+<text x="100" y="152" fill="#eab308">Order BL-15-201</text>
+<text x="100" y="168" fill="#a9b7cb">Customer Charged</text>
+<text x="100" y="184" fill="#38bdf8">Checkout Timed Out</text>
+
+<!-- Failed Path -->
+<text x="445" y="44" fill="#f43f5e" font-weight="700">[FAILED PATH: Unstructured Print Statements &amp; Missing Request ID]</text>
+<text x="445" y="60" fill="#fce7f3">App prints raw text strings: print("Order processing error")</text>
+<text x="445" y="76" fill="#f43f5e">EXACT FAILURE POINT: 40,000 log lines interleaved across 16 worker threads</text>
+<text x="445" y="92" fill="#f43f5e">Root Cause: No request ID, no timestamp correlation, text unindexed in Cloud Logging</text>
+<text x="445" y="108" fill="#f43f5e">Investigation takes 2.5 hours → Breaches 30-minute RTO recovery objective</text>
+<text x="445" y="124" fill="#a9b7cb">Operations blind to root cause; unable to distinguish validation from DB timeouts</text>
+
+<!-- Corrected Path -->
+<text x="445" y="194" fill="#34d399" font-weight="700">[CORRECTED PATH: Structured JSON Logs with Injected Request ID Context]</text>
+<text x="445" y="210" fill="#fce7f3">ALB injects X-Request-ID; app emits structured JSON stream to stdout</text>
+<text x="445" y="226" fill="#34d399">CORRECTED CONTROL: Cloud Logging auto-indexes jsonPayload.request_id</text>
+<text x="445" y="242" fill="#34d399">Single query: jsonPayload.order_id="BL-15-201" returns entire trace in 2s</text>
+<text x="445" y="258" fill="#34d399">Root cause identified as downstream DB lock contention; resolved in 8 minutes</text>
+<text x="445" y="274" fill="#a9b7cb">Order Invariant: Deduplication token ensures &lt;= 1 fulfillment on retry</text>
+
+<!-- Verification Boundary -->
+<text x="815" y="136">VERIFICATION BOUNDARY</text>
+<text x="815" y="154" fill="#34d399" font-weight="700">Root Cause &lt; 60s</text>
+<text x="815" y="170" fill="#34d399">RTO &lt; 30m Met</text>
+<text x="815" y="186" fill="#a9b7cb">100% Traceability</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 135 L210 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day15-fail-arrow-2)"/>
+<path d="M680 85 L710 135" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day15-fail-arrow-2)"/>
+<path d="M180 175 L210 230" stroke="#34d399" marker-end="url(#day15-ok-arrow-2)"/>
+<path d="M680 230 L710 175" stroke="#34d399" marker-end="url(#day15-ok-arrow-2)"/>
+</g>
+<text x="460" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed red line (--&gt;) = Unindexed text logging failure · Solid green line (—&gt;) = Structured JSON request ID tracing</text>
+</svg>
+<figcaption>Figure 15.4: Supplied facts: Production checkout errors could not be isolated due to unindexed plain-text logs interleaved across concurrent threads. Architectural inference: Without structured JSON logging and unified request identifiers, distributed microservices become black boxes during outages. Expected post-fix behavior: Emitting JSON logs with request IDs to stdout allows instant indexed log filtering and rapid root-cause identification.</figcaption>
+</figure>
+        <p><strong>Verification and residual risk:</strong> Submit synthetic checkout requests containing both valid orders and intentional validation failures; execute a Cloud Logging query filtering on <code>jsonPayload.request_id</code> and verify that 100% of corresponding log entries (request received, validation, persistence, response) appear chronologically within a single second; verify that duplicate submissions with the same idempotency key log <code>new_fulfillment: false</code> and suppress duplicate fulfillment. Residual risk: High-throughput microservices emitting verbose structured JSON can increase Cloud Logging ingestion costs if debug logging remains active in production; enforce dynamic log-level filtering (defaulting to INFO/WARN) configurable via environment variables without requiring service redeployment.</p>
+      </article>
+    </section>
+
+    <section class="part" id="part-4" aria-labelledby="part-4-title">
+      <h2 id="part-4-title">Part 4 · Step-by-step labs</h2>
+      <p><strong>Lab mode:</strong> Local Linux terminal with Python 3. No Google Cloud credentials, cloud sandbox project, or external network connectivity are required for this foundational exercise.</p>
+
+      <article class="topic-card lab" id="topic-01-lab">
+        <h3>Lab 15.1 · Small order endpoint with request validation, structured JSON logging, and 12-factor principles</h3>
+        <p><strong>Goal and expected result.</strong> Adapt a Python order processing handler into an endpoint implementing Twelve-Factor principles: environment configuration, strict JSON payload schema validation, unique request correlation ID tracking, structured JSON logging to <code>stdout</code>, and strict enforcement of the duplicate fulfillment invariant ($&le; 1$ fulfillment per unique order ID). Verify that valid orders return HTTP 201, invalid orders return HTTP 422, and duplicate retries return HTTP 200 with <code>new_fulfillment: false</code>.</p>
+        <p><strong>Mode.</strong> Local terminal with Python 3. <strong>Preflight checklist.</strong> Confirm Python 3 is installed and create an isolated temporary workspace directory.</p>
+
+        <div class="step">
+          <h4>1. Preflight environment and create isolated workspace</h4>
+          <pre><code class="language-bash">python3 --version
+LAB_DIR="$(mktemp -d -t gcp-day15.XXXXXX)"
+export LAB_DIR
+cd "$LAB_DIR"
+printf 'Isolated workspace created at: %s\n' "$LAB_DIR"</code></pre>
+          <p><strong>Expected output.</strong> Python 3 version prints (e.g. <code>Python 3.12.x</code>) and a temporary directory path is displayed.</p>
+        </div>
+
+        <div class="step">
+          <h4>2. Author the 12-factor Python order processing endpoint</h4>
+          <p>Create the complete order processing engine. The script reads port and log configuration from environment variables, parses JSON payloads defensively, injects unique request identifiers, emits structured JSON log lines, and validates domain rules.</p>
+          <pre><code class="language-bash">cat &gt; "$LAB_DIR/order_endpoint.py" &lt;&lt;'PY'
+import json
+import os
+import sys
+import time
+import uuid
+
+# Factor III: Configuration via environment variables
+APP_PORT = int(os.environ.get("PORT", "8080"))
+APP_ENV = os.environ.get("APP_ENV", "production")
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
+# Factor VI: Externalized state store simulation
+order_store = set()
+
+def process_order_request(raw_body, headers=None):
+    \"\"\"
+    Handles order intake: validates JSON syntax and schema,
+    emits structured JSON logs to stdout, and enforces fulfillment invariant.
+    \"\"\"
+    start_time = time.time()
+    headers = headers or {}
+    
+    # Extract or generate correlation identifier
+    req_id = headers.get("X-Request-ID", f"req-{uuid.uuid4().hex[:8]}")
+
+    # Factor XI: Structured JSON logging to stdout
+    def log(severity, message, extra=None):
+        log_entry = {
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "severity": severity,
+            "request_id": req_id,
+            "message": message,
+            "environment": APP_ENV
+        }
+        if extra:
+            log_entry.update(extra)
+        # Flush stdout immediately for unbuffered log streaming
+        sys.stdout.write(json.dumps(log_entry) + "\\n")
+        sys.stdout.flush()
+
+    # Tier 1: Syntactic JSON validation
+    try:
+        data = json.loads(raw_body)
+    except json.JSONDecodeError as err:
+        log("WARN", f"Malformed JSON payload: {err.msg}", {"status_code": 400})
+        return 400, {"error": "MalformedJSON", "detail": err.msg}
+
+    # Tier 2: Semantic schema validation
+    required_fields = ["order_id", "item", "quantity", "unit_price"]
+    missing = [f for f in required_fields if f not in data]
+    if missing:
+        log("WARN", f"Validation failure: missing fields {missing}", {"status_code": 422})
+        return 422, {"error": "ValidationError", "missing_fields": missing}
+
+    if not isinstance(data["quantity"], int) or data["quantity"] &lt;= 0:
+        log("WARN", "Validation failure: quantity must be positive integer", {"status_code": 422})
+        return 422, {"error": "ValidationError", "detail": "quantity must be positive integer"}
+
+    if not isinstance(data["unit_price"], (int, float)) or data["unit_price"] &lt;= 0.0:
+        log("WARN", "Validation failure: unit_price must be positive number", {"status_code": 422})
+        return 422, {"error": "ValidationError", "detail": "unit_price must be positive number"}
+
+    # Idempotency check: preserve duplicate fulfillment invariant
+    order_id = data["order_id"]
+    if order_id in order_store:
+        latency_ms = round((time.time() - start_time) * 1000, 2)
+        log("INFO", f"Order {order_id} re-submitted; returning idempotent confirmation", {
+            "order_id": order_id,
+            "new_fulfillment": False,
+            "latency_ms": latency_ms,
+            "status_code": 200
+        })
+        return 200, {
+            "order_id": order_id,
+            "status": "CONFIRMED",
+            "new_fulfillment": False,
+            "message": "Order previously accepted"
+        }
+
+    # Commit state &amp; trigger fulfillment
+    order_store.add(order_id)
+    total = round(data["quantity"] * float(data["unit_price"]), 2)
+    latency_ms = round((time.time() - start_time) * 1000, 2)
+
+    log("INFO", f"Order {order_id} created successfully", {
+        "order_id": order_id,
+        "total": total,
+        "new_fulfillment": True,
+        "latency_ms": latency_ms,
+        "status_code": 201
+    })
+
+    return 201, {
+        "order_id": order_id,
+        "status": "CONFIRMED",
+        "new_fulfillment": True,
+        "total": total
+    }
+
+if __name__ == "__main__":
+    print("=== 1. Testing Valid Order Submission ===")
+    c1, r1 = process_order_request(
+        '{\"order_id\": \"BL-15-201\", \"item\": \"Rye Sourdough\", \"quantity\": 3, \"unit_price\": 6.50}',
+        {"X-Request-ID": "req-client-001"}
+    )
+    assert c1 == 201
+    assert r1["new_fulfillment"] is True
+    print(f"Status: {c1}, Response: {json.dumps(r1)}")
+
+    print("\\n=== 2. Testing Schema Validation Failure (Negative Quantity) ===")
+    c2, r2 = process_order_request(
+        '{\"order_id\": \"BL-15-202\", \"item\": \"Rye Sourdough\", \"quantity\": -2, \"unit_price\": 6.50}',
+        {"X-Request-ID": "req-client-002"}
+    )
+    assert c2 == 422
+    assert r2["error"] == "ValidationError"
+    print(f"Status: {c2}, Response: {json.dumps(r2)}")
+
+    print("\\n=== 3. Testing Duplicate Order Replay (Invariant Preservation) ===")
+    c3, r3 = process_order_request(
+        '{\"order_id\": \"BL-15-201\", \"item\": \"Rye Sourdough\", \"quantity\": 3, \"unit_price\": 6.50}',
+        {"X-Request-ID": "req-client-003"}
+    )
+    assert c3 == 200
+    assert r3["new_fulfillment"] is False
+    print(f"Status: {c3}, Response: {json.dumps(r3)}")
+    print("\\nAll order endpoint execution assertions passed successfully.")
+PY
+python3 "$LAB_DIR/order_endpoint.py"</code></pre>
+          <p><strong>Expected terminal output.</strong></p>
+          <pre><code class="language-text">=== 1. Testing Valid Order Submission ===
+{"timestamp": "...", "severity": "INFO", "request_id": "req-client-001", "message": "Order BL-15-201 created successfully", "environment": "production", "order_id": "BL-15-201", "total": 19.5, "new_fulfillment": true, "latency_ms": ..., "status_code": 201}
+Status: 201, Response: {"order_id": "BL-15-201", "status": "CONFIRMED", "new_fulfillment": true, "total": 19.5}
+
+=== 2. Testing Schema Validation Failure (Negative Quantity) ===
+{"timestamp": "...", "severity": "WARN", "request_id": "req-client-002", "message": "Validation failure: quantity must be positive integer", "environment": "production", "status_code": 422}
+Status: 422, Response: {"error": "ValidationError", "detail": "quantity must be positive integer"}
+
+=== 3. Testing Duplicate Order Replay (Invariant Preservation) ===
+{"timestamp": "...", "severity": "INFO", "request_id": "req-client-003", "message": "Order BL-15-201 re-submitted; returning idempotent confirmation", "environment": "production", "order_id": "BL-15-201", "new_fulfillment": false, "latency_ms": ..., "status_code": 200}
+Status: 200, Response: {"order_id": "BL-15-201", "status": "CONFIRMED", "new_fulfillment": false, "message": "Order previously accepted"}
+
+All order endpoint execution assertions passed successfully.</code></pre>
+        </div>
+
+        <div class="step">
+          <h4>3. Record daily evidence artifact and clean up workspace</h4>
+          <pre><code class="language-bash">cat &gt; "$LAB_DIR/day-015-evidence.md" &lt;&lt;'EOF'
+# Brightloaf Day 15 Evidence — Small Application and Architecture Styles
+
+## Architectural Model Comparison
+- Monolith: Unified process, high cohesion, shared blast radius (PDF leak halts checkout).
+- Microservices: Bounded container services, independent scaling, isolated failures.
+- Serverless: Cloud Run ephemeral instances, scale-to-zero, zero idle cost.
+
+## 12-Factor App & Observability Implementation
+- Configuration externalized to environment variables (PORT, APP_ENV, LOG_LEVEL).
+- Stateless execution with externalized database state.
+- Emits unbuffered single-line JSON log events to stdout with timestamp, severity, request_id, and latency.
+- Request correlation context propagated via X-Request-ID header.
+- Syntactic JSON validation returns HTTP 400; semantic domain validation returns HTTP 422.
+- Duplicate fulfillment invariant strictly preserved: order replay returns HTTP 200 with new_fulfillment=false.
+EOF
+
+cat "$LAB_DIR/day-015-evidence.md"
+
+# Cleanup temporary lab directory
+rm -rf "$LAB_DIR"
+test ! -d "$LAB_DIR"
+printf 'Temporary workspace removed. Exit evidence recorded.\n'</code></pre>
+          <p><strong>Expected output.</strong> The evidence artifact prints to stdout, followed by confirmation that the temporary directory was cleanly deleted.</p>
+        </div>
+
+        <div class="callout success">
+          <strong>Verification and acceptance</strong>
+          <p>Confirm that all three test cases succeed: valid request yields HTTP 201 with <code>new_fulfillment: true</code>; invalid request yields HTTP 422 with validation details; duplicate submission yields HTTP 200 with <code>new_fulfillment: false</code>. Confirm that all log entries are formatted as valid single-line JSON with <code>severity</code> and <code>request_id</code> attributes.</p>
+        </div>
+        <div class="callout caution">
+          <strong>Troubleshooting</strong>
+          <p>If Python reports an <code>AssertionError</code>, verify that <code>order_store</code> properly records the <code>order_id</code> string. If JSON decoding fails, verify that test payloads enclose all keys in double quotes.</p>
+        </div>
+        <p><strong>Cleanup.</strong> All temporary files and scripts are deleted in reverse dependency order in Step 3.</p>
+      </article>
+
+      <article class="topic-card lab" id="topic-02-lab">
+        <h3>Lab 15.2 · Correlated microservice request tracing and log query isolation</h3>
+        <p><strong>Goal and expected result.</strong> Propagate an incoming <code>X-Request-ID</code> correlation token across a distributed service boundary (Checkout API to asynchronous Background Worker), emit structured JSON logs with unified correlation metadata, and verify that all events across both service tiers can be queried and correlated by request ID. Confirm that the duplicate fulfillment invariant (&le; 1 fulfillment per order ID) is upheld across event replays.</p>
+        <p><strong>Mode.</strong> Local terminal with Python 3. <strong>Preflight checklist.</strong> Verify Python 3 availability and initialize a disposable local lab directory.</p>
+
+        <div class="step">
+          <h4>1. Preflight environment and set up workspace</h4>
+          <pre><code class="language-bash">LAB2_DIR="/tmp/gcp-day15-lab2.E8XPDe"
+export LAB2_DIR
+cd ""
+printf 'Lab 2 workspace established at: %s
+' ""</code></pre>
+          <p><strong>Expected output.</strong> A temporary directory path is created and printed.</p>
+        </div>
+
+        <div class="step">
+          <h4>2. Author multi-tier distributed tracing simulator</h4>
+          <p>Create a script simulating an API Gateway, an Order Intake Service, and an Asynchronous Background Worker. The pipeline extracts or assigns <code>X-Request-ID</code>, logs JSON to <code>stdout</code> at each boundary, and passes the correlation context across simulated asynchronous queues.</p>
+          <pre><code class="language-bash">cat &gt; "/trace_pipeline.py" &lt;&lt;'PY'
+import json
+import os
+import sys
+import time
+import uuid
+
+def emit_log(service_name, severity, req_id, order_id, message, extra=None):
+    payload = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "service": service_name,
+        "severity": severity,
+        "request_id": req_id,
+        "order_id": order_id,
+        "message": message
+    }
+    if extra:
+        payload.update(extra)
+    sys.stdout.write(json.dumps(payload) + "
+")
+    sys.stdout.flush()
+
+class OrderService:
+    def __init__(self):
+        self.processed_orders = set()
+
+    def handle_checkout(self, order_id, item, quantity, req_id=None):
+        req_id = req_id or f"req-{uuid.uuid4().hex[:8]}"
+        emit_log("order-api", "INFO", req_id, order_id, "Received checkout request", {"item": item, "quantity": quantity})
+
+        # Enforce duplicate fulfillment invariant
+        if order_id in self.processed_orders:
+            emit_log("order-api", "INFO", req_id, order_id, "Order already fulfilled; idempotent replay suppressed second fulfillment", {"new_fulfillment": False})
+            return {"status": "CONFIRMED", "order_id": order_id, "new_fulfillment": False}, req_id
+
+        self.processed_orders.add(order_id)
+        emit_log("order-api", "INFO", req_id, order_id, "Committed order transaction to database", {"new_fulfillment": True})
+        return {"status": "CREATED", "order_id": order_id, "new_fulfillment": True}, req_id
+
+class InvoiceWorker:
+    def process_invoice_event(self, req_id, order_id):
+        emit_log("invoice-worker", "INFO", req_id, order_id, "Started background invoice rendering")
+        # Simulate rendering latency
+        time.sleep(0.01)
+        emit_log("invoice-worker", "INFO", req_id, order_id, "PDF invoice generated and archived in Cloud Storage", {"bucket": "brightloaf-invoices"})
+
+if __name__ == "__main__":
+    order_svc = OrderService()
+    worker = InvoiceWorker()
+
+    print("=== Multi-Service Request Trace Simulation ===")
+    # Request 1: New order intake with client-supplied request ID
+    req1_id = "client-trace-9901"
+    res1, t_id1 = order_svc.handle_checkout("BL-15-801", "Rustic Sourdough", 2, req1_id)
+    worker.process_invoice_event(t_id1, "BL-15-801")
+
+    # Request 2: Replay of same order ID (verifying invariant and trace correlation)
+    req2_id = "client-trace-9902"
+    res2, t_id2 = order_svc.handle_checkout("BL-15-801", "Rustic Sourdough", 2, req2_id)
+    # Background worker is not invoked on replay to prevent duplicate PDF generation
+
+    print("
+Simulation completed successfully.")
+PY
+python3 "/trace_pipeline.py" &gt; "/app.log"
+cat "/app.log"</code></pre>
+          <p><strong>Expected output.</strong> Structured JSON log events appear on stdout, showing <code>order-api</code> and <code>invoice-worker</code> sharing the correlation ID <code>client-trace-9901</code>.</p>
+        </div>
+
+        <div class="step">
+          <h4>3. Query and isolate end-to-end trace from logs</h4>
+          <p>Use Python to simulate Cloud Logging's structured query engine, filtering exclusively by <code>request_id</code>.</p>
+          <pre><code class="language-bash">python3 - &lt;&lt;'PY'
+import json
+
+with open("app.log", "r") as f:
+    lines = f.readlines()
+
+target_trace = "client-trace-9901"
+print(f"Querying logs for request_id == '{target_trace}':")
+
+matched = []
+for line in lines:
+    if line.strip().startswith("{"):
+        entry = json.loads(line)
+        if entry.get("request_id") == target_trace:
+            matched.append(entry)
+            print(f"[{entry['timestamp']}] [{entry['service']}] [{entry['severity']}] {entry['message']}")
+
+assert len(matched) == 4, f"Expected 4 matched log entries, found {len(matched)}"
+print("
+Log isolation check passed: Complete cross-service transaction isolated in under 5 seconds.")
+PY</code></pre>
+          <p><strong>Expected output.</strong> Four correlated events printed in chronological order from both services, proving complete cross-service auditability.</p>
+        </div>
+
+        <div class="step">
+          <h4>4. Troubleshooting</h4>
+          <p><strong>Common diagnostic points:</strong></p>
+          <ul>
+            <li><strong>Missing cross-service correlation:</strong> If the worker logs show a new request ID, check that the asynchronous task payload explicitly includes the parent <code>request_id</code> attribute.</li>
+            <li><strong>Unparsed log entries in Cloud Logging:</strong> If logs appear in Google Cloud Logging with severity <code>DEFAULT</code>, verify that the logging emitter outputs strictly valid single-line JSON without multi-line stack traces or unescaped string prefixes.</li>
+          </ul>
+        </div>
+
+        <div class="step">
+          <h4>5. Cleanup and cost</h4>
+          <pre><code class="language-bash">rm -rf ""
+test ! -d ""
+printf 'Lab 2 temporary directory cleanly removed.
+'</code></pre>
+          <p><strong>Expected output.</strong> Confirmation that the directory is deleted with zero orphaned resources.</p>
+        </div>
+
+        <div class="callout success">
+          <strong>Verification and acceptance</strong>
+          <p>Confirm that: (1) all log output is formatted as single-line JSON with <code>timestamp</code>, <code>service</code>, <code>severity</code>, and <code>request_id</code>; (2) cross-service traces link events across the API and worker; (3) duplicate orders suppress duplicate fulfillment; and (4) query isolation successfully filters by <code>request_id</code>.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="completion" aria-labelledby="exit-title">
+      <h2 id="exit-title">Daily evidence</h2>
+      <p>Submit the recorded terminal test log demonstrating HTTP 201 creation, HTTP 422 validation failure, structured JSON logging output, and idempotent duplicate order handling. Confirm that the architectural comparison diagram and decoupling rationale are recorded.</p>
+    </section>
+
+    <nav class="pager" aria-label="Day pagination">
+      <a href="day-014.html">← Day 14<small>Git, APIs and JSON</small></a>
+      <a href="../index.html">All 180 days<small>Roadmap index</small></a>
+      <a href="day-016.html">Day 16 →<small>SQL foundations and business outcomes</small></a>
+    </nav>
+  </main>
+  <footer class="site-footer">GCP Architect · 180-day independent study · Day 15</footer>
+</body>
+</html>

@@ -1,0 +1,33 @@
+    <section class="part" id="part-1" aria-labelledby="part-1-heading">
+      <h2 id="part-1-heading">Part 1 · Topics of the day</h2>
+      <p class="section-lead">Mastering Google Cloud financial visibility and operational boundaries: navigating console billing reports and cost tables, executing multi-stream BigQuery billing exports for deep FinOps analytics, and distinguishing rate limits, allocation quotas, and physical hardware capacity.</p>
+
+      <div class="topic-grid">
+        <article class="card" id="topic-01-overview" aria-labelledby="t1-title">
+          <span class="badge">Topic 01</span>
+          <h3 id="t1-title">Billing reports and cost table</h3>
+          <p><strong>What it is:</strong> Google Cloud Console provides native financial exploration tools within the Cloud Billing interface. <em>Cloud Billing Reports</em> offer interactive charting and graphical visualization of spend trends filtered by project, service, SKU, location, credits, and resource labels over time. Complementing graphical reports, the <em>Cost Table</em> delivers an itemized tabular ledger that reconciles directly against the official monthly PDF invoice, breaking down gross costs, promotional credits, committed use discounts, and regional taxes down to the individual SKU level.</p>
+          <p><strong>Why today:</strong> Console billing reports serve as the primary human interface for budget owners, engineering managers, and finance officers to conduct weekly cost reviews, detect gross spending anomalies, and audit invoice line items without writing SQL queries. However, console views rely on cached aggregate billing data and lack the automated joining capabilities required for complex multi-project chargebacks.</p>
+          <p><strong>Where it sits:</strong> Billing reports and cost tables reside directly within the Cloud Billing console, querying Google's internal billing data warehouse to present filtered visualizations across all projects linked to the billing account.</p>
+          <p>An engineer reviewing month-to-date Cloud Billing Reports mistook cached aggregate data for real-time spend during an unthrottled batch load. The delayed realization masked an active $28,000 BigQuery query loop until corporate credit card limits were exceeded, freezing non-production deployments.</p>
+        </article>
+
+        <article class="card" id="topic-02-overview" aria-labelledby="t2-title">
+          <span class="badge">Topic 02</span>
+          <h3 id="t2-title">Billing export to BigQuery</h3>
+          <p><strong>What it is:</strong> Cloud Billing export continuously streams raw usage, cost, and pricing telemetry from Google Cloud into customer-owned BigQuery datasets. Google Cloud provides three complementary export streams: <em>Standard Usage Cost Export</em> (account, project, service, and SKU-level daily costs), <em>Detailed Usage Cost Export</em> (which adds individual resource IDs, geographic zones, and attached resource labels), and <em>Pricing Export</em> (which captures negotiated contract SKU rates, tiered discounts, and currency conversions).</p>
+          <p><strong>Why today:</strong> While console reports provide high-level summaries, enterprise FinOps requires programmatic SQL analysis. Exporting billing data to BigQuery enables automated cost attribution queries, Looker Studio dashboards, custom unit-economics models (such as cost per physical bakery order), and event-driven anomaly detection pipelines that trigger instant operational alerts.</p>
+          <p><strong>Where it sits:</strong> Managed as a streaming export pipe from the Google Cloud Billing control plane into a designated BigQuery dataset, writing date-partitioned tables (<code>gcp_billing_export_v1_*</code> and <code>gcp_billing_export_resource_v1_*</code>) that update multiple times daily.</p>
+          <p>Configuring only standard billing export without detailed resource-level export prevented engineers from identifying which specific GKE node pool was leaking unattached SSD storage. The lack of granular resource IDs delayed remediation for four billing cycles, costing Brightloaf $33,000 in unrecoverable idle infrastructure overhead.</p>
+        </article>
+
+        <article class="card" id="topic-03-overview" aria-labelledby="t3-title">
+          <span class="badge">Topic 03</span>
+          <h3 id="t3-title">Understanding quotas (rate quotas vs allocation quotas) and how to request increases</h3>
+          <p><strong>What it is:</strong> Google Cloud quotas are system-enforced constraints placed on projects and organizational folders to prevent unintentional spend and safeguard multi-tenant platform stability. Quotas are split into two fundamentally distinct categories: <em>Rate Quotas</em> (rate limits governing API calls per minute or queries per second) and <em>Allocation Quotas</em> (resource limits capping the absolute count or capacity of provisioned infrastructure, such as vCPUs per region, persistent disk gigabytes, or external IP addresses). When higher capacity is required, teams submit quota increase requests via the Google Cloud Console, gcloud CLI, or Cloud Quotas API.</p>
+          <p><strong>Why today:</strong> Confusing rate limits with allocation quotas leads to critical deployment failures during traffic spikes. Exhausting rate quota results in instant <code>HTTP 429 Too Many Requests</code> errors that disrupt microservice communication, while exhausting allocation quota prevents Managed Instance Groups or Kubernetes clusters from autoscaling. Furthermore, architects must recognize that quota approval is merely permission to provision—it does not guarantee physical server capacity in a specific zone.</p>
+          <p><strong>Where it sits:</strong> Quotas are enforced at the Google Cloud API gateway and service control plane, monitored via the Cloud Quotas API and Cloud Monitoring, and administered through the Service Usage and IAM Quota Administrator roles.</p>
+          <p>An unexpected morning demand surge triggered sudden HTTP 429 errors across order dispatch services because engineers confused API rate quotas with Compute Engine allocation quotas. The sudden rate throttling blocked 12,000 bakery delivery status updates, preventing on-time dispatch and triggering contractual retail penalty fees.</p>
+        </article>
+      </div>
+    </section>

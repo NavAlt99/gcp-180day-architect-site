@@ -1,0 +1,564 @@
+    <section class="part" id="part-3" aria-labelledby="part-3-title">
+      <h2 id="part-3-title">3 · Real-world problems and field crises</h2>
+
+      <article class="topic-card" id="topic-01-problem">
+        <h3>Brightloaf Incident 24.1 · Personal Gmail shadow access &amp; departing contractor lockout</h3>
+        <p><strong>Context &amp; Architecture:</strong> The following operational crisis represents a synthetic security engineering postmortem from Brightloaf&#x27;s logistics platform. Brightloaf engaged an external consulting firm to optimize automated route planning for morning bakery dough deliveries. During onboarding, an infrastructure administrator bound an external contractor&#x27;s personal Google account (<code>contractor.dave@gmail.com</code>) directly to the primitive role <code>roles/editor</code> on production logistics project <code>bl-logistics-routing-prod</code>.</p>
+
+        <h4>Failure Symptom</h4>
+        <p>Three months after engagement completion, the contractor&#x27;s firm was terminated following a contractual dispute. Corporate IT immediately deactivated the contractor&#x27;s corporate email and Slack accounts. However, at 21:14 UTC, automated Security Command Center alerts triggered on suspicious administrative activity:</p>
+        <pre><code class="language-text">SECURITY ALERT [HIGH]: Off-hours Administrative Data Access from Unrecognized IP!
+Principal: contractor.dave@gmail.com
+Resource: projects/bl-logistics-routing-prod/databases/routing-db
+Client IP: 198.51.100.84 (Residential ISP / Non-Corporate VPN)
+Operation: BigQuery export of historical franchise delivery schedules and customer addresses</code></pre>
+        <p>A terminated external worker was actively querying production logistics tables from a personal residential internet connection.</p>
+
+        <h4>Operational &amp; Business Constraints</h4>
+        <ul>
+          <li><strong>Invariant Guarantee:</strong> In accordance with Brightloaf&#x27;s core business invariant, <strong>replaying delivery events or rotating credentials must never result in duplicate physical bread fulfillment (&le; 1 physical fulfillment per unique order ID)</strong>.</li>
+          <li><strong>Zero Trust Enforcement:</strong> Access to enterprise cloud infrastructure must be strictly limited to corporate-managed, auditable identities.</li>
+          <li><strong>Compliance Mandate:</strong> Immediate proof of access termination was required by the corporate legal department within 60 minutes to prevent litigation.</li>
+        </ul>
+
+        <h4>Discovered Evidence</h4>
+        <p>Forensic analysis across Cloud Audit Logs and IAM policies revealed:</p>
+        <ol>
+          <li><strong>Unmanaged Identity Binding:</strong> Direct inspection of project IAM on <code>bl-logistics-routing-prod</code> confirmed the binding:
+            <pre><code class="language-json">{
+  "role": "roles/editor",
+  "members": [
+    "user:contractor.dave@gmail.com"
+  ]
+}</code></pre>
+          </li>
+          <li><strong>Identity Provider Disconnect:</strong> Because the account was a personal Google consumer account, the corporate Okta / Cloud Identity offboarding workflow had zero visibility into or authority over the credential. The password, 2-Step Verification, and session tokens belonged entirely to the contractor.</li>
+          <li><strong>Absence of Domain Sharing Controls:</strong> The Organization node lacked the <code>constraints/iam.allowedPolicyMemberDomains</code> constraint, allowing project administrators to bind arbitrary external email domains.</li>
+        </ol>
+
+        <h4>Root Cause Analysis</h4>
+        <p>The security exposure was caused by permitting unmanaged consumer Google accounts into production project IAM policies. When workforce identities are not anchored in corporate Cloud Identity, centralized HR de-provisioning workflows fail to revoke cloud access, leaving residual "shadow" permissions that persist indefinitely until manually discovered.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Inspect Audit Log Principal:</strong> Search Cloud Audit Logs for <code>principalEmail="contractor.dave@gmail.com"</code> to identify accessed resources and executed API calls.</li>
+          <li><strong>Enumerate All Cloud Bindings:</strong> Run a Cloud Asset Inventory query across all organization folders to find every resource policy where the personal account was granted roles.</li>
+          <li><strong>Audit Directory Provisioning Status:</strong> Confirm in the Google Admin Console that the contractor held no managed corporate account under <code>@brightloaf.com</code>.</li>
+          <li><strong>Check Organization Policy Constraints:</strong> Verify whether <code>constraints/iam.allowedPolicyMemberDomains</code> was active at the Organization apex.</li>
+          <li><strong>Verify Deduplication Ledger:</strong> Query delivery dispatch tables to confirm the contractor did not inject duplicate dispatch orders into the morning logistics queue.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Remediation</h4>
+        <ol>
+          <li><strong>Immediate Account Revocation:</strong> Strip the personal Gmail account from all project IAM policies:
+            <pre><code class="language-bash">gcloud projects remove-iam-policy-binding bl-logistics-routing-prod   --member="user:contractor.dave@gmail.com"   --role="roles/editor"</code></pre>
+          </li>
+          <li><strong>Enforce Domain Restricted Sharing:</strong> Apply the Organization Policy constraint <code>constraints/iam.allowedPolicyMemberDomains</code> at the Organization root, restricting future IAM additions strictly to Brightloaf&#x27;s verified Cloud Identity directory ID (<code>C01234567</code>):
+            <pre><code class="language-bash">gcloud resource-manager org-policies set-policy policy-domains.yaml   --organization=714029482103</code></pre>
+          </li>
+          <li><strong>Mandate Cloud Identity for Contractors:</strong> Establish a strict policy requiring all external partners to be provisioned with managed <code>contractor.name@brightloaf.com</code> accounts enforcing hardware security keys.</li>
+          <li><strong>Rotate Database Access Keys:</strong> Invalidate all database session tokens and service account keys accessed during the contractor&#x27;s unauthorized session.</li>
+          <li><strong>Validate Fulfillment Invariant:</strong> Verify that active morning store orders were delivered on schedule and that deduplication tokens guaranteed <strong>&le; 1 physical fulfillment per unique order ID</strong>.</li>
+        </ol>
+
+        <h4>Verification and Residual Risk</h4>
+        <p><strong>Verification:</strong> Re-running Cloud Asset Inventory confirmed zero bindings matching <code>@gmail.com</code>. Attempting to add a personal account triggered an immediate control plane error: <code>FAILED_PRECONDITION: One or more members are not allowed by organization policy constraints/iam.allowedPolicyMemberDomains</code>.</p>
+        <p><strong>Residual Risk:</strong> Organization policies prevent new non-compliant bindings but do not retroactively remove existing bindings; a full Cloud Asset Inventory audit must precede policy enforcement.</p>
+
+<figure class="diagram-figure" id="fig-24-3">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig24-3-title fig24-3-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig24-3-title">Incident 24.1 Flow: Personal Gmail Account Shadow Access vs. Federated Cloud Identity Governance</title>
+      <desc id="fig24-3-desc">Incident flow diagram contrasting the persistent shadow access caused by binding a personal unmanaged Gmail account with the corrected architecture using federated Cloud Identity accounts and Domain Restricted Sharing.</desc>
+      <defs>
+        <linearGradient id="p24-f3-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p24-f3-fail-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e"/>
+        </marker>
+        <marker id="p24-f3-ok-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <!-- Canvas Background -->
+      <rect width="960" height="520" rx="12" fill="url(#p24-f3-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header Label -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INCIDENT 24.1: UNMANAGED CONSUMER ACCOUNT SHADOW ACCESS &amp; DEFENSE</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Departing contractor retains access via personal Gmail; corrected path enforces Cloud Identity &amp; domain sharing limits.</text>
+
+      <!-- TOP: Trigger Action -->
+      <g transform="translate(40, 75)">
+        <rect width="880" height="55" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#f8fafc" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">OFFBOARDING EVENT: Contractor Terminated (contractor.dave@gmail.com)</text>
+        <text x="20" y="42" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Corporate IT disabled corporate Slack/email; personal Gmail account remained bound in production project IAM.</text>
+      </g>
+
+      <!-- LEFT: FAILED PATH -->
+      <g transform="translate(40, 145)">
+        <rect width="420" height="285" rx="8" fill="#2d1219" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#881337"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">FAILED PATH: UNMANAGED GMAIL BINDING</text>
+
+        <!-- Box 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Direct user:contractor@gmail.com Binding</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Unmanaged personal account bound to roles/editor</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p24-f3-fail-arrow)"/>
+
+        <!-- Box 2 -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. HR Offboarding Cannot Touch Personal Account</text>
+          <text x="12" y="38" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">Google identity password/MFA owned by individual</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p24-f3-fail-arrow)"/>
+
+        <!-- Box 3 -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[FAILED PATH: PERSISTENT SHADOW ACCESS]</text>
+          <text x="12" y="40" fill="#fca5a5" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; Former contractor logs into GCP console from residential IP</text>
+          <text x="12" y="58" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; Reads confidential customer order records post-termination</text>
+          <text x="12" y="74" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Result: Compliance audit failure &amp; emergency console lockout</text>
+        </g>
+      </g>
+
+      <!-- RIGHT: CORRECTED PATH -->
+      <g transform="translate(500, 145)">
+        <rect width="420" height="285" rx="8" fill="#0c2317" stroke="#22c55e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#14532d"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CORRECTED PATH: CLOUD IDENTITY &amp; ORG POLICY</text>
+
+        <!-- Box 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Domain Restricted Sharing Policy Enforced</text>
+          <text x="12" y="38" fill="#bbf7d0" font-size="10" font-family="ui-monospace, monospace">constraints/iam.allowedPolicyMemberDomains (Org Root)</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#22c55e" stroke-width="2" marker-end="url(#p24-f3-ok-arrow)"/>
+
+        <!-- Box 2 -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Centralized Cloud Identity Deactivation</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">HR offboarding suspends user@brightloaf.com immediately</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#22c55e" stroke-width="2" marker-end="url(#p24-f3-ok-arrow)"/>
+
+        <!-- Box 3 -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[CORRECTED PATH: IMMEDIATE SESSION REVOCATION]</text>
+          <text x="12" y="40" fill="#86efac" font-size="10" font-family="ui-monospace, monospace">OAuth2 Token Revoked: HTTP 401 Unauthorized</text>
+          <text x="12" y="58" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">&check; All console &amp; API sessions killed; zero residual access</text>
+          <text x="12" y="74" fill="#86efac" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Invariant Preserved: &le; 1 physical fulfillment per unique order ID</text>
+        </g>
+      </g>
+
+      <!-- Bottom Summary -->
+      <g transform="translate(40, 442)">
+        <rect width="880" height="60" rx="8" fill="#111827" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">IDENTITY LIFECYCLE &amp; FULFILLMENT INVARIANT VERIFICATION:</text>
+        <text x="20" y="42" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Domain restricted sharing completely eliminates consumer account backdoor access. Suspended Cloud Identity tokens immediately prevent any unauthorized transaction tampering, guaranteeing that all retail orders maintain exact idempotency.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 24.3: Incident Flow · Personal Gmail Account Shadow Access vs. Federated Cloud Identity Governance.</strong>
+    Contrasts the unmanaged shadow access resulting from binding a contractor's personal Gmail account directly to project IAM against the enterprise architecture enforcing Domain Restricted Sharing and centralized Cloud Identity lifecycle revocation.
+    <br><strong>Supplied facts:</strong> A terminated contractor retained active Google Cloud console access because permissions were bound to an unmanaged personal <code>@gmail.com</code> account.
+    <br><strong>Architectural inference:</strong> Corporate IT cannot revoke or audit consumer accounts; enterprise IAM policies must restrict members strictly to managed corporate domains.
+    <br><strong>Expected post-fix behavior:</strong> Enforcing <code>constraints/iam.allowedPolicyMemberDomains</code> blocks consumer accounts, and centralized directory de-provisioning terminates sessions instantly while preserving &le; 1 physical fulfillment per unique order ID.
+  </figcaption>
+</figure>
+
+      </article>
+
+      <article class="topic-card" id="topic-02-problem">
+        <h3>Brightloaf Incident 24.2 · allAuthenticatedUsers misconfiguration exposes franchise order backlog</h3>
+        <p><strong>Context &amp; Architecture:</strong> The following operational crisis represents a synthetic security engineering postmortem from Brightloaf&#x27;s customer data analytics team. Brightloaf archives daily retail order receipts and franchise payment reconciliation summaries inside Cloud Storage bucket <code>bl-order-archives-prod</code>. A data analyst configured bucket permissions to allow regional franchise managers to download historical sales reports.</p>
+
+        <h4>Failure Symptom</h4>
+        <p>At 14:00 UTC, Brightloaf&#x27;s corporate threat intelligence team was notified by an external security vulnerability disclosure program that confidential bakery sales receipts were openly accessible on the internet:</p>
+        <pre><code class="language-text">VULNERABILITY DISCLOSURE: Open Cloud Storage Bucket Exposing Retail Customer PII!
+Bucket: gs://bl-order-archives-prod/
+Access Test: Authenticated via personal consumer Gmail account; successfully downloaded:
+gs://bl-order-archives-prod/2026/09/orders-reconciliation-midwest.csv (140,000 transaction records)
+Exposed Fields: Customer Name, Masked Credit Card Hash, Store ID, Order Total, Timestamp</code></pre>
+        <p>Any person on Earth possessing a personal Google account was able to authenticate and download proprietary franchise order records.</p>
+
+        <h4>Operational &amp; Business Constraints</h4>
+        <ul>
+          <li><strong>Immediate Containment:</strong> The bucket must be secured immediately without interrupting automated order archiving from upstream ingestion pipelines.</li>
+          <li><strong>Regulatory Reporting:</strong> Compliance officers required an exact accounting of which external IP addresses accessed the bucket to satisfy data privacy breach reporting obligations.</li>
+          <li><strong>Order Invariant Preservation:</strong> Replaying downstream billing settlement jobs must not generate duplicate physical orders or double-charge franchise store accounts (<strong>&le; 1 physical fulfillment per unique order ID</strong>).</li>
+        </ul>
+
+        <h4>Discovered Evidence</h4>
+        <p>Bucket IAM policy analysis revealed:</p>
+        <ol>
+          <li><strong>Flawed Principal Binding:</strong> Querying the bucket IAM policy via the Cloud SDK showed:
+            <pre><code class="language-json">{
+  "role": "roles/storage.objectViewer",
+  "members": [
+    "allAuthenticatedUsers"
+  ]
+}</code></pre>
+          </li>
+          <li><strong>Engineer Intent vs. Execution:</strong> The analyst believed <code>allAuthenticatedUsers</code> was an internal Google Cloud setting meaning "all users authenticated in the company." The analyst was unaware that Google Cloud evaluates this as <em>any authenticated Google account globally</em>.</li>
+          <li><strong>Absence of Public Access Prevention:</strong> Cloud Storage <strong>Public Access Prevention (PAP)</strong> was not enforced on the bucket, allowing the public role binding to take effect.</li>
+        </ol>
+
+        <h4>Root Cause Analysis</h4>
+        <p>The root cause was semantic confusion regarding the scope of <code>allAuthenticatedUsers</code>, combined with the lack of preventive guardrails. Because Public Access Prevention was not enabled, the binding granted read access to over three billion global Google account holders.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Inspect Storage Bucket IAM Policy:</strong> Run the storage IAM description command on <code>gs://bl-order-archives-prod</code> to confirm the presence of <code>allAuthenticatedUsers</code>.</li>
+          <li><strong>Audit Cloud Storage Access Logs:</strong> Analyze storage access logs in BigQuery to enumerate external caller IPs and quantify downloaded objects.</li>
+          <li><strong>Verify Public Access Prevention Status:</strong> Check whether Public Access Prevention is inherited from the project or enforced on the bucket.</li>
+          <li><strong>Review Corporate Identity Groups:</strong> Identify the correct corporate group (<code>group:store-managers@brightloaf.com</code>) intended to access reports.</li>
+          <li><strong>Audit Database Ingestion Invariant:</strong> Verify that active order ingestion pipelines suffered zero tampering and preserved order idempotency tokens.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Remediation</h4>
+        <ol>
+          <li><strong>Immediately Purge allAuthenticatedUsers:</strong> Remove the public principal from the bucket IAM policy:
+            <pre><code class="language-bash">gcloud storage buckets remove-iam-policy-binding gs://bl-order-archives-prod   --member="allAuthenticatedUsers"   --role="roles/storage.objectViewer"</code></pre>
+          </li>
+          <li><strong>Enable Public Access Prevention (PAP):</strong> Enforce PAP directly on the bucket to permanently block public bindings:
+            <pre><code class="language-bash">gcloud storage buckets update gs://bl-order-archives-prod   --public-access-prevention</code></pre>
+          </li>
+          <li><strong>Enforce Organization-Wide PAP Constraint:</strong> Apply Organization Policy <code>constraints/storage.publicAccessPrevention</code> at the Organization root to enforce PAP across all current and future production buckets.</li>
+          <li><strong>Bind Verified Corporate Group:</strong> Grant read access strictly to the corporate store managers group:
+            <pre><code class="language-bash">gcloud storage buckets add-iam-policy-binding gs://bl-order-archives-prod   --member="group:store-managers@brightloaf.com"   --role="roles/storage.objectViewer"</code></pre>
+          </li>
+          <li><strong>Audit Order Invariant Across Stores:</strong> Verify that customer transaction records were unaltered and that batch settlement jobs completed with <strong>&le; 1 physical fulfillment per unique order ID</strong>.</li>
+        </ol>
+
+        <h4>Verification and Residual Risk</h4>
+        <p><strong>Verification:</strong> Testing download access using an external consumer Gmail account returned HTTP 403 Forbidden. Testing from an authenticated account in <code>group:store-managers@brightloaf.com</code> succeeded with HTTP 200. Attempting to add <code>allUsers</code> failed with <code>Public access prevention is enabled for this resource</code>.</p>
+        <p><strong>Residual Risk:</strong> Enforcing PAP on legacy buckets that host legitimate public assets (such as public product catalog images) will break external access; public buckets must be isolated in a dedicated separate project.</p>
+
+<figure class="diagram-figure" id="fig-24-4">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig24-4-title fig24-4-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig24-4-title">Incident 24.2 Flow: allAuthenticatedUsers Misconfiguration vs. Domain-Restricted Group Authorization</title>
+      <desc id="fig24-4-desc">Incident diagram illustrating how conflating allAuthenticatedUsers with internal corporate staff exposed production order archives to the public internet, and the corrected architecture enforcing corporate groups and Public Access Prevention.</desc>
+      <defs>
+        <linearGradient id="p24-f4-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p24-f4-fail-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e"/>
+        </marker>
+        <marker id="p24-f4-ok-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <!-- Background Canvas -->
+      <rect width="960" height="520" rx="12" fill="url(#p24-f4-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header Label -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INCIDENT 24.2: allAuthenticatedUsers PUBLIC EXPOSURE DEFENSE</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Conflating global authenticated users with internal employees leaks storage data; corrected path enforces groups &amp; PAP.</text>
+
+      <!-- TOP: Trigger Action -->
+      <g transform="translate(40, 75)">
+        <rect width="880" height="55" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#f8fafc" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">EXTERNAL CALLER: External Security Researcher (external-user@gmail.com)</text>
+        <text x="20" y="42" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Authenticates with personal Google account and queries Cloud Storage API for bucket bl-order-archives-prod.</text>
+      </g>
+
+      <!-- LEFT: FAILED PATH -->
+      <g transform="translate(40, 145)">
+        <rect width="420" height="285" rx="8" fill="#2d1219" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#881337"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">FAILED PATH: allAuthenticatedUsers BINDING</text>
+
+        <!-- Box 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Engineer Misinterprets Principal Scope</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Binds allAuthenticatedUsers to roles/storage.objectViewer</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p24-f4-fail-arrow)"/>
+
+        <!-- Box 2 -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. External Google Account Authenticates</text>
+          <text x="12" y="38" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">Caller holds valid OAuth2 token; matches allAuthenticatedUsers!</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p24-f4-fail-arrow)"/>
+
+        <!-- Box 3 -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[FAILED PATH: CONFIDENTIAL ORDER EXFILTRATION]</text>
+          <text x="12" y="40" fill="#fca5a5" font-size="10" font-family="ui-monospace, monospace">API: storage.objects.get &rarr; HTTP 200 OK</text>
+          <text x="12" y="58" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; 140,000 retail transaction receipts downloaded</text>
+          <text x="12" y="74" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Result: Mandatory regulatory disclosure &amp; legal inquiry</text>
+        </g>
+      </g>
+
+      <!-- RIGHT: CORRECTED PATH -->
+      <g transform="translate(500, 145)">
+        <rect width="420" height="285" rx="8" fill="#0c2317" stroke="#22c55e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#14532d"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CORRECTED PATH: CORPORATE GROUP &amp; PAP</text>
+
+        <!-- Box 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Explicit Corporate Google Group Binding</text>
+          <text x="12" y="38" fill="#bbf7d0" font-size="10" font-family="ui-monospace, monospace">group:store-managers@brightloaf.com</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#22c55e" stroke-width="2" marker-end="url(#p24-f4-ok-arrow)"/>
+
+        <!-- Box 2 -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Public Access Prevention Enforced (PAP)</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">constraints/storage.publicAccessPrevention blocks all public ACLs</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#22c55e" stroke-width="2" marker-end="url(#p24-f4-ok-arrow)"/>
+
+        <!-- Box 3 -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[CORRECTED PATH: ACCESS DENIED &amp; DATA ISOLATED]</text>
+          <text x="12" y="40" fill="#86efac" font-size="10" font-family="ui-monospace, monospace">API: storage.objects.get &rarr; HTTP 403 Forbidden</text>
+          <text x="12" y="58" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">&check; External callers rejected; internal managers access via SSO</text>
+          <text x="12" y="74" fill="#86efac" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Invariant Preserved: &le; 1 physical fulfillment per unique order ID</text>
+        </g>
+      </g>
+
+      <!-- Bottom Summary -->
+      <g transform="translate(40, 442)">
+        <rect width="880" height="60" rx="8" fill="#111827" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">DATA BOUNDARY &amp; FULFILLMENT INVARIANT VERIFICATION:</text>
+        <text x="20" y="42" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Restricting storage access to verified corporate groups eliminated all external exposure. Immutable transaction hashes in the orders database verified zero tampering, ensuring strict fulfillment idempotency.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 24.4: Incident Flow · allAuthenticatedUsers Misconfiguration vs. Domain-Restricted Group Authorization.</strong>
+    Contrasts the critical security leak caused by binding <code>allAuthenticatedUsers</code> on an order archive bucket against the enterprise architecture enforcing specific corporate Google Groups and Public Access Prevention.
+    <br><strong>Supplied facts:</strong> An engineer bound <code>allAuthenticatedUsers</code> to a storage bucket, allowing an external user with a consumer Gmail account to download order archives.
+    <br><strong>Architectural inference:</strong> <code>allAuthenticatedUsers</code> includes any valid Google account globally; internal resources must be restricted to explicit corporate groups.
+    <br><strong>Expected post-fix behavior:</strong> Public Access Prevention blocks global principals, access is granted strictly to <code>group:store-managers@brightloaf.com</code>, and transaction idempotency guarantees &le; 1 physical fulfillment per unique order ID.
+  </figcaption>
+</figure>
+
+      </article>
+
+      <article class="topic-card" id="topic-03-problem">
+        <h3>Brightloaf Incident 24.3 · IAM policy size overflow from direct user bindings blocks emergency hotfix</h3>
+        <p><strong>Context &amp; Architecture:</strong> The following operational crisis represents a synthetic systems engineering postmortem from Brightloaf&#x27;s retail Point-of-Sale (POS) infrastructure. Brightloaf operates 450 franchise stores whose in-store cash register terminals communicate with microservices hosted in project <code>bl-pos-production</code>. As the engineering department expanded to 180 developers and automated CI/CD agents across 60 microservices, infrastructure provisioning scripts bound individual engineer email addresses directly to project roles.</p>
+
+        <h4>Failure Symptom</h4>
+        <p>At 06:45 UTC on a Friday morning, an edge software update introduced a severe sales tax calculation defect across all POS terminals, causing morning register checkouts to crash. The platform team prepared an emergency container hotfix. When the automated CI/CD pipeline attempted to bind a new deployment service account (<code>pos-hotfix-deployer@...</code>) to execute the release, the pipeline failed with a catastrophic API error:</p>
+        <pre><code class="language-text">googleapi: Error 400: Policy size limit exceeded:
+The policy has 1,488 member bindings and a size of 251,480 bytes,
+which exceeds the maximum allowed policy size of 250,000 bytes.
+Update aborted. [INVALID_ARGUMENT]</code></pre>
+        <p>The project IAM policy had reached maximum platform capacity, rejecting all IAM updates and completely blocking the emergency hotfix deployment during morning rush hour.</p>
+
+        <h4>Operational &amp; Business Constraints</h4>
+        <ul>
+          <li><strong>Zero Transaction Drop:</strong> Cash register cashiers were forced to record morning sales on paper receipts; these offline orders must be ingested without duplicate physical baking (<strong>&le; 1 physical fulfillment per unique order ID</strong>).</li>
+          <li><strong>Deployment Window:</strong> The hotfix deployment pipeline must be unblocked in under 20 minutes before store managers halt operations.</li>
+          <li><strong>Zero Disruption to Existing Services:</strong> Cleaning up IAM bindings must not accidentally revoke permissions from active production runtime service accounts.</li>
+        </ul>
+
+        <h4>Discovered Evidence</h4>
+        <p>IAM policy analysis revealed:</p>
+        <ol>
+          <li><strong>Policy Size Saturation:</strong> Exporting the project IAM policy confirmed the serialized JSON size was 251,480 bytes (exceeding the 250 KB platform limit) with 1,488 distinct member entries.</li>
+          <li><strong>Direct User Anti-Pattern:</strong> Over 150 individual developer accounts were bound to multiple discrete roles (such as <code>roles/viewer</code>, <code>roles/logging.viewer</code>, and <code>roles/monitoring.viewer</code>) directly on the project.</li>
+          <li><strong>Residual Orphan Accounts:</strong> Over 40 bindings belonged to former contractors and employees who had departed the enterprise months prior, but whose project-level bindings were never cleaned up.</li>
+        </ol>
+
+        <h4>Root Cause Analysis</h4>
+        <p>The outage was caused by violating the enterprise identity architectural rule: roles were bound directly to individual users instead of Google Groups. As teams scaled and historical permissions accumulated, the project IAM policy grew linearly until breaching the platform&#x27;s hard 250 KB / 1,500 member limit, paralyzing CI/CD automation.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Review CI/CD Pipeline Error:</strong> Identify the HTTP 400 <code>Policy size limit exceeded</code> failure message from the Cloud Resource Manager API.</li>
+          <li><strong>Export Project IAM Policy:</strong> Run the project get-iam-policy command to save the current policy payload and measure its byte size.</li>
+          <li><strong>Analyze Member Distribution:</strong> Execute an audit script to count individual user accounts vs. service accounts vs. groups.</li>
+          <li><strong>Identify Redundant &amp; Orphan Bindings:</strong> Cross-reference user accounts against active Cloud Identity directory records to pinpoint former employees.</li>
+          <li><strong>Verify POS Buffer &amp; Invariant:</strong> Verify that local cash register queues are preserving order UUID tokens while paper receipts are collected.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Remediation</h4>
+        <ol>
+          <li><strong>Emergency Policy Compression:</strong> Execute an emergency script to prune departed user bindings and consolidate individual developer accounts into job-function Google Groups:
+            <pre><code class="language-bash">python3 -c "
+import json
+# Prune direct user bindings and insert consolidated group
+policy = json.load(open('policy-dump.json'))
+# Replace 150 direct developer bindings with single Google Group
+# Resulting policy size collapses to 4,200 bytes
+"</code></pre>
+          </li>
+          <li><strong>Apply Compressed Group Policy:</strong> Apply the consolidated policy to restore headroom:
+            <pre><code class="language-bash">gcloud projects set-iam-policy bl-pos-production consolidated-policy.json</code></pre>
+          </li>
+          <li><strong>Execute Emergency Hotfix:</strong> Re-trigger the CI/CD pipeline; the deployment service account binding succeeds immediately, rolling out the patched POS tax calculation container in 6 minutes.</li>
+          <li><strong>Establish Terraform Group Architecture:</strong> Refactor all Terraform infrastructure modules to forbid direct <code>user:</code> bindings, mandating <code>group:pos-engineers@brightloaf.com</code> across all microservices.</li>
+          <li><strong>Drain Store Queues &amp; Verify Invariant:</strong> POS terminals reconnect and drain their buffered transactions. The backend database deduplication ledger matches order hashes, guaranteeing that <strong>replayed transactions cause exactly zero duplicate baked goods (&le; 1 physical fulfillment per unique order ID)</strong>.</li>
+        </ol>
+
+        <h4>Verification and Residual Risk</h4>
+        <p><strong>Verification:</strong> The project IAM policy size collapsed from 251,480 bytes to 4,210 bytes (a 98% reduction). All 180 engineers verified seamless console and CLI access via Google Group membership. POS crash errors ceased immediately, and store queues drained with zero duplicate transactions.</p>
+        <p><strong>Residual Risk:</strong> Managing access via Google Groups requires strict governance over who possesses group ownership in Cloud Identity; unauthorized additions to a group automatically grant project permissions.</p>
+
+<figure class="diagram-figure" id="fig-24-5">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig24-5-title fig24-5-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig24-5-title">Incident 24.3 Flow: IAM Policy Size Overflow vs. Consolidated Group Role Bindings</title>
+      <desc id="fig24-5-desc">Incident diagram illustrating how direct individual user bindings bloated a project IAM policy beyond the 250 KB platform limit, blocking an emergency hotfix deployment, and how consolidating roles into Google Groups resolved the crisis.</desc>
+      <defs>
+        <linearGradient id="p24-f5-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p24-f5-fail-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e"/>
+        </marker>
+        <marker id="p24-f5-ok-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <!-- Canvas Background -->
+      <rect width="960" height="520" rx="12" fill="url(#p24-f5-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header Label -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INCIDENT 24.3: IAM POLICY SIZE OVERFLOW &amp; GROUP CONSOLIDATION</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Individual user bindings breach 250 KB policy quota, halting deployment; group consolidation restores operations.</text>
+
+      <!-- TOP: Trigger Action -->
+      <g transform="translate(40, 75)">
+        <rect width="880" height="55" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#f8fafc" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">EMERGENCY HOTFIX: POS Tax Calculation Bug (pos-deployer-sa@bl-prod.iam.gserviceaccount.com)</text>
+        <text x="20" y="42" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">CI/CD pipeline attempts to bind emergency service account to deploy patched bakery cash register software.</text>
+      </g>
+
+      <!-- LEFT: FAILED PATH -->
+      <g transform="translate(40, 145)">
+        <rect width="420" height="285" rx="8" fill="#2d1219" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#881337"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">FAILED PATH: DIRECT USER BINDINGS BLOAT</text>
+
+        <!-- Box 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. 180 Individual Users Bound Across Roles</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">1,480 member bindings; policy size reaches 251,480 bytes</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p24-f3-fail-arrow)"/>
+
+        <!-- Box 2 -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. projects.setIamPolicy Rejects Update</text>
+          <text x="12" y="38" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">Policy exceeds Google Cloud maximum limit of 250 KB</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p24-f3-fail-arrow)"/>
+
+        <!-- Box 3 -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[FAILED PATH: DEPLOYMENT PIPELINE PARALYSIS]</text>
+          <text x="12" y="40" fill="#fca5a5" font-size="10" font-family="ui-monospace, monospace">API: 400 Bad Request (Policy size limit exceeded)</text>
+          <text x="12" y="58" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; Emergency hotfix blocked; POS tax bug crashes registers</text>
+          <text x="12" y="74" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Result: 450 stores resort to manual paper sales receipts</text>
+        </g>
+      </g>
+
+      <!-- RIGHT: CORRECTED PATH -->
+      <g transform="translate(500, 145)">
+        <rect width="420" height="285" rx="8" fill="#0c2317" stroke="#22c55e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#14532d"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CORRECTED PATH: CONSOLIDATED GOOGLE GROUPS</text>
+
+        <!-- Box 1 -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Individual Bindings Replaced with Groups</text>
+          <text x="12" y="38" fill="#bbf7d0" font-size="10" font-family="ui-monospace, monospace">group:pos-devs@brightloaf.com, group:pos-ops@...</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#22c55e" stroke-width="2" marker-end="url(#p24-f5-ok-arrow)"/>
+
+        <!-- Box 2 -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Policy Size Collapses From 251 KB to 4.2 KB</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Resource Manager API immediately accepts IAM updates</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#22c55e" stroke-width="2" marker-end="url(#p24-f5-ok-arrow)"/>
+
+        <!-- Box 3 -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[CORRECTED PATH: HOTFIX DEPLOYED CLEANLY]</text>
+          <text x="12" y="40" fill="#86efac" font-size="10" font-family="ui-monospace, monospace">API: projects.setIamPolicy &rarr; HTTP 200 OK</text>
+          <text x="12" y="58" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">&check; Hotfix deployed in 6 mins; POS tax calculation restored</text>
+          <text x="12" y="74" fill="#86efac" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Invariant Preserved: &le; 1 physical fulfillment per unique order ID</text>
+        </g>
+      </g>
+
+      <!-- Bottom Summary -->
+      <g transform="translate(40, 442)">
+        <rect width="880" height="60" rx="8" fill="#111827" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">POLICY HEALTH &amp; FULFILLMENT INVARIANT VERIFICATION:</text>
+        <text x="20" y="42" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Group-based authorization restored policy headroom. Replaying cached retail transactions from local POS registers verified zero duplicate database writes, ensuring exact physical fulfillment idempotency.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 24.5: Incident Flow · IAM Policy Size Overflow vs. Consolidated Group Role Bindings.</strong>
+    Contrasts the deployment paralysis caused by bloating an IAM policy with hundreds of direct user bindings beyond the 250 KB platform limit against the corrected architecture consolidating roles into Google Groups.
+    <br><strong>Supplied facts:</strong> Direct user bindings expanded a project IAM policy to 251,480 bytes, causing the Resource Manager API to reject emergency hotfix updates.
+    <br><strong>Architectural inference:</strong> Direct user bindings violate Google Cloud's 250 KB / 1,500 member limit; production policies must bind roles exclusively to Google Groups.
+    <br><strong>Expected post-fix behavior:</strong> Group consolidation shrinks policy size to 4.2 KB, enabling rapid deployment of emergency POS hotfixes while maintaining &le; 1 physical fulfillment per unique order ID.
+  </figcaption>
+</figure>
+
+      </article>
+    </section>

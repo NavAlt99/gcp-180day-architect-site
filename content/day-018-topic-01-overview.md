@@ -1,0 +1,1 @@
+A Google Cloud account is the identity used to enter Google Cloud. A billing account records charges and credits; a project groups resources and is linked to billing when billable services are used. The Free Trial is an introductory billing offer for eligible new customers, with a time limit and a credit balance. These are different objects with different owners and permissions.

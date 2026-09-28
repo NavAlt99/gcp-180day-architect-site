@@ -1,0 +1,5 @@
+A cloud service can be partly free and partly chargeable. For example, a product's free allowance may cover one eligible resource configuration but not a larger size, a different region, network egress or associated storage. Architects therefore evaluate the complete resource path and current pricing, not a product's “free” label. Monthly allowances reset; unused allowance is not a credit that carries forward.
+
+The Free Trial credit pays for eligible use within its terms and lifetime; the Free Tier applies according to each product's current limits. On a paid billing account, usage beyond a Free Tier limit can be charged. On a trial account, covered usage can consume trial credit. The exact current limits must be read immediately before a lab because Google can revise them.
+
+**Further study:** [Google Cloud Free Program — Free Tier](https://docs.cloud.google.com/free/docs/free-cloud-features#free-tier) and [Cloud Billing budgets and alerts](https://docs.cloud.google.com/billing/docs/how-to/budgets#budget-setup).

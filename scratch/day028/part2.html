@@ -1,0 +1,419 @@
+    <section class="part" id="part-2" aria-labelledby="part-2-heading">
+      <h2 id="part-2-heading">Part 2 · Technical discussion</h2>
+      <p class="section-lead">Deep architectural exploration of event-driven programmatic budget alerting via Cloud Pub/Sub, idempotency mechanics to survive at-least-once message delivery, and fine-grained resource labeling frameworks for BigQuery billing exports.</p>
+
+      <!-- Topic 01 Technical -->
+      <article class="card" id="topic-01-technical" aria-labelledby="t1-tech-heading">
+        <h3 id="t1-tech-heading">Topic 01 · Programmatic budget notifications via Pub/Sub</h3>
+        <p>While standard email notifications alert human administrators to budget threshold crossings, modern cloud operating models demand event-driven automation. Google Cloud Budgets can link directly to a Cloud Pub/Sub topic, emitting structured JSON envelopes whenever actual or forecasted spend crosses defined threshold rules (e.g., 50%, 90%, 100%), as well as periodically throughout the billing period as new resource consumption metrics are processed.</p>
+
+        <h4>Pub/Sub Event Delivery Semantics &amp; Frequency</h4>
+        <p>Architects integrating programmatic budget notifications must account for the specific operational characteristics of Google Cloud Billing's notification engine:</p>
+        <ul>
+          <li><strong>At-Least-Once Delivery:</strong> Cloud Pub/Sub guarantees that every published message is delivered to attached subscriptions at least once. If an automated consumer (such as a Cloud Function or Cloud Run service) processes a message but experiences a network glitch, slow logging response, or exceeds its acknowledgment deadline, Pub/Sub will redeliver the message. Consumers must therefore be strictly idempotent.</li>
+          <li><strong>Periodic Status Notifications:</strong> Budgets do not publish events solely at the exact instant a threshold is crossed. Cloud Billing also publishes periodic status updates—often multiple times per day—whenever usage data is aggregated and spend is recalculated. Even if no new threshold has been breached, messages containing the current <code>costAmount</code> and the highest <code>alertThresholdExceeded</code> will be emitted.</li>
+          <li><strong>Out-of-Order Delivery:</strong> Because Pub/Sub distributes messages across distributed messaging brokers, sequential delivery is not guaranteed unless message ordering keys are explicitly configured. A consumer might receive an update with a higher cost amount followed seconds later by an in-flight earlier update.</li>
+        </ul>
+
+        <h4>Notification Message Payload Schema</h4>
+        <p>The message payload published to Pub/Sub is base64-encoded UTF-8 JSON. Downstream consumers parse this envelope to evaluate current spend and determine whether programmatic remediation is warranted.</p>
+
+        <div class="table-container">
+          <table>
+            <caption>Table 28.1: Google Cloud Budget Notification JSON Payload Attributes</caption>
+            <thead>
+              <tr>
+                <th scope="col">Attribute Name</th>
+                <th scope="col">Data Type</th>
+                <th scope="col">Description</th>
+                <th scope="col">Architectural Purpose &amp; Sample Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row"><code>budgetDisplayName</code></th>
+                <td>String</td>
+                <td>The user-defined display name of the budget rule</td>
+                <td>Identifies target workload or cost bucket (e.g., <code>"brightloaf-analytics-monthly"</code>)</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>alertThresholdExceeded</code></th>
+                <td>Float</td>
+                <td>The highest percentage threshold breached in the current evaluation</td>
+                <td>Determines remediation severity (e.g., <code>0.5</code>, <code>0.9</code>, <code>1.0</code>, or <code>1.2</code>)</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>costAmount</code></th>
+                <td>Float</td>
+                <td>The total actual spend accumulated during the current cost interval</td>
+                <td>Monetary sum in account currency (e.g., <code>1042.50</code>)</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>budgetAmount</code></th>
+                <td>Float</td>
+                <td>The target monetary limit configured for the budget</td>
+                <td>Baseline denominator for percentage calculations (e.g., <code>1000.00</code>)</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>costIntervalStart</code></th>
+                <td>String (ISO 8601)</td>
+                <td>Timestamp marking the beginning of the evaluated budget period</td>
+                <td>Acts as a temporal scope anchor (e.g., <code>"2026-09-01T00:00:00Z"</code>)</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>budgetAmountType</code></th>
+                <td>String</td>
+                <td>Type of budget boundary: fixed target or rolling baseline</td>
+                <td><code>"SPECIFIED_AMOUNT"</code> (fixed) or <code>"LAST_MONTH_COST"</code> (dynamic)</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>currencyCode</code></th>
+                <td>String</td>
+                <td>Three-letter ISO 4217 currency designation</td>
+                <td>Defines unit of measurement (e.g., <code>"USD"</code>, <code>"EUR"</code>)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Idempotency &amp; State Machine Design</h4>
+        <p>Because duplicate deliveries and periodic updates arrive over the same Pub/Sub topic, an automated remediation consumer must maintain an external or transactional state store (such as Google Cloud Memorystore for Redis, Cloud Firestore, or Cloud SQL) to prevent destructive re-execution.</p>
+        <p>A resilient idempotent consumer constructs a deterministic composite key from the event envelope:</p>
+        <p><code>dedup_key = f"{budgetDisplayName}:{costIntervalStart}:{alertThresholdExceeded}"</code></p>
+        <p>Before executing any operational action (such as dispatching a Slack webhook, scaling down non-production Compute Engine Managed Instance Groups, or temporarily disabling exploratory BigQuery query slots), the consumer queries the state store:</p>
+        <ol>
+          <li><strong>Check Existence:</strong> If <code>dedup_key</code> already exists in the state store with status <code>COMPLETED</code>, the consumer logs an informational message (<code>DUPLICATE_EVENT_DROPPED</code>) and immediately acknowledges (ACK) the Pub/Sub message.</li>
+          <li><strong>Atomic Lock &amp; Record:</strong> If <code>dedup_key</code> is absent, the consumer atomically writes the key with a processing state and a time-to-live (TTL) corresponding to the end of the billing interval.</li>
+          <li><strong>Execute Gated Action:</strong> The consumer executes the bounded remediation action. Crucially, automated remediation logic must enforce safety guardrails: production order ingestion, transaction databases, and fulfillment services must be hard-coded as non-terminable, preserving Brightloaf's duplicate fulfillment invariant (&le; 1 physical fulfillment per unique order ID).</li>
+          <li><strong>Acknowledge:</strong> Once the workflow completes, the consumer marks the state record as <code>COMPLETED</code> and returns an HTTP 200 / Pub/Sub ACK.</li>
+        </ol>
+
+        <!-- Insert Figure 28.1 -->
+        <figure class="architecture-diagram" id="fig-28-1">
+          <svg viewBox="0 0 980 440" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-28-1-title fig-28-1-desc">
+            <title id="fig-28-1-title">Figure 28.1: Programmatic Pub/Sub Budget Notification Architecture &amp; Idempotent Consumer State Machine</title>
+            <desc id="fig-28-1-desc">Architectural diagram illustrating how Google Cloud Billing budget alerts publish JSON event envelopes to a Cloud Pub/Sub topic, and how an idempotent consumer checks a persistent state store to filter duplicate messages before executing remediation workflows.</desc>
+            <defs>
+              <linearGradient id="bg-grad-28-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#090d16"/>
+                <stop offset="100%" stop-color="#121526"/>
+              </linearGradient>
+              <linearGradient id="panel-grad-28-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#161b30"/>
+                <stop offset="100%" stop-color="#1e243d"/>
+              </linearGradient>
+              <marker id="arrow-cyan-28-1" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8"/>
+              </marker>
+              <marker id="arrow-green-28-1" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+              <marker id="arrow-amber-28-1" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f59e0b"/>
+              </marker>
+              <marker id="arrow-rose-28-1" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+            </defs>
+
+            <!-- Background canvas -->
+            <rect width="980" height="440" rx="12" fill="url(#bg-grad-28-1)" stroke="#1e293b" stroke-width="1.5"/>
+
+            <!-- Diagram Title Banner -->
+            <text x="30" y="38" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Programmatic Pub/Sub Budget Notifications &amp; Idempotent Consumer Flow</text>
+            <text x="30" y="58" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Cloud Billing Budget triggers &rarr; Pub/Sub at-least-once delivery &rarr; Deduplication state check &rarr; Gated remediation</text>
+
+            <!-- Step 1: Cloud Billing Engine -->
+            <rect x="30" y="90" width="200" height="150" rx="8" fill="url(#panel-grad-28-1)" stroke="#38bdf8" stroke-width="1.5"/>
+            <rect x="42" y="102" width="65" height="20" rx="4" fill="#0284c7" fill-opacity="0.25"/>
+            <text x="74" y="116" fill="#38bdf8" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">BILLING ENGINE</text>
+            <text x="42" y="142" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Cloud Billing Budget</text>
+            <text x="42" y="162" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Evaluates Actual &amp; Forecast Spend</text>
+            <text x="42" y="180" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Rule Thresholds: 50%, 90%, 100%</text>
+            <text x="42" y="198" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Period: Monthly / Calendar / Custom</text>
+            <text x="42" y="222" fill="#38bdf8" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Publishes event JSON envelope</text>
+
+            <!-- Arrow 1: Billing -> Pub/Sub -->
+            <line x1="230" y1="165" x2="274" y2="165" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan-28-1)"/>
+            <text x="252" y="155" fill="#38bdf8" font-size="10" font-weight="600" font-family="system-ui, sans-serif" text-anchor="middle">Publish</text>
+
+            <!-- Step 2: Pub/Sub Topic -->
+            <rect x="280" y="90" width="210" height="150" rx="8" fill="url(#panel-grad-28-1)" stroke="#f59e0b" stroke-width="1.5"/>
+            <rect x="292" y="102" width="75" height="20" rx="4" fill="#d97706" fill-opacity="0.25"/>
+            <text x="329" y="116" fill="#f59e0b" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">CLOUD PUB/SUB</text>
+            <text x="292" y="142" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">projects/.../topics/budget</text>
+            <text x="292" y="162" fill="#f59e0b" font-size="11" font-weight="600" font-family="system-ui, sans-serif">At-Least-Once Delivery Semantics</text>
+            <text x="292" y="180" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Redeliveries on ACK timeout</text>
+            <text x="292" y="198" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Multiple updates per billing day</text>
+            <text x="292" y="222" fill="#94a3b8" font-size="11" font-style="italic" font-family="system-ui, sans-serif">Duplicates ARE expected</text>
+
+            <!-- Arrow 2: Pub/Sub -> Consumer -->
+            <line x1="490" y1="165" x2="534" y2="165" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow-amber-28-1)"/>
+            <text x="512" y="155" fill="#f59e0b" font-size="10" font-weight="600" font-family="system-ui, sans-serif" text-anchor="middle">Push / Pull</text>
+
+            <!-- Step 3: Idempotent Consumer -->
+            <rect x="540" y="90" width="220" height="150" rx="8" fill="url(#panel-grad-28-1)" stroke="#22c55e" stroke-width="1.5"/>
+            <rect x="552" y="102" width="70" height="20" rx="4" fill="#16a34a" fill-opacity="0.25"/>
+            <text x="587" y="116" fill="#22c55e" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">CONSUMER</text>
+            <text x="552" y="142" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Cloud Run / Function</text>
+            <text x="552" y="162" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">1. Parse JSON envelope</text>
+            <text x="552" y="180" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">2. Extract composite state key:</text>
+            <text x="562" y="198" fill="#38bdf8" font-size="10" font-family="monospace">budget_id + interval + threshold</text>
+            <text x="552" y="222" fill="#22c55e" font-size="11" font-weight="600" font-family="system-ui, sans-serif">3. Atomic Deduplication Lookup</text>
+
+            <!-- State Store Box (Bottom Center) -->
+            <rect x="540" y="280" width="220" height="120" rx="8" fill="#0f172a" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <text x="650" y="306" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Idempotency State Store</text>
+            <text x="650" y="326" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">(Firestore / Memorystore / SQL)</text>
+            <text x="552" y="352" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Key: <tspan fill="#38bdf8">display_name#interval#thresh</tspan></text>
+            <text x="552" y="372" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Record processed timestamp &amp; status</text>
+            <text x="552" y="390" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• TTL expiry aligned with billing cycle</text>
+
+            <!-- Two-way lookup arrow between Consumer and State Store -->
+            <line x1="630" y1="240" x2="630" y2="274" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-cyan-28-1)"/>
+            <text x="618" y="262" fill="#94a3b8" font-size="9" font-family="system-ui, sans-serif" text-anchor="end">Check Key</text>
+            <line x1="670" y1="274" x2="670" y2="246" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-28-1)"/>
+            <text x="682" y="262" fill="#22c55e" font-size="9" font-family="system-ui, sans-serif">Record Lock</text>
+
+            <!-- Branch A: Duplicate detected (Bottom Right) -->
+            <path d="M 760 185 L 820 185 L 820 300 L 844 300" fill="none" stroke="#f43f5e" stroke-width="2" marker-end="url(#arrow-rose-28-1)"/>
+            <rect x="850" y="270" width="105" height="60" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+            <text x="902" y="292" fill="#f87171" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">DUPLICATE</text>
+            <text x="902" y="308" fill="#fca5a5" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Skip Action</text>
+            <text x="902" y="322" fill="#fca5a5" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">ACK Message</text>
+
+            <!-- Branch B: New Threshold (Top Right) -->
+            <path d="M 760 140 L 844 140" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-28-1)"/>
+            <rect x="850" y="110" width="105" height="60" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+            <text x="902" y="132" fill="#4ade80" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">NEW EVENT</text>
+            <text x="902" y="148" fill="#86efac" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Run Workflow</text>
+            <text x="902" y="162" fill="#86efac" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">ACK Message</text>
+
+            <!-- Invariant Protection Footer Note -->
+            <rect x="30" y="280" width="460" height="120" rx="8" fill="#13192e" stroke="#1e293b" stroke-width="1"/>
+            <text x="45" y="304" fill="#38bdf8" font-size="12" font-weight="700" font-family="system-ui, sans-serif">Idempotent Remediation Guardrails</text>
+            <text x="45" y="324" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">1. <tspan font-weight="600">Duplicate Fulfillment Invariant (&le; 1 fulfillment):</tspan> Automated scaling or</text>
+            <text x="61" y="340" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">quota actions must NEVER disrupt order ingestion or dispatch services.</text>
+            <text x="45" y="360" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">2. <tspan font-weight="600">Target Isolation:</tspan> Automated throttling restricted strictly to development,</text>
+            <text x="61" y="376" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">sandbox, and unattached batch analytics pipelines.</text>
+            <text x="45" y="394" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif">3. <tspan font-weight="600">Audit Trail:</tspan> Every Pub/Sub ACK and deduplicated discard logged to Cloud Logging.</text>
+          </svg>
+          <figcaption>Figure 28.1: Programmatic Pub/Sub Budget Notification Architecture &amp; Idempotent Consumer State Machine. Google Cloud Billing evaluates budgets and sends JSON envelopes to Pub/Sub with at-least-once delivery guarantees. The downstream consumer derives a deterministic composite state key to query a state store, safely executing remediation workflows on unique threshold events while discarding duplicate deliveries to protect production availability.</figcaption>
+        </figure>
+      </article>
+
+      <!-- Topic 02 Technical -->
+      <article class="card" id="topic-02-technical" aria-labelledby="t2-tech-heading">
+        <h3 id="t2-tech-heading">Topic 02 · Labels for cost attribution</h3>
+        <p>In enterprise cloud deployments, infrastructure resources from multiple teams, environments, and business lines frequently reside within the same project or consume shared billing accounts. While project-level billing identifies gross project spend, it cannot answer granular questions such as: <em>How much did the recommendation model cost compared to the checkout API last month?</em> or <em>Which engineering department is responsible for this unattached 50TB Persistent Disk?</em></p>
+
+        <h4>Resource Labels: Technical Constraints &amp; Mechanics</h4>
+        <p>Google Cloud resource labels are lightweight key-value pairs attached directly to supported resources (such as Compute Engine instances, disks, GKE clusters, Cloud Storage buckets, and BigQuery datasets). Labels serve primarily as operational metadata and cost attribution tags.</p>
+        <p>Resource labels conform to strict structural rules enforced by Google Cloud APIs:</p>
+        <ul>
+          <li><strong>Capacity Limits:</strong> Each individual resource can hold a maximum of 64 labels.</li>
+          <li><strong>Character Set &amp; Case:</strong> Both keys and values must conform to RFC 1035 format. Keys and values can contain only lowercase letters, numeric characters, underscores (<code>_</code>), and dashes (<code>-</code>). International Unicode characters are supported in label values. Uppercase letters and whitespace are strictly prohibited.</li>
+          <li><strong>Length Restrictions:</strong> Label keys must start with a lowercase letter, cannot be empty, and have a maximum length of 63 characters. Label values can be empty and have a maximum length of 63 characters.</li>
+          <li><strong>Billing Propagation Delay:</strong> When labels are attached or modified on a running resource, telemetry updates propagate into Cloud Billing within one to four hours. Billing records reflect labels applied at the time of resource usage; retroactively modifying a label does not alter past historical billing export records.</li>
+        </ul>
+
+        <h4>Architectural Distinction: Labels vs. Tags vs. Network Tags</h4>
+        <p>A frequent anti-pattern among cloud architects is confusing Resource Labels, Resource Manager Tags, and Compute Network Tags. Each fulfills an entirely distinct architectural domain:</p>
+
+        <div class="table-container">
+          <table>
+            <caption>Table 28.2: Architectural Comparison: Resource Labels vs. Resource Manager Tags vs. Network Tags</caption>
+            <thead>
+              <tr>
+                <th scope="col">Dimension</th>
+                <th scope="col">Resource Labels</th>
+                <th scope="col">Resource Manager Tags</th>
+                <th scope="col">Compute Network Tags</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Primary Scope &amp; Purpose</th>
+                <td>Cost allocation, billing export filtering, and inventory search</td>
+                <td>Hierarchical access control, IAM conditions, and Organization Policies</td>
+                <td>VPC firewall rule targeting and custom VPC route selection</td>
+              </tr>
+              <tr>
+                <th scope="row">Storage Location</th>
+                <td>Direct resource metadata</td>
+                <td>Centralized Tag Keys/Values under Organization hierarchy</td>
+                <td>Compute Engine VM instance metadata (network interfaces)</td>
+              </tr>
+              <tr>
+                <th scope="row">Hierarchical Inheritance</th>
+                <td><strong>No.</strong> Applied strictly per individual resource.</td>
+                <td><strong>Yes.</strong> Inherited down the Resource Manager tree (Org &rarr; Folder &rarr; Project &rarr; Resource).</td>
+                <td><strong>No.</strong> Applied strictly per VM instance.</td>
+              </tr>
+              <tr>
+                <th scope="row">Ingested into BigQuery Billing?</th>
+                <td><strong>Yes.</strong> Populates repeated <code>labels</code> array in standard and detailed export.</td>
+                <td><strong>Partial / Emerging.</strong> Ingested into detailed export as <code>tags</code> array where supported.</td>
+                <td><strong>No.</strong> Never exported to Cloud Billing.</td>
+              </tr>
+              <tr>
+                <th scope="row">Access Control &amp; RBAC</th>
+                <td>Requires resource update permissions (e.g., <code>compute.instances.setLabels</code>)</td>
+                <td>Strict Tag Administrator roles (<code>roles/resourcemanager.tagAdmin</code>)</td>
+                <td>Requires instance edit permissions (<code>compute.instances.setTags</code>)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>BigQuery Detailed Billing Export Integration &amp; SQL Unnesting</h4>
+        <p>Google Cloud delivers billing telemetry into BigQuery through Standard Export (project, service, SKU, and daily costs) and Detailed Export (which includes individual resource IDs and attached labels). In BigQuery, labels are stored as a repeated record: <code>ARRAY&lt;STRUCT&lt;key STRING, value STRING&gt;&gt;</code>.</p>
+        <p>Because labels are stored as an array of structs, standard SQL aggregation requires unnesting the array to filter or group by business dimensions:</p>
+
+        <pre><code class="language-sql">-- Querying cost attribution by cost-center from BigQuery Detailed Billing Export
+SELECT
+  project.id AS project_id,
+  (SELECT value FROM UNNEST(labels) WHERE key = 'cost-center') AS cost_center,
+  (SELECT value FROM UNNEST(labels) WHERE key = 'env') AS environment,
+  service.description AS service_name,
+  ROUND(SUM(cost), 2) AS total_cost_usd
+FROM
+  `brightloaf-billing.billing_export.gcp_billing_export_resource_v1_01A2B3_4C5D6E_7F8G9H`
+WHERE
+  _PARTITIONDATE = CURRENT_DATE() - 1
+GROUP BY
+  project_id, cost_center, environment, service_name
+ORDER BY
+  total_cost_usd DESC;</code></pre>
+
+        <h4>FinOps Best Practices: Mandatory Taxonomy &amp; Governance</h4>
+        <p>To eliminate "unallocated spend" blindspots, enterprise platform engineering teams establish a mandatory labeling taxonomy enforced at build and deploy time:</p>
+        <ul>
+          <li><code>cost-center</code>: Identifies the financial general ledger code or department (e.g., <code>cc-bakery-ops</code>, <code>cc-ecommerce</code>).</li>
+          <li><code>environment</code>: Categorizes deployment tier (e.g., <code>production</code>, <code>staging</code>, <code>development</code>).</li>
+          <li><code>service</code>: Specifies the microservice or business capability (e.g., <code>order-ingestion</code>, <code>dispatch-optimizer</code>).</li>
+          <li><code>owner</code>: Contact email or squad alias responsible for resource lifecycle and billable hygiene.</li>
+        </ul>
+        <p>Compliance is enforced using Terraform CI/CD validation rules (such as <code>tflint</code> or HashiCorp Sentinel) and Google Cloud Organization Policies with Tag binding, denying resource creation if mandatory cost attribution keys are missing.</p>
+
+        <!-- Insert Figure 28.2 -->
+        <figure class="architecture-diagram" id="fig-28-2">
+          <svg viewBox="0 0 980 440" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-28-2-title fig-28-2-desc">
+            <title id="fig-28-2-title">Figure 28.2: Resource Labeling Taxonomy &amp; BigQuery Billing Export Cost Attribution Pipeline</title>
+            <desc id="fig-28-2-desc">Architectural diagram detailing the progression of resource labels from Google Cloud infrastructure components through the Cloud Billing telemetry pipeline into BigQuery detailed export tables and FinOps attribution reporting.</desc>
+            <defs>
+              <linearGradient id="bg-grad-28-2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#090d16"/>
+                <stop offset="100%" stop-color="#121526"/>
+              </linearGradient>
+              <linearGradient id="panel-grad-28-2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#161b30"/>
+                <stop offset="100%" stop-color="#1e243d"/>
+              </linearGradient>
+              <marker id="arrow-cyan-28-2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8"/>
+              </marker>
+              <marker id="arrow-green-28-2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Canvas Background -->
+            <rect width="980" height="440" rx="12" fill="url(#bg-grad-28-2)" stroke="#1e293b" stroke-width="1.5"/>
+
+            <!-- Banner Header -->
+            <text x="30" y="38" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Resource Labeling Taxonomy &amp; BigQuery Billing Export Architecture</text>
+            <text x="30" y="58" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Resource metadata &rarr; Cloud Billing ingestion &rarr; BigQuery detailed export (STRUCT arrays) &rarr; FinOps SQL attribution</text>
+
+            <!-- Section 1: Resource Layer with Labels -->
+            <rect x="30" y="85" width="270" height="325" rx="8" fill="url(#panel-grad-28-2)" stroke="#38bdf8" stroke-width="1.5"/>
+            <rect x="42" y="97" width="115" height="20" rx="4" fill="#0284c7" fill-opacity="0.25"/>
+            <text x="99" y="111" fill="#38bdf8" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">INFRASTRUCTURE LAYER</text>
+            <text x="42" y="136" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Resources with Labels</text>
+            <text x="42" y="154" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Enforced via Terraform &amp; Org Policies</text>
+
+            <!-- Resource Item A: Compute Engine -->
+            <rect x="42" y="168" width="246" height="66" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="52" y="186" fill="#f8fafc" font-size="12" font-weight="600" font-family="system-ui, sans-serif">Compute Instance: order-api-01</text>
+            <text x="52" y="204" fill="#38bdf8" font-size="10" font-family="monospace">cost-center: cc-bakery-ops</text>
+            <text x="52" y="222" fill="#38bdf8" font-size="10" font-family="monospace">env: prod | service: order-ingestion</text>
+
+            <!-- Resource Item B: Cloud SQL -->
+            <rect x="42" y="244" width="246" height="66" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="52" y="262" fill="#f8fafc" font-size="12" font-weight="600" font-family="system-ui, sans-serif">Cloud SQL: order-db-primary</text>
+            <text x="52" y="280" fill="#38bdf8" font-size="10" font-family="monospace">cost-center: cc-bakery-ops</text>
+            <text x="52" y="298" fill="#38bdf8" font-size="10" font-family="monospace">env: prod | tier: db-ha</text>
+
+            <!-- Resource Item C: BigQuery Dataset -->
+            <rect x="42" y="320" width="246" height="76" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="52" y="338" fill="#f8fafc" font-size="12" font-weight="600" font-family="system-ui, sans-serif">BigQuery: marketing_lakehouse</text>
+            <text x="52" y="356" fill="#f59e0b" font-size="10" font-family="monospace">cost-center: cc-growth-mktg</text>
+            <text x="52" y="374" fill="#f59e0b" font-size="10" font-family="monospace">env: staging | team: analytics</text>
+            <text x="52" y="388" fill="#94a3b8" font-size="9" font-style="italic" font-family="system-ui, sans-serif">Max 64 labels; lowercase RFC 1035</text>
+
+            <!-- Arrow 1: Resources -> Billing Pipeline -->
+            <line x1="300" y1="240" x2="344" y2="240" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan-28-1)"/>
+            <text x="322" y="230" fill="#38bdf8" font-size="10" font-weight="600" font-family="system-ui, sans-serif" text-anchor="middle">Usage</text>
+
+            <!-- Section 2: Cloud Billing Collector & Ingestion -->
+            <rect x="350" y="85" width="250" height="325" rx="8" fill="url(#panel-grad-28-2)" stroke="#a855f7" stroke-width="1.5"/>
+            <rect x="362" y="97" width="100" height="20" rx="4" fill="#9333ea" fill-opacity="0.25"/>
+            <text x="412" y="111" fill="#c084fc" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">CLOUD BILLING</text>
+            <text x="362" y="136" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Billing Export Pipeline</text>
+            <text x="362" y="154" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">Automated daily telemetry collection</text>
+
+            <rect x="362" y="168" width="226" height="110" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="374" y="188" fill="#f8fafc" font-size="12" font-weight="600" font-family="system-ui, sans-serif">Data Ingestion Mechanics</text>
+            <text x="374" y="208" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Standard Export: daily SKU cost</text>
+            <text x="374" y="226" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Detailed Export: includes resource IDs</text>
+            <text x="374" y="244" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">• Pricing Export: enterprise discounts</text>
+            <text x="374" y="264" fill="#c084fc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Labels preserved in raw record</text>
+
+            <rect x="362" y="290" width="226" height="106" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="374" y="310" fill="#f8fafc" font-size="12" font-weight="600" font-family="system-ui, sans-serif">Labels vs Tags vs Network Tags</text>
+            <text x="374" y="328" fill="#38bdf8" font-size="10" font-family="system-ui, sans-serif">Labels &rarr; Ingested in Billing Export</text>
+            <text x="374" y="346" fill="#f59e0b" font-size="10" font-family="system-ui, sans-serif">Tags &rarr; IAM / Org Policy inheritance</text>
+            <text x="374" y="364" fill="#94a3b8" font-size="10" font-family="system-ui, sans-serif">Network Tags &rarr; VPC firewall routing only</text>
+            <text x="374" y="382" fill="#f43f5e" font-size="10" font-style="italic" font-family="system-ui, sans-serif">(Network tags NEVER appear in billing)</text>
+
+            <!-- Arrow 2: Billing Collector -> BigQuery Export -->
+            <line x1="600" y1="240" x2="644" y2="240" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-cyan-28-2)"/>
+            <text x="622" y="230" fill="#a855f7" font-size="10" font-weight="600" font-family="system-ui, sans-serif" text-anchor="middle">Export</text>
+
+            <!-- Section 3: BigQuery Dataset & FinOps SQL -->
+            <rect x="650" y="85" width="300" height="325" rx="8" fill="url(#panel-grad-28-2)" stroke="#22c55e" stroke-width="1.5"/>
+            <rect x="662" y="97" width="105" height="20" rx="4" fill="#16a34a" fill-opacity="0.25"/>
+            <text x="714" y="111" fill="#4ade80" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">FINOPS ANALYTICS</text>
+            <text x="662" y="136" fill="#f8fafc" font-size="14" font-weight="700" font-family="system-ui, sans-serif">BigQuery Billing Export</text>
+            <text x="662" y="154" fill="#94a3b8" font-size="11" font-family="system-ui, sans-serif">dataset: billing_export.gcp_billing_...</text>
+
+            <!-- BigQuery Schema Structure snippet -->
+            <rect x="662" y="168" width="276" height="110" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+            <text x="674" y="188" fill="#f8fafc" font-size="11" font-weight="600" font-family="system-ui, sans-serif">Schema: Repeated STRUCT Array</text>
+            <text x="674" y="206" fill="#cbd5e1" font-size="10" font-family="monospace">labels: ARRAY&lt;STRUCT&lt;</text>
+            <text x="690" y="222" fill="#cbd5e1" font-size="10" font-family="monospace">key STRING, value STRING&gt;&gt;</text>
+            <text x="674" y="240" fill="#4ade80" font-size="10" font-weight="600" font-family="monospace">CROSS JOIN UNNEST(labels) AS l</text>
+            <text x="674" y="258" fill="#cbd5e1" font-size="10" font-family="monospace">WHERE l.key = 'cost-center'</text>
+            <text x="674" y="272" fill="#cbd5e1" font-size="10" font-family="monospace">GROUP BY cost_center, env</text>
+
+            <!-- Attribution Output Card -->
+            <rect x="662" y="290" width="276" height="106" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1"/>
+            <text x="674" y="310" fill="#4ade80" font-size="11" font-weight="700" font-family="system-ui, sans-serif">Attribution Worksheet Slicing</text>
+            <text x="674" y="328" fill="#86efac" font-size="10" font-family="system-ui, sans-serif">• cc-bakery-ops: $18,420 (94% labeled)</text>
+            <text x="674" y="344" fill="#86efac" font-size="10" font-family="system-ui, sans-serif">• cc-growth-mktg: $7,310 (88% labeled)</text>
+            <text x="674" y="360" fill="#f87171" font-size="10" font-family="system-ui, sans-serif">• Unlabeled Spend: $4,120 (Audit required)</text>
+            <text x="674" y="380" fill="#f8fafc" font-size="10" font-weight="600" font-family="system-ui, sans-serif">&rarr; Zero ambiguity across departments</text>
+          </svg>
+          <figcaption>Figure 28.2: Resource Labeling Taxonomy &amp; BigQuery Billing Export Cost Attribution Pipeline. Resources tagged with standardized label key-value pairs emit telemetry to the Cloud Billing collector. The detailed billing export stream loads these key-value pairs into BigQuery as repeated STRUCT arrays. FinOps analysts write SQL unnesting queries to partition infrastructure costs by cost center, environment, and service, eliminating shared-resource attribution conflicts.</figcaption>
+        </figure>
+
+        <h4>Further Study &amp; Official References</h4>
+        <ul>
+          <li><a href="https://cloud.google.com/billing/docs/how-to/budgets-programmatic-notifications" target="_blank" rel="noopener noreferrer">Google Cloud Billing: Manage programmatic budget notifications</a></li>
+          <li><a href="https://cloud.google.com/billing/docs/how-to/notify" target="_blank" rel="noopener noreferrer">Google Cloud Billing: Create, edit, or delete budgets and budget alerts</a></li>
+          <li><a href="https://cloud.google.com/compute/docs/labeling-resources" target="_blank" rel="noopener noreferrer">Google Compute Engine: Labeling resources</a></li>
+          <li><a href="https://cloud.google.com/billing/docs/how-to/export-data-bigquery" target="_blank" rel="noopener noreferrer">Google Cloud Billing: Export billing data to BigQuery</a></li>
+          <li><a href="https://cloud.google.com/resource-manager/docs/creating-managing-labels" target="_blank" rel="noopener noreferrer">Resource Manager: Creating and managing resource labels</a></li>
+        </ul>
+      </article>
+    </section>

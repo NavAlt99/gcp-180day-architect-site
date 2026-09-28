@@ -1,0 +1,96 @@
+        <figure class="architecture-diagram" id="fig-28-3">
+          <svg viewBox="0 0 980 460" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig-28-3-title fig-28-3-desc">
+            <title id="fig-28-3-title">Figure 28.3: Incident 28.1 - Non-Idempotent Budget Consumer vs. Idempotent Deduplication Architecture</title>
+            <desc id="fig-28-3-desc">Sequence diagram comparing the failed path where duplicate Pub/Sub delivery re-triggered quota throttling against the corrected path using atomic idempotency locks and production environment exclusion.</desc>
+            <defs>
+              <linearGradient id="bg-grad-28-3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#090d16"/>
+                <stop offset="100%" stop-color="#121526"/>
+              </linearGradient>
+              <marker id="arrow-rose-28-3" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow-green-28-3" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Background Canvas -->
+            <rect width="980" height="460" rx="12" fill="url(#bg-grad-28-3)" stroke="#1e293b" stroke-width="1.5"/>
+
+            <!-- Banner Header -->
+            <text x="30" y="36" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Incident 28.1: Non-Idempotent Budget Consumer Remediation Failure</text>
+            <text x="30" y="56" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Pub/Sub duplicate redelivery triggers secondary quota throttling vs. atomic lock &amp; production protection</text>
+
+            <!-- Components Columns -->
+            <!-- Col 1: Pub/Sub Broker -->
+            <rect x="30" y="80" width="160" height="40" rx="6" fill="#1e243d" stroke="#38bdf8" stroke-width="1.5"/>
+            <text x="110" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Pub/Sub Topic</text>
+            <line x1="110" y1="120" x2="110" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Col 2: Remediation Consumer -->
+            <rect x="270" y="80" width="180" height="40" rx="6" fill="#1e243d" stroke="#f59e0b" stroke-width="1.5"/>
+            <text x="360" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Remediation Function</text>
+            <line x1="360" y1="120" x2="360" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Col 3: Deduplication State Store -->
+            <rect x="530" y="80" width="180" height="40" rx="6" fill="#1e243d" stroke="#a855f7" stroke-width="1.5"/>
+            <text x="620" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Firestore State Store</text>
+            <line x1="620" y1="120" x2="620" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Col 4: Production Order Ingestion -->
+            <rect x="790" y="80" width="160" height="40" rx="6" fill="#1e243d" stroke="#22c55e" stroke-width="1.5"/>
+            <text x="870" y="105" fill="#f8fafc" font-size="13" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">Prod Ingestion API</text>
+            <line x1="870" y1="120" x2="870" y2="430" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- FAILED PATH (TOP HALF) -->
+            <!-- Step 1: Initial message delivery -->
+            <line x1="110" y1="150" x2="354" y2="150" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-rose-28-3)"/>
+            <text x="235" y="142" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">1. Deliver msg-882194 (100% alert)</text>
+
+            <!-- Slow logging causes ACK timeout -->
+            <rect x="370" y="155" width="170" height="24" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="455" y="171" fill="#fca5a5" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Slow log: ACK deadline 10s expires</text>
+
+            <!-- Step 2: Redelivery -->
+            <line x1="110" y1="200" x2="354" y2="200" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow-rose-28-3)"/>
+            <text x="235" y="194" fill="#f87171" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[FAILED PATH: Pub/Sub Redelivery]</text>
+
+            <!-- Step 3: Unchecked double execution throttles Prod -->
+            <line x1="360" y1="225" x2="864" y2="225" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow-rose-28-3)"/>
+            <text x="590" y="217" fill="#f87171" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[FAILED PATH: Secondary Quota Strip: max-instances &rarr; 2]</text>
+
+            <rect x="790" y="235" width="160" height="42" rx="4" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="870" y="252" fill="#fca5a5" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">CRASH: HTTP 429/503</text>
+            <text x="870" y="268" fill="#fca5a5" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">8,400 orders dropped mid-flight</text>
+
+            <!-- Divider Line -->
+            <line x1="40" y1="290" x2="940" y2="290" stroke="#334155" stroke-width="1.5" stroke-dasharray="2 2"/>
+
+            <!-- CORRECTED PATH (BOTTOM HALF) -->
+            <!-- Step 4: Redelivery arrives at corrected consumer -->
+            <line x1="110" y1="320" x2="354" y2="320" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-green-28-3)"/>
+            <text x="235" y="312" fill="#cbd5e1" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">4. Redelivery msg-882194 arrives</text>
+
+            <!-- Step 5: Check State Store -->
+            <line x1="360" y1="345" x2="614" y2="345" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-28-3)"/>
+            <text x="485" y="337" fill="#4ade80" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[CORRECTED PATH: Atomic Check dedup_key]</text>
+
+            <line x1="620" y1="370" x2="366" y2="370" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-28-3)"/>
+            <text x="485" y="364" fill="#86efac" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Key exists (COMPLETED) &rarr; DUPLICATE</text>
+
+            <!-- Step 6: Drop action, ACK message immediately -->
+            <rect x="280" y="385" width="160" height="38" rx="4" fill="#052e16" stroke="#22c55e" stroke-width="1"/>
+            <text x="360" y="401" fill="#4ade80" font-size="10" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">DUPLICATE DROPPED</text>
+            <text x="360" y="415" fill="#86efac" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">ACK msg &amp; Prod Untouched</text>
+
+            <!-- Step 7: Production isolated -->
+            <line x1="360" y1="420" x2="864" y2="420" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green-28-3)"/>
+            <text x="612" y="414" fill="#4ade80" font-size="11" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle">[CORRECTED PATH: Prod Invariant Shielded: &le; 1 fulfillment]</text>
+          </svg>
+          <figcaption>Figure 28.3: Incident 28.1 - Non-Idempotent Budget Consumer vs. Idempotent Deduplication Architecture.
+            <br><strong>Supplied facts:</strong> A 100% budget notification was redelivered by Cloud Pub/Sub after an initial logging delay exceeded the 10s ACK deadline. The unmemoized consumer executed a secondary quota strip that throttled production Cloud Run max-instances to 2.
+            <br><strong>Architectural inference:</strong> Pub/Sub at-least-once delivery cannot be eliminated at the transport layer; consumers must enforce idempotency via state memoization and hard-code production immunity.
+            <br><strong>Expected post-fix behavior:</strong> Redelivered messages hit the atomic Firestore lock, identify existing keys, log <code>DUPLICATE_EVENT_DROPPED</code>, ACK immediately, and preserve production order throughput and the duplicate fulfillment invariant (&le; 1 physical fulfillment per unique order ID).
+          </figcaption>
+        </figure>

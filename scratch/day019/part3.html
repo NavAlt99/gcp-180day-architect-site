@@ -1,0 +1,469 @@
+    <section class="part" id="part-3" aria-labelledby="part-3-title">
+      <h2 id="part-3-title">3 · Real-world field problems and incident handling</h2>
+
+      <article class="topic-card" id="topic-01-problem">
+        <h3>Incident exercise · Cloud Shell ephemeral disk recycling wipes uncommitted emergency patch</h3>
+        
+        <p><strong>Symptom:</strong> During a morning peak delivery surge at 06:45 UTC, Brightloaf\'s automated bread fulfillment queue stalled due to an unhandled serialization bug in the order dispatch worker. An on-call site reliability engineer launched Cloud Shell to compile and deploy an emergency binary patch. After compiling the binary in <code>/tmp/patch-build</code> and installing required toolchains into <code>/usr/local/bin</code>, the engineer joined a 30-minute operational conference call with franchise managers. Upon returning to the browser terminal, Cloud Shell had timed out due to 20 minutes of inactivity. When the engineer reconnected, a new container booted; <code>/tmp</code> and <code>/usr/local/bin</code> were empty, all compiled artifacts and diagnostic toolchains were gone, and the recovery had to start from scratch.</p>
+
+        <p><strong>Operational and business constraints:</strong> Brightloaf operates on strict morning delivery Service Level Objectives (SLOs), requiring orders received by 06:00 to be dispatched to bakery distribution trucks by 07:30. Every 15-minute delay risks franchise delivery window penalties of $25,000 across 32 regional fulfillment centers. Furthermore, any hotfix applied to the fulfillment processor must strictly preserve the architectural invariant that replaying an order event never triggers duplicate physical baking batches or double-fulfills an order.</p>
+
+        <p><strong>Evidence:</strong> Inspecting the newly reincarnated Cloud Shell instance revealed that the container ID had changed and uptime was less than 60 seconds:</p>
+        <pre><code class="language-bash">$ uptime
+ 07:22:14 up 1 min,  1 user,  load average: 0.12, 0.08, 0.02
+$ ls -la /tmp/patch-build
+ls: cannot access &#39;/tmp/patch-build&#39;: No such file or directory
+$ which custom-dispatch-builder
+custom-dispatch-builder not found
+$ df -hT /home/$USER /tmp
+Filesystem     Type   Size  Used Avail Use% Mounted on
+/dev/sdb       ext4   4.8G  1.2G  3.4G  27% /home/dev_brightloaf_com
+tmpfs          tmpfs  2.0G     0  2.0G   0% /tmp</code></pre>
+
+        <p><strong>Root cause:</strong> The engineer treated Cloud Shell as a persistent virtual workstation rather than an ephemeral container. The root filesystem (<code>/</code>), system directories (<code>/usr/local</code>), and scratch storage (<code>/tmp</code>) reside on temporary container overlay and memory mounts that are discarded when the Cloud Shell session watchdog triggers the 20-minute idle termination. Only the 5&nbsp;GB volume mounted at <code>/home/$USER</code> is persistent.</p>
+
+        <p><strong>Diagnostic sequence (5 steps):</strong></p>
+        <ol>
+          <li><strong>Audit filesystem mount hierarchy:</strong> Execute <code>df -hT</code> to verify the exact device and mount point boundaries between ephemeral <code>tmpfs</code> overlays and the persistent disk backing <code>/home/$USER</code>.</li>
+          <li><strong>Check container lifecycle and uptime markers:</strong> Run <code>uptime</code> and examine <code>/var/log/dmesg</code> to determine whether a container restart occurred during the idle period.</li>
+          <li><strong>Identify uncommitted build artifacts:</strong> Compare persistent repository checkouts under <code>/home/$USER/workspace/</code> against references to <code>/tmp</code> in local shell history.</li>
+          <li><strong>Codify container bootstrap automation:</strong> Author an initialization script at <code>/home/$USER/.customize_environment</code> to automate any required system packages upon container provisioning.</li>
+          <li><strong>Execute order replay invariant test:</strong> Before deploying the compiled hotfix to production, run a dry-run replay test using synthetic order payloads, verifying that the database fulfillment table with a unique order ID constraint explicitly rejects duplicate processing attempts.</li>
+        </ol>
+
+        <p><strong>Defensible solution:</strong> Re-establish the hotfix build entirely within <code>/home/$USER/workspace/hotfix-build/</code>. Create an automated environment customization script at <code>/home/$USER/.customize_environment</code> with executable permissions, ensuring that required build toolchains are automatically installed as root if the container is recycled. Finally, implement an end-to-end integration test verifying that order replays reject duplicate fulfillment records.</p>
+
+        <p><strong>Verification:</strong> Terminate the Cloud Shell container explicitly using the Cloud Console menu, re-open the terminal, and verify that the build environment auto-provisions and that compiled binaries in <code>~/workspace</code> remain intact:</p>
+        <pre><code class="language-bash">$ ls -la /home/$USER/workspace/hotfix-build/bin/order-dispatcher
+-rwxr-xr-x 1 dev_brightloaf_com dev_brightloaf_com 18452240 Sep 27 07:28 /home/$USER/workspace/hotfix-build/bin/order-dispatcher
+$ python3 /home/$USER/workspace/hotfix-build/tests/test_fulfillment_dedup.py
+[TEST] Replaying order payload ID: ORD-99281-REPLAY
+[TEST] First delivery dispatch: 200 OK (Fulfillment recorded)
+[TEST] Second delivery dispatch: 409 Conflict (Duplicate order_id rejected by DB constraint)
+[PASS] Invariant verified: Fulfillment count == 1</code></pre>
+
+        <p><strong>Residual risk:</strong> While user files in <code>/home/$USER</code> survive session timeouts, Cloud Shell imposes a hard 50-hour weekly quota and an absolute 12-hour session cutoff. If an operator exceeds 50 hours of usage within a rolling seven-day window, Cloud Shell access will be blocked until the quota clears, requiring local workstation failover procedures.</p>
+
+
+<figure class="diagram-figure" id="fig-19-3">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig19-3-title fig19-3-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig19-3-title">Incident 19.1: Ephemeral Filesystem Recycling vs Persistent Disk Isolation in Cloud Shell</title>
+      <desc id="fig19-3-desc">Incident flow contrasting an emergency hotfix built in ephemeral /tmp wiped by an idle session recycle versus a durable hotfix workspace in /home/naveen with automated environment bootstrapping.</desc>
+      <defs>
+        <linearGradient id="p19-f3-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p19-f3-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p19-f3-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p19-f3-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 19.3: Incident Flow · Ephemeral Filesystem Recycling vs. Persistent Workspace</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Cloud Shell Inactivity Purge · Hotfix Loss in /tmp · Idempotent Fulfillment Invariant Defense</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: Morning Surge</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">06:45 UTC Outage</text>
+      <text x="42" y="146" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Brightloaf Order API</text>
+      <text x="42" y="164" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Fulfillment worker stalled</text>
+      <text x="42" y="186" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="10">SRE opens Cloud Shell</text>
+      <text x="42" y="204" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="10">to compile hotfix binary</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Ephemeral Path Build &amp; Idle Timeout]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. SRE installs tools into /usr/local/bin</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Compiles hotfix patch directly in /tmp/patch-build</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. SRE joins 30-min call; 20-min idle timeout triggers!</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: VM recycled; /tmp and /usr/local wiped clean!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. SRE attempts blind recompile with unpinned libs</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">MTTR doubled; replay risked duplicate fulfillment!</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Persistent Disk &amp; Environment Hook]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Tool bootstrap placed in ~/.customize_environment</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Source &amp; build artifacts placed in /home/naveen/workspace</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Inactivity recycle unmounts 5 GB disk safely</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Disk remounts; bootstrap auto-provisions runtime</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. Automated test verifies UNIQUE(order_id) constraint</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Deterministic hotfix deployed with 0 replay duplicates.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p19-f3-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p19-f3-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed State Inspection:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">$ ls /tmp/patch-build</text>
+        <text x="25" y="90" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">No such file or directory</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">Hotfix &amp; logs lost permanently</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected State Inspection:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">$ test -f ~/workspace/hotfix</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">Artifacts verified intact (5GB PD)</text>
+        <text x="25" y="206" fill="#86efac" font-family="monospace" font-size="9">$ python3 test_replay.py</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">200 OK: 1 fulfillment recorded</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">Replay rejected duplicate (409)</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Order fulfillment count &le; 1</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Survives container recycling</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p19-f3-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p19-f3-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Never compile or store state in /tmp or /usr/local inside Cloud Shell. Bind persistent workflows to /home/naveen.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Ensure all emergency recovery binaries validate transactional deduplication keys before dispatching physical inventory.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 19.3: Incident Flow · Ephemeral Filesystem Recycling vs. Persistent Workspace.</strong>
+    Contrasts an unrecoverable operational failure in ephemeral storage with a resilient persistent disk workflow during an emergency hotfix.
+    <br><strong>Supplied facts:</strong> Cloud Shell sessions terminate after 20 minutes of inactivity; ephemeral directories (<code>/tmp</code>, <code>/usr/local</code>) are purged immediately when the backing container is recycled.
+    <br><strong>Architectural inference:</strong> Placing emergency compilation scripts in <code>/tmp</code> without persistent source checkouts doubles recovery time during live outages, jeopardizing order deduplication controls.
+    <br><strong>Expected post-fix behavior:</strong> Hotfix development is strictly confined to <code>/home/naveen</code> with automated environment bootstrapping via <code>.customize_environment</code>, ensuring all builds execute idempotent verification tests before deployment.
+  </figcaption>
+</figure>
+
+
+      </article>
+
+      <article class="topic-card" id="topic-02-problem">
+        <h3>Incident exercise · Ambient environment variable overrides gcloud named configuration</h3>
+        
+        <p><strong>Symptom:</strong> A DevOps engineer opened a terminal window on their workstation to execute a routine staging cleanup script intended to purge ephemeral test storage buckets and reset staging database fixtures. The engineer ran the configuration activation command to switch to the <code>brightloaf-dev</code> named configuration and verified that the profile was marked active. However, when the cleanup script executed, it wiped the <strong>production</strong> order replay staging bucket, destroying thousands of archived payment reconciliation receipts.</p>
+
+        <p><strong>Operational and business constraints:</strong> Brightloaf must maintain complete payment reconciliation logs for seven years to comply with financial auditing regulations and franchise settlement agreements. An outage that destroys production reconciliation buckets forces manual payment reconstruction, delaying weekly franchisee disbursement checks and incurring external audit penalties. Critically, during bucket restoration and re-ingestion, the order fulfillment engine must ensure that previously processed orders are not re-executed by downstream automated bakery systems.</p>
+
+        <p><strong>Evidence:</strong> Running diagnostic inspections inside the active shell revealed an active configuration targeting development, but an ambient environment variable pointing directly to production:</p>
+        <pre><code class="language-bash">$ gcloud config configurations list
+NAME            IS_ACTIVE  ACCOUNT                    PROJECT              COMPUTE_DEFAULT_ZONE  COMPUTE_DEFAULT_REGION
+brightloaf-dev  True       dev@brightloaf.com         brightloaf-dev-9182  us-central1-a          us-central1
+brightloaf-prod False      deployer@brightloaf.com    brightloaf-prod-001  us-central1-b          us-central1
+
+$ env | grep CLOUDSDK
+CLOUDSDK_CORE_PROJECT=brightloaf-prod-001
+
+$ gcloud config get-value project
+Your active configuration is: [brightloaf-dev]
+brightloaf-prod-001</code></pre>
+
+        <p><strong>Root cause:</strong> Earlier that morning, the engineer had executed a CI debug script in the same terminal session that contained <code>export CLOUDSDK_CORE_PROJECT=brightloaf-prod-001</code>. In <code>gcloud</code>\'s property precedence ladder, Tier 2 environment variables silently take precedence over Tier 3 active named configuration profiles. When the cleanup script ran the <code>gcloud</code> storage remove command without an explicit <code>--project</code> flag, the command resolved <code>brightloaf-prod-001</code> despite the active profile indicating <code>brightloaf-dev</code>.</p>
+
+        <p><strong>Diagnostic sequence (5 steps):</strong></p>
+        <ol>
+          <li><strong>Interrogate active profile vs effective property resolution:</strong> Compare the output of the configuration list command against the effective project returned by the <code>gcloud</code> project query command.</li>
+          <li><strong>Audit process environment variables:</strong> Search for active <code>CLOUDSDK_*</code> exports in the current shell environment using <code>env | grep CLOUDSDK</code>.</li>
+          <li><strong>Trace CLI precedence resolution:</strong> Correlate the observed project ID against the 4-tier precedence engine (Flags &gt; Env Vars &gt; Named Config &gt; Defaults).</li>
+          <li><strong>Sanitize environment and implement safety guard:</strong> Author a shell wrapper (<code>gcloud-safe-exec.sh</code>) that purges ambient <code>CLOUDSDK_*</code> variables and enforces target project validation before executing mutating commands.</li>
+          <li><strong>Verify database fulfillment invariant during reconciliation recovery:</strong> Replay archived order records from database change-data-capture logs, verifying that the unique primary key constraint on order fulfillment IDs prevents any double-fulfillment during the data recovery window.</li>
+        </ol>
+
+        <p><strong>Defensible solution:</strong> Unset the leaked environment variable immediately using <code>unset CLOUDSDK_CORE_PROJECT</code>. Configure the shell prompt (<code>PS1</code>) to evaluate and display the effective resolved project dynamically on every command line. Refactor all administrative scripts to pass explicit Tier 1 flags (<code>--project=&quot;$TARGET_PROJECT&quot;</code>) or include an automated preflight assertion halting execution if the resolved project does not match the script\'s intended scope.</p>
+
+        <p><strong>Verification:</strong> Test the safety guard script with an intentional environment variable injection and verify that execution is halted with an explicit error before any cloud API call is made:</p>
+        <pre><code class="language-bash">$ export CLOUDSDK_CORE_PROJECT=brightloaf-prod-001
+$ ./gcloud-safe-exec.sh --expected-project brightloaf-dev-9182 -- gcloud storage ls
+[GUARD ERROR] Environment variable CLOUDSDK_CORE_PROJECT overrides active profile!
+[GUARD ERROR] Target: brightloaf-prod-001 | Expected: brightloaf-dev-9182
+[ABORT] Mutating execution halted before API dispatch. Exit Code: 1
+
+$ unset CLOUDSDK_CORE_PROJECT
+$ ./gcloud-safe-exec.sh --expected-project brightloaf-dev-9182 -- gcloud storage ls
+[GUARD CHECK] Active Project: brightloaf-dev-9182 | Expected: brightloaf-dev-9182
+[GUARD CHECK] No conflicting CLOUDSDK environment variables detected.
+gs://brightloaf-dev-temp-bucket/</code></pre>
+
+        <p><strong>Residual risk:</strong> While wrapper scripts and shell prompt indicators prevent manual mistakes, team members running unmonitored ad-hoc commands without wrappers can still introduce silent overrides. Organization policies restricting service account permissions per workstation are required for comprehensive defense-in-depth.</p>
+
+
+<figure class="diagram-figure" id="fig-19-4">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig19-4-title fig19-4-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig19-4-title">Incident 19.2: Environment Variable Precedence Override in Multi-Project gcloud CLI Execution</title>
+      <desc id="fig19-4-desc">Incident flow depicting how an ambient CLOUDSDK_CORE_PROJECT environment variable silently overrode an active named configuration, triggering an accidental production bucket deletion.</desc>
+      <defs>
+        <linearGradient id="p19-f4-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p19-f4-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p19-f4-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p19-f4-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 19.4: Incident Flow · Ambient Environment Variable Silent Override</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Tier 2 Env Variable vs. Tier 3 Named Profile · Cross-Project Blast Radius · Idempotency Invariant Check</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: Shell Reuse</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">09:15 UTC Shell Session</text>
+      <text x="42" y="146" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Morning CI test ran:</text>
+      <text x="42" y="164" fill="#f59e0b" font-family="monospace" font-size="9">export CLOUDSDK_CORE_PROJECT</text>
+      <text x="42" y="180" fill="#f59e0b" font-family="monospace" font-size="9">=brightloaf-prod</text>
+      <text x="42" y="204" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Operator activates bl-dev</text>
+      <text x="42" y="222" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">and runs cleanup script</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Silent Tier 2 Override Routes to Prod]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Active profile set to: config_brightloaf-dev</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Script runs storage bucket cleanup without flags</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. CLI evaluates: Tier 2 (Env Var) beats Tier 3 (Profile)!</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: Production order replay archive bucket purged!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. Backup worker triggered order replay from secondary log</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">Database UNIQUE constraint halted duplicate fulfillment.</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Environment Purge &amp; Assertion Guard]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Wrapper script executes: unset CLOUDSDK_CORE_PROJECT</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Assert: target == expected</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Script passes explicit --project=brightloaf-dev</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Tier 1 flag guarantees target regardless of env vars</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. Production buckets remain completely untouched</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Cleanup dispatches strictly to development sandbox.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p19-f4-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p19-f4-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed State Inspection:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">$ printenv | grep CLOUDSDK</text>
+        <text x="25" y="90" fill="#fca5a5" font-family="monospace" font-size="9">CLOUDSDK_CORE_PROJECT=prod</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">Active profile bypassed silently!</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected State Inspection:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">$ ./gcloud-safe-exec.sh</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">[PASS] No CLOUDSDK env leak</text>
+        <text x="25" y="206" fill="#86efac" font-family="monospace" font-size="9">[PASS] Target: brightloaf-dev</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">[PASS] Exit Code: 0</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">Zero production impact</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Replay check: 0 duplicates</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Fulfillment count &le; 1 maintained</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p19-f4-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p19-f4-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Never rely solely on named configuration activation in automated scripts.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Always pass explicit Tier 1 flags (--project) or sanitize the execution environment before mutating cloud state.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 19.4: Incident Flow · Ambient Environment Variable Silent Override.</strong>
+    Traces how an inherited shell environment variable subverted the active named configuration profile, directing destructive deletions to production.
+    <br><strong>Supplied facts:</strong> <code>CLOUDSDK_CORE_PROJECT</code> occupies Tier 2 in the precedence engine; active named profiles occupy Tier 3; unhandled environment exports silently supersede profile activation.
+    <br><strong>Architectural inference:</strong> Destructive infrastructure scripts that omit explicit <code>--project</code> parameters will execute against whatever ambient project is exported in the shell, bypassing named profile intentions.
+    <br><strong>Expected post-fix behavior:</strong> Automation wrappers scrub <code>CLOUDSDK_*</code> variables and explicitly assert project target identity before running commands, while database uniqueness constraints protect against replay fulfillment duplication.
+  </figcaption>
+</figure>
+
+
+      </article>
+
+      <article class="topic-card" id="topic-03-problem">
+        <h3>Incident exercise · Kubectl context decoupling routes staging deployment to production GKE cluster</h3>
+        
+        <p><strong>Symptom:</strong> A Brightloaf release engineer prepared to test an experimental release of the bakery order fulfillment microservice featuring aggressive multi-threaded order queue consumption and a disabled Redis deduplication cache. The engineer ran the configuration activation command to set the <code>gcloud</code> active project to <code>brightloaf-staging</code> and confirmed with Compute Engine VM listing commands that the active project was indeed staging. The engineer then ran the <code>kubectl</code> manifest deployment command. Within minutes, production bakery dispatch alerts fired: live orders were experiencing race conditions, customer support was flooded with duplicate baking reports, and the production fulfillment service had been overwritten with the staging container image.</p>
+
+        <p><strong>Operational and business constraints:</strong> Brightloaf\'s operational core invariant mandates that no order can ever result in multiple physical fulfillment dispatches, regardless of network retries, pod restarts, or concurrent consumer threads. A deployment that disables deduplication caching poses an immediate threat of over-baking and inventory destruction across regional facilities.</p>
+
+        <p><strong>Evidence:</strong> Checking the Kubernetes context revealed that while <code>gcloud</code> was targeting staging, <code>kubectl</code>\'s current context remained tethered to the production cluster:</p>
+        <pre><code class="language-bash">$ gcloud config get-value project
+brightloaf-staging-4029
+
+$ kubectl config current-context
+gke_brightloaf-prod-001_us-central1_brightloaf-prod-cluster
+
+$ kubectl get pods -l app=fulfillment-dispatcher -o wide
+NAME                                     READY   STATUS    RESTARTS   AGE   NODE
+fulfillment-dispatcher-78c8df689-x8q2l   1/1     Running   0          3m    gke-brightloaf-prod-pool-1</code></pre>
+
+        <p><strong>Root cause:</strong> The engineer operated under the mistaken assumption that switching the active Google Cloud CLI project automatically switches the Kubernetes context. In reality, <code>kubectl</code> operates independently, resolving cluster endpoints and credentials exclusively from <code>~/.kube/config</code>. Changing the active <code>gcloud</code> project does not touch the <code>current-context</code> field in <code>~/.kube/config</code>.</p>
+
+        <p><strong>Diagnostic sequence (5 steps):</strong></p>
+        <ol>
+          <li><strong>Audit current kubectl context against gcloud profile:</strong> Compare the <code>kubectl</code> context inspection command against the <code>gcloud</code> project query command to detect context drift.</li>
+          <li><strong>Inspect active GKE deployment image and replicas:</strong> Run the <code>kubectl</code> JSONPath image query command to verify the exact image running in the cluster.</li>
+          <li><strong>Perform emergency rollback:</strong> Execute a rollout undo command on the production deployment to reinstate the certified stable image immediately.</li>
+          <li><strong>Verify database-level fulfillment idempotency defense:</strong> Inspect the PostgreSQL database logs to confirm that the row-level lock (<code>SELECT ... FOR UPDATE</code>) and primary key constraint on <code>order_id</code> blocked concurrent duplicate inserts despite the disabled application cache.</li>
+          <li><strong>Implement synchronized multi-CLI context switcher:</strong> Create an automated context synchronization tool (<code>verify-cloud-context.py</code>) that validates that the active <code>gcloud</code> project matches the GKE cluster project embedded in the <code>kubectl</code> context before allowing deployments.</li>
+        </ol>
+
+        <p><strong>Defensible solution:</strong> Immediately execute a rollback on the production Kubernetes deployment using an explicit context parameter to restore the certified image. Synchronize the local kubeconfig using the cluster credential retrieval command. Establish an automated deployment gate that requires explicit context flags or fails if <code>kubectl</code>\'s current context project does not match the intended deployment target.</p>
+
+        <p><strong>Verification:</strong> Confirm that the production pods have returned to the stable version, and run the multi-context verification tool to prove that context mismatches are rejected:</p>
+        <pre><code class="language-bash">$ kubectl --context=gke_brightloaf-prod-001_us-central1_brightloaf-prod-cluster rollout undo deployment/fulfillment-dispatcher
+deployment.apps/fulfillment-dispatcher rolled back
+
+$ kubectl --context=gke_brightloaf-prod-001_us-central1_brightloaf-prod-cluster get deployment fulfillment-dispatcher
+NAME                     READY   UP-TO-DATE   AVAILABLE   AGE
+fulfillment-dispatcher   8/8     8            8           42d
+
+$ python3 scripts/verify-cloud-context.py --require-project brightloaf-staging-4029
+[CHECK] gcloud active project: brightloaf-staging-4029
+[CHECK] kubectl current context: gke_brightloaf-prod-001_us-central1_brightloaf-prod-cluster
+[MISMATCH ERROR] kubectl context points to brightloaf-prod-001 while gcloud is set to brightloaf-staging-4029!
+[ABORT] Deployment aborted to prevent cross-project cluster mutation. Exit Code: 1</code></pre>
+
+        <p><strong>Residual risk:</strong> Developers switching contexts across multiple terminal tabs can still experience drift if one tab executes credential updates while another relies on an outdated terminal buffer. Employing terminal status line plugins that display both <code>gcloud</code> project and <code>kubectl</code> context is strongly advised.</p>
+
+
+<figure class="diagram-figure" id="fig-19-5">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig19-5-title fig19-5-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig19-5-title">Incident 19.3: Kubeconfig Context Decoupling and Cross-Project Cluster Misdirection</title>
+      <desc id="fig19-5-desc">Incident flow illustrating how switching gcloud project failed to update kubectl current-context, causing experimental staging manifests with disabled deduplication to be applied to production GKE.</desc>
+      <defs>
+        <linearGradient id="p19-f5-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p19-f5-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p19-f5-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p19-f5-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 19.5: Incident Flow · Multi-CLI Context Decoupling &amp; GKE Target Drift</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">gcloud Project Switch vs. ~/.kube/config Current Context · Deduplication Invariant Defense</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: Release Staging</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">14:20 UTC Release Window</text>
+      <text x="42" y="146" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Operator sets project:</text>
+      <text x="42" y="164" fill="#38bdf8" font-family="monospace" font-size="9">gcloud &rarr; bl-staging</text>
+      <text x="42" y="186" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="10">Runs kubectl deployment</text>
+      <text x="42" y="204" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="10">for bakery fulfillment</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Decoupled Kubeconfig Directs Staging to Prod]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. gcloud points to brightloaf-staging</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. ~/.kube/config current-context still points to prod-cluster!</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. kubectl apply deployed staging pods with cache disabled!</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: Staging pods replaced live production pods!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. Concurrent consumers attempted duplicate order dispatch</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">Database atomic row locks &amp; UNIQUE constraint blocked duplicates.</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Synchronized Context Switcher &amp; GKE Check]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Unified script checks active project &amp; cluster context parity</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Refreshes credentials: gcloud container clusters get-credentials</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Explicit flag passed: kubectl --context=staging-cluster</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Pre-flight validator asserts cluster matches project</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. Rollback verified: prod-cluster runs certified release image</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Staging pods deploy strictly to isolated staging namespace.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p19-f5-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p19-f5-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed State Inspection:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">$ kubectl config current-context</text>
+        <text x="25" y="90" fill="#fca5a5" font-family="monospace" font-size="9">gke_brightloaf-prod_..._prod</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">Context decoupled from gcloud!</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected State Inspection:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">$ ./verify-cloud-context.py</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">gcloud project: bl-staging</text>
+        <text x="25" y="206" fill="#86efac" font-family="monospace" font-size="9">kubectl context: bl-staging</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">[MATCH] Synchronization verified</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">Production cluster protected</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">SQL row lock halted double fulfillment</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Physical bakery dispatch &le; 1</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p19-f5-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p19-f5-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Never assume kubectl tracks gcloud project changes. Always inspect kubectl config current-context.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Ensure database-tier uniqueness constraints back up application-layer deduplication against accidental staging cross-talk.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 19.5: Incident Flow · Multi-CLI Context Decoupling &amp; GKE Target Drift.</strong>
+    Demonstrates how the decoupling between <code>gcloud</code> configuration and <code>~/.kube/config</code> misrouted staging Kubernetes manifests to the production cluster.
+    <br><strong>Supplied facts:</strong> <code>kubectl</code> determines target clusters entirely from <code>~/.kube/config</code>; changing the active <code>gcloud</code> project does not alter the Kubernetes current context.
+    <br><strong>Architectural inference:</strong> Deploying experimental microservice manifests with deduplication caching disabled to production will cause concurrent fulfillment races unless defended by the database layer.
+    <br><strong>Expected post-fix behavior:</strong> Multi-CLI automation scripts strictly enforce context parity between <code>gcloud</code> and <code>kubectl</code>, while database unique constraints protect Brightloaf's single-fulfillment invariant.
+  </figcaption>
+</figure>
+
+
+      </article>
+    </section>

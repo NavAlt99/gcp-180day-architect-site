@@ -1,0 +1,280 @@
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d66-arch-title d66-arch-desc" viewBox="0 0 1120 960" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d66-arch-title">Integrated Baseline Reproduction, Controlled Failure Probes &amp; Multi-Runtime Architecture</title>
+<desc id="d66-arch-desc">Comprehensive architectural topology illustrating the reproducible retail order stack across Global ALB, Cloud Run Direct VPC Egress, Cloud SQL HA via Private Service Connect, and Pub/Sub with Dead-Letter Topics. Highlights three controlled failure injection probe points (Datastore PSC loss, Poison Pill DLT quarantine, and Identity token breach), the multi-runtime decision topology (Cloud Run vs GKE vs MIGs vs Cloud Functions), and the 5-phase reverse-dependency teardown lifecycle.</desc>
+<defs>
+<marker id="d66-m-ingress" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d66-m-runtime" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d66-m-psc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+<marker id="d66-m-db" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#10b981"/>
+</marker>
+<marker id="d66-m-pubsub" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#a855f7"/>
+</marker>
+<marker id="d66-m-dlt" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#ef4444"/>
+</marker>
+<marker id="d66-m-fail" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d66-m-ok" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#14b8a6"/>
+</marker>
+<marker id="d66-m-trace" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f472b6"/>
+</marker>
+<marker id="d66-m-cleanup" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#cbd5e1"/>
+</marker>
+</defs>
+
+<!-- SECTION 1: DECLARATIVE INGRESS & RUNTIME BASELINE -->
+<rect x="20" y="20" width="1080" height="150" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="42" fill="#38bdf8" font-size="13" font-weight="700">1. DECLARATIVE BASELINE: Ingress Edge, Cloud Armor WAF &amp; Cloud Run Runtime</text>
+
+<!-- Client Request Box -->
+<rect x="35" y="55" width="195" height="100" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="45" y="75" fill="#38bdf8" font-size="11" font-weight="700">Client / API Ingress</text>
+<text x="45" y="92" fill="#cbd5e1" font-size="9.5">POST /v1/orders (HTTPS)</text>
+<text x="45" y="108" fill="#cbd5e1" font-size="8.5">Headers:</text>
+<text x="45" y="122" fill="#7dd3fc" font-family="monospace" font-size="8.5">Authorization: Bearer &lt;id_tok&gt;</text>
+<text x="45" y="136" fill="#f472b6" font-family="monospace" font-size="8.5">traceparent: 00-4bf9...-01</text>
+<text x="45" y="148" fill="#94a3b8" font-family="monospace" font-size="8.5">X-Request-Id: req-66-init</text>
+
+<!-- Arrow to ALB -->
+<path d="M 230 105 L 275 105" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d66-m-ingress)"/>
+
+<!-- ALB Box -->
+<rect x="275" y="55" width="460" height="100" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+<text x="285" y="75" fill="#7dd3fc" font-size="11" font-weight="700">Global External Application Load Balancer (ALB) - Google Front End</text>
+<rect x="285" y="83" width="140" height="62" rx="3" fill="#1e293b" stroke="#0284c7" stroke-width="1"/>
+<text x="292" y="99" fill="#38bdf8" font-size="9.5" font-weight="700">Cloud Armor WAF</text>
+<text x="292" y="113" fill="#cbd5e1" font-size="8.5">&bull; Rate: 2000 QPS/IP</text>
+<text x="292" y="126" fill="#cbd5e1" font-size="8.5">&bull; SQLi / XSS Filters</text>
+<text x="292" y="139" fill="#cbd5e1" font-size="8.5">&bull; Pre-configured rules</text>
+
+<rect x="435" y="83" width="145" height="62" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="442" y="99" fill="#38bdf8" font-size="9.5" font-weight="700">SSL &amp; URL Map</text>
+<text x="442" y="113" fill="#cbd5e1" font-size="8.5">&bull; TLS 1.3 Managed Cert</text>
+<text x="442" y="126" fill="#cbd5e1" font-size="8.5">&bull; orders.brightloaf.com</text>
+<text x="442" y="139" fill="#cbd5e1" font-size="8.5">&bull; Path: /v1/* &rarr; NEG</text>
+
+<rect x="590" y="83" width="135" height="62" rx="3" fill="#1e293b" stroke="#f472b6" stroke-width="1"/>
+<text x="597" y="99" fill="#f472b6" font-size="9.5" font-weight="700">W3C Context</text>
+<text x="597" y="113" fill="#cbd5e1" font-size="8.5">&bull; Injects traceparent</text>
+<text x="597" y="126" fill="#cbd5e1" font-size="8.5">&bull; Span: alb-edge-ingress</text>
+<text x="597" y="139" fill="#cbd5e1" font-size="8.5">&bull; Request-Id tracing</text>
+
+<!-- Arrow to Serverless NEG -->
+<path d="M 735 105 L 780 105" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d66-m-ingress)"/>
+
+<!-- Serverless NEG & Cloud Run Box -->
+<rect x="780" y="55" width="305" height="100" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="790" y="75" fill="#86efac" font-size="11" font-weight="700">Serverless NEG &rarr; Cloud Run (order-service)</text>
+<text x="790" y="92" fill="#cbd5e1" font-size="9">Runtime: Container on Google gVisor microVM sandbox</text>
+<text x="790" y="107" fill="#cbd5e1" font-size="9">Identity: sa-order-service@brightloaf-prod.iam.gserviceaccount.com</text>
+<text x="790" y="122" fill="#cbd5e1" font-size="9">Egress: Direct VPC Egress (Subnet: 10.128.10.0/24, 251 IPs)</text>
+<text x="790" y="139" fill="#22c55e" font-size="9">&#10003; Zero Serverless VPC Access connector choke points</text>
+
+<!-- SECTION 2: CONTROLLED FAILURE INJECTION & DIAGNOSTIC PROBES -->
+<rect x="20" y="185" width="1080" height="285" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="207" fill="#f59e0b" font-size="13" font-weight="700">2. CONTROLLED FAILURE INJECTION &amp; DIAGNOSTIC PROBES (Probes 1, 2, 3)</text>
+
+<!-- FAILURE 1: DATASTORE LOSS & PSC EXHAUSTION -->
+<rect x="35" y="220" width="335" height="235" rx="4" fill="#0f172a" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="45" y="240" fill="#f87171" font-size="11" font-weight="700">FAILURE 1: Datastore Loss &amp; PSC Partition</text>
+<text x="45" y="256" fill="#cbd5e1" font-size="9">Target: Cloud SQL Regional HA (PSC 10.128.0.50:5432)</text>
+
+<rect x="45" y="265" width="315" height="48" rx="3" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="52" y="280" fill="#fca5a5" font-size="9" font-weight="700">&#9888; Simulated Fault: PSC Dropped / Pool Max (250)</text>
+<text x="52" y="295" fill="#fecaca" font-size="8.5">Socket timeout (2000ms) or connection pool exhausted</text>
+<text x="52" y="307" fill="#f87171" font-size="8">&rarr; HikariCP ConnectionAcquisitionTimeoutException</text>
+
+<rect x="45" y="320" width="315" height="60" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="52" y="336" fill="#fbbf24" font-size="9" font-weight="700">Diagnostic Mechanism: Decoupled Probes</text>
+<text x="52" y="351" fill="#22c55e" font-size="8.5">&bull; /healthz (Liveness) &rarr; 200 OK (container healthy, no loop)</text>
+<text x="52" y="365" fill="#f43f5e" font-size="8.5">&bull; /readyz (Readiness) &rarr; 503 SERVICE UNAVAILABLE</text>
+<text x="52" y="375" fill="#cbd5e1" font-size="8">&rarr; ALB removes pod from pool in &lt;1s; 0 hanging requests</text>
+
+<rect x="45" y="388" width="315" height="55" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="52" y="403" fill="#86efac" font-size="9" font-weight="700">&#10003; Recovery: Circuit Breaker Trips (Fast Fail)</text>
+<text x="52" y="418" fill="#cbd5e1" font-size="8.5">&bull; Tripped to OPEN state after 3 failures; returns HTTP 503</text>
+<text x="52" y="432" fill="#22c55e" font-size="8.5">&bull; Zero hung sockets; auto-heals upon PSC route restoration</text>
+
+<!-- FAILURE 2: POISON PILL PAYLOAD & DLT QUARANTINE -->
+<rect x="390" y="220" width="355" height="235" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1.2"/>
+<text x="400" y="240" fill="#d8b4fe" font-size="11" font-weight="700">FAILURE 2: Poison Pill Payload &amp; DLT Quarantine</text>
+<text x="400" y="256" fill="#cbd5e1" font-size="9">Target: Pub/Sub Topic orders.v1 (ordering_key = order_id)</text>
+
+<rect x="400" y="265" width="335" height="48" rx="3" fill="#2e1065" stroke="#a855f7" stroke-width="1"/>
+<text x="407" y="280" fill="#e9d5ff" font-size="9" font-weight="700">&#9888; Simulated Fault: Corrupt Payload + Ordering Key</text>
+<text x="407" y="295" fill="#cbd5e1" font-size="8.5">Corrupt JSON / non-UTF8 bytes with ordering_key="ord-bad-99"</text>
+<text x="407" y="307" fill="#f87171" font-size="8">&rarr; Consumer throws JSONDecodeError / Crash-Before-Ack</text>
+
+<rect x="400" y="320" width="335" height="60" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="407" y="336" fill="#fbbf24" font-size="9" font-weight="700">Quarantine Mechanism: maxDeliveryAttempts = 5</text>
+<text x="407" y="351" fill="#cbd5e1" font-size="8.5">&bull; Delivery attempts 1 to 5: Consumer NACKs payload</text>
+<text x="407" y="365" fill="#f43f5e" font-size="8.5">&bull; Without DLT: Head-of-Line (HoL) blocking stalls partition!</text>
+<text x="407" y="375" fill="#22c55e" font-size="8">&bull; With DLT: Pub/Sub routes to orders.v1.dlq automatically</text>
+
+<rect x="400" y="388" width="335" height="55" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="407" y="403" fill="#86efac" font-size="9" font-weight="700">&#10003; Recovery: DLT Alert &amp; Partition Unblocked</text>
+<text x="407" y="418" fill="#cbd5e1" font-size="8.5">&bull; Metric Alert: pubsub/dead_letter_message_count &gt; 0</text>
+<text x="407" y="432" fill="#22c55e" font-size="8.5">&bull; Ordering partition restored; subsequent valid orders proceed</text>
+
+<!-- FAILURE 3: IDENTITY BREACH & REJECTION -->
+<rect x="765" y="220" width="320" height="235" rx="4" fill="#0f172a" stroke="#06b6d4" stroke-width="1.2"/>
+<text x="775" y="240" fill="#67e8f9" font-size="11" font-weight="700">FAILURE 3: Identity Breach &amp; Token Rejection</text>
+<text x="775" y="256" fill="#cbd5e1" font-size="9">Target: Cloud Run IAM Ingress Perimeter</text>
+
+<rect x="775" y="265" width="300" height="48" rx="3" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="782" y="280" fill="#fca5a5" font-size="9" font-weight="700">&#9888; Simulated Fault: Unauthenticated / Rogue Caller</text>
+<text x="782" y="295" fill="#cbd5e1" font-size="8.5">&bull; Case A: Missing or expired Google OIDC bearer token</text>
+<text x="782" y="307" fill="#f87171" font-size="8">&bull; Case B: Valid token, but principal lacks roles/run.invoker</text>
+
+<rect x="775" y="320" width="300" height="60" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="782" y="336" fill="#fbbf24" font-size="9" font-weight="700">GFE Boundary Enforcement (Zero Compute Waste)</text>
+<text x="782" y="351" fill="#f87171" font-size="8.5">&bull; Case A &rarr; HTTP 401 Unauthorized (JWT rejected at edge)</text>
+<text x="782" y="365" fill="#fbbf24" font-size="8.5">&bull; Case B &rarr; HTTP 403 Forbidden (IAM policy evaluation fail)</text>
+<text x="782" y="375" fill="#cbd5e1" font-size="8">&bull; 0 vCPU container cycles spent processing invalid requests</text>
+
+<rect x="775" y="388" width="300" height="55" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="782" y="403" fill="#86efac" font-size="9" font-weight="700">&#10003; Verification: Audit Logging in Cloud Logging</text>
+<text x="782" y="418" fill="#cbd5e1" font-size="8.5">&bull; Query: protoPayload.status.code = 7 (PERMISSION_DENIED)</text>
+<text x="782" y="432" fill="#22c55e" font-size="8.5">&bull; Threat logged; zero breach into internal VPC network</text>
+
+<!-- SECTION 3: OBSERVABILITY & DIAGNOSTIC PLANE -->
+<rect x="20" y="485" width="1080" height="135" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="507" fill="#f472b6" font-size="13" font-weight="700">3. OBSERVABILITY &amp; DIAGNOSTIC PLANE: Cloud Trace, Structured Logging &amp; Alert Signals</text>
+
+<rect x="35" y="518" width="335" height="90" rx="4" fill="#0f172a" stroke="#f472b6" stroke-width="1"/>
+<text x="45" y="536" fill="#f472b6" font-size="10.5" font-weight="700">Cloud Trace Flamegraph</text>
+<text x="45" y="552" fill="#cbd5e1" font-size="9">&bull; alb-edge-ingress [3ms]</text>
+<text x="45" y="567" fill="#cbd5e1" font-size="9">&nbsp;&nbsp;&rarr; cloudrun-order-api [28ms]</text>
+<text x="45" y="582" fill="#cbd5e1" font-size="9">&nbsp;&nbsp;&nbsp;&nbsp;&rarr; postgres-tx-commit [12ms] | pubsub-publish [8ms]</text>
+<text x="45" y="597" fill="#86efac" font-size="8.5">&#10003; End-to-end W3C traceparent propagation verified</text>
+
+<rect x="390" y="518" width="355" height="90" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+<text x="400" y="536" fill="#38bdf8" font-size="10.5" font-weight="700">Cloud Logging Structured Queries</text>
+<text x="400" y="552" fill="#93c5fd" font-family="monospace" font-size="8.5">resource.type="cloud_run_revision"</text>
+<text x="400" y="566" fill="#93c5fd" font-family="monospace" font-size="8.5">AND jsonPayload.readyz_status="FAILED"</text>
+<text x="400" y="580" fill="#93c5fd" font-family="monospace" font-size="8.5">AND severity&gt;=ERROR</text>
+<text x="400" y="597" fill="#86efac" font-size="8.5">&#10003; Correlates logging.googleapis.com/trace with spans</text>
+
+<rect x="765" y="518" width="320" height="90" rx="4" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
+<text x="775" y="536" fill="#fbbf24" font-size="10.5" font-weight="700">Cloud Monitoring &amp; Metric Alerts</text>
+<text x="775" y="552" fill="#cbd5e1" font-size="9">&bull; Alert 1: /readyz failure rate &gt; 5% for 60s &rarr; PagerDuty</text>
+<text x="775" y="567" fill="#cbd5e1" font-size="9">&bull; Alert 2: pubsub dead_letter_message_count &gt; 0 &rarr; SRE triage</text>
+<text x="775" y="582" fill="#cbd5e1" font-size="9">&bull; Alert 3: GFE 5xx rate burn &gt; 1% over 5m window</text>
+<text x="775" y="597" fill="#86efac" font-size="8.5">&#10003; MTTR target: &lt; 5 minutes detection to isolation</text>
+
+<!-- SECTION 4: MULTI-RUNTIME DECISION TOPOLOGY -->
+<rect x="20" y="635" width="1080" height="150" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="657" fill="#a78bfa" font-size="13" font-weight="700">4. MULTI-RUNTIME ARCHITECTURAL DECISION TOPOLOGY</text>
+
+<!-- Runtime 1: Cloud Run -->
+<rect x="35" y="670" width="250" height="102" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.2"/>
+<text x="45" y="688" fill="#86efac" font-size="10.5" font-weight="700">Cloud Run (Baseline Choice)</text>
+<text x="45" y="703" fill="#cbd5e1" font-size="8.5">&bull; 0-to-N autoscaling (sub-second scale)</text>
+<text x="45" y="716" fill="#cbd5e1" font-size="8.5">&bull; Direct VPC Egress (/24 subnet private IPs)</text>
+<text x="45" y="729" fill="#cbd5e1" font-size="8.5">&bull; Concurrency: up to 250 req/container</text>
+<text x="45" y="742" fill="#cbd5e1" font-size="8.5">&bull; Cost: $0 when idle (true scale-to-zero)</text>
+<text x="45" y="757" fill="#22c55e" font-size="8.5">&#10003; Fit: HTTP APIs, microservices, stateless</text>
+
+<!-- Runtime 2: GKE Autopilot -->
+<rect x="305" y="670" width="250" height="102" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="315" y="688" fill="#7dd3fc" font-size="10.5" font-weight="700">GKE Autopilot / Standard</text>
+<text x="315" y="703" fill="#cbd5e1" font-size="8.5">&bull; Pod IP aliasing (VPC-native CNI)</text>
+<text x="315" y="716" fill="#cbd5e1" font-size="8.5">&bull; DaemonSets, sidecars, custom ingress</text>
+<text x="315" y="729" fill="#cbd5e1" font-size="8.5">&bull; StatefulSets + Persistent Volume Claims</text>
+<text x="315" y="742" fill="#cbd5e1" font-size="8.5">&bull; Base cost: cluster mgmt fee + node pool</text>
+<text x="315" y="757" fill="#38bdf8" font-size="8.5">&#10003; Fit: Complex meshes, multi-container, stateful</text>
+
+<!-- Runtime 3: Compute Engine MIG -->
+<rect x="575" y="670" width="250" height="102" rx="4" fill="#0f172a" stroke="#f59e0b" stroke-width="1.2"/>
+<text x="585" y="688" fill="#fbbf24" font-size="10.5" font-weight="700">Compute Engine MIGs</text>
+<text x="585" y="703" fill="#cbd5e1" font-size="8.5">&bull; Full OS kernel control, raw VM NICs</text>
+<text x="585" y="716" fill="#cbd5e1" font-size="8.5">&bull; Autoscaler: CPU / custom metric (slow, 3-5m)</text>
+<text x="585" y="729" fill="#cbd5e1" font-size="8.5">&bull; Stateful MIGs (per-instance disk/IP preserve)</text>
+<text x="585" y="742" fill="#cbd5e1" font-size="8.5">&bull; High Day-2 toil (OS patching, golden images)</text>
+<text x="585" y="757" fill="#f59e0b" font-size="8.5">&#10003; Fit: Legacy monoliths, GPU, custom OS drivers</text>
+
+<!-- Runtime 4: Cloud Functions 2nd Gen -->
+<rect x="845" y="670" width="240" height="102" rx="4" fill="#0f172a" stroke="#ec4899" stroke-width="1.2"/>
+<text x="855" y="688" fill="#f472b6" font-size="10.5" font-weight="700">Cloud Functions (2nd Gen)</text>
+<text x="855" y="703" fill="#cbd5e1" font-size="8.5">&bull; Built on Cloud Run infrastructure</text>
+<text x="855" y="716" fill="#cbd5e1" font-size="8.5">&bull; Single-concurrency or event-triggered</text>
+<text x="855" y="729" fill="#cbd5e1" font-size="8.5">&bull; Direct Pub/Sub / Eventarc bindings</text>
+<text x="855" y="742" fill="#cbd5e1" font-size="8.5">&bull; Cold starts slightly higher on script init</text>
+<text x="855" y="757" fill="#ec4899" font-size="8.5">&#10003; Fit: Glue logic, webhooks, lightweight jobs</text>
+
+<!-- SECTION 5: REVERSE DEPENDENCY TEARDOWN LIFECYCLE (LIFO) -->
+<rect x="20" y="800" width="1080" height="145" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="822" fill="#cbd5e1" font-size="13" font-weight="700">5. REVERSE DEPENDENCY TEARDOWN LIFECYCLE (LIFO ORDER &amp; LEAK PREVENTION)</text>
+
+<!-- Step 1 -->
+<rect x="35" y="835" width="195" height="95" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="45" y="853" fill="#38bdf8" font-size="10" font-weight="700">Phase 1: Ingress Edge</text>
+<text x="45" y="868" fill="#cbd5e1" font-size="8.5">&bull; Forwarding rules &amp; IP</text>
+<text x="45" y="881" fill="#cbd5e1" font-size="8.5">&bull; Target HTTPS proxies</text>
+<text x="45" y="894" fill="#cbd5e1" font-size="8.5">&bull; URL maps &amp; SSL certs</text>
+<text x="45" y="907" fill="#cbd5e1" font-size="8.5">&bull; Serverless NEGs</text>
+<text x="45" y="920" fill="#f87171" font-size="8">Prevents traffic blackholes</text>
+
+<!-- Arrow -->
+<path d="M 230 882 L 255 882" fill="none" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#d66-m-cleanup)"/>
+
+<!-- Step 2 -->
+<rect x="255" y="835" width="185" height="95" rx="4" fill="#1e293b" stroke="#22c55e" stroke-width="1"/>
+<text x="265" y="853" fill="#86efac" font-size="10" font-weight="700">Phase 2: Runtimes</text>
+<text x="265" y="868" fill="#cbd5e1" font-size="8.5">&bull; Cloud Run services</text>
+<text x="265" y="881" fill="#cbd5e1" font-size="8.5">&bull; IAM invoker bindings</text>
+<text x="265" y="894" fill="#cbd5e1" font-size="8.5">&bull; Secret Manager access</text>
+<text x="265" y="907" fill="#cbd5e1" font-size="8.5">&bull; Direct VPC associations</text>
+<text x="265" y="920" fill="#f87171" font-size="8">Releases container vCPUs</text>
+
+<!-- Arrow -->
+<path d="M 440 882 L 465 882" fill="none" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#d66-m-cleanup)"/>
+
+<!-- Step 3 -->
+<rect x="465" y="835" width="185" height="95" rx="4" fill="#1e293b" stroke="#a855f7" stroke-width="1"/>
+<text x="475" y="853" fill="#d8b4fe" font-size="10" font-weight="700">Phase 3: Messaging</text>
+<text x="475" y="868" fill="#cbd5e1" font-size="8.5">&bull; Pull subscriptions</text>
+<text x="475" y="881" fill="#cbd5e1" font-size="8.5">&bull; Dead Letter Topics</text>
+<text x="475" y="894" fill="#cbd5e1" font-size="8.5">&bull; Primary orders.v1 topic</text>
+<text x="475" y="907" fill="#cbd5e1" font-size="8.5">&bull; Pub/Sub IAM roles</text>
+<text x="475" y="920" fill="#f87171" font-size="8">Drains in-flight messages</text>
+
+<!-- Arrow -->
+<path d="M 650 882 L 675 882" fill="none" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#d66-m-cleanup)"/>
+
+<!-- Step 4 -->
+<rect x="675" y="835" width="195" height="95" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="685" y="853" fill="#fbbf24" font-size="10" font-weight="700">Phase 4: Data Layer</text>
+<text x="685" y="868" fill="#cbd5e1" font-size="8.5">&bull; PSC forwarding rules</text>
+<text x="685" y="881" fill="#cbd5e1" font-size="8.5">&bull; PSC service attachment</text>
+<text x="685" y="894" fill="#cbd5e1" font-size="8.5">&bull; Cloud SQL HA instances</text>
+<text x="685" y="907" fill="#cbd5e1" font-size="8.5">&bull; Database backups / locks</text>
+<text x="685" y="920" fill="#f87171" font-size="8">Stops high hourly database costs</text>
+
+<!-- Arrow -->
+<path d="M 870 882 L 895 882" fill="none" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#d66-m-cleanup)"/>
+
+<!-- Step 5 -->
+<rect x="895" y="835" width="190" height="95" rx="4" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+<text x="905" y="853" fill="#6ee7b7" font-size="10" font-weight="700">Phase 5: Network Base</text>
+<text x="905" y="868" fill="#cbd5e1" font-size="8.5">&bull; Direct VPC Egress subnet</text>
+<text x="905" y="881" fill="#cbd5e1" font-size="8.5">&bull; VPC firewall policies</text>
+<text x="905" y="894" fill="#cbd5e1" font-size="8.5">&bull; Static external IPv4 addrs</text>
+<text x="905" y="907" fill="#cbd5e1" font-size="8.5">&bull; Cloud NAT gateways</text>
+<text x="905" y="920" fill="#f87171" font-size="8">Prevents idle IP reservation billing</text>
+</svg>
+<figcaption>Figure 66.1: Integrated Baseline Lifecycle, Controlled Failure Injection Points &amp; Multi-Runtime Decision Topology. Complete operational architecture depicting: (1) Ingress edge and Cloud Run Direct VPC Egress baseline; (2) Three controlled failure injection probe points (Datastore loss &amp; decoupled readyz trip, Poison pill payload with automated Dead-Letter Topic quarantine, and Identity token rejection at GFE); (3) Observability plane correlating W3C traces, Cloud Logging queries, and alerting thresholds; (4) Multi-runtime decision tree evaluating Cloud Run, GKE Autopilot, Compute Engine MIGs, and Cloud Functions; and (5) Strict reverse-dependency teardown lifecycle (LIFO) preventing orphaned billable cloud resources and idle IP reservation leaks.</figcaption>
+</figure>

@@ -1,0 +1,252 @@
+<section id="part-3" class="part"><h2>3 · Real-world problem and solution for each topic</h2>
+
+<article id="topic-01-problem" class="topic-card">
+<h3>Cloud SQL Private Service Connect Connection Pool Exhaustion and Conflated Liveness Probe Outage · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf launched a nationwide marketing campaign promoting artisanal holiday gift baskets, driving a sudden 12-fold surge in checkout traffic to 5,000 QPS on the <code>order-service</code> API. The service was hosted on Cloud Run in <code>us-central1</code>, configured with Direct VPC Egress to an internal subnet, connecting to a Regional HA Cloud SQL PostgreSQL 16 database over Private Service Connect (PSC IP <code>10.128.0.50:5432</code>). As traffic surged, Cloud Run autoscaled from 5 to 60 container instances within 90 seconds. Immediately, the checkout API degraded: response latency spiked from 45ms to over 15 seconds, and the Global external ALB began returning <code>HTTP 503 Service Unavailable</code> to 62% of incoming shoppers. Within 18 minutes, 18,500 customer orders failed mid-checkout, stranding $129,500 in revenue, causing severe reputational damage, and triggering hundreds of merchant payment dispute alerts.</p>
+
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li><strong>Edge Telemetry &amp; HTTP Status Codes:</strong> Cloud Monitoring metrics for the external ALB (<code>loadbalancing.googleapis.com/https/request_count</code>) showed <code>response_code_class = 500</code> surging to 3,100 QPS. The backend service status showed that 48 out of 60 Cloud Run container instances were marked unhealthy or unavailable by GFE health checkers.</li>
+<li><strong>Direct VPC Egress Network Exhaustion:</strong> Inspecting Cloud Run system logs in Cloud Logging revealed critical networking failures during container scale-up: <code>Direct VPC Egress: IP address exhaustion in subnet projects/brightloaf-prod/regions/us-central1/subnetworks/cloud-run-egress (CIDR 10.128.10.0/28)</code>. The subnet had been provisioned with a <code>/28</code> CIDR mask, providing only 11 usable IP addresses after accounting for GCP reserved gateway IPs. As Cloud Run attempted to provision beyond 11 instances, containers failed to bind network interfaces and entered crash loops.</li>
+<li><strong>Database Backend Connection Saturation:</strong> Querying Cloud SQL PostgreSQL metrics revealed <code>cloudsql.googleapis.com/database/postgresql/num_backends</code> pinned at exactly 250 (100% of configured <code>max_connections</code>). Application container logs were flooded with fatal PostgreSQL connection pool errors: <code>psycopg2.OperationalError: FATAL: remaining connection slots are reserved for non-replication superuser connections</code>. Each container had initialized an unmanaged pool of 20 connections, attempting to open <code>60 &times; 20 = 1,200</code> concurrent TCP connections to the single primary database instance over PSC.</li>
+<li><strong>Readiness Probe Absence &amp; Traffic Admission:</strong> Inspecting the Cloud Run service YAML revealed that engineering had configured a single liveness probe on <code>/healthz</code> (which merely verified that the Python process was running) but completely omitted a readiness probe (<code>/readyz</code>). Consequently, the ALB GFE routed incoming user checkout requests to newly spawned container instances within 300ms of boot—long before the containers had established their database connection pools or completed PSC handshakes. Incoming requests immediately encountered connection acquisition timeouts, generating cascading 503 errors.</li>
+</ol>
+
+<p><strong>Root cause:</strong> A compound architectural breakdown across networking, datastore sizing, and lifecycle health checks: (1) Direct VPC Egress was constrained to a minuscule <code>/28</code> subnet, starving autoscaled serverless instances of IP allocations; (2) Connection pool sizing per container instance was uncoordinated with the PostgreSQL database capacity, exceeding <code>max_connections</code> by 480%; and (3) The omission of a dedicated <code>/readyz</code> readiness probe caused the ALB to route production traffic to uninitialized containers during cold starts.</p>
+
+<p><strong>Defensible remediation:</strong></p>
+<ol>
+<li><strong>Expand Direct VPC Egress Subnet:</strong> Provision a dedicated <code>/24</code> subnet (providing 251 usable IP addresses) specifically for Cloud Run Direct VPC Egress, eliminating IP starvation up to maximum horizontal scale:
+<pre><code>gcloud compute networks subnets create cloud-run-egress-v2 \
+    --network=brightloaf-vpc \
+    --region=us-central1 \
+    --range=10.128.10.0/24</code></pre>
+Update the Cloud Run service to attach to the expanded subnet with private ranges routing:
+<pre><code>gcloud run services update order-service \
+    --region=us-central1 \
+    --network=brightloaf-vpc \
+    --subnet=cloud-run-egress-v2 \
+    --vpc-egress=private-ranges-only</code></pre>
+</li>
+<li><strong>Right-Size Connection Pools and Deploy PgBouncer:</strong> Reconfigure the application connection pool to cap maximum active connections at 4 per container instance, and cap Cloud Run autoscaling at <code>max-instances = 50</code>, guaranteeing that total database connections never exceed 200 (well within PostgreSQL's 250 ceiling). Deploy a regional PgBouncer proxy on the PSC network path configured in transaction pooling mode for future scale.</li>
+<li><strong>Decouple Liveness from Readiness:</strong> Implement a distinct <code>/readyz</code> endpoint in <code>order-service</code> that validates database connection pool acquisition before returning HTTP 200. Configure Cloud Run readiness and liveness probes:
+<pre><code>gcloud run services update order-service \
+    --region=us-central1 \
+    --liveness-probe-path=/healthz \
+    --liveness-probe-initial-delay=5s \
+    --liveness-probe-period=10s \
+    --readiness-probe-path=/readyz \
+    --readiness-probe-initial-delay=2s \
+    --readiness-probe-period=3s \
+    --readiness-probe-failure-threshold=2</code></pre>
+</li>
+</ol>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d65-p1-title d65-p1-desc" viewBox="0 0 960 320" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d65-p1-title">Incident 1: Cloud SQL PSC Connection Pool Exhaustion and Conflated Liveness Probe Outage</title>
+<desc id="d65-p1-desc">Incident diagram showing failed path where IP exhaustion in /28 subnet, 1200 connection requests exceeding max_connections 250, and missing readiness probe caused 18,500 dropped orders, contrasted with corrected path featuring /24 subnet, capped connection pools, and /readyz gating.</desc>
+<defs>
+<marker id="d65-p1-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d65-p1-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Trigger Node -->
+<rect x="25" y="45" width="180" height="90" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="35" y="65" fill="#c7d2fe" font-size="11" font-weight="700">Trigger: Flash Sale Surge</text>
+<text x="35" y="81" fill="#cbd5e1" font-size="9.5">Traffic spikes to 5,000 QPS</text>
+<text x="35" y="96" fill="#cbd5e1" font-size="9.5">Cloud Run scales 5 &rarr; 60 pods</text>
+<text x="35" y="111" fill="#94a3b8" font-size="9">Cold starts across region</text>
+
+<!-- FAILED PATH (Upper Lane) -->
+<rect x="245" y="45" width="220" height="90" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="255" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: Subnet &amp; Pool Crash</text>
+<text x="255" y="81" fill="#cbd5e1" font-size="9.5">Subnet /28 IP starvation (11 IPs)</text>
+<text x="255" y="96" fill="#cbd5e1" font-size="9.5">60 pods &times; 20 conns = 1200 conns</text>
+<text x="255" y="111" fill="#f43f5e" font-size="9 font-weight="700">Missing /readyz: ALB routes early</text>
+
+<rect x="505" y="45" width="205" height="90" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="515" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: PSC Endpoint Lock</text>
+<text x="515" y="81" fill="#cbd5e1" font-size="9.5">Cloud SQL max_conns (250) hit</text>
+<text x="515" y="96" fill="#cbd5e1" font-size="9.5">FATAL: no slots for non-superuser</text>
+<text x="515" y="111" fill="#f43f5e" font-size="9">PSC socket timeout on 5432</text>
+
+<rect x="750" y="45" width="185" height="90" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="760" y="65" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Outage</text>
+<text x="760" y="81" fill="#fca5a5" font-size="9.5">18,500 orders dropped</text>
+<text x="760" y="96" fill="#fca5a5" font-size="9.5">ALB returns HTTP 503</text>
+<text x="760" y="111" fill="#f43f5e" font-size="9">$129,500 revenue lost</text>
+
+<!-- Failed Path Connectors -->
+<path d="M 205 90 L 245 90" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d65-p1-mf)"/>
+<path d="M 465 90 L 505 90" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d65-p1-mf)"/>
+<path d="M 710 90 L 750 90" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d65-p1-mf)"/>
+
+<!-- CORRECTED PATH (Lower Lane) -->
+<rect x="245" y="195" width="220" height="90" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="255" y="215" fill="#86efac" font-size="11" font-weight="700">CORRECTED: /24 &amp; Pool Caps</text>
+<text x="255" y="231" fill="#cbd5e1" font-size="9.5">Direct VPC Egress on /24 (251 IPs)</text>
+<text x="255" y="246" fill="#cbd5e1" font-size="9.5">Pool capped at 4/pod (200 max)</text>
+<text x="255" y="261" fill="#22c55e" font-size="9">&#10003; Zero IP or socket starvation</text>
+
+<rect x="505" y="195" width="205" height="90" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="515" y="215" fill="#86efac" font-size="11" font-weight="700">CORRECTED: /readyz Probe</text>
+<text x="515" y="231" fill="#cbd5e1" font-size="9.5">ALB holds ingress until /readyz OK</text>
+<text x="515" y="246" fill="#cbd5e1" font-size="9.5">PSC connection pool validated</text>
+<text x="515" y="261" fill="#22c55e" font-size="9">&#10003; 0 cold-start errors admitted</text>
+
+<rect x="750" y="195" width="185" height="90" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="760" y="215" fill="#4ade80" font-size="11" font-weight="700">CORRECTED PATH: 100% OK</text>
+<text x="760" y="231" fill="#86efac" font-size="9.5">Zero dropped transactions</text>
+<text x="760" y="246" fill="#86efac" font-size="9.5">p99 checkout latency &lt;65ms</text>
+<text x="760" y="261" fill="#22c55e" font-size="9">&#10003; Resilient scale to 5000 QPS</text>
+
+<!-- Corrected Path Connectors -->
+<path d="M 115 135 L 115 240 L 245 240" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d65-p1-mc)"/>
+<path d="M 465 240 L 505 240" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d65-p1-mc)"/>
+<path d="M 710 240 L 750 240" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d65-p1-mc)"/>
+
+<!-- Verify Boundary Probe Point -->
+<circle cx="245" cy="240" r="7" fill="#f59e0b" stroke="#ffffff" stroke-width="2"/>
+<text x="210" y="300" fill="#f59e0b" font-size="10" font-weight="700">VERIFY BOUNDARY</text>
+</svg>
+<figcaption>Figure 65.2: Incident 1 Root Cause and Remediation. <strong>Supplied facts:</strong> During a nationwide holiday marketing campaign driving 5,000 QPS, Cloud Run autoscaled from 5 to 60 instances. Direct VPC Egress was bound to an undersized <code>/28</code> subnet containing only 11 usable IP addresses, triggering network interface allocation failures. Concurrently, unmanaged connection pools opened 20 connections per container (1,200 connections total), instantly exhausting Cloud SQL PostgreSQL's <code>max_connections = 250</code> over the Private Service Connect endpoint. Because a readiness probe (<code>/readyz</code>) was absent, the ALB dispatched traffic to newly launched instances before connection pools warmed up, causing 18,500 dropped orders and $129,500 in lost revenue. <strong>Architectural inference:</strong> Serverless horizontal scaling decouples compute elasticity from database connection capacity; without strict connection pool caps, Direct VPC Egress subnet right-sizing, and distinct readiness health checks, rapid scale-up acts as an internal denial-of-service attack against the relational datastore. <strong>Expected post-fix behavior:</strong> Migrating Direct VPC Egress to a dedicated <code>/24</code> subnet provides 251 available IPs, capping connection pools at 4 per container limits total peak connections to 200, and enforcing a dedicated <code>/readyz</code> readiness probe prevents the ALB from routing ingress traffic until the PSC connection pool is healthy, achieving 100% order admission and sub-65ms p99 latency.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> The remediation was validated using an automated synthetic load test in staging, ramping traffic from 100 QPS to 5,500 QPS over 60 seconds. Cloud Monitoring confirmed that Cloud Run scaled smoothly to 50 instances across the <code>/24</code> subnet with zero IP allocation errors. Cloud SQL active connection metrics peaked at 198 (below the 250 ceiling). Container readiness checks held ALB traffic admission for an average of 2.1 seconds during container cold starts, resulting in zero connection reset errors and a 100% success rate across 150,000 synthetic transactions.</p>
+<p><strong>Residual Risk:</strong> Sustained traffic surges exceeding 5,000 QPS may cause Cloud Run instances to reach their maximum pool capacity (50 instances &times; 4 connections = 200 connections), queuing requests at the container level. To scale beyond this limit, an architectural migration to transaction-pooled PgBouncer or AlloyDB for PostgreSQL will be required.</p>
+</article>
+
+<article id="topic-02-problem" class="topic-card">
+<h3>Dropped W3C Trace Context across Pub/Sub, Inventory Oversell Race Condition, and Unverified OIDC Dispatch · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf launched a flash promotion offering a limited batch of 500 artisan sourdough loaves at a promotional price. Ingress traffic peaked at 1,800 QPS. Within minutes, multiple cascading data and security anomalies emerged: (1) Over 150 loaves were oversold beyond physical bakery stock, resulting in <code>inventory_count = -150</code> and forcing the customer care team to issue $34,000 in refunds and apology gift cards; (2) An unauthorized internal data ingestion cron job inadvertently called the asynchronous fulfillment service directly, triggering duplicate shipments on 400 orders; and (3) When site reliability engineers attempted to investigate the failure in Cloud Trace, the trace graphs abruptly terminated at the Cloud Run API boundary, completely omitting the asynchronous fulfillment worker processing hops and blinding on-call engineers for 45 minutes.</p>
+
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li><strong>Trace Discontinuity Audit:</strong> SREs queried Cloud Trace using incoming <code>traceparent</code> IDs collected from customer support refund tickets. In Cloud Trace, spans showed the ALB edge request (3ms) and Cloud Run <code>order-service</code> execution (42ms), followed by a Pub/Sub publish call. However, zero asynchronous spans existed for the <code>fulfillment-service</code>. Inspecting publisher code revealed that while the API captured the incoming <code>traceparent</code> header, it published the event payload to Cloud Pub/Sub topic <code>orders.v1</code> as raw bytes without populating message attributes. Consequently, the fulfillment worker had no parent trace context and generated isolated, unlinked trace IDs.</li>
+<li><strong>Inventory Race Condition Analysis:</strong> Database inspection revealed that <code>inventory.stock</code> for artisan sourdough reached -150. Reviewing the application checkout logic revealed that inventory checking was executed as an optimistic application-level assertion:
+<pre><code># VULNERABLE CODE: TOCTOU Race Condition
+stock = db.query("SELECT stock FROM inventory WHERE item_id = :id")
+if stock &gt;= quantity:
+    db.execute("UPDATE inventory SET stock = stock - :qty WHERE item_id = :id")
+</code></pre>
+Under 1,800 QPS concurrent load, 35 threads simultaneously read <code>stock = 1</code> before any single thread could commit the decrement. Furthermore, the <code>inventory</code> table lacked a database-level <code>CHECK (stock &gt;= 0)</code> constraint, allowing concurrent updates to drive stock deeply negative.</li>
+<li><strong>Unauthorized Dispatch &amp; Deduplication Failure:</strong> Reviewing Cloud Logging for <code>fulfillment-service</code> revealed two independent log streams processing identical <code>order_id</code> values 14 seconds apart. The second stream was initiated by an internal analytics test runner calling the fulfillment HTTP webhook directly. The fulfillment service had been deployed with <code>--allow-unauthenticated</code> enabled and lacked OIDC signature verification middleware. Furthermore, the worker inserted fulfillment dispatch records without checking a deduplication table, executing physical packing orders twice.</li>
+</ol>
+
+<p><strong>Root cause:</strong> Three critical architectural violations: (1) Failure to inject W3C <code>traceparent</code> and <code>X-Request-Id</code> headers into Cloud Pub/Sub message attributes stripped distributed trace context across the asynchronous boundary; (2) Reliance on optimistic application-layer inventory checks without database row locking (<code>FOR UPDATE</code>) or database-level <code>CHECK</code> constraints violated the Inventory Integrity invariant; and (3) Ingress security perimeter omission allowed unauthenticated internal HTTP calls to bypass IAM, while missing consumer deduplication violated the Exactly-One Fulfillment invariant.</p>
+
+<p><strong>Defensible remediation:</strong></p>
+<ol>
+<li><strong>Enforce Hard Database Inventory Constraints &amp; Pessimistic Locking:</strong> Add a hard check constraint in PostgreSQL preventing stock from ever dropping below zero:
+<pre><code>ALTER TABLE inventory ADD CONSTRAINT chk_inventory_non_negative CHECK (stock >= 0);</code></pre>
+Update the checkout transaction to acquire a pessimistic row-level lock prior to decrementing stock:
+<pre><code>BEGIN;
+SELECT stock FROM inventory WHERE item_id = :id FOR UPDATE;
+UPDATE inventory SET stock = stock - :qty WHERE item_id = :id;
+INSERT INTO orders (order_id, customer_id, total, status) VALUES (...);
+INSERT INTO outbox_events (event_id, aggregate_id, payload, traceparent) VALUES (...);
+COMMIT;</code></pre>
+</li>
+<li><strong>Propagate W3C Trace Context across Pub/Sub:</strong> Update the outbox relay publisher to inject <code>traceparent</code> and <code>x-request-id</code> into Pub/Sub message attributes. Update the fulfillment worker to extract attributes and resume the parent span:
+<pre><code># Publisher context injection
+message = pubsub_v1.PubsubMessage(
+    data=json.dumps(event_payload).encode("utf-8"),
+    ordering_key=order_id,
+    attributes={
+        "traceparent": current_traceparent,
+        "x-request-id": current_request_id
+    }
+)</code></pre>
+</li>
+<li><strong>Enforce OIDC Verification &amp; Consumer Deduplication Table:</strong> Re-deploy <code>fulfillment-service</code> with authentication enforced (<code>--no-allow-unauthenticated</code>) and verify Google-signed OIDC ID tokens. In the consumer, enforce the Crash-Before-Ack discipline using a dedicated <code>processed_events</code> deduplication table:
+<pre><code>INSERT INTO processed_events (event_id, order_id)
+VALUES (:evt_id, :ord_id)
+ON CONFLICT (order_id) DO NOTHING;</code></pre>
+If zero rows are inserted, acknowledge the message immediately and bypass physical fulfillment.
+</li>
+</ol>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d65-p2-title d65-p2-desc" viewBox="0 0 960 320" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d65-p2-title">Incident 2: Dropped W3C Trace Context, Inventory Oversell Race Condition, and Unverified OIDC Dispatch</title>
+<desc id="d65-p2-desc">Incident diagram showing failed path with stripped traceparent at Pub/Sub broker, race condition overselling inventory to -150, and unauthenticated rogue caller triggering duplicate orders, contrasted with corrected path featuring W3C attribute injection, CHECK constraints with FOR UPDATE locking, and OIDC JWT validation.</desc>
+<defs>
+<marker id="d65-p2-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d65-p2-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Trigger Node -->
+<rect x="25" y="45" width="180" height="90" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="35" y="65" fill="#c7d2fe" font-size="11" font-weight="700">Trigger: Flash Sale &amp; Test</text>
+<text x="35" y="81" fill="#cbd5e1" font-size="9.5">1,800 QPS on 500 loaves</text>
+<text x="35" y="96" fill="#cbd5e1" font-size="9.5">Concurrent checkout race</text>
+<text x="35" y="111" fill="#94a3b8" font-size="9">Rogue test script invokes API</text>
+
+<!-- FAILED PATH (Upper Lane) -->
+<rect x="245" y="45" width="220" height="90" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="255" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: Context Stripped</text>
+<text x="255" y="81" fill="#cbd5e1" font-size="9.5">traceparent omitted in Pub/Sub</text>
+<text x="255" y="96" fill="#cbd5e1" font-size="9.5">Cloud Trace terminates at API</text>
+<text x="255" y="111" fill="#f43f5e" font-size="9">SREs blinded during incident</text>
+
+<rect x="505" y="45" width="205" height="90" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="515" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: Oversell &amp; No Auth</text>
+<text x="515" y="81" fill="#cbd5e1" font-size="9.5">No CHECK constraint on stock</text>
+<text x="515" y="96" fill="#cbd5e1" font-size="9.5">Stock drops to -150 loaves</text>
+<text x="515" y="111" fill="#f43f5e" font-size="9">Unauthenticated HTTP accepted</text>
+
+<rect x="750" y="45" width="185" height="90" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="760" y="65" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Corruption</text>
+<text x="760" y="81" fill="#fca5a5" font-size="9.5">400 duplicate shipments</text>
+<text x="760" y="96" fill="#fca5a5" font-size="9.5">150 oversold backorders</text>
+<text x="760" y="111" fill="#f43f5e" font-size="9">$34,000 refund losses</text>
+
+<!-- Failed Path Connectors -->
+<path d="M 205 90 L 245 90" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d65-p2-mf)"/>
+<path d="M 465 90 L 505 90" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d65-p2-mf)"/>
+<path d="M 710 90 L 750 90" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d65-p2-mf)"/>
+
+<!-- CORRECTED PATH (Lower Lane) -->
+<rect x="245" y="195" width="220" height="90" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="255" y="215" fill="#86efac" font-size="11" font-weight="700">CORRECTED: Trace Flowing</text>
+<text x="255" y="231" fill="#cbd5e1" font-size="9.5">traceparent in Pub/Sub attrs</text>
+<text x="255" y="246" fill="#cbd5e1" font-size="9.5">X-Request-Id propagated</text>
+<text x="255" y="261" fill="#22c55e" font-size="9">&#10003; 100% unified flamegraph</text>
+
+<rect x="505" y="195" width="205" height="90" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="515" y="215" fill="#86efac" font-size="11" font-weight="700">CORRECTED: Lock &amp; Auth</text>
+<text x="515" y="231" fill="#cbd5e1" font-size="9.5">CHECK (stock &gt;= 0) + FOR UPDATE</text>
+<text x="515" y="246" fill="#cbd5e1" font-size="9.5">OIDC Bearer token validated</text>
+<text x="515" y="261" fill="#22c55e" font-size="9">&#10003; Zero overselling guaranteed</text>
+
+<rect x="750" y="195" width="185" height="90" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="760" y="215" fill="#4ade80" font-size="11" font-weight="700">CORRECTED PATH: Correct</text>
+<text x="760" y="231" fill="#86efac" font-size="9.5">Deduplication table catches retries</text>
+<text x="760" y="246" fill="#86efac" font-size="9.5">Zero duplicate shipments</text>
+<text x="760" y="261" fill="#22c55e" font-size="9">&#10003; All 4 invariants intact</text>
+
+<!-- Corrected Path Connectors -->
+<path d="M 115 135 L 115 240 L 245 240" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d65-p2-mc)"/>
+<path d="M 465 240 L 505 240" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d65-p2-mc)"/>
+<path d="M 710 240 L 750 240" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d65-p2-mc)"/>
+
+<!-- Verify Boundary Probe Point -->
+<circle cx="505" cy="240" r="7" fill="#f59e0b" stroke="#ffffff" stroke-width="2"/>
+<text x="470" y="300" fill="#f59e0b" font-size="10" font-weight="700">VERIFY BOUNDARY</text>
+</svg>
+<figcaption>Figure 65.3: Incident 2 Root Cause and Remediation. <strong>Supplied facts:</strong> During a flash sale for 500 limited-edition loaves at 1,800 QPS, Cloud Run stripped incoming W3C <code>traceparent</code> headers when publishing to Pub/Sub, blinding operations in Cloud Trace. Simultaneously, an optimistic application-layer inventory check without database row locking allowed 35 concurrent threads to read <code>stock = 1</code>, driving stock negative to -150. Concurrently, an unauthorized internal test script dispatched unauthenticated HTTP calls to the fulfillment worker (missing OIDC authentication and deduplication tables), triggering 400 duplicate physical shipments and $34,000 in customer refunds. <strong>Architectural inference:</strong> Asynchronous message brokers do not automatically carry HTTP tracing headers without explicit message attribute mapping; furthermore, business invariants cannot rely on application memory assertions in distributed environments, requiring relational engine constraints and cryptographic OIDC token verification. <strong>Expected post-fix behavior:</strong> Serializing <code>traceparent</code> into Pub/Sub message attributes unifies the end-to-end trace flamegraph, database <code>CHECK (stock >= 0)</code> constraints and <code>SELECT FOR UPDATE</code> locks prevent overselling under high concurrency, and OIDC ID token validation coupled with consumer deduplication tables eliminates duplicate order fulfillment.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> The fix was tested in the staging environment by running a high-concurrency race simulation script executing 100 concurrent checkout threads against a stock balance of exactly 10 loaves. The database successfully committed 10 purchases and immediately threw <code>CheckViolation</code> errors on the remaining 90 concurrent attempts, keeping final stock at exactly 0. Concurrently, synthetic unauthenticated HTTP POST requests to <code>fulfillment-service</code> were instantly rejected with <code>HTTP 401 Unauthorized</code>. The test published 50 identical Pub/Sub event IDs; the consumer processed the first message and discarded the remaining 49 as duplicates, proving exactly-one fulfillment.</p>
+<p><strong>Residual Risk:</strong> Pessimistic row locking (<code>SELECT ... FOR UPDATE</code>) on high-demand inventory records serializes database writes on that specific row, potentially increasing transaction latency during extreme hot-spot flash sales. When scaling beyond 10,000 QPS on a single SKU, inventory partitioning or reserved allocation buckets will be necessary.</p>
+</article>
+</section>

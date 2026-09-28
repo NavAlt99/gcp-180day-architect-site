@@ -1,0 +1,134 @@
+    <section class="part" id="part-4" aria-labelledby="part-4-heading">
+      <h2 id="part-4-heading">Part 4 · Step-by-step labs</h2>
+      <p class="section-lead">Hands-on architectural labs to evaluate regional trade-offs across latency, cost, and compliance, simulate Organization Policy location restrictions, and compile the enterprise location and resource-scope matrix.</p>
+
+      <article class="card" id="topic-01-lab" aria-labelledby="l1-title">
+        <span class="badge">Hands-on Lab · Topic 01</span>
+        <h3 id="l1-title">Lab 30.1: Multi-Criteria Regional Trade-Off Evaluation and Org Policy Constraint Simulation</h3>
+
+        <h4>Goal</h4>
+        <p>Evaluate multi-criteria trade-offs between Google Cloud candidate regions (<code>us-central1</code>, <code>us-east4</code>, and <code>europe-west3</code>) across latency, pricing differentials, carbon intensity (CFE%), and compliance boundaries. Then simulate and verify how Google Cloud's Resource Locations Organization Policy constraint (<code>constraints/gcp.resourceLocations</code>) blocks out-of-boundary deployments.</p>
+
+        <h4>Expected Result</h4>
+        <p>A comprehensive console report quantifying the trade-offs between North American and European deployment targets, accompanied by verified policy simulation logs confirming 100% deterministic blocking of unapproved regional provisioning requests.</p>
+
+        <h4>Mode</h4>
+        <p>Hybrid (Python evaluation engine and policy enforcement simulation in <code>scratch/day030/compare-regional-tradeoffs.py</code>).</p>
+
+        <h4>Preflight</h4>
+        <ul>
+          <li>Verify Python 3.10+ runtime environment.</li>
+          <li>Review candidate region parameters: primary operational hub (<code>us-central1</code>), disaster recovery standby (<code>us-east4</code>), and European expansion territory (<code>europe-west3</code>).</li>
+          <li>Ensure working directory is positioned in the repository root.</li>
+        </ul>
+
+        <h4>Exact Execution Steps</h4>
+        <ol>
+          <li><strong>Inspect Regional Comparison Engine:</strong> Review the trade-off evaluation script located at <code>scratch/day030/compare-regional-tradeoffs.py</code> to examine how pricing multipliers, latency benchmarks, and carbon scores are calculated.</li>
+          <li><strong>Execute Multi-Criteria Regional Comparison:</strong> Run the evaluation script from the repository root:
+            <pre><code class="language-bash">python3 scratch/day030/compare-regional-tradeoffs.py</code></pre>
+          </li>
+          <li><strong>Analyze Regional Trade-Off Deltas:</strong> Observe the output comparing <code>us-central1</code> vs <code>europe-west3</code> and <code>us-central1</code> vs <code>us-east4</code>. Verify that compute pricing variance (+12%) and transatlantic round-trip latency (+90ms) justify isolating European workloads into a dedicated local region.</li>
+          <li><strong>Verify Organization Policy Simulation:</strong> Confirm that the policy evaluation engine enforces <code>constraints/gcp.resourceLocations</code> with <code>allowed_values = ['in:europe-locations']</code>, validating that attempts to deploy Cloud SQL or Cloud Storage in <code>us-east4</code> and <code>us-central1</code> are rejected with HTTP 403 policy violation errors.</li>
+        </ol>
+
+        <h4>Verification &amp; Expected Output</h4>
+        <p>Successful script execution yields the following verified console output:</p>
+        <pre><code class="language-text">================================================================================
+GOOGLE CLOUD MULTI-CRITERIA REGIONAL COMPARISON
+Comparing Candidate A [us-central1] vs Candidate B [europe-west3]
+================================================================================
+
+1. GEOGRAPHY &amp; FAULT ISOLATION:
+  • us-central1 (Iowa, USA): 4 zones (us-central1-a, us-central1-b, us-central1-c, us-central1-f)
+  • europe-west3 (Frankfurt, Germany): 3 zones (europe-west3-a, europe-west3-b, europe-west3-c)
+
+2. CLIENT LATENCY TO MIDWEST US RETAIL HUBS:
+  • us-central1: 15 ms RTT (Optimal for US operations)
+  • europe-west3: 105 ms RTT (High transatlantic penalty)
+
+3. COST DIFFERENTIAL (RELATIVE TO TIER 1 BASELINE):
+  • us-central1: 1.00x compute baseline | $0.020/GB-mo storage
+  • europe-west3: 1.12x compute baseline | $0.023/GB-mo storage
+  --&gt; Variance: europe-west3 is +12.0% vs us-central1
+
+4. SUSTAINABILITY &amp; CLEAN ENERGY:
+  • us-central1: 64% CFE (Carbon Free Energy)
+  • europe-west3: 76% CFE (Carbon Free Energy)
+  --&gt; Carbon Advantage: europe-west3 has +12% higher CFE rating
+
+5. COMPLIANCE &amp; DATA SOVEREIGNTY:
+  • us-central1: Domains: US-Commercial, FedRAMP-High, HIPAA | EU GDPR In-Country: False
+  • europe-west3: Domains: EU-GDPR, German-BaFin, BSI-C5 | EU GDPR In-Country: True
+
+SIMULATING ORGANIZATION POLICY: constraints/gcp.resourceLocations
+Folder: folders/58920194812 (Brightloaf European Expansion)
+Enforced Rule: allowed_values = ['in:europe-locations']
+
+  • Resource: Cloud SQL Instance     | Region: us-east4       -&gt; BLOCKED (POLICY VIOLATION)
+    ERROR 403: Constraint constraints/gcp.resourceLocations violated for location 'us-east4'.
+  • Resource: Cloud SQL Instance     | Region: europe-west3   -&gt; PASSED (DEPLOYED)
+  • Resource: Cloud Storage Bucket   | Region: us-central1    -&gt; BLOCKED (POLICY VIOLATION)
+    ERROR 403: Constraint constraints/gcp.resourceLocations violated for location 'us-central1'.
+  • Resource: Compute Engine MIG     | Region: europe-west3   -&gt; PASSED (DEPLOYED)
+
+Policy evaluation completed with 100% deterministic guardrail verification.</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><strong>Python Module Not Found:</strong> The script uses standard Python library modules (<code>sys</code>, <code>json</code>). Ensure execution runs via <code>python3</code> rather than an outdated Python 2 binary.</li>
+          <li><strong>Permission Denied on Script Execution:</strong> Ensure read and execute permissions on <code>scratch/day030/compare-regional-tradeoffs.py</code> (e.g. run <code>chmod +x scratch/day030/compare-regional-tradeoffs.py</code>).</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>The simulation script runs completely in memory and requires no cloud infrastructure teardown. Keep <code>scratch/day030/compare-regional-tradeoffs.py</code> for audit trails.</p>
+      </article>
+
+      <article class="card" id="topic-02-lab" aria-labelledby="l2-title">
+        <span class="badge">Hands-on Lab · Topic 02</span>
+        <h3 id="l2-title">Lab 30.2: Constructing a Comprehensive Location and Resource-Scope Matrix</h3>
+
+        <h4>Goal</h4>
+        <p>Classify 13 core Google Cloud architectural components across the four availability scopes (Zonal, Regional, Multi-Regional, and Global), audit service availability across primary and DR candidate regions, verify data residency constraints, and compile the Day 30 exit artifact: <code>scratch/day030/location-scope-matrix.md</code>.</p>
+
+        <h4>Expected Result</h4>
+        <p>A fully compiled, production-grade Markdown document containing the complete resource classification matrix, blast radius definitions, high-availability recovery mechanisms, and duplicate fulfillment invariant safeguards.</p>
+
+        <h4>Mode</h4>
+        <p>Automated Python matrix builder (<code>scratch/day030/build-location-scope-matrix.py</code>).</p>
+
+        <h4>Preflight</h4>
+        <ul>
+          <li>Confirm that <code>scratch/day030/</code> directory exists and is writable.</li>
+          <li>Verify entry prerequisites from Day 12 and Day 29.</li>
+          <li>Ensure familiarity with the duplicate fulfillment invariant (&le;1 physical fulfillment per unique order ID).</li>
+        </ul>
+
+        <h4>Exact Execution Steps</h4>
+        <ol>
+          <li><strong>Examine Scope Matrix Definition File:</strong> Review <code>scratch/day030/build-location-scope-matrix.py</code> to inspect how resource scopes, blast radiuses, and failover mechanics are modeled across Compute, Storage, Database, Networking, and IAM services.</li>
+          <li><strong>Execute Matrix Compilation:</strong> Run the generator script from the repository root:
+            <pre><code class="language-bash">python3 scratch/day030/build-location-scope-matrix.py</code></pre>
+          </li>
+          <li><strong>Inspect Generated Exit Artifact:</strong> Open and verify the generated markdown matrix:
+            <pre><code class="language-bash">head -n 35 scratch/day030/location-scope-matrix.md</code></pre>
+          </li>
+          <li><strong>Verify Scope Isolation Boundaries:</strong> Confirm that every resource is explicitly categorized into Zonal, Regional, Multi-Regional, or Global scopes with documented failure behaviors and invariant protection mechanisms.</li>
+        </ol>
+
+        <h4>Verification &amp; Expected Output</h4>
+        <p>The matrix compilation script terminates with return code 0 and logs generation details:</p>
+        <pre><code class="language-text">Location &amp; Resource-Scope Matrix generated successfully: scratch/day030/location-scope-matrix.md
+Total resources audited: 13
+File size: 8491 bytes</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><strong>Missing Output Directory:</strong> If running from outside the repository root, verify path resolution or execute from <code>/home/naveen/Documents/GCP/RoadMap/gcp-180day-architect-site</code>.</li>
+          <li><strong>File Encoding Issues:</strong> The generator script explicitly writes with UTF-8 encoding to preserve unicode mathematical symbols (such as &le;).</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>The compiled matrix file <code>scratch/day030/location-scope-matrix.md</code> is the permanent exit evidence for Day 30 and must be preserved.</p>
+      </article>
+    </section>

@@ -1,0 +1,5 @@
+Most Console pages are scoped to the selected project, while some pages, including Billing, can represent an account spanning several projects. This scope difference matters: a resource can appear “missing” because the wrong project or organization is selected, and a user can accidentally create it in the wrong project. The Console checks IAM permissions on the underlying resource. Seeing a menu entry does not mean a user can view or modify the resource.
+
+The project picker, navigation menu and search bar are ways to locate a service. A pinned product only changes navigation convenience. Before taking action, an architect should verify the page heading, project ID, account or organization scope and intended region. Those checks make later GUI labs reproducible.
+
+**Further study:** [Google Cloud Console documentation](https://docs.cloud.google.com/docs/overview/cloud-console) and [Resource Manager — create and manage projects](https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects#create_a_project).

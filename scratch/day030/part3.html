@@ -1,0 +1,188 @@
+    <section class="part" id="part-3" aria-labelledby="part-3-heading">
+      <h2 id="part-3-heading">Part 3 · Real-world problems</h2>
+      <p class="section-lead">Production post-mortems from the Brightloaf cloud migration: untangling regulatory non-compliance from uncontrolled regional database provisioning, and surviving severe datacenter grid disruptions with regional multi-zone architectures.</p>
+
+      <article class="card" id="topic-01-problem" aria-labelledby="t1-prob-title">
+        <span class="badge">Production Incident · Topic 01</span>
+        <h3 id="t1-prob-title">Incident 30.1: Regulatory data sovereignty infraction from ad-hoc regional database provisioning</h3>
+
+        <div class="incident-grid">
+          <div>
+            <h4>Symptom</h4>
+            <p>During an annual European compliance audit preparing for Brightloaf's retail launch in Germany and France, statutory auditors flagged a critical data privacy breach: customer profiles, delivery addresses, and payment tokens originating from European retail stores were being written to a Cloud SQL PostgreSQL database hosted in Northern Virginia (<code>us-east4</code>). European supervisory authorities served Brightloaf with a formal notice of investigation under GDPR Article 44 (prohibiting unauthorized international transfers of personal data), demanding immediate remediation under threat of a $180,000 regulatory fine.</p>
+          </div>
+
+          <div>
+            <h4>Constraints</h4>
+            <ul>
+              <li><strong>Zero Interruption to US Production:</strong> Active bakery dispatch across 40 Midwestern stores in <code>us-central1</code> must remain completely untouched during remediation.</li>
+              <li><strong>Strict European Data Residency:</strong> All European customer data and database storage must reside strictly within European Union member state borders (specifically <code>europe-west3</code> in Frankfurt or <code>europe-west1</code> in Belgium).</li>
+              <li><strong>Brightloaf Deduplication Invariant:</strong> Guarantee that replaying transactions or migrating databases maintains &le;1 physical fulfillment per unique order ID across European distribution hubs.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h4>Incident Evidence &amp; Log Artifacts</h4>
+        <p>Audit logging revealed that an expansion project team applied default Terraform configurations that defaulted to <code>us-east4</code>, while Cloud Asset Inventory showed zero policy constraints blocking non-EU locations:</p>
+        <pre><code class="language-json">{
+  "protoPayload": {
+    "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+    "status": { "code": 0 },
+    "authenticationInfo": {
+      "principalEmail": "terraform-expansion-sa@brightloaf-eu-prod.iam.gserviceaccount.com"
+    },
+    "serviceName": "sqladmin.googleapis.com",
+    "methodName": "cloudsql.instances.create",
+    "resourceName": "projects/brightloaf-eu-prod/instances/eu-orders-db-01",
+    "request": {
+      "region": "us-east4",
+      "settings": {
+        "tier": "db-custom-4-16384",
+        "dataDiskType": "PD_SSD",
+        "availabilityType": "ZONAL"
+      }
+    }
+  },
+  "resource": {
+    "type": "cloudsql_database",
+    "labels": {
+      "project_id": "brightloaf-eu-prod",
+      "region": "us-east4"
+    }
+  },
+  "severity": "NOTICE"
+}</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>The newly provisioned GCP project <code>brightloaf-eu-prod</code> was created under a temporary sandbox folder that lacked organizational policy inheritance. The central Google Cloud Organization had not enforced the Resource Locations constraint (<code>constraints/gcp.resourceLocations</code>). Engineers deploying Terraform modules without an explicit regional override defaulted to the organization's legacy US template (<code>us-east4</code>). Because no automated guardrails blocked the API request, Cloud SQL provisioned the database in North America, causing direct non-compliance with European data localization statutes.</p>
+
+        <h4>Five-Step Diagnostic &amp; Resolution Sequence</h4>
+        <ol>
+          <li><strong>Audit Resource Inventory Across Organization Hierarchy:</strong> Query Cloud Asset Inventory across all organizational folders to identify any databases, storage buckets, or compute instances tagged with EU project metadata residing in non-EU regions.
+            <pre><code class="language-bash">gcloud asset search-all-resources \
+  --scope="organizations/108420491823" \
+  --query="labels.env:eu-prod" \
+  --format="table(name,assetType,location)"</code></pre>
+          </li>
+          <li><strong>Enforce Hierarchical Resource Location Policy:</strong> Define and enforce an organization policy constraint on the European folder hierarchy (<code>folders/58920194812</code>), strictly restricting allowable resource locations to European regions (<code>in:europe-locations</code>).
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; eu-location-policy.yaml
+name: folders/58920194812/policies/gcp.resourceLocations
+spec:
+  rules:
+  - values:
+      allowedValues:
+      - in:europe-locations
+EOF
+gcloud org-policies set-policy eu-location-policy.yaml</code></pre>
+          </li>
+          <li><strong>Provision Compliant Regional HA Database in europe-west3:</strong> Create a new Cloud SQL PostgreSQL instance in Frankfurt (<code>europe-west3</code>) configured with High Availability across zones <code>europe-west3-a</code> and <code>europe-west3-b</code> to ensure local residency and zone fault-tolerance.
+            <pre><code class="language-bash">gcloud sql instances create eu-orders-ha-db \
+  --project="brightloaf-eu-prod" \
+  --region="europe-west3" \
+  --database-version="POSTGRES_15" \
+  --tier="db-custom-4-16384" \
+  --availability-type="REGIONAL" \
+  --storage-type="SSD" \
+  --storage-size="100GB"</code></pre>
+          </li>
+          <li><strong>Execute Idempotent Database Migration &amp; Invariant Verification:</strong> Put the legacy <code>us-east4</code> instance into read-only mode, export state via <code>pg_dump</code>, and import into <code>eu-orders-ha-db</code>. Verify that unique order UUID constraints (<code>order_uuid UNIQUE</code>) prevent duplicate dispatches during traffic rerouting:
+            <pre><code class="language-sql">-- Verify unique constraint protecting duplicate fulfillment invariant
+SELECT constraint_name, constraint_type
+FROM information_schema.table_constraints
+WHERE table_name = 'orders' AND constraint_type = 'UNIQUE';</code></pre>
+          </li>
+          <li><strong>Securely Purge Non-Compliant US Instance &amp; Verify Policy Enforcement:</strong> Update application connection strings in the European deployment manifests to point to the Frankfurt instance. Once cutover validation confirms zero in-flight data, execute cryptographic deletion of the <code>us-east4</code> database and verify that attempts to create resources in US regions now fail with a policy violation error.</li>
+        </ol>
+
+        <!-- Figure 30.3: Incident 30.1 Architecture Trace -->
+        INJECT_FIG_30_3_HERE
+
+        <h4>Defensible Solution &amp; Invariant Preservation</h4>
+        <p>By enforcing <code>constraints/gcp.resourceLocations</code> at the organizational folder level, any API call or Terraform plan attempting to provision resources outside European boundaries is blocked synchronously at the Google Cloud API gateway before billing or provisioning occurs. Brightloaf's duplicate fulfillment invariant is rigorously preserved during migration through primary key constraints on order UUIDs: when retail clients resend unacknowledged order payloads following connection cutover, the target database in Frankfurt rejects duplicates via SQL unique constraint enforcement, guaranteeing that exactly one physical bakery dispatch is executed per order ID.</p>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Attempting to create an unauthorized resource in <code>us-central1</code> within the European project returns <code>Constraint constraints/gcp.resourceLocations violated for projects/brightloaf-eu-prod</code>. Application latency to Berlin and Paris retail terminals dropped from 104&nbsp;ms (transatlantic) to 14&nbsp;ms (intra-European).</p>
+        <p><strong>Residual Risk:</strong> Multi-region services (such as global IAM role definitions and Cloud Logging log sink destinations) distribute metadata globally by design. Compliance documentation must explicitly delineate between customer data at rest (restricted to Frankfurt) and control-plane metadata.</p>
+      </article>
+
+      <article class="card" id="topic-02-problem" aria-labelledby="t2-prob-title">
+        <span class="badge">Production Incident · Topic 02</span>
+        <h3 id="t2-prob-title">Incident 30.2: Zonal datacenter power outage causes order gateway outage and transaction black hole</h3>
+
+        <div class="incident-grid">
+          <div>
+            <h4>Symptom</h4>
+            <p>At 05:14 AM CST, an electrical utility fire and catastrophic dual uninterruptible power supply (UPS) failure knocked out Google Cloud datacenter zone <code>us-central1-a</code>. Brightloaf's primary order intake service—deployed on a standalone Compute Engine virtual machine (<code>order-gateway-vm</code>) with a zonal persistent disk—immediately crashed. For 42 minutes during peak morning franchise restocking, incoming order dispatch webhooks from 40 retail bakeries failed with HTTP 502 Bad Gateway and TCP connection timeouts. Store managers, unable to verify whether their flour and yeast orders had registered, resorted to frantic phone calls and uncoordinated email re-submissions.</p>
+          </div>
+
+          <div>
+            <h4>Constraints</h4>
+            <ul>
+              <li><strong>Zero Single Point of Failure (SPOF):</strong> The order intake pipeline must survive the catastrophic physical destruction of any single Google Cloud datacenter zone without manual operator intervention.</li>
+              <li><strong>Sub-Minute Recovery Time (RTO &lt; 60s):</strong> Failover between zones must happen automatically via health-checked load balancing.</li>
+              <li><strong>Zero Duplicate Fulfillment (&le;1 order dispatch):</strong> Network retries and client replay of failed HTTP requests must never produce duplicate physical supply trucks dispatched to retail bakeries.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h4>Incident Evidence &amp; Log Artifacts</h4>
+        <p>Cloud Monitoring dashboards confirmed complete connectivity loss to the zonal VM at 05:14:12 UTC, while Google Cloud Service Health emitted a critical incident advisory for zone <code>us-central1-a</code>:</p>
+        <pre><code class="language-json">{
+  "incident": {
+    "service_name": "Compute Engine",
+    "impacted_locations": ["us-central1-a"],
+    "summary": "Loss of primary and auxiliary power to multiple server rows in zone us-central1-a.",
+    "state": "ACTIVE",
+    "event_type": "OUTAGE",
+    "begin_time": "2026-09-27T10:14:12Z"
+  }
+}</code></pre>
+        <p>Franchise order webhooks during the blackout received continuous connection resets:</p>
+        <pre><code class="language-text">2026-09-27 05:16:03 [ERROR] Store #104 webhook dispatch failed:
+POST https://orders.brightloaf.internal/api/v1/orders
+Error: connect ECONNREFUSED 10.128.1.15:443
+Retrying (attempt 1/5)...
+Error: connect ETIMEDOUT 10.128.1.15:443
+Dropping order batch #BREAD-9481 (6,500 units affected)</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>The order intake gateway had been architected as an unmanaged, single-zone Compute Engine virtual machine attached to a standard zonal Persistent Disk (<code>pd-balanced</code>). When zone <code>us-central1-a</code> lost power, the hypervisor, storage arrays, and virtual machine halted instantaneously. Because the persistent disk was strictly zonal, it could not be attached to an instance in zone <code>us-central1-b</code> or <code>us-central1-c</code> while the physical storage cluster in zone <code>a</code> remained offline. Furthermore, because no load balancer fronted the instance, incoming DNS records directed all traffic directly to the unresponsive zonal private IP address, creating a 42-minute complete operational black hole.</p>
+
+        <h4>Five-Step Diagnostic &amp; Resolution Sequence</h4>
+        <ol>
+          <li><strong>Identify Active Zonal Failure Boundary:</strong> Check Google Cloud Service Health and inspect Compute Engine instance status to confirm the scope of disruption is isolated to zone <code>us-central1-a</code>.
+            <pre><code class="language-bash">gcloud compute instances describe order-gateway-vm \
+  --zone="us-central1-a" \
+  --format="yaml(status,statusMessage)"</code></pre>
+          </li>
+          <li><strong>Inspect Orphaned Zonal Storage &amp; In-Flight Transactions:</strong> Verify that the zonal persistent disk is inaccessible due to physical datacenter disconnection, confirming that in-place recovery within zone <code>a</code> is impossible until Google power restoration.</li>
+          <li><strong>Architect Regional Managed Instance Group (Regional MIG):</strong> Construct an instance template and deploy a Regional Managed Instance Group distributed evenly across all healthy zones in the region (<code>us-central1-a</code>, <code>us-central1-b</code>, <code>us-central1-c</code>).
+            <pre><code class="language-bash">gcloud compute instance-groups managed create order-gateway-rmig \
+  --region="us-central1" \
+  --template="order-gateway-template-v2" \
+  --size=3 \
+  --instance-redistribution-type="PROACTIVE" \
+  --target-distribution-shape="EVEN"</code></pre>
+          </li>
+          <li><strong>Deploy Regional Internal Application Load Balancer with Auto-Healing:</strong> Front the Regional MIG with an Internal Application Load Balancer configured with proactive HTTP health checks. If any zone drops or fails health checks, the load balancer automatically diverts 100% of ingress traffic to instances in the surviving zones within 5 seconds.
+            <pre><code class="language-bash">gcloud compute health-checks create http order-gateway-health \
+  --region="us-central1" \
+  --port=8080 \
+  --request-path="/healthz" \
+  --check-interval=3s \
+  --unhealthy-threshold=2</code></pre>
+          </li>
+          <li><strong>Upgrade Backend to Cloud SQL High Availability with Deduplication Filter:</strong> Transition the backend database to Cloud SQL HA, providing synchronous replication between <code>us-central1-a</code> and <code>us-central1-b</code> with automatic failover. Deploy an in-memory Redis deduplication layer in the gateway middleware checking unique <code>order_id</code> keys to guarantee the duplicate fulfillment invariant (&le;1 physical fulfillment) even when clients replay dropped orders.</li>
+        </ol>
+
+        <!-- Figure 30.4: Incident 30.2 Architecture Trace -->
+        INJECT_FIG_30_4_HERE
+
+        <h4>Defensible Solution &amp; Invariant Preservation</h4>
+        <p>Replacing the single-zone VM with a Regional Managed Instance Group eliminates the single point of failure. The Regional MIG maintains active backend instances across three separate physical datacenters. When zone <code>us-central1-a</code> experiences a total failure, the Regional Internal Application Load Balancer immediately routes traffic to instances in <code>us-central1-b</code> and <code>us-central1-c</code>. Cloud SQL High Availability automatically detects primary loss and promotes the synchronous standby in zone <code>b</code> within 45 seconds with zero data loss. To uphold Brightloaf's duplicate fulfillment invariant (&le;1 physical fulfillment per unique order ID), the API gateway records incoming order UUIDs in a distributed deduplication cache before dispatching events; any retry triggered by franchise stores returns the previous confirmation receipt without issuing a duplicate baking run.</p>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Chaos simulation conducted by terminating all instances in zone <code>us-central1-a</code> simultaneously. The Regional MIG immediately spun up replacement capacity in zones <code>b</code> and <code>c</code>, the load balancer health checks reacted within 3 seconds, and 10,000 synthetic retail order webhooks completed with 100% success and exactly zero duplicate physical dispatches.</p>
+        <p><strong>Residual Risk:</strong> While regional architecture eliminates zonal vulnerability, a catastrophic catastrophic region-wide event (e.g., severe multi-state fiber cuts or extreme weather impacting all Iowa facilities) would take down the entire region. Business continuity requires maintaining an asynchronous disaster recovery replica in <code>us-east4</code>.</p>
+      </article>
+    </section>

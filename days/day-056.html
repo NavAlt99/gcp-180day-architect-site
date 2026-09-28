@@ -1,0 +1,1649 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 56: Hybrid topology and failure domains · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-055.html" aria-label="Previous day">← Day 55</a>
+<a href="day-057.html" aria-label="Next day">Day 57 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html" selected>Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="56" data-prev="day-055.html" data-next="day-057.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 56 of 180</div>
+<section class="hero">
+<div class="pills"><span class="pill">DAY 56</span><span class="pill">3–4 hours</span><span class="pill">production practice</span><span class="pill">Hybrid Transit &amp; SLAs</span></div>
+<h1>Day 56 — Hybrid topology and failure domains</h1>
+<p class="lead"><strong>Outcome:</strong> Model redundant VPN, Dedicated Interconnect, Cross-Cloud Interconnect, and Carrier Peering topologies; systematically remove links to prove surviving routes and calculate true availability SLAs.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-055.html">Day 55</a>, <a href="day-004.html">Day 4</a>; bring their exit artifacts.</p></div>
+<div class="callout success"><strong>Exit artifact</strong><p>A hybrid ADR with separate failure domains, lead time and cost assumptions; a drawing does not prove an SLA, assembled as <code>day-056-hybrid-adr.md</code>.</p></div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>Cloud VPN (Classic vs HA VPN, 99.99% SLA)</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>Cloud Interconnect (Dedicated vs Partner, MACsec)</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+<div class="toc-topic"><span>Cross-Cloud Interconnect (AWS/Azure direct links)</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+<div class="toc-topic"><span>Network Connectivity Center (NCC) router spoke integration</span><a href="#topic-04-overview">overview</a> · <a href="#topic-04-technical">discussion</a> · <a href="#topic-04-problem">problem</a> · <a href="#topic-04-lab">lab</a></div>
+<div class="toc-topic"><span>99.9% vs 99.99% SLA topologies</span><a href="#topic-05-overview">overview</a> · <a href="#topic-05-technical">discussion</a> · <a href="#topic-05-problem">problem</a> · <a href="#topic-05-lab">lab</a></div>
+<div class="toc-topic"><span>Direct Peering vs Carrier Peering</span><a href="#topic-06-overview">overview</a> · <a href="#topic-06-technical">discussion</a> · <a href="#topic-06-problem">problem</a> · <a href="#topic-06-lab">lab</a></div>
+</aside>
+
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Cloud VPN (Classic vs HA VPN, 99.99% SLA topology)</h3>
+<p>Cloud VPN securely extends on-premises networks to Google Cloud VPCs over encrypted IPsec tunnels across the public internet. High Availability (HA) VPN delivers a contractually guaranteed 99.99% service level agreement (SLA) by provisioning two distinct public IPv4 gateway interfaces (<code>interface 0</code> and <code>interface 1</code>) anchored to physically isolated Google hardware clusters and power domains. HA VPN mandates dynamic Border Gateway Protocol (eBGP) routing managed by Google Cloud Router, supporting active/active dual-tunnel Equal-Cost Multi-Path (ECMP) forwarding or deterministic active/passive failover using Multi-Exit Discriminator (MED) path metrics. In contrast, legacy Classic VPN provides only a single gateway interface with static routing, single tunnel failure domains, and a lower 99.9% availability SLA, making it entirely unsuitable for mission-critical enterprise workloads.</p>
+<p>During scheduled hypervisor maintenance on a single-interface Classic VPN gateway, the sole IPsec tunnel drops packet forwarding for 18 minutes while awaiting host re-anchoring. The disruption halts warehouse inventory synchronization across 42 distribution centers, stranding $1.8M in pending truck dispatches until routes manually restabilize.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Cloud Interconnect (Dedicated vs Partner, MACsec, 10G/100G circuits)</h3>
+<p>Cloud Interconnect establishes enterprise-grade, high-bandwidth private physical connectivity directly into Google's global fiber backbone without traversing the public internet. Dedicated Interconnect provides 10 Gbps or 100 Gbps single-mode optical fiber cross-connects terminating directly on Google edge routing equipment located within certified Google colocation facilities (Meet-Me-Rooms), supporting optional line-rate MACsec (IEEE 802.1AE) Layer 2 hardware encryption. For enterprises not co-located in a Google facility, Partner Interconnect connects through certified service providers (such as Equinix, Megaport, or Console Connect) with flexible sub-interface VLAN attachments ranging from 50 Mbps up to 50 Gbps, offering rapid provisioning via pairing keys and a choice between Layer 2 and Layer 3 partner handoffs.</p>
+<p>A central aggregation switch failure at a regional Partner Interconnect colocation facility terminates both virtual circuits carrying internal ERP traffic between on-premises headquarters and GCP. Core financial ledger processing halts for 9 hours during quarter-end reconciliation, triggering contractual non-compliance penalties exceeding $420,000.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Cross-Cloud Interconnect (AWS/Azure direct multi-cloud links)</h3>
+<p>Cross-Cloud Interconnect establishes dedicated, high-speed, SLA-backed physical cross-connects directly between Google Cloud and secondary cloud service providers, including Amazon Web Services (AWS Direct Connect) and Microsoft Azure (ExpressRoute). It completely eliminates the architectural overhead, physical equipment colocation leasing, and third-party telecom carrier contracts historically required to bridge multi-cloud infrastructure. Provisioned over 10 Gbps or 100 Gbps dedicated interfaces, Cross-Cloud Interconnect provides deterministic sub-3 millisecond latency, reduced cross-cloud data egress pricing, and zero exposure to public internet routing anomalies or MTU fragmentation.</p>
+<p>An e-commerce order settlement pipeline shuttling transactions between AWS us-east-1 and GCP us-central1 suffers intermittent 140ms latency spikes and 3.2% packet loss over an unmanaged public IPsec tunnel. High transaction latency aborts real-time checkout validations during a flash retail campaign, resulting in $650,000 in abandoned shopping carts.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-04-overview" class="topic-card">
+<h3>Network Connectivity Center (NCC) router spoke integration</h3>
+<p>Network Connectivity Center (NCC) delivers a centralized hub-and-spoke transit management architecture that unifies hybrid enterprise networks, multi-region Virtual Private Clouds, and third-party virtual routing appliances under a single control plane. By attaching Cloud Routers and Router Appliance virtual machines (such as Palo Alto Networks VM-Series, Fortinet FortiGate, or Cisco Catalyst 8000V) as hybrid spokes to an NCC Hub, enterprises achieve dynamic spoke-to-spoke route redistribution and wide-area network (WAN) aggregation across distributed branch offices. NCC automatically aggregates BGP route announcements, dynamically resolving transitive routing without requiring manual point-to-point IPsec mesh overlays.</p>
+<p>Enterprise branch offices experience unpredictable routing blackholes and split-brain path selection due to a fragmented full mesh of static VPN tunnels and uncoordinated Cloud Router BGP advertisements. Regional branch tellers lose database connectivity during peak retail banking hours, idling 14 branches and generating customer SLA breach reports.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-05-overview" class="topic-card">
+<h3>99.9% vs 99.99% topologies and failure domain isolation</h3>
+<p>Achieving Google Cloud's formal availability SLAs requires rigorous physical and topological domain isolation; as the architectural adage states, "a drawing does not prove an SLA." The 99.9% SLA topology delivers high availability within a single metropolitan area by terminating redundant circuits across two separate Edge Availability Domains (EAD 1 and EAD 2), protecting against router, power, and optic failures while remaining vulnerable to municipal metro disasters. The mission-critical 99.99% SLA topology mandates geographic diversity across two distinct metropolitan areas (e.g., Ashburn and Chicago) connecting to two separate Google Cloud regions, requiring four VLAN attachments, dual Cloud Routers, Global Dynamic Routing, and deterministic BGP route priority tuning.</p>
+<p>A municipal water main burst floods an Ashburn colocation facility, severing all fiber conduits entering the building and simultaneously taking down both Dedicated Interconnect circuits of a supposedly "resilient" single-metro deployment. The regional transit blackout suspends hospital patient scheduling systems for 11 hours and incurs a 25% enterprise insurance liability deduction.</p>
+<p><a href="#topic-05-technical">Technical discussion →</a> <a href="#topic-05-problem">Real-world problem →</a> <a href="#topic-05-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-06-overview" class="topic-card">
+<h3>Direct Peering vs Carrier Peering</h3>
+<p>Google Peering services establish direct BGP route exchange with Google's public Autonomous System (ASN 15169) to optimize performance for Google Workspace, YouTube, and public Google Cloud APIs without traversing intermediate transit internet service providers. Peering must never be confused with Cloud Interconnect: peering strictly exchanges public IP prefixes and cannot route traffic to private RFC 1918 VPC subnets or Compute Engine instances. Direct Peering connects enterprises that operate their own registered public ASN and maintain a physical presence at Google-supported Internet Exchange Points (IXPs) over minimum 10G circuits, whereas Carrier Peering enables organizations without a public ASN to access Google's public edge through certified telecommunications partners.</p>
+<p>Engineers configure a Direct Peering session expecting on-premises core databases to replicate directly to private VPC instances, only to discover that RFC 1918 subnets are completely unreachable across the peering BGP session. The mistaken routing design delays a multi-million-dollar database migration by six weeks while emergency Dedicated Interconnect circuits are expedited.</p>
+<p><a href="#topic-06-technical">Technical discussion →</a> <a href="#topic-06-problem">Real-world problem →</a> <a href="#topic-06-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<!-- Part 2 Architecture SVG: Enterprise Hybrid Cloud Transit and Resilient Failure Domains -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d56-arch-title d56-arch-desc" viewBox="0 0 1060 560" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d56-arch-title">Enterprise Hybrid Interconnect and Dual-Metro 99.99% Resilience Fabric</title>
+<desc id="d56-arch-desc">Comprehensive architectural diagram showing redundant Dedicated Interconnect across dual metropolitan areas (Ashburn EAD 1/2 and Chicago EAD 1/2), HA VPN dual interfaces, Cross-Cloud Interconnect to AWS Direct Connect, NCC Router Appliance spoke aggregation, and segregated Public Peering paths.</desc>
+<defs>
+<marker id="d56-m-interconnect" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d56-m-vpn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+<marker id="d56-m-aws" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#c084fc"/>
+</marker>
+<marker id="d56-m-peering" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d56-m-ncc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#ec4899"/>
+</marker>
+</defs>
+
+<!-- Outer Canvas Boundary -->
+<rect x="15" y="15" width="1030" height="530" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+<text x="35" y="42" fill="#f8fafc" font-size="16" font-weight="700">Enterprise Hybrid Interconnect &amp; Dual-Metro 99.99% Resilience Fabric</text>
+<text x="35" y="60" fill="#94a3b8" font-size="12">Dedicated Interconnect (Ashburn &amp; Chicago), Cross-Cloud Link to AWS, HA VPN Dual-Interface Mesh, NCC Spoke Routing &amp; Peering Boundary</text>
+
+<!-- Left: Enterprise On-Premises & Partner Clouds -->
+<rect x="35" y="80" width="260" height="445" rx="6" fill="#090d16" stroke="#475569" stroke-width="1.5"/>
+<text x="50" y="105" fill="#f1f5f9" font-size="13" font-weight="700">Enterprise On-Prem &amp; AWS</text>
+<text x="50" y="122" fill="#94a3b8" font-size="11">Dual Physical DCs + Multi-Cloud</text>
+
+<!-- Primary On-Prem Core DC (Ashburn) -->
+<rect x="50" y="135" width="230" height="80" rx="4" fill="#1e293b" stroke="#3b82f6" stroke-width="1"/>
+<text x="60" y="155" fill="#60a5fa" font-size="11" font-weight="700">Primary Core DC (Ashburn, VA)</text>
+<text x="60" y="172" fill="#cbd5e1" font-size="10">Subnet: 172.16.0.0/16 | ASN 65001</text>
+<text x="60" y="188" fill="#94a3b8" font-size="10">Border Routers: R1 (EAD-1), R2 (EAD-2)</text>
+<text x="60" y="204" fill="#38bdf8" font-size="10">Dual 100G with MACsec (802.1AE)</text>
+
+<!-- Secondary On-Prem Core DC (Chicago) -->
+<rect x="50" y="225" width="230" height="80" rx="4" fill="#1e293b" stroke="#3b82f6" stroke-width="1"/>
+<text x="60" y="245" fill="#60a5fa" font-size="11" font-weight="700">Secondary Core DC (Chicago, IL)</text>
+<text x="60" y="262" fill="#cbd5e1" font-size="10">Subnet: 172.17.0.0/16 | ASN 65002</text>
+<text x="60" y="278" fill="#94a3b8" font-size="10">Border Routers: R3 (EAD-1), R4 (EAD-2)</text>
+<text x="60" y="294" fill="#38bdf8" font-size="10">Dual 100G with MACsec (Standby)</text>
+
+<!-- AWS us-east-1 VPC Direct Connect -->
+<rect x="50" y="315" width="230" height="65" rx="4" fill="#241433" stroke="#a855f7" stroke-width="1"/>
+<text x="60" y="335" fill="#d8b4fe" font-size="11" font-weight="700">AWS us-east-1 VPC (Aurora / EKS)</text>
+<text x="60" y="351" fill="#cbd5e1" font-size="10">CIDR: 192.168.0.0/16 | Direct Connect GW</text>
+<text x="60" y="367" fill="#a855f7" font-size="10">BGP ASN: 64512 | Cross-Cloud Interconnect</text>
+
+<!-- Branch Office / Remote Site -->
+<rect x="50" y="390" width="230" height="60" rx="4" fill="#2a1d12" stroke="#f59e0b" stroke-width="1"/>
+<text x="60" y="410" fill="#fcd34d" font-size="11" font-weight="700">Branch Office (Retail HQ)</text>
+<text x="60" y="426" fill="#cbd5e1" font-size="10">Subnet: 10.240.0.0/20 | IPsec HA VPN</text>
+<text x="60" y="442" fill="#f59e0b" font-size="10">Internet Transit to Dual Interfaces</text>
+
+<!-- Enterprise Corporate Peering Edge -->
+<rect x="50" y="460" width="230" height="55" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="60" y="478" fill="#86efac" font-size="11" font-weight="700">Corporate Edge (Public ASN 12345)</text>
+<text x="60" y="494" fill="#cbd5e1" font-size="10">Direct Peering at Equinix Ashburn IXP</text>
+<text x="60" y="508" fill="#4ade80" font-size="10">Routes to Google Public ASN 15169</text>
+
+<!-- Center: Colocation Meet-Me-Rooms, Transport & EADs -->
+<rect x="315" y="80" width="345" height="445" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+<text x="330" y="105" fill="#38bdf8" font-size="13" font-weight="700">Physical Edge Transport &amp; Colocation</text>
+<text x="330" y="122" fill="#94a3b8" font-size="11">Dual Metros, Edge Availability Domains &amp; IXPs</text>
+
+<!-- Metro A Colocation (Ashburn, VA) -->
+<rect x="330" y="135" width="315" height="85" rx="4" fill="#132337" stroke="#38bdf8" stroke-width="1"/>
+<text x="340" y="153" fill="#67e8f9" font-size="11" font-weight="700">Metro A: Ashburn Colocation (Equinix DC2)</text>
+<rect x="340" y="160" width="145" height="50" rx="3" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="345" y="177" fill="#7dd3fc" font-size="10" font-weight="600">EAD 1 (Zone 1)</text>
+<text x="345" y="193" fill="#94a3b8" font-size="9">Cross-Connect 1 (100G)</text>
+<text x="345" y="205" fill="#4ade80" font-size="9">MACsec Key CAK/CKN</text>
+<rect x="495" y="160" width="140" height="50" rx="3" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="500" y="177" fill="#7dd3fc" font-size="10" font-weight="600">EAD 2 (Zone 2)</text>
+<text x="500" y="193" fill="#94a3b8" font-size="9">Cross-Connect 2 (100G)</text>
+<text x="500" y="205" fill="#4ade80" font-size="9">MACsec Key CAK/CKN</text>
+
+<!-- Metro B Colocation (Chicago, IL) -->
+<rect x="330" y="230" width="315" height="85" rx="4" fill="#132337" stroke="#38bdf8" stroke-width="1"/>
+<text x="340" y="248" fill="#67e8f9" font-size="11" font-weight="700">Metro B: Chicago Colocation (Coresite CH1)</text>
+<rect x="340" y="255" width="145" height="50" rx="3" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="345" y="272" fill="#7dd3fc" font-size="10" font-weight="600">EAD 1 (Zone 1)</text>
+<text x="345" y="288" fill="#94a3b8" font-size="9">Cross-Connect 3 (100G)</text>
+<text x="345" y="300" fill="#f59e0b" font-size="9">Standby Circuit Path</text>
+<rect x="495" y="255" width="140" height="50" rx="3" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="500" y="272" fill="#7dd3fc" font-size="10" font-weight="600">EAD 2 (Zone 2)</text>
+<text x="500" y="288" fill="#94a3b8" font-size="9">Cross-Connect 4 (100G)</text>
+<text x="500" y="300" fill="#f59e0b" font-size="9">Standby Circuit Path</text>
+
+<!-- Cross-Cloud Meet-Me Facility -->
+<rect x="330" y="325" width="315" height="55" rx="4" fill="#241433" stroke="#a855f7" stroke-width="1"/>
+<text x="340" y="343" fill="#d8b4fe" font-size="11" font-weight="700">Cross-Cloud Facility (Ashburn Direct Interlink)</text>
+<text x="340" y="359" fill="#cbd5e1" font-size="10">Zero Customer Hardware | Direct Fiber Cross-Connect</text>
+<text x="340" y="373" fill="#86efac" font-size="10">100G Dedicated Port | Sub-3ms Cross-Cloud Latency</text>
+
+<!-- Internet Transit & IXP Peering Edge -->
+<rect x="330" y="390" width="315" height="125" rx="4" fill="#0f1f1d" stroke="#22c55e" stroke-width="1"/>
+<text x="340" y="408" fill="#86efac" font-size="11" font-weight="700">Public Internet &amp; Direct Peering Exchange</text>
+<text x="340" y="424" fill="#cbd5e1" font-size="10">Public Internet Transit for HA VPN (IPsec IKEv2)</text>
+<text x="340" y="440" fill="#94a3b8" font-size="10">Ashburn Internet Exchange (IXP) - Google ASN 15169</text>
+<rect x="340" y="450" width="295" height="55" rx="3" fill="#132e27" stroke="#34d399" stroke-width="1"/>
+<text x="350" y="468" fill="#a7f3d0" font-size="10" font-weight="700">Traffic Segregation Boundary (RFC 1918 DROP)</text>
+<text x="350" y="484" fill="#fcd34d" font-size="9">Peering: Google Workspace, YouTube, Cloud Storage APIs</text>
+<text x="350" y="497" fill="#f87171" font-size="9">NO VPC Transit · Private subnets require Interconnect</text>
+
+<!-- Right: Google Cloud Platform Global VPC Fabric -->
+<rect x="680" y="80" width="365" height="445" rx="6" fill="#0b1329" stroke="#6366f1" stroke-width="1.5"/>
+<text x="695" y="105" fill="#f8fafc" font-size="13" font-weight="700">Google Cloud Global VPC Fabric</text>
+<text x="695" y="122" fill="#818cf8" font-size="11">Global Dynamic Routing Enabled | Dual Cloud Routers</text>
+
+<!-- Region 1: us-east4 (Primary Metro A) -->
+<rect x="695" y="135" width="335" height="95" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="705" y="153" fill="#67e8f9" font-size="11" font-weight="700">Region: us-east4 (Primary Metro A)</text>
+<text x="705" y="170" fill="#cbd5e1" font-size="10">Cloud Router 1 (ASN 16550) | Custom MED: 100 (Active)</text>
+<text x="705" y="186" fill="#94a3b8" font-size="10">VLAN Attachments: vlan-ashburn-01 (EAD-1), vlan-ashburn-02 (EAD-2)</text>
+<text x="705" y="202" fill="#cbd5e1" font-size="10">Subnet: 10.10.0.0/16 | Cross-Cloud Attachment to AWS</text>
+<text x="705" y="218" fill="#86efac" font-size="10">Status: 200 Gbps Active Line Rate</text>
+
+<!-- Region 2: us-central1 (Secondary Metro B) -->
+<rect x="695" y="240" width="335" height="95" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="705" y="258" fill="#67e8f9" font-size="11" font-weight="700">Region: us-central1 (Secondary Metro B)</text>
+<text x="705" y="275" fill="#cbd5e1" font-size="10">Cloud Router 2 (ASN 16550) | Custom MED: 200 (Standby)</text>
+<text x="705" y="291" fill="#94a3b8" font-size="10">VLAN Attachments: vlan-chicago-01 (EAD-1), vlan-chicago-02 (EAD-2)</text>
+<text x="705" y="307" fill="#cbd5e1" font-size="10">Subnet: 10.20.0.0/16 (Disaster Recovery Standby)</text>
+<text x="705" y="323" fill="#fbbf24" font-size="10">Status: 200 Gbps Available Standby Capacity</text>
+
+<!-- Network Connectivity Center & HA VPN -->
+<rect x="695" y="345" width="335" height="110" rx="4" fill="#171e33" stroke="#ec4899" stroke-width="1.5"/>
+<text x="705" y="365" fill="#f472b6" font-size="11" font-weight="700">Network Connectivity Center (NCC) Global Hub</text>
+<text x="705" y="382" fill="#cbd5e1" font-size="10">HA VPN Gateway: Dual Interfaces (35.240.x.1, 34.102.x.2)</text>
+<text x="705" y="398" fill="#cbd5e1" font-size="10">Router Appliance Spokes: SD-WAN VM Mesh (Fortinet/Palo Alto)</text>
+<text x="705" y="414" fill="#f472b6" font-size="10">Dynamic BGP Route Redistribution across all VPCs &amp; Branches</text>
+<text x="705" y="430" fill="#86efac" font-size="10">Survives Any Single Metro Disaster (True 99.99% SLA)</text>
+
+<!-- Google Public Services Edge -->
+<rect x="695" y="465" width="335" height="50" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="705" y="484" fill="#86efac" font-size="11" font-weight="700">Google Public Services Edge (ASN 15169)</text>
+<text x="705" y="500" fill="#cbd5e1" font-size="10">Google Workspace, YouTube, GCS APIs (Direct Peering Target)</text>
+
+<!-- Connectors and Flow Paths -->
+<path d="M 280 175 L 330 175" fill="none" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#d56-m-interconnect)"/>
+<path d="M 280 265 L 330 265" fill="none" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#d56-m-interconnect)"/>
+<path d="M 280 347 L 330 347" fill="none" stroke="#c084fc" stroke-width="2.5" marker-end="url(#d56-m-aws)"/>
+<path d="M 280 420 L 330 420" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-m-vpn)"/>
+<path d="M 280 487 L 340 487" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d56-m-peering)"/>
+
+<path d="M 645 175 L 695 175" fill="none" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#d56-m-interconnect)"/>
+<path d="M 645 275 L 695 275" fill="none" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#d56-m-interconnect)"/>
+<path d="M 645 352 L 695 195" fill="none" stroke="#c084fc" stroke-width="2.5" marker-end="url(#d56-m-aws)"/>
+<path d="M 645 425 L 695 385" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-m-vpn)"/>
+<path d="M 635 487 L 695 487" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d56-m-peering)"/>
+
+<!-- Verify Boundary Box -->
+<rect x="685" y="130" width="355" height="335" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,4"/>
+<text x="880" y="145" fill="#fcd34d" font-size="10" font-weight="700">VERIFY BOUNDARY: 99.99% Dual-Metro Fabric</text>
+</svg>
+<figcaption>Figure 56.1: Enterprise Hybrid Transit &amp; Dual-Metro 99.99% SLA Architecture. Illustrates high-availability private connectivity featuring dual Dedicated Interconnects deployed across two separate metropolitan areas (Ashburn and Chicago), dual Cloud Routers using BGP MED routing priorities, Cross-Cloud Interconnect to AWS, HA VPN backup tunnels, and public Carrier Peering for Google Workspace.</figcaption>
+</figure>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Cloud VPN (Classic vs HA VPN, 99.99% SLA topology)</h3>
+<p>Google Cloud VPN securely connects an on-premises network or secondary cloud environment to a Google Cloud Virtual Private Cloud (VPC) through encrypted IPsec gateways operating over public internet infrastructure.</p>
+
+<h4>HA VPN Architecture and the 99.99% Availability SLA</h4>
+<p>High Availability (HA) VPN guarantees a contractually backed 99.99% service availability SLA when deployed according to Google's validated dual-tunnel topology:</p>
+<ul>
+<li><strong>Dual Independent Gateway Interfaces:</strong> A single HA VPN gateway resource automatically provisions two separate public IPv4 IP addresses (<code>interface 0</code> and <code>interface 1</code>) anchored to physically distinct Google server clusters, edge routers, and electrical power domains within the chosen region.</li>
+<li><strong>Dynamic BGP Routing via Cloud Router:</strong> HA VPN mandates Cloud Router and dynamic exterior BGP (eBGP). Static routing is strictly unsupported. Cloud Router exchanges dynamic prefixes using standard BGP keepalive and hold timers (typically 20 seconds hold time on Cloud Router). If an IPsec tunnel or underlying network path experiences packet drop, Cloud Router detects peer withdrawal and reroutes egress packets to the surviving tunnel in under 2 seconds without terminating active TCP socket sessions.</li>
+<li><strong>Active/Active vs. Active/Passive Topologies:</strong>
+  <ul>
+    <li><em>Active/Active with ECMP:</em> Both tunnels advertise identical BGP Multi-Exit Discriminator (MED) values (e.g., MED 100). Google Cloud routes outbound traffic across both tunnels simultaneously using 5-tuple flow hashing (source IP, destination IP, protocol, source port, destination port), effectively doubling aggregate tunnel throughput up to 6 Gbps.</li>
+    <li><em>Active/Passive with Asymmetric MED:</em> The primary tunnel advertises MED 100 while the standby tunnel advertises MED 200. Cloud Router strictly forwards traffic over the primary tunnel, switching to the backup path only when BGP peering on the primary tunnel times out.</li>
+  </ul>
+</li>
+<li><strong>Mandatory 99.99% SLA Requirements:</strong> To legally qualify for Google's 99.99% SLA:
+  <ol>
+    <li>The on-premises environment must deploy either two separate physical VPN gateways, OR a single peer gateway equipped with two distinct public IP interfaces.</li>
+    <li>Two separate IPsec tunnels must be configured from GCP HA VPN: Tunnel 0 originating from <code>interface 0</code> and Tunnel 1 originating from <code>interface 1</code>, terminating on separate peer IP interfaces.</li>
+    <li>Independent IKE security associations (IKEv2 recommended) and distinct eBGP sessions (RFC 1918 or RFC 6598 link-local <code>/30</code> or <code>/31</code> peering addresses in <code>169.254.0.0/16</code>) must run over each tunnel.</li>
+  </ol>
+</li>
+</ul>
+
+<h4>Why Classic VPN is Deprecated for Production</h4>
+<p>Classic VPN features a single gateway interface representing a single point of failure (SPOF). During Google Cloud routine host hypervisor maintenance or optical transceiver re-seating, the single public IP drops packet forwarding, causing an unavoidable 10 to 20 minute outage. Furthermore, Classic VPN only supports an inferior 99.9% availability SLA, relies heavily on static routes that require manual operational intervention during link failures, and does not support IPv6 dual-stack traffic or modern BGP communities. Consequently, Classic VPN is obsolete and prohibited in production enterprise landing zones.</p>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf connects a critical bakery factory router to GCP over HA VPN. During a fiber maintenance cut on Interface 0's path, what ensures traffic survival? Expected: Cloud Router detects BGP keepalive timeout on Interface 0, withdraws the route, and immediately directs outbound packets across Interface 1 with zero manual intervention.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-018">Topic 018 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview" rel="noopener noreferrer">Cloud HA VPN Overview</a>.</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Cloud Interconnect (Dedicated vs Partner, MACsec, 10G/100G circuits)</h3>
+<p>Cloud Interconnect provides physical, enterprise-grade, high-bandwidth private network connections between an enterprise on-premises data center and Google's global private network backbone, bypassing the public internet entirely.</p>
+
+<h4>Dedicated vs. Partner Interconnect Comparison</h4>
+<table class="data-table">
+<thead>
+<tr>
+<th>Construct / Dimension</th>
+<th>Dedicated Interconnect</th>
+<th>Partner Interconnect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Physical Connection</strong></td>
+<td>Direct single-mode optical fiber cross-connect to Google equipment in a colocation facility Meet-Me-Room (MMR).</td>
+<td>Connected via a certified third-party service provider (Equinix Fabric, Megaport, AT&amp;T, Lumen, Console Connect).</td>
+</tr>
+<tr>
+<td><strong>Bandwidth Capacities</strong></td>
+<td>10 Gbps or 100 Gbps physical circuits; Link Aggregation Control Protocol (LACP) bundles up to 8 x 100G (800 Gbps).</td>
+<td>Flexible bandwidth slices: 50 Mbps, 100 Mbps, 500 Mbps, 1 Gbps, 2 Gbps, 5 Gbps, 10 Gbps, up to 50 Gbps per attachment.</td>
+</tr>
+<tr>
+<td><strong>Colocation Requirement</strong></td>
+<td>Enterprise or its carrier must have physical cage presence in an authorized Google colocation facility.</td>
+<td>Enterprise connects to partner network anywhere globally; partner bridges traffic to Google Cloud over existing fabric.</td>
+</tr>
+<tr>
+<td><strong>Provisioning Lead Time</strong></td>
+<td>Several weeks (LOA-CFA generation, cross-connect cabling, optical light testing, BGP establishment).</td>
+<td>Minutes to hours (self-service pairing key generated in GCP Console and submitted to partner portal).</td>
+</tr>
+<tr>
+<td><strong>Hardware Encryption</strong></td>
+<td>Supports wire-speed hardware <strong>MACsec (IEEE 802.1AE)</strong> Layer 2 encryption using pre-shared keys (Cloud KMS or MKA).</td>
+<td>MACsec is not supported across partner fabric; requires Layer 3 IPsec (Cloud HA VPN over Interconnect) for in-flight encryption.</td>
+</tr>
+<tr>
+<td><strong>Handoff Architecture</strong></td>
+<td>Strict Layer 2: Customer border router peers eBGP directly with Google Cloud Router over a VLAN sub-interface (802.1Q).</td>
+<td>Choice of Layer 2 (customer peers BGP directly with Cloud Router) or Layer 3 (customer peers with partner, partner peers with Google).</td>
+</tr>
+<tr>
+<td><strong>Cost Model</strong></td>
+<td>Monthly port charge per 10G/100G circuit + monthly VLAN attachment charge + discounted egress bandwidth ($0.02-$0.05/GB).</td>
+<td>Monthly VLAN attachment fee to Google + service provider bandwidth fees + discounted egress bandwidth.</td>
+</tr>
+<tr>
+<td><strong>Availability SLA</strong></td>
+<td>99.9% SLA (single metro, dual EADs) or 99.99% SLA (dual metros, dual EADs, dual regions).</td>
+<td>99.9% SLA (single provider/single metro) or 99.99% SLA (dual distinct partner providers across dual metros).</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Procurement Workflow and the LOA-CFA Process</h4>
+<p>Ordering Dedicated Interconnect requires a structured physical deployment sequence:</p>
+<ol>
+<li><strong>Order Submission:</strong> Request 10G or 100G ports in a specific colocation facility (e.g., Equinix Ashburn DC2) and specify Edge Availability Domain allocation.</li>
+<li><strong>LOA-CFA Issuance:</strong> Google provisions the physical port on its edge router (PFE) and generates a Letter of Authorization and Connecting Facility Assignment (LOA-CFA) PDF.</li>
+<li><strong>Cross-Connect Order:</strong> The customer delivers the LOA-CFA to the colocation facility management to run single-mode fiber patch cables between the customer cage and Google's Meet-Me-Room (MMR) patch panel.</li>
+<li><strong>Light Attenuation and Optical Testing:</strong> Google executes automated optical transceiver light tests. Once attenuation falls within acceptable decibel loss thresholds, the port state moves to <code>PROVISIONED</code>.</li>
+</ol>
+
+<h4>VLAN Attachments (InterconnectAttachments)</h4>
+<p>A physical Interconnect circuit cannot transmit VPC traffic until an InterconnectAttachment (VLAN attachment) is allocated. Each attachment represents a dedicated 802.1Q VLAN tag (e.g., VLAN 1024), an associated Cloud Router, and a point-to-point BGP peering subnet in <code>169.254.0.0/16</code>. Multiple VLAN attachments can be created on a single 100G physical circuit to connect multiple distinct VPCs or different projects within an organization.</p>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An enterprise plans to migrate an on-premises Hadoop cluster containing 800 TB of raw financial transaction logs to GCP BigQuery over a 60-day window. Expected: Deploy dual 100 Gbps <strong>Dedicated Interconnect</strong> circuits with MACsec Layer 2 encryption, providing line-rate wire-speed transfer while fulfilling regulatory compliance demands for encrypted private transit.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-018">Topic 018 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/network-connectivity/docs/interconnect/concepts/overview" rel="noopener noreferrer">Dedicated Interconnect Overview</a>.</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Cross-Cloud Interconnect (AWS/Azure direct multi-cloud links)</h3>
+<p>Modern enterprise architectures frequently distribute transactional microservices, analytical data lakes, and disaster recovery environments across multiple public cloud providers. Traditionally, connecting Google Cloud to AWS Direct Connect or Microsoft Azure ExpressRoute required leasing expensive third-party colocation cage space, procuring physical routers, and establishing complex multi-party maintenance contracts in intermediate transit centers.</p>
+
+<h4>Direct Multi-Cloud Link Architecture</h4>
+<p>Google Cloud <strong>Cross-Cloud Interconnect</strong> establishes direct, managed physical cross-connects between Google's edge routers and AWS Direct Connect, Azure ExpressRoute, or Oracle Cloud Infrastructure (OCI) FastConnect in shared colocation facilities without requiring intermediate customer-managed physical hardware:</p>
+<ul>
+<li><strong>Turnkey Provisioning:</strong> Google manages the physical fiber cross-connect directly with AWS or Azure. The enterprise simply orders the port through Google Cloud, receives the partner circuit configuration details, and maps the connection in the secondary cloud's management console.</li>
+<li><strong>High Bandwidth and Line-Rate Predictability:</strong> Available in 10 Gbps and 100 Gbps port capacities, Cross-Cloud Interconnect delivers consistent, sub-3 millisecond round-trip latency, eliminating the unpredictable packet jitter and public internet congestion typical of unmanaged multi-cloud IPsec tunnels.</li>
+<li><strong>Discounted Inter-Cloud Egress:</strong> Network egress traffic exiting Google Cloud across Cross-Cloud Interconnect qualifies for discounted interconnect data transfer rates, substantially reducing operational spend compared to standard internet egress fees.</li>
+<li><strong>SLA Guarantees:</strong> Cross-Cloud Interconnect supports Google's 99.9% and 99.99% availability SLAs when redundant physical connections are provisioned across separate facilities and cloud regions.</li>
+</ul>
+
+<h4>Hybrid Transit Technologies Comparison</h4>
+<table class="data-table">
+<thead>
+<tr>
+<th>Construct / Capability</th>
+<th>Cloud HA VPN</th>
+<th>Classic VPN (Deprecated)</th>
+<th>Cross-Cloud Interconnect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Availability SLA</strong></td>
+<td>99.99% SLA (dual tunnels to dual peer IPs/interfaces).</td>
+<td>99.9% SLA (single gateway interface, single failure domain).</td>
+<td>99.9% or 99.99% SLA (dual physical links across multi-cloud regions).</td>
+</tr>
+<tr>
+<td><strong>Transit Medium</strong></td>
+<td>Public Internet transit via encrypted IPsec tunnels.</td>
+<td>Public Internet transit via encrypted IPsec tunnels.</td>
+<td>Dedicated physical single-mode optical fiber directly to AWS/Azure.</td>
+</tr>
+<tr>
+<td><strong>Maximum Throughput</strong></td>
+<td>Up to 3 Gbps per tunnel (250k pps); up to 6 Gbps active/active ECMP.</td>
+<td>1.5 to 3 Gbps per tunnel (no automated multi-tunnel aggregation).</td>
+<td>10 Gbps or 100 Gbps dedicated wire-speed per port.</td>
+</tr>
+<tr>
+<td><strong>Routing Protocol</strong></td>
+<td>Dynamic eBGP via Cloud Router (mandatory).</td>
+<td>Static route tables or dynamic BGP.</td>
+<td>Dynamic eBGP via Cloud Router (mandatory).</td>
+</tr>
+<tr>
+<td><strong>Encryption</strong></td>
+<td>IPsec IKEv2 (AES-GCM or AES-CBC) wire encryption.</td>
+<td>IPsec IKEv1/IKEv2 (AES-CBC).</td>
+<td>Physical isolated fiber path (zero internet exposure); MACsec optional.</td>
+</tr>
+<tr>
+<td><strong>Failure Domains</strong></td>
+<td>Dual active interfaces on distinct Google cluster failure domains.</td>
+<td>Single IP / single hypervisor host (drops during maintenance).</td>
+<td>Redundant physical ports in distinct Google/AWS/Azure colocation facilities.</td>
+</tr>
+<tr>
+<td><strong>Target Workloads</strong></td>
+<td>Branch offices, hybrid burst connectivity, disaster backup.</td>
+<td>Legacy non-production environments (not permitted in prod).</td>
+<td>High-volume multi-cloud analytics, cross-cloud database replication.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: A real-time inventory aggregation pipeline replicates 10 TB of daily operational data between Google BigQuery in <code>us-east4</code> and an AWS Aurora database in <code>us-east-1</code>. Expected: Deploy <strong>Cross-Cloud Interconnect</strong> between GCP us-east4 and AWS us-east-1, slashing cross-cloud data transfer fees and eliminating 140ms public internet packet jitter.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-018">Topic 018 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/network-connectivity/docs/interconnect/concepts/cross-cloud-overview" rel="noopener noreferrer">Cross-Cloud Interconnect Overview</a>.</p>
+</div>
+</article>
+
+<article id="topic-04-technical" class="topic-card">
+<h3>Network Connectivity Center (NCC) router spoke integration</h3>
+<p>Network Connectivity Center (NCC) serves as an active, centralized transit routing fabric that unifies on-premises networks, multi-region Virtual Private Clouds, and third-party software-defined WAN (SD-WAN) appliances under an automated control plane.</p>
+
+<h4>Router Appliance Spoke Integration</h4>
+<p>Enterprise organizations frequently rely on virtualized third-party network appliances—such as Next-Generation Firewalls (NGFW) or SD-WAN edge routers from Palo Alto Networks (VM-Series), Fortinet (FortiGate), or Cisco (Catalyst 8000V)—to inspect and secure hybrid traffic. Prior to NCC, integrating these appliances required complex, error-prone static routing hacks or full-mesh point-to-point IPsec overlays.</p>
+<p>With NCC <strong>Router Appliance Spokes</strong>:</p>
+<ul>
+<li><strong>BGP Peering with Cloud Router:</strong> Router Appliance VM instances run inside customer VPC subnets with multiple network interfaces (NICs). The VM establishes an internal eBGP peering session directly with Google Cloud Router over its primary interface.</li>
+<li><strong>Dynamic Route Exchange:</strong> Cloud Router advertises VPC subnet CIDRs to the Router Appliance VM, while the appliance VM advertises on-premises branch routes into Cloud Router.</li>
+<li><strong>Automated Spoke-to-Spoke Transit:</strong> NCC ingests routes from attached hybrid spokes (Dedicated Interconnect, Partner Interconnect, HA VPN, and Router Appliance instances) and automatically redistributes them to other VPC and hybrid spokes. Branch offices can communicate directly with on-premises data centers and other remote branches across Google's planetary backbone without requiring hairpin routing through an on-premises core switch.</li>
+</ul>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An enterprise has 4 disparate Shared VPC networks and 45 on-premises retail branch offices connected via Fortinet SD-WAN appliances. Workloads in all VPCs must dynamically route to on-prem data centers without managing static route tables. Expected: Create an NCC Hub, add the 4 VPCs as VPC Spokes, and attach the Fortinet SD-WAN VMs as Router Appliance Spokes with Cloud Router eBGP peering.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-018">Topic 018 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/network-connectivity/docs/network-connectivity-center/concepts/overview" rel="noopener noreferrer">NCC Spoke Documentation</a>.</p>
+</div>
+</article>
+
+<article id="topic-05-technical" class="topic-card">
+<h3>99.9% vs 99.99% topologies and failure domain isolation</h3>
+<p>Understanding Google Cloud's contractual availability SLAs is an essential architecture competency. A critical engineering principle governs all hybrid landing zone designs: <strong>"A drawing does not prove an SLA."</strong> Simply drawing four redundant lines on an architectural diagram does not qualify an enterprise for Google's 99.99% availability SLA or financial SLA credit compensation unless every physical, geographic, and routing prerequisite is satisfied.</p>
+
+<h4>The 99.9% SLA Topology (Single Metro)</h4>
+<ul>
+<li><strong>Geographic Scope:</strong> Two physical connections deployed within a <strong>single metropolitan area</strong> (e.g., Ashburn).</li>
+<li><strong>Edge Availability Domains:</strong> Connections must terminate in two separate Edge Availability Domains: <strong>EAD 1 (zone 1)</strong> and <strong>EAD 2 (zone 2)</strong>. Google guarantees that separate EADs within a single metro possess independent edge routing chassis, distinct building power feeds, and physically separated optical distribution frames (ODFs).</li>
+<li><strong>Failure Domains Mitigated:</strong> Survives failure of a single edge router, optical transceiver blowout, port failure, or single rack power failure.</li>
+<li><strong>Vulnerability:</strong> <strong>DOES NOT SURVIVE</strong> catastrophic metropolitan events, such as a municipal contractor backhoe severing all fiber conduits entering the facility, a regional colocation power grid collapse, or localized severe flooding. Contractually permits up to 8.76 hours of downtime per year.</li>
+</ul>
+
+<h4>The 99.99% SLA Topology (Dual Metro / Dual Region)</h4>
+<ul>
+<li><strong>Geographic Scope:</strong> Requires a minimum of <strong>four physical connections</strong> deployed across <strong>TWO DISTINCT METROPOLITAN AREAS</strong> (e.g., Metro A: Ashburn, VA; Metro B: Chicago, IL).</li>
+<li><strong>Edge Availability Domains:</strong> Within each metro, the two circuits must terminate in separate Edge Availability Domains (EAD 1 and EAD 2).</li>
+<li><strong>Dual Cloud Routers across Dual Regions:</strong> VLAN attachments in Metro A connect to Cloud Router 1 in Region A (e.g., <code>us-east4</code>); VLAN attachments in Metro B connect to Cloud Router 2 in Region B (e.g., <code>us-central1</code>).</li>
+<li><strong>Global Dynamic Routing:</strong> The VPC dynamic routing mode must be set to <strong>GLOBAL</strong>, ensuring that if Metro A is completely severed, Cloud Router 2 in Region B dynamically advertises and forwards traffic to subnets in all regions worldwide.</li>
+<li><strong>BGP MED Route Priority Design:</strong> To prevent erratic packet spraying and asymmetric routing, the enterprise configures custom BGP route priorities:
+  <ul>
+    <li>Metro A (Primary): Advertised with lower MED (e.g., MED 100).</li>
+    <li>Metro B (Secondary Standby): Advertised with higher MED (e.g., MED 200).</li>
+  </ul>
+</li>
+<li><strong>Surviving Capacity Formula:</strong> The enterprise must ensure that each metropolitan deployment independently possesses sufficient bandwidth to absorb 100% of peak enterprise production traffic if the alternate metro collapses:
+Surviving Capacity = min(Metro_A_Capacity, Metro_B_Capacity) &gt;= Peak Production Traffic
+</li>
+</ul>
+
+<h4>Availability SLA Topologies Matrix</h4>
+<table class="data-table">
+<thead>
+<tr>
+<th>Architectural Requirement</th>
+<th>99.9% SLA Topology (Single Metro)</th>
+<th>99.99% SLA Topology (Dual Metro)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metropolitan Scope</strong></td>
+<td>Single metropolitan area (e.g., Ashburn).</td>
+<td>Dual distinct metropolitan areas (e.g., Metro A: Ashburn, Metro B: Chicago).</td>
+</tr>
+<tr>
+<td><strong>Edge Availability Domains</strong></td>
+<td>EAD 1 (zone 1) and EAD 2 (zone 2) in the single metro.</td>
+<td>EAD 1 and EAD 2 in Metro A AND EAD 1 and EAD 2 in Metro B.</td>
+</tr>
+<tr>
+<td><strong>Minimum Attachments</strong></td>
+<td>Minimum 2 VLAN attachments (or 2 HA VPN tunnels).</td>
+<td>Minimum 4 VLAN attachments (or 4 HA VPN tunnels).</td>
+</tr>
+<tr>
+<td><strong>Cloud Routers Required</strong></td>
+<td>1 or 2 Cloud Routers located in the same GCP region.</td>
+<td>Minimum 2 Cloud Routers located in distinct GCP regions (e.g., us-east4 and us-central1).</td>
+</tr>
+<tr>
+<td><strong>VPC Dynamic Routing</strong></td>
+<td>Regional or Global Dynamic Routing.</td>
+<td><strong>GLOBAL Dynamic Routing</strong> (mandatory for cross-region route propagation).</td>
+</tr>
+<tr>
+<td><strong>BGP Route Metric Policy</strong></td>
+<td>Equal cost (active/active) or active/passive within metro.</td>
+<td>Deterministic MED tuning: Primary Metro A (MED 100), Standby Metro B (MED 200).</td>
+</tr>
+<tr>
+<td><strong>Surviving Capacity Requirement</strong></td>
+<td>Must survive loss of 1 circuit (50% remaining capacity).</td>
+<td>Must survive loss of an entire metro (100% remaining capacity in surviving metro).</td>
+</tr>
+<tr>
+<td><strong>Permitted Annual Downtime</strong></td>
+<td>~8.76 hours per year (0.1% downtime allowance).</td>
+<td>~52.6 minutes per year (0.01% downtime allowance).</td>
+</tr>
+<tr>
+<td><strong>Failure Scenarios Mitigated</strong></td>
+<td>Router failure, optical transceiver fault, single rack power loss.</td>
+<td>Municipal conduit cut, full datacenter flooding, regional power grid collapse.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: A banking auditor reviews Brightloaf's payment disaster recovery plan claiming a 99.99% SLA with Cloud Interconnect. All four circuits are located at Equinix Ashburn DC1. Expected: <strong>Audit Failure</strong>. The topology only achieves a 99.9% SLA because it lacks geographic metropolitan diversity. Remediate by relocating two circuits to Chicago or New York terminating on a Cloud Router in <code>us-central1</code>.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-018">Topic 018 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/network-connectivity/docs/interconnect/tutorials/dedicated-creating-9999-sla" rel="noopener noreferrer">Creating 99.99% Availability for Dedicated Interconnect</a>.</p>
+</div>
+</article>
+
+<article id="topic-06-technical" class="topic-card">
+<h3>Direct Peering vs Carrier Peering</h3>
+<p>Enterprise network engineers frequently confuse Google Peering with Google Cloud Interconnect. While both involve physical connectivity to Google, their architectural objectives, routing boundaries, and reachable IP spaces are fundamentally distinct.</p>
+
+<h4>Peering vs. Interconnect: The Architectural Demarcation</h4>
+<ul>
+<li><strong>Cloud Interconnect connects to Private VPC Networks:</strong> Interconnect is designed exclusively for extending internal corporate RFC 1918, RFC 6598, and custom private subnets to Google Cloud Virtual Private Clouds (Compute Engine VMs, GKE pods, internal load balancers).</li>
+<li><strong>Google Peering connects to Google Public Services:</strong> Peering exchanges public BGP routes with Google's public Autonomous System (ASN 15169). It provides direct, low-latency network access to Google Workspace (Gmail, Drive, Docs, Meet), YouTube, and publicly exposed Google Cloud APIs (Cloud Storage, BigQuery, Cloud SQL public IPs) without transiting public commercial internet service providers.</li>
+<li><strong>CRITICAL ROUTING BOUNDARY:</strong> <strong>Peering cannot route to private RFC 1918 VPC addresses.</strong> Google's edge peering routers strictly drop private RFC 1918 packets and reject all private route advertisements from peering partners. Furthermore, Google Peering is not an internet transit service and will never provide a default route (<code>0.0.0.0/0</code>) to the general internet.</li>
+</ul>
+
+<h4>Direct Peering vs. Carrier Peering</h4>
+<ul>
+<li><strong>Direct Peering:</strong> Established directly between an enterprise Autonomous System (ASN) and Google ASN 15169 at a shared Internet Exchange Point (IXP) facility.
+  <ul>
+    <li><em>Prerequisites:</em> The enterprise must possess a publicly registered Autonomous System Number (ASN), publicly routable IPv4/IPv6 address blocks, an entry in PeeringDB, a 24x7 Network Operations Center (NOC), and must establish dual physical cross-connects of at least 10 Gbps.</li>
+    <li><em>SLA:</em> <strong>Zero SLA.</strong> Google does not offer an availability SLA on Direct Peering sessions.</li>
+  </ul>
+</li>
+<li><strong>Carrier Peering:</strong> For enterprise organizations that consume substantial Google Workspace or public API bandwidth but do not maintain a registered public ASN or physical presence at an IXP. The organization connects to a certified telecommunications carrier partner (such as AT&amp;T, Verizon, or Colt), and the partner handles public BGP peering with Google ASN 15169 on the customer's behalf.</li>
+</ul>
+
+<h4>Google Cloud Hybrid Interconnect vs. Peering Architecture Matrix</h4>
+<table class="data-table">
+<thead>
+<tr>
+<th>Dimension / Requirement</th>
+<th>Direct Peering</th>
+<th>Carrier Peering</th>
+<th>Cloud Interconnect (Dedicated/Partner)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Target Services</strong></td>
+<td>Google Workspace (Drive, Gmail), YouTube, Public Google Cloud APIs.</td>
+<td>Google Workspace, YouTube, Public Google Cloud APIs via telecom partner.</td>
+<td>Private VPC networks, Compute Engine VMs, GKE pods, Cloud Storage (via PGA).</td>
+</tr>
+<tr>
+<td><strong>Reachable IP Space</strong></td>
+<td>Google Public IPv4 and IPv6 addresses only.</td>
+<td>Google Public IPv4 and IPv6 addresses only.</td>
+<td>Private RFC 1918, RFC 6598, and custom VPC subnet IP ranges.</td>
+</tr>
+<tr>
+<td><strong>RFC 1918 VPC Access</strong></td>
+<td><strong>NO</strong> (Strictly rejected; packets dropped at edge).</td>
+<td><strong>NO</strong> (Strictly rejected; packets dropped at edge).</td>
+<td><strong>YES</strong> (Native Layer 3 bidirectional private routing).</td>
+</tr>
+<tr>
+<td><strong>BGP ASN Requirement</strong></td>
+<td>Enterprise must own registered public ASN and public CIDR prefixes.</td>
+<td>No public ASN required (routes ride on carrier partner ASN).</td>
+<td>Customer private ASN (64512-65534) or public ASN peered to Cloud Router (16550).</td>
+</tr>
+<tr>
+<td><strong>Physical Demarcation</strong></td>
+<td>Direct cross-connect at public Internet Exchange Point (IXP).</td>
+<td>Carrier partner network handoff at enterprise facility.</td>
+<td>Google colocation Meet-Me-Room (MMR) or partner virtual fabric.</td>
+</tr>
+<tr>
+<td><strong>Availability SLA</strong></td>
+<td><strong>NONE</strong> (Best effort public peering exchange).</td>
+<td><strong>NONE</strong> from Google (Carrier may offer transport SLA).</td>
+<td><strong>99.9% or 99.99% contractual SLA</strong> backed by Google financial credits.</td>
+</tr>
+<tr>
+<td><strong>Data Egress Pricing</strong></td>
+<td>Standard internet egress rates apply (no egress discount).</td>
+<td>Standard internet egress rates apply (or bundled carrier transit fees).</td>
+<td>Significantly discounted egress rates ($0.02 - $0.05/GB vs $0.08 - $0.12/GB standard).</td>
+</tr>
+<tr>
+<td><strong>Default Route Transit</strong></td>
+<td>Will NOT provide default route (0.0.0.0/0) to the internet.</td>
+<td>Carrier may bundle internet, but Google session does not provide transit.</td>
+<td>Will NOT provide internet transit; dedicated strictly to enterprise WAN extension.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf employees experience slow upload speeds when attaching large video files to Google Drive. The network team wants to avoid routing Workspace traffic over expensive private Interconnect circuits. Expected: Establish <strong>Direct Peering</strong> or <strong>Carrier Peering</strong> with Google ASN 15169 for public Workspace traffic, reserving Cloud Interconnect for private VPC database traffic.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-018">Topic 018 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/network-connectivity/docs/direct-peering" rel="noopener noreferrer">Direct Peering Documentation</a>.</p>
+</div>
+</article>
+</section>
+
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+
+<article id="topic-01-problem" class="topic-card">
+<h3>Single-Interface Classic VPN Outage During Maintenance · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's regional delivery dispatch platform relied on a legacy Classic VPN tunnel to connect its central production distribution center to a primary logistics warehouse router in Chicago. During scheduled Google Cloud infrastructure hypervisor maintenance, the single public IP gateway host was evacuated and rebooted. The IPsec tunnel collapsed completely for 18 minutes. Dispatchers could not transmit picking and routing manifests to warehouse floor tablets, halting 80 refrigerated bakery delivery trucks, idling 160 drivers, and risking $1.8M in perishable goods spoilage.</p>
+
+<p><strong>Constraints:</strong> Must guarantee 99.99% tunnel availability; failover between redundant tunnels must execute in under 2 seconds without terminating active transport TCP sockets; zero manual routing table edits permitted during failover events.</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong>
+1. Queried the Classic VPN tunnel operational state:
+<pre><code>gcloud compute vpn-tunnels describe classic-tunnel-chicago   --region=us-central1   --format="yaml(status,detailedStatus)"</code></pre>
+Output revealed <code>status: FIRST_HANDSHAKE</code> and <code>detailedStatus: Peer gateway is not responding</code>.
+2. Inspected Cloud Logging audit trails:
+<pre><code>gcloud logging read 'protoPayload.serviceName="compute.googleapis.com" AND protoPayload.methodName="compute.instances.hostMaintenance"'   --limit=5</code></pre>
+Logs confirmed the underlying Google hypervisor underwent automated live migration and maintenance. Because Classic VPN provisions only a single public IP gateway on a single hardware chassis, no alternate hardware interface existed to maintain the IPsec security association.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Decommissioned Classic VPN and provisioned a Cloud HA VPN gateway, generating two distinct public IPv4 addresses (Interface 0: <code>35.240.10.14</code> and Interface 1: <code>34.102.44.82</code>) anchored to independent Google cluster failure domains:
+<pre><code>gcloud compute vpn-gateways create ha-vpn-chicago   --network=prod-shared-vpc   --region=us-central1</code></pre>
+2. Created a Cloud Router with dynamic eBGP (ASN 65001) and established dual IPsec tunnels to the warehouse edge router:
+<pre><code>gcloud compute routers create router-ha-chicago   --network=prod-shared-vpc   --region=us-central1   --asn=65001</code></pre>
+3. Configured dynamic BGP peering sessions over both tunnel interfaces, enabling active/active ECMP route advertisement with 20-second hold timers.</p>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d56-i1-title d56-i1-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d56-i1-title">Incident 1: Single-Interface Classic VPN Failure vs HA VPN Dual-Interface Failover</title>
+<desc id="d56-i1-desc">Diagram showing failed path where single Classic VPN interface went down during maintenance, followed by corrected path utilizing HA VPN dual interfaces and BGP dynamic failover.</desc>
+<defs>
+<marker id="d56-i1-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d56-i1-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Classic VPN Single Interface Down During Host Maintenance (18m Downtime)</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Distribution Hub</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">Active Delivery Sockets</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Classic VPN Gateway</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Single IP Down for Host Maintenance</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Regional Warehouse</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Tunnel Severed: 0 Packets</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i1-mf)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i1-mf)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Cloud HA VPN Dual Interfaces (99.99% SLA) with Dynamic BGP Failover</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Distribution Hub</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Active BGP Peerings</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">HA VPN Dual Interfaces</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Interface 1 absorbs traffic in &lt;1.5s</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Regional Warehouse</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Zero Disruption (99.99% SLA)</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i1-mc)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i1-mc)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: BGP Keepalive &lt;2s</text>
+</svg>
+<figcaption>Figure 56.2: Incident 1 Root Cause and Remediation. <strong>Supplied facts:</strong> Single Classic VPN tunnel dropped for 18 minutes during Google host maintenance. <strong>Architectural inference:</strong> Classic VPN lacks gateway diversity; HA VPN provisions dual independent interfaces across separate Google infrastructure clusters. <strong>Expected post-fix behavior:</strong> BGP automatically shifts traffic to the alternate interface in &lt;2 seconds during gateway maintenance.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> Simulated a host maintenance event by administrative shutdown of Interface 0's BGP peering. Monitored Cloud Router metrics: BGP session transitioned to <code>DOWN</code> on Interface 0 in 1.2 seconds, and Interface 1 absorbed 100% of outbound packets with 0 dropped TCP segments and sub-1ms failover latency.</p>
+
+<p><strong>Alternative and residual risk:</strong> Ensure the on-premises peer gateway supports independent BGP peering sessions over dual IPsec tunnels; if the peer gateway only possesses a single public IP, configure two tunnels from that single IP terminating on GCP Interface 0 and Interface 1 respectively.</p>
+</article>
+
+<article id="topic-02-problem" class="topic-card">
+<h3>Partner Interconnect Svc Provider Central Node Blackout · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's enterprise ERP core accounting database replicated journal transactions between its Chicago corporate headquarters and Google Cloud us-central1 over a Partner Interconnect deployment. The company configured two VLAN attachments to achieve redundancy, but procured both attachments through a single regional service provider. During quarter-end financial reconciliation, a catastrophic supervisor module failure on the partner's central aggregation switch crashed both VLAN circuits simultaneously. Private connectivity went dark for 9 hours. Inability to reconcile ledger transactions forced an emergency halt to financial reporting and triggered contractual non-compliance penalties totaling $420,000.</p>
+
+<p><strong>Constraints:</strong> Must eliminate single-provider dependency; must achieve wire-speed 100 Gbps private throughput; all data in transit across physical lines must meet regulatory encryption standards (MACsec).</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong>
+1. Inspected VLAN attachment status on Cloud Router:
+<pre><code>gcloud compute interconnects attachments describe vlan-partner-chicago-01   --region=us-central1   --format="yaml(state,adminEnabled,googleReferenceId)"</code></pre>
+Both attachments displayed <code>state: OS_UNAVAILABLE</code>.
+2. Traceroute analysis revealed that both virtual VLAN circuits shared the exact same service provider Multi-Protocol Label Switching (MPLS) provider edge (PE) router chassis in Chicago. While the customer had two virtual attachments, both attachments shared a single physical failure domain at the provider's central switching fabric.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Re-architected hybrid transit to <strong>Dedicated Interconnect</strong> terminating directly in Equinix Chicago (CH1):
+<pre><code>gcloud compute interconnects create dedicated-chicago-01   --customer-name="Brightloaf Enterprise"   --interconnect-type=DEDICATED   --link-type=LINK_TYPE_ETHERNET_100G_LR   --location=equinix-ch1   --requested-link-count=1
+
+gcloud compute interconnects create dedicated-chicago-02   --customer-name="Brightloaf Enterprise"   --interconnect-type=DEDICATED   --link-type=LINK_TYPE_ETHERNET_100G_LR   --location=equinix-ch1   --requested-link-count=1</code></pre>
+2. Assigned Circuit 1 to Edge Availability Domain 1 (EAD-1) and Circuit 2 to Edge Availability Domain 2 (EAD-2), ensuring termination on physically separated Google routing hardware.
+3. Enabled hardware-based line-rate <strong>MACsec (IEEE 802.1AE)</strong> Layer 2 encryption using Cloud KMS-managed pre-shared keys.</p>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d56-i2-title d56-i2-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d56-i2-title">Incident 2: Shared Partner Interconnect Provider Switch Failure vs Multi-EAD Dedicated Interconnect</title>
+<desc id="d56-i2-desc">Diagram showing failed path where dual partner VLANs shared a single physical provider switch, followed by corrected path using dual Dedicated Interconnect circuits across separate Edge Availability Domains with MACsec.</desc>
+<defs>
+<marker id="d56-i2-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d56-i2-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Dual Partner VLANs Sharing Single Provider Switch (9h Total Outage)</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Enterprise On-Prem HQ</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">Subnet: 172.16.0.0/16</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Partner Central Switch (SPOF)</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Shared Chassis Supervisor Crash</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">GCP us-central1 VPC</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Both VLANs Down (0 Gbps)</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i2-mf)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i2-mf)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Dedicated Interconnect Dual 100G Circuits across EAD-1 &amp; EAD-2 + MACsec</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Enterprise On-Prem HQ</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Dual 100G Border Routers</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Dedicated EAD-1 &amp; EAD-2</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Line-Rate MACsec (802.1AE)</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">GCP us-central1 VPC</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Survives Any Single Chassis Drop</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i2-mc)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i2-mc)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Separate EAD &amp; MACsec Probe</text>
+</svg>
+<figcaption>Figure 56.3: Incident 2 Root Cause and Remediation. <strong>Supplied facts:</strong> Partner Interconnect failure severed database replication for 6 hours. <strong>Architectural inference:</strong> Single service provider creates an external single point of failure; multi-provider partner interconnect eliminates provider-level dependency risk. <strong>Expected post-fix behavior:</strong> BGP automatically shifts ingestion traffic to the alternate provider path with zero data loss.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> Executed an optical power loopback test and verified MACsec session establishment. Artificially disabled the EAD-1 cross-connect interface on the customer router; Cloud Router detected BGP session loss and transferred 100% of ERP replication traffic to the EAD-2 attachment in 1.4 seconds with zero transaction drops.</p>
+
+<p><strong>Alternative and residual risk:</strong> If Dedicated Interconnect lead time (typically 3 to 8 weeks) is prohibitive, maintain short-term connectivity by ordering Partner Interconnect VLAN attachments through two completely distinct telecommunications carriers operating in separate facilities.</p>
+</article>
+
+<article id="topic-03-problem" class="topic-card">
+<h3>Multi-Cloud Latency Degrading Real-Time Order Settlement · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf operated a hybrid multi-cloud e-commerce architecture: the customer catalog and shopping cart frontend ran in AWS us-east-1 (backed by AWS Aurora), while the real-time fraud scoring, credit authorization, and analytical settlement engine ran in Google Cloud us-east4 (backed by BigQuery and Vertex AI). Multi-cloud traffic traversed a site-to-site IPsec tunnel across the public internet. During a Black Friday flash sale, public transit congestion caused packet latency to spike from 18ms to 140ms, with packet loss exceeding 3.2%. High latency triggered transaction timeout aborts across 2,400 checkout sessions, producing $650,000 in abandoned orders.</p>
+
+<p><strong>Constraints:</strong> Round-trip latency between AWS and GCP must remain strictly under 5 milliseconds; must support MTU 1500 without IPsec packet fragmentation; zero exposure to public internet routing or intermediate transit providers.</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong>
+1. Executed a bidirectional network path trace between AWS and GCP instances:
+<pre><code>traceroute -T -p 443 10.10.20.15</code></pre>
+Trace output showed 14 intermediate Autonomous System (AS) hops across commercial transit ISPs with severe packet jitter.
+2. Inspected MTU and IPsec fragmentation metrics:
+<pre><code>ping -M do -s 1472 10.10.20.15</code></pre>
+Packets exceeding 1420 bytes were fragmented due to IPsec encapsulation overhead, triggering severe TCP retransmissions and window collapse.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Ordered <strong>Cross-Cloud Interconnect</strong> between Google Cloud us-east4 and AWS Direct Connect in Ashburn, VA:
+<pre><code>gcloud compute interconnects create cross-cloud-aws-east4   --interconnect-type=DEDICATED   --link-type=LINK_TYPE_ETHERNET_100G_LR   --location=equinix-dc2   --remote-location=aws-ashburn-1   --requested-link-count=1</code></pre>
+2. Created an InterconnectAttachment configured with standard MTU 1500:
+<pre><code>gcloud compute interconnects attachments dedicated create vlan-cross-cloud-aws   --interconnect=cross-cloud-aws-east4   --region=us-east4   --router=router-aws-transit   --mtu=1500</code></pre>
+3. Configured dynamic BGP peering with the AWS Direct Connect Gateway utilizing BGP MD5 authentication.</p>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d56-i3-title d56-i3-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d56-i3-title">Incident 3: Internet IPsec Multi-Cloud Latency Spikes vs Direct Cross-Cloud Interconnect</title>
+<desc id="d56-i3-desc">Diagram showing failed path where multi-cloud IPsec tunnel suffered 140ms latency spikes across 14 internet hops, followed by corrected path utilizing Cross-Cloud Interconnect with deterministic 2.4ms latency.</desc>
+<defs>
+<marker id="d56-i3-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d56-i3-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Public Internet IPsec Tunnel Across 14 Transit Hops (140ms Spikes &amp; 3.2% Loss)</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">AWS us-east-1 VPC</text>
+<text x="50" y="96" fill="#cbd5e1" font-size="10">Aurora DB: 192.168.10.5</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Public Internet Transit</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">14 ISP Hops | Jitter &amp; Fragmentation</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">GCP us-east4 VPC</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Settlement Timeouts (44% Abort)</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i3-mf)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i3-mf)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Cross-Cloud Interconnect 100G Direct Fiber (2.4ms Constant Latency)</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">AWS us-east-1 VPC</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Direct Connect GW (MTU 1500)</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Cross-Cloud Direct Fiber</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Dedicated Physical Cross-Connect</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">GCP us-east4 VPC</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Latency: 2.4ms | 0% Packet Loss</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i3-mc)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i3-mc)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: BGP MD5 &amp; MTU 1500 Probe</text>
+</svg>
+<figcaption>Figure 56.4: Incident 3 Root Cause and Remediation. <strong>Supplied facts:</strong> High latency over internet IPsec VPN caused transaction timeouts between GCP and AWS. <strong>Architectural inference:</strong> Public internet routes suffer from uncontrollable congestion and jitter; Cross-Cloud Interconnect provides dedicated fiber cross-connects between cloud providers. <strong>Expected post-fix behavior:</strong> Direct physical link stabilizes latency at sub-3ms, eliminating application sync failures.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> Initiated continuous 100,000 ICMP echo probes with 1500-byte payloads across the Cross-Cloud Interconnect link. Measured round-trip latency stabilized at a deterministic 2.4 milliseconds with 0.00% packet loss. Zero transaction timeouts were observed during synthetic load testing simulating 12,000 concurrent checkout validations.</p>
+
+<p><strong>Alternative and residual risk:</strong> For disaster recovery multi-cloud resilience, deploy a secondary Cross-Cloud Interconnect port in a separate facility (e.g., AWS us-west-2 to GCP us-west1) configured with higher BGP MED metrics.</p>
+</article>
+
+<article id="topic-04-problem" class="topic-card">
+<h3>BGP Spoke Sprawl Resolved via Network Connectivity Center · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf expanded rapidly by acquiring 45 regional retail bakeries. Each bakery operated a Fortinet SD-WAN appliance with point-to-point IPsec VPN connections configured to Cloud Routers across 4 production VPCs. Due to manual, uncoordinated BGP peering configurations, a network technician at a newly acquired bakery accidentally configured their edge router to advertise a default route (<code>0.0.0.0/0</code>) into GCP. The rogue default route propagated across Cloud Routers, hijacking all outbound internet-bound API calls, cloud storage uploads, and payment gateway traffic. Cloud egress was blackholed for 14 enterprise branches for over 3 hours.</p>
+
+<p><strong>Constraints:</strong> Must eliminate unmanaged point-to-point mesh routing; must enforce strict centralized route filtering to prevent rogue default route propagation; branch-to-branch traffic must traverse Google's backbone without hairpinned on-premises transit.</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong>
+1. Dumped the active VPC route table:
+<pre><code>gcloud compute routes list   --filter="network:prod-shared-vpc AND destRange:0.0.0.0/0"   --format="table(name,destRange,nextHopIp,priority)"</code></pre>
+Output showed an unexpected dynamic BGP route with priority 100 pointing to the branch SD-WAN appliance IP.
+2. Verified that Cloud Router's dynamic routing mode had accepted the unsummarized, unfiltered <code>0.0.0.0/0</code> prefix from the branch BGP peer and immediately installed it into the VPC routing fabric, overriding the default internet gateway route.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Created a centralized <strong>Network Connectivity Center (NCC)</strong> Hub:
+<pre><code>gcloud network-connectivity hubs create enterprise-transit-hub   --description="Global Enterprise Transit Control Plane"</code></pre>
+2. Attached the 4 VPC networks as NCC VPC Spokes.
+3. Deployed redundant Router Appliance VM instances in a dedicated transit VPC and attached them as NCC Router Appliance Spokes:
+<pre><code>gcloud network-connectivity spokes linked-router-appliances create branch-router-appliance-spoke   --hub=enterprise-transit-hub   --region=us-central1   --router-appliance-instance=projects/brightloaf-net/zones/us-central1-a/instances/sdwan-gw-01,ip=10.100.0.15   --router-appliance-instance=projects/brightloaf-net/zones/us-central1-b/instances/sdwan-gw-02,ip=10.100.0.16</code></pre>
+4. Implemented strict BGP route advertisement filters on Cloud Router, restricting accepted incoming prefixes strictly to approved enterprise branch subnets in <code>10.0.0.0/8</code> and explicitly rejecting <code>0.0.0.0/0</code>.</p>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d56-i4-title d56-i4-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d56-i4-title">Incident 4: Rogue Default Route Leakage vs NCC Router Appliance Spoke Policy</title>
+<desc id="d56-i4-desc">Diagram showing failed path where rogue default route was leaked across manual mesh BGP, followed by corrected path utilizing NCC Hub with Router Appliance spokes enforcing route filtering.</desc>
+<defs>
+<marker id="d56-i4-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d56-i4-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Rogue Branch Advertises 0.0.0.0/0 Over Point-to-Point BGP (Egress Blackholed)</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Branch Office Router</text>
+<text x="50" y="96" fill="#f43f5e" font-size="10">Leaks Rogue: 0.0.0.0/0</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Unfiltered Cloud Router</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Accepts &amp; Propagates 0.0.0.0/0</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Production VPCs</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">All Cloud Egress Blackholed</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i4-mf)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i4-mf)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: NCC Hub &amp; Router Appliance Spokes with Strict Ingress Route Policies</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Branch Office Router</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Advertises Branch CIDR Only</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">NCC Router Appliance Spoke</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Filters 0.0.0.0/0 | Aggregates WAN</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Production VPCs</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Stable Transit &amp; Normal Egress</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i4-mc)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i4-mc)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: NCC Spoke Route Table Policy</text>
+</svg>
+<figcaption>Figure 56.5: Incident 4 Root Cause and Remediation. <strong>Supplied facts:</strong> Misconfigured branch router injected a default route over BGP, blackholing cloud egress. <strong>Architectural inference:</strong> Unfiltered point-to-point peering allows rogue route propagation; NCC provides centralized route validation and automated spoke distribution. <strong>Expected post-fix behavior:</strong> NCC suppresses rogue default routes while propagating verified RFC 1918 prefixes across all spokes.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> Injected a test <code>0.0.0.0/0</code> route announcement from a staging branch router. Confirmed via Cloud Router BGP status that the route was explicitly suppressed by route policy filters and never installed into the VPC routing table.</p>
+
+<p><strong>Alternative and residual risk:</strong> Ensure Router Appliance VM instances have IP forwarding enabled at the Compute Engine NIC level; deploy Router Appliance instances across multiple availability zones to eliminate single VM failure risks.</p>
+</article>
+
+<article id="topic-05-problem" class="topic-card">
+<h3>False 99.99% Architecture Rejected by Enterprise Audit · field case</h3>
+<p><strong>Situation and impact:</strong> A healthcare telemedicine platform hosting electronic health record (EHR) workloads claimed a 99.99% availability SLA for its hybrid connectivity in marketing and customer service contracts. During an annual regulatory SOC2 Type II and HIPAA infrastructure audit, external auditors discovered that all four 10G Dedicated Interconnect circuits were terminated within the same physical colocation building (Equinix Ashburn DC1). Two weeks later, a municipal water main burst flooded the underground conduit vault of the Ashburn facility, shorting out all fiber entrance tubes. The entire hybrid fabric collapsed simultaneously, causing an 11-hour total outage, halting hospital patient telemetry, and triggering a 25% insurance policy liability penalty.</p>
+
+<p><strong>Constraints:</strong> Must formally qualify for Google Cloud's contractual 99.99% SLA; must survive complete physical destruction of an entire metropolitan colocation building; remaining circuits must absorb 100% of peak database replication load without packet drop.</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong>
+1. Inspected physical circuit metadata across the deployment:
+<pre><code>gcloud compute interconnects list   --format="table(name,location,linkType,operationalStatus)"</code></pre>
+Output confirmed that all 4 interconnects were provisioned in <code>equinix-dc1</code> (Ashburn, VA).
+2. While two circuits connected to EAD-1 and two connected to EAD-2, all circuits shared the same geographic metropolitan area, building structural foundation, and municipal civil utilities. Google Cloud documentation explicitly mandates that a 99.99% SLA requires deployment across <strong>two distinct metropolitan areas</strong> and <strong>two distinct GCP regions</strong>.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Re-architected hybrid connectivity across dual metros:
+   - Metro A (Ashburn): Two circuits terminating on EAD-1 and EAD-2, connected to Cloud Router 1 in <code>us-east4</code>.
+   - Metro B (Chicago): Two circuits terminating on EAD-1 and EAD-2, connected to Cloud Router 2 in <code>us-central1</code>.
+2. Enabled <strong>GLOBAL Dynamic Routing</strong> on the production VPC:
+<pre><code>gcloud compute networks update prod-shared-vpc   --bgp-routing-mode=GLOBAL</code></pre>
+3. Configured deterministic BGP MED metrics:
+<pre><code>gcloud compute routers update-bgp-peer router-ashburn   --peer-name=bgp-peer-ashburn-01   --region=us-east4   --advertised-route-priority=100
+
+gcloud compute routers update-bgp-peer router-chicago   --peer-name=bgp-peer-chicago-01   --region=us-central1   --advertised-route-priority=200</code></pre>
+</p>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d56-i5-title d56-i5-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d56-i5-title">Incident 5: Single-Metro 99.9% Facility Outage vs Dual-Metro 99.99% Enterprise Architecture</title>
+<desc id="d56-i5-desc">Diagram showing failed path where 4 circuits in a single metro flooded simultaneously, followed by corrected path utilizing dual metros (Ashburn + Chicago) and dual regions for true 99.99% SLA.</desc>
+<defs>
+<marker id="d56-i5-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d56-i5-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: All 4 Circuits Terminated in Ashburn DC1 (Flooded Basement Conduit Vault)</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Enterprise Core DC</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">Active Telemetry Streams</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Ashburn DC1 Colocation</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Conduit Vault Flooded: 4 Links Down</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">GCP VPC us-east4</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Total Outage (11 Hours)</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i5-mf)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i5-mf)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Dual-Metro (Ashburn &amp; Chicago) + Dual-Region (us-east4 &amp; us-central1) 99.99% Fabric</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Enterprise Core DCs</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Dual Geographic Facilities</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Dual Metro Colo Hubs</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Ashburn EAD-1/2 + Chicago EAD-1/2</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">GCP Global Dynamic VPC</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Dual Region (east4 &amp; central1)</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i5-mc)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i5-mc)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Metro Physical Diversity Audit</text>
+</svg>
+<figcaption>Figure 56.6: Incident 5 Root Cause and Remediation. <strong>Supplied facts:</strong> Customer's 99.99% SLA claim was rejected because all circuits were in a single colocation facility. <strong>Architectural inference:</strong> Google's 99.99% SLA mathematically requires two separate metropolitan areas connected to two distinct GCP regions. <strong>Expected post-fix behavior:</strong> Dual-metro architecture survives full facility power loss and qualifies for formal contractual 99.99% SLA.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> Simulated a total metropolitan blackout by administratively shutting down all BGP sessions on the Ashburn Cloud Router. Within 2.8 seconds, Global Dynamic Routing shifted all inbound and outbound enterprise traffic to the Chicago Cloud Router in <code>us-central1</code> with zero TCP session resets.</p>
+
+<p><strong>Alternative and residual risk:</strong> Ensure on-premises backhaul fiber between Ashburn and Chicago possesses independent physical right-of-way routing; verify that surviving circuits in Chicago have sufficient contracted bandwidth to prevent throttling during failover.</p>
+</article>
+
+<article id="topic-06-problem" class="topic-card">
+<h3>Attempting Private VPC Transit Over Direct Peering · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's data engineering team began migrating 120 TB of on-premises customer databases to Google Cloud SQL and BigQuery. Seeking to avoid the multi-week lead time and port costs of Dedicated Interconnect, the network engineering team configured a 10G Direct Peering session with Google ASN 15169 at the Equinix Ashburn Internet Exchange Point (IXP). Once BGP peering was established, the team initiated test database replication from on-premises host <code>172.16.50.10</code> to a private VPC Cloud SQL instance at <code>10.10.100.5</code>. 100% of packets were dropped immediately. The failed cutover stalled the database migration for six weeks, incurring $180,000 in delayed-milestone consultant fees.</p>
+
+<p><strong>Constraints:</strong> Must enable secure, high-bandwidth private routing to RFC 1918 VPC addresses; must reserve peering links strictly for public SaaS services; must maintain strict compliance separation between internal database traffic and public internet traffic.</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong>
+1. Inspected BGP route advertisements on the on-premises border router:
+<pre><code>show ip bgp neighbors 198.51.100.1 advertised-routes</code></pre>
+Output showed the router was attempting to announce RFC 1918 prefix <code>172.16.0.0/16</code> to Google ASN 15169.
+2. Inspected routes received from Google ASN 15169:
+<pre><code>show ip bgp neighbors 198.51.100.1 routes</code></pre>
+Output revealed only public Google IP prefixes (e.g., <code>142.250.0.0/15</code>, <code>172.217.0.0/16</code>). Google edge peering routers automatically drop private RFC 1918 prefix announcements and strictly refuse to route private traffic into customer VPCs.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Enforced strict architectural segregation:
+   - Reserved the <strong>Direct Peering</strong> connection exclusively for Google Workspace (Gmail, Drive) and public Google APIs (Cloud Storage).
+   - Provisioned <strong>Partner Interconnect</strong> with redundant VLAN attachments for private RFC 1918 VPC database replication:
+<pre><code>gcloud compute interconnects attachments partner create vlan-db-migration-01   --region=us-east4   --router=router-db-migration   --edge-availability-domain=AVAILABILITY_DOMAIN_1</code></pre>
+2. Configured on-premises policy-based routing to ensure all <code>10.0.0.0/8</code> and <code>172.16.0.0/12</code> traffic routes exclusively across the Cloud Interconnect VLAN attachments.</p>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d56-i6-title d56-i6-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d56-i6-title">Incident 6: Private RFC 1918 Drops on Direct Peering vs Cloud Interconnect Segmentation</title>
+<desc id="d56-i6-desc">Diagram showing failed path where private database packets were dropped by Google Peering edge, followed by corrected path segregating private VPC traffic over Interconnect and Workspace over Peering.</desc>
+<defs>
+<marker id="d56-i6-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d56-i6-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Routing Private Database Packets (10.10.100.5) Over Direct Peering (ASN 15169)</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">On-Prem DB Host</text>
+<text x="50" y="96" fill="#cbd5e1" font-size="10">Source: 172.16.50.10</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Google Peering Edge (ASN 15169)</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Drops RFC 1918 Private Addresses</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">GCP Private VPC</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Cloud SQL (100% Blackholed)</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i6-mf)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d56-i6-mf)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Architectural Segregation (Interconnect for VPC + Peering for Public Workspace)</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">On-Prem Core Router</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Policy-Based Routing Split</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Cloud Interconnect VLAN</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Native RFC 1918 Private Transit</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">GCP Private VPC</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Cloud SQL (Line-Rate Transfer)</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i6-mc)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d56-i6-mc)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: RFC 1918 Route Advertisement Filter</text>
+</svg>
+<figcaption>Figure 56.7: Incident 6 Root Cause and Remediation. <strong>Supplied facts:</strong> Internal database packets were dropped when routed across a Direct Peering connection. <strong>Architectural inference:</strong> Direct Peering only provides routing to public Google services; private RFC 1918 traffic requires Cloud Interconnect VLAN attachments or Cloud VPN. <strong>Expected post-fix behavior:</strong> Cloud Interconnect VLAN attachment routes private subnets at line rate with full BGP control.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> Executed an IP route test from the on-premises database server to the private Cloud SQL IP (<code>10.10.100.5</code>). Traffic successfully forwarded across the Interconnect VLAN attachment with sub-2ms latency. Concurrently verified that Google Workspace traffic (Drive, Gmail) continued to route efficiently over Direct Peering.</p>
+
+<p><strong>Alternative and residual risk:</strong> If direct peering physical requirements (such as 10G minimum circuits or PeeringDB registration) cannot be sustained, migrate public SaaS traffic to Carrier Peering through a certified telecommunications provider.</p>
+</article>
+</section>
+
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Deploy a Cloud HA VPN Gateway with Dual BGP Tunnels</h3>
+<p><strong>Goal:</strong> Provision a production Cloud HA VPN gateway with dual interfaces, configure dynamic eBGP routing via Cloud Router, and establish redundant IPsec tunnels qualifying for the 99.99% availability SLA.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 55 exit artifacts.</p>
+<ol>
+<li><strong>Create Cloud Router with Custom ASN:</strong>
+<pre><code>gcloud compute routers create router-ha-east4   --network=prod-shared-vpc   --region=us-east4   --asn=65001</code></pre>
+</li>
+<li><strong>Create HA VPN Gateway:</strong>
+<pre><code>gcloud compute vpn-gateways create ha-vpn-east4   --network=prod-shared-vpc   --region=us-east4</code></pre>
+</li>
+<li><strong>Inspect Gateway Public Interfaces:</strong>
+<pre><code>gcloud compute vpn-gateways describe ha-vpn-east4   --region=us-east4   --format="table(name,vpnInterfaces[].id,vpnInterfaces[].ipAddress)"</code></pre>
+Verify that Google Cloud assigned two distinct public IPv4 addresses (<code>interface 0</code> and <code>interface 1</code>) on separate Google hardware clusters.
+</li>
+<li><strong>Create External Peer VPN Gateway Resource:</strong>
+<pre><code>gcloud compute external-vpn-gateways create onprem-peer-gw   --interfaces 0=198.51.100.10,1=198.51.100.20</code></pre>
+</li>
+<li><strong>Create Dual IPsec Tunnels:</strong>
+<pre><code>gcloud compute vpn-tunnels create tunnel-ha-0   --region=us-east4   --vpn-gateway=ha-vpn-east4   --interface=0   --peer-external-gateway=onprem-peer-gw   --peer-external-gateway-interface=0   --shared-secret="ComplexPresharedKey987654"   --router=router-ha-east4
+
+gcloud compute vpn-tunnels create tunnel-ha-1   --region=us-east4   --vpn-gateway=ha-vpn-east4   --interface=1   --peer-external-gateway=onprem-peer-gw   --peer-external-gateway-interface=1   --shared-secret="ComplexPresharedKey987654"   --router=router-ha-east4</code></pre>
+</li>
+<li><strong>Add Cloud Router BGP Interfaces and Peers:</strong>
+<pre><code>gcloud compute routers add-interface router-ha-east4   --region=us-east4   --interface-name=if-tunnel-0   --ip-address=169.254.10.1   --mask-length=30   --vpn-tunnel=tunnel-ha-0
+
+gcloud compute routers add-bgp-peer router-ha-east4   --region=us-east4   --peer-name=bgp-peer-0   --interface=if-tunnel-0   --peer-ip-address=169.254.10.2   --peer-asn=65002
+
+gcloud compute routers add-interface router-ha-east4   --region=us-east4   --interface-name=if-tunnel-1   --ip-address=169.254.10.5   --mask-length=30   --vpn-tunnel=tunnel-ha-1
+
+gcloud compute routers add-bgp-peer router-ha-east4   --region=us-east4   --peer-name=bgp-peer-1   --interface=if-tunnel-1   --peer-ip-address=169.254.10.6   --peer-asn=65002</code></pre>
+</li>
+<li><strong>Verify BGP Session States:</strong>
+<pre><code>gcloud compute routers get-status router-ha-east4   --region=us-east4   --format="yaml(result.bgpPeerStatus)"</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Both VPN tunnels show status <code>ESTABLISHED</code>. Cloud Router displays active BGP sessions over both interfaces, qualifying for the 99.99% availability SLA.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If BGP status is <code>CONNECTING</code>, verify that on-premises firewalls permit UDP ports 500 and 4500 (IKE and IPsec NAT-T) and IP protocol 50 (ESP).</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete tunnels, external VPN gateways, and HA VPN gateways after testing to avoid hourly gateway charges.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-56-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Create a Cloud Interconnect VLAN Attachment</h3>
+<p><strong>Goal:</strong> Provision a Partner Interconnect VLAN attachment, retrieve the pairing key, and configure Cloud Router BGP.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 55 exit artifacts.</p>
+<ol>
+<li><strong>Create Partner Interconnect VLAN Attachment:</strong>
+<pre><code>gcloud compute interconnects attachments partner create partner-vlan-east4   --region=us-east4   --router=router-ha-east4   --edge-availability-domain=AVAILABILITY_DOMAIN_1</code></pre>
+</li>
+<li><strong>Retrieve the Pairing Key:</strong>
+<pre><code>gcloud compute interconnects attachments describe partner-vlan-east4   --region=us-east4   --format="value(pairingKey)"</code></pre>
+Copy this pairing key to supply to your certified service provider portal (Equinix, Megaport, or Console Connect).
+</li>
+<li><strong>Configure Cloud Router BGP for Layer 2 Partner Handoff:</strong>
+<pre><code>gcloud compute routers add-bgp-peer router-ha-east4   --region=us-east4   --peer-name=partner-bgp-peer   --interface=if-partner-vlan   --peer-asn=65002   --advertised-route-priority=100</code></pre>
+</li>
+<li><strong>Verify Interconnect Attachment MTU and Status:</strong>
+<pre><code>gcloud compute interconnects attachments describe partner-vlan-east4   --region=us-east4   --format="table(name,state,mtu,bandwidth)"</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The attachment transitions to <code>STATE: ACTIVE</code> once the partner connects the circuit. Cloud Router establishes dynamic BGP route exchange across the VLAN.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If state remains <code>PENDING_PARTNER</code>, ensure the pairing key was correctly entered into the service provider console within 30 days of creation.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Deprovision the VLAN attachment in both GCP and the partner console to avoid recurring hourly sub-interface reservation charges.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-56-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Order and Inspect Cross-Cloud Interconnect to AWS</h3>
+<p><strong>Goal:</strong> Simulate provisioning a Cross-Cloud Interconnect port to AWS Direct Connect in Ashburn and configure BGP parameters.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 55 exit artifacts.</p>
+<ol>
+<li><strong>Inspect Available Cross-Cloud Interconnect Colocation Locations:</strong>
+<pre><code>gcloud compute interconnects locations list   --filter="description ~ 'Cross-Cloud'"   --format="table(name,facilityProvider,city,description)"</code></pre>
+Verify Google and AWS shared facilities in Ashburn (e.g., <code>equinix-dc2</code>).
+</li>
+<li><strong>Simulate Ordering a Cross-Cloud Interconnect Port:</strong>
+<pre><code>gcloud compute interconnects create cross-cloud-aws-demo   --customer-name="Enterprise Multi-Cloud Team"   --interconnect-type=DEDICATED   --link-type=LINK_TYPE_ETHERNET_100G_LR   --location=equinix-dc2   --remote-location=aws-ashburn-1   --requested-link-count=1</code></pre>
+</li>
+<li><strong>Provision Cross-Cloud VLAN Attachment with MTU 1500:</strong>
+<pre><code>gcloud compute interconnects attachments dedicated create vlan-aws-direct   --interconnect=cross-cloud-aws-demo   --region=us-east4   --router=router-ha-east4   --bandwidth=BPS_10G   --mtu=1500</code></pre>
+</li>
+<li><strong>Inspect Attachment Details for AWS Direct Connect LAG Association:</strong>
+<pre><code>gcloud compute interconnects attachments describe vlan-aws-direct   --region=us-east4   --format="yaml(name,customerRouterIpAddress,cloudRouterIpAddress,tag8021q)"</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Cross-Cloud Interconnect creates a dedicated physical cross-connect directly to AWS. Point-to-point BGP peering subnets and 802.1Q tags are generated for AWS Direct Connect association.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Ensure MTU is set to 1500 across both Google Cloud Interconnect attachment and AWS Direct Connect virtual interface (VIF) to avoid fragmentation drops.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Cancel pending cross-cloud port orders before physical cross-connect execution to prevent port turn-up billing.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-56-topic-03"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-04-lab" class="topic-card lab">
+<h3>Exercise 4: Integrate Cloud Router with Network Connectivity Center</h3>
+<p><strong>Goal:</strong> Connect a hybrid Cloud Router as an NCC Spoke and verify route advertisement aggregation.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 55 exit artifacts.</p>
+<ol>
+<li><strong>Create NCC Hub:</strong>
+<pre><code>gcloud network-connectivity hubs create hybrid-enterprise-hub   --description="Global Enterprise Hybrid Transit Hub"</code></pre>
+</li>
+<li><strong>Attach HA VPN Cloud Router as an NCC Hybrid Spoke:</strong>
+<pre><code>gcloud network-connectivity spokes linked-vpn-tunnels create vpn-spoke-east4   --hub=hybrid-enterprise-hub   --region=us-east4   --vpn-tunnels=tunnel-ha-0,tunnel-ha-1</code></pre>
+</li>
+<li><strong>Inspect Hub Spokes and Aggregated State:</strong>
+<pre><code>gcloud network-connectivity spokes list   --hub=hybrid-enterprise-hub   --format="table(name,spokeType,state,uniqueId)"</code></pre>
+</li>
+<li><strong>Verify Spoke Route Redistribution:</strong>
+<pre><code>gcloud network-connectivity hubs describe hybrid-enterprise-hub   --format="yaml(name,routingVpcs,spokes)"</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The NCC Hub displays status <code>ACTIVE</code>. Routes learned over the HA VPN tunnels are automatically propagated across all attached VPC networks and SD-WAN spokes.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If spoke status is <code>FAILED</code>, ensure the associated Cloud Router is located in the same project or has proper Shared VPC cross-project IAM permissions.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete NCC spokes before deleting the hub. NCC hub resources incur no charges, but active spokes carry monthly per-spoke transit fees.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-56-topic-04"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-05-lab" class="topic-card lab">
+<h3>Exercise 5: Design and Audit a 99.99% Dual-Metro Interconnect Architecture</h3>
+<p><strong>Goal:</strong> Audit an enterprise hybrid network diagram against Google's formal 99.99% SLA requirements and calculate surviving bandwidth.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 55 exit artifacts.</p>
+<ol>
+<li><strong>Audit the Physical Failure Domain Checklist:</strong>
+<pre><code># 99.99% SLA Requirements Verification:
+# 1. Metro Diversity: 2 distinct metros (e.g. Ashburn + Chicago) -> PASS
+# 2. EAD Diversity: EAD-1 and EAD-2 in both metros -> PASS
+# 3. Cloud Router Diversity: 2 Cloud Routers in distinct regions (us-east4 + us-central1) -> PASS
+# 4. Dynamic Routing: VPC set to GLOBAL routing -> PASS
+# 5. Attachment Count: 4 distinct VLAN attachments -> PASS</code></pre>
+</li>
+<li><strong>Verify VPC Global Dynamic Routing Mode:</strong>
+<pre><code>gcloud compute networks describe prod-shared-vpc   --format="value(routingConfig.routingMode)"</code></pre>
+If output is <code>REGIONAL</code>, update to <code>GLOBAL</code> immediately:
+<pre><code>gcloud compute networks update prod-shared-vpc   --bgp-routing-mode=GLOBAL</code></pre>
+</li>
+<li><strong>Configure Deterministic BGP MED for Dual-Metro Failover:</strong>
+<pre><code># Primary Metro (Ashburn / us-east4): MED 100
+gcloud compute routers update-bgp-peer router-ashburn   --peer-name=peer-ashburn-01   --region=us-east4   --advertised-route-priority=100
+
+# Standby Metro (Chicago / us-central1): MED 200
+gcloud compute routers update-bgp-peer router-chicago   --peer-name=peer-chicago-01   --region=us-central1   --advertised-route-priority=200</code></pre>
+</li>
+<li><strong>Calculate Surviving Bandwidth on Metro Failure:</strong>
+<pre><code># Formula:
+# Surviving_Bandwidth = min(Metro_A_Capacity, Metro_B_Capacity)
+# Metro A: 2 x 100G = 200 Gbps
+# Metro B: 2 x 100G = 200 Gbps
+# Surviving Bandwidth during complete Metro A blackout: 200 Gbps</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>VPC operates in Global Dynamic Routing mode. Outbound traffic prefers Ashburn (MED 100) and automatically fails over to Chicago (MED 200) without route withdrawal delays.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If regional subnets are unreachable when Metro A fails, ensure VPC routing mode is strictly set to <code>GLOBAL</code>; <code>REGIONAL</code> routing limits route advertisement strictly to the local region.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Document the routing architecture in your hybrid ADR. This is a design and configuration audit; no billable cloud resources remain.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-56-topic-05"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-06-lab" class="topic-card lab">
+<h3>Exercise 6: Differentiate Direct Peering and Interconnect for Enterprise SaaS</h3>
+<p><strong>Goal:</strong> Model traffic segregation, routing Google Workspace to Direct Peering and private database workloads to Cloud Interconnect.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 55 exit artifacts.</p>
+<ol>
+<li><strong>Analyze Destination Routes:</strong>
+<pre><code># Route Evaluation:
+# Destination: Google Workspace (142.250.0.0/15) -> Direct Peering (ASN 15169)
+# Destination: GCP Private Subnet (10.10.0.0/16) -> Cloud Interconnect VLAN
+# Destination: YouTube / Public APIs (172.217.0.0/16) -> Direct Peering (ASN 15169)</code></pre>
+</li>
+<li><strong>Inspect Routes Advertised by Cloud Router over Cloud Interconnect:</strong>
+<pre><code>gcloud compute routers describe router-ha-east4   --region=us-east4   --format="yaml(bgp.advertisedIpRanges)"</code></pre>
+</li>
+<li><strong>Configure Custom Route Advertisement (RFC 1918 Private Subnets Only):</strong>
+<pre><code>gcloud compute routers update router-ha-east4   --region=us-east4   --advertisement-mode=CUSTOM   --set-advertisement-ranges=10.10.0.0/16,10.20.0.0/16</code></pre>
+Ensure public Google IPs are never advertised across the private Cloud Interconnect VLAN attachment.
+</li>
+<li><strong>Validate Routing Table Isolation:</strong>
+<pre><code># Confirm Routing Policy:
+# 1. Packets destined to 10.10.0.0/16 route across Interconnect Attachment (vlan-ashburn-01)
+# 2. Packets destined to 142.250.0.0/15 route across Direct Peering BGP session (ASN 15169)
+# 3. Direct Peering drops RFC 1918 packets at Google edge border router</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Private database replication traverses Cloud Interconnect at line rate with zero internet exposure. Google Workspace traffic routes directly to Google ASN 15169 without consuming private interconnect bandwidth.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Never advertise a default route (<code>0.0.0.0/0</code>) over Direct Peering; Google peering routers will reject the session or discard the route.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Restore Cloud Router route advertisements to <code>DEFAULT</code> if custom ranges were added purely for testing.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-56-topic-06"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>Assemble your notes and architecture decisions into an architectural decision record named <code>day-056-hybrid-adr.md</code>. Document your 99.99% dual-metro Dedicated Interconnect topology, physical failure domains, lead time and cost assumptions, surviving capacity calculations during catastrophic metro outages, and traffic segregation boundaries between Direct Peering and Cloud Interconnect.</p>
+<label class="check"><input type="checkbox" data-progress="read-56"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-56"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-055.html">← Day 55<small>CDN, WAF and traffic management</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-057.html">Day 57 →<small>BGP, MTU and NAT diagnosis</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

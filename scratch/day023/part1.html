@@ -1,0 +1,41 @@
+    <section class="part" id="part-1" aria-labelledby="part-1-title">
+      <h2 id="part-1-title">1 · Concepts and problem previews</h2>
+
+      <article class="topic-card" id="topic-01-overview">
+        <h3>Project lifecycle: creation, shutdown, and the 30-day recovery window</h3>
+        <p><strong>What it is:</strong> A Google Cloud Project progresses through a well-defined lifecycle managed by the Cloud Resource Manager API: creation (<code>ACTIVE</code>), shutdown request (<code>DELETE_REQUESTED</code>), a mandatory 30-day soft-deletion recovery window, and permanent purge (<code>DELETED</code>). When a project is shut down, all active compute resources, network routes, and database connections are immediately halted, and billing associations are decoupled; however, resource configurations and persistent disks remain preserved inside Google Cloud storage for 30 days. During this window, an administrator with the <code>roles/resourcemanager.projectDeleter</code> role can execute an undelete operation to restore the project and its resources. To protect mission-critical production projects against accidental deletion, architects apply <strong>Project Liens</strong> (<code>resourcemanager.lien</code>), which programmatically block all deletion requests at the API boundary until the lien is explicitly released.</p>
+        <p><strong>Why today:</strong> Having mastered resource hierarchy in <a href="day-021.html">Day 21</a> and additive inheritance in <a href="day-022.html">Day 22</a>, enterprise architects must establish robust operational lifecycle boundaries. Automated CI/CD teardown scripts, Terraform workspace refactoring, and human error routinely target projects for decommissioning; understanding liens and the 30-day recovery window prevents permanent catastrophic data loss and ensures rapid disaster recovery.</p>
+        <p><strong>Where it sits:</strong> At the container management boundary within the Cloud Resource Manager control plane. Project state transitions dictate whether child service APIs remain responsive, whether service agents can authenticate, and whether underlying infrastructure resources are slated for permanent physical disk shredding.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>An automated infrastructure cleanup script targeting ephemeral development environments accidentally executes a project shutdown API call against Brightloaf's unshielded shared artifact registry project. Because no protective project lien was configured, the project immediately entered pending deletion and detached service account credentials, halting automated container deployments and blocking critical hotfixes across 450 franchise bakery point-of-sale systems during peak morning trading.</p>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-overview">
+        <h3>Designing a hierarchy for prod/staging/dev and multi-team companies</h3>
+        <p><strong>What it is:</strong> Enterprise resource hierarchy design involves structuring folders beneath the Organization root to balance administrative autonomy, operational agility, and security isolation. Architects generally select between three structural topologies:
+        <strong>Environment-First</strong> (top-level folders represent lifecycle stages such as <code>/Production</code>, <code>/Staging</code>, and <code>/Development</code>),
+        <strong>Team-First</strong> (top-level folders represent business units or product lines such as <code>/Retail-Bakery</code>, <code>/Supply-Chain</code>, and <code>/Mobile-App</code>, with environments nested underneath), and
+        <strong>Hybrid / Matrix</strong> (top-level business units containing standardized environment folders, or vice versa). The chosen structure determines how IAM role bindings propagate, how Organization Policies apply, and how Shared VPC networks interconnect workloads.</p>
+        <p><strong>Why today:</strong> Multi-team enterprises inevitably suffer permission sprawl and security breaches if the hierarchy is organized ad-hoc. Choosing the right folder topology ensures that developer write privileges in non-production environments never bleed into production systems, while enabling centralized compliance teams to apply blanket security baselines without micro-managing individual engineering projects.</p>
+        <p><strong>Where it sits:</strong> In the structural arrangement of Folders between the Organization apex and leaf Projects. The hierarchy defines the downward path of inheritance for both IAM permissions and Organization Policy guardrails across all business units.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>An engineering team adopts a flat team-first folder structure that places staging and production workloads under a shared departmental container, inadvertently inheriting developer administrative permissions directly into live order processing clusters. A developer running a high-concurrency performance benchmark against an assumed staging endpoint directed millions of synthetic transactions into the production PostgreSQL database, exhausting connection pools and causing thousands of retail bakery customers to experience failed checkout screens.</p>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-03-overview">
+        <h3>Organization Policy Service: centralized guardrails overriding IAM</h3>
+        <p><strong>What it is:</strong> The Organization Policy Service provides centralized, programmatic governance constraints that enforce non-negotiable guardrails on cloud resources across the entire resource tree. Unlike IAM (which governs <em>identities</em> and who is authorized to invoke an API), Organization Policies govern <em>resources</em> and define what configurations are legally allowed to exist, regardless of the caller's IAM privileges. Constraints are evaluated as either
+        <strong>Boolean Constraints</strong> (enforcing a strict binary rule, such as <code>constraints/compute.vmExternalIpAccess</code> or <code>constraints/iam.disableServiceAccountKeyCreation</code>) or
+        <strong>List Constraints</strong> (enforcing allowed or denied sets of values, such as restricting physical provisioning locations via <code>constraints/gcp.resourceLocations</code> to specific geographic regions).</p>
+        <p><strong>Why today:</strong> Even the most rigorous IAM least-privilege configurations cannot prevent a compromised service account or well-meaning project administrator from provisioning compute instances with public internet IPs, disabling encryption keys, or spinning up workloads in unapproved geographic jurisdictions that violate data residency regulations. Organization policies provide an immutable safety net that halts non-compliant configurations at admission time.</p>
+        <p><strong>Where it sits:</strong> At the front door of the Google Cloud API admission control plane. Every resource creation or mutation request received by Compute Engine, Cloud Storage, Cloud SQL, or any other Google service is intercepted and evaluated against effective organizational policy constraints before the request is dispatched to the underlying infrastructure subsystem.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>A data science contractor possessing legitimate project administrative credentials attempts to provision an unshielded compute instance with an ephemeral public IP address in an overseas region to process raw franchise sales records. Lacking centralized organization policy guardrails, the public instance was deployed and immediately detected by automated internet port scanners, exposing unencrypted order transaction logs and triggering an emergency forensic audit for cross-border regulatory compliance violations.</p>
+        </div>
+      </article>
+    </section>

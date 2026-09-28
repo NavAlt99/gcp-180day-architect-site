@@ -1,0 +1,373 @@
+    <section class="part" id="part-4" aria-labelledby="part-4-heading">
+      <h2 id="part-4-heading">Part 4 · Step-by-step labs</h2>
+      <p class="section-lead">Hands-on exercises: simulating project billing linkages, auditing segregation of duties across billing IAM roles, and calculating multi-tier budget alert thresholds with automated Pub/Sub event schemas.</p>
+
+      <!-- Lab 01 -->
+      <article class="card" id="topic-01-lab" aria-labelledby="l1-heading">
+        <span class="badge">Lab 27.1</span>
+        <h3 id="l1-heading">Project Billing Linkage &amp; Decoupling Simulator</h3>
+        <p><strong>Goal:</strong> Simulate the lifecycle of project billing associations (<code>projectBillingInfo</code>), demonstrating project attachment, detachment, and suspension safeguards.</p>
+        <p><strong>Expected Result:</strong> Programmatic verification that unlinking a billing account sets <code>billingEnabled: false</code> and triggers safeguards for production tagged projects.</p>
+        <p><strong>Mode:</strong> Python runtime simulator implementing Cloud Billing API specifications.</p>
+
+        <h4>Preflight Checks</h4>
+        <ol>
+          <li>Confirm Python 3.10+ is accessible in your environment.</li>
+          <li>Ensure write access to <code>scratch/day027/</code>.</li>
+        </ol>
+
+        <h4>Exact Execution Steps</h4>
+        <ol>
+          <li>Create a Python script named <code>simulate-project-billing.py</code> in the scratch directory:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day027/simulate-project-billing.py
+#!/usr/bin/env python3
+"""
+simulate-project-billing.py
+Simulates Cloud Billing project linkage and protection rules.
+"""
+import json
+
+class CloudBillingManager:
+    def __init__(self):
+        self.billing_accounts = {
+            "01A2B3-4C5D6E-7F8G9H": {"name": "Corporate Master Invoicing", "open": True}
+        }
+        self.projects = {
+            "brightloaf-prod-fulfillment": {
+                "billing_account": "01A2B3-4C5D6E-7F8G9H",
+                "billing_enabled": True,
+                "tags": {"env": "production"}
+            },
+            "brightloaf-dev-sandbox": {
+                "billing_account": "01A2B3-4C5D6E-7F8G9H",
+                "billing_enabled": True,
+                "tags": {"env": "development"}
+            }
+        }
+
+    def update_project_billing(self, project_id, new_billing_account, force=False):
+        proj = self.projects.get(project_id)
+        if not proj:
+            raise ValueError(f"Project {project_id} not found.")
+
+        # Safety Check: Prevent accidental unlinking of production projects
+        if proj["tags"].get("env") == "production" and not new_billing_account and not force:
+            raise PermissionError(
+                f"SAFETY POLICY REJECTION: Cannot unlink billing from production project '{project_id}' without break-glass force flag."
+            )
+
+        proj["billing_account"] = new_billing_account
+        proj["billing_enabled"] = bool(new_billing_account)
+        return {
+            "name": f"projects/{project_id}/billingInfo",
+            "projectId": project_id,
+            "billingAccountName": f"billingAccounts/{new_billing_account}" if new_billing_account else "",
+            "billingEnabled": proj["billing_enabled"]
+        }
+
+def main():
+    mgr = CloudBillingManager()
+    print("=== Google Cloud Billing Linkage Simulator ===")
+    
+    # 1. Inspect initial state
+    print("[1] Initial State for brightloaf-prod-fulfillment:")
+    print(f"    Billing Enabled: {mgr.projects['brightloaf-prod-fulfillment']['billing_enabled']}")
+    print(f"    Account        : {mgr.projects['brightloaf-prod-fulfillment']['billing_account']}")
+
+    # 2. Test safe unlinking of dev project
+    print("\n[2] Unlinking Dev Sandbox Project:")
+    res_dev = mgr.update_project_billing("brightloaf-dev-sandbox", "")
+    print(f"    Result: {res_dev['projectId']} -> billingEnabled={res_dev['billingEnabled']}")
+
+    # 3. Test blocked unlinking of production project
+    print("\n[3] Attempting Unprotected Unlink of Production Project:")
+    try:
+        mgr.update_project_billing("brightloaf-prod-fulfillment", "")
+    except PermissionError as e:
+        print(f"    [POLICY BLOCKED]: {e}")
+
+    # Invariant assertion: Production fulfillment remains funded
+    assert mgr.projects["brightloaf-prod-fulfillment"]["billing_enabled"], "CRITICAL: Prod billing disabled!"
+    print("\n[INVARIANT VERIFIED]: Production fulfillment remains 100% funded and active.")
+
+if __name__ == "__main__":
+    main()
+EOF
+chmod +x scratch/day027/simulate-project-billing.py</code></pre>
+          </li>
+          <li>Execute the billing linkage simulator:
+            <pre><code class="language-bash">python3 scratch/day027/simulate-project-billing.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">=== Google Cloud Billing Linkage Simulator ===
+[1] Initial State for brightloaf-prod-fulfillment:
+    Billing Enabled: True
+    Account        : 01A2B3-4C5D6E-7F8G9H
+
+[2] Unlinking Dev Sandbox Project:
+    Result: brightloaf-dev-sandbox -> billingEnabled=False
+
+[3] Attempting Unprotected Unlink of Production Project:
+    [POLICY BLOCKED]: SAFETY POLICY REJECTION: Cannot unlink billing from production project 'brightloaf-prod-fulfillment' without break-glass force flag.
+
+[INVARIANT VERIFIED]: Production fulfillment remains 100% funded and active.</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>PermissionError:</em> The safety validator deliberately blocks unlinking on projects tagged with <code>env=production</code>.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Retain the simulator code for validation against Day 28 notifications.</p>
+      </article>
+
+      <!-- Lab 02 -->
+      <article class="card" id="topic-02-lab" aria-labelledby="l2-heading">
+        <span class="badge">Lab 27.2</span>
+        <h3 id="l2-heading">Billing Role &amp; Segregation of Duties Matrix</h3>
+        <p><strong>Goal:</strong> Audit permissions assigned across financial administrators, DevOps leads, and FinOps analysts to enforce strict segregation of duties.</p>
+        <p><strong>Expected Result:</strong> An automated validation report ensuring that only finance personnel possess <code>roles/billing.admin</code>, while engineers receive scoped <code>roles/billing.user</code> access.</p>
+        <p><strong>Mode:</strong> Python audit script validating simulated IAM policy bindings.</p>
+
+        <h4>Preflight Checks</h4>
+        <ol>
+          <li>Confirm understanding of the difference between <code>roles/billing.admin</code>, <code>roles/billing.user</code>, and <code>roles/billing.viewer</code>.</li>
+          <li>Verify directory permissions in <code>scratch/day027/</code>.</li>
+        </ol>
+
+        <h4>Exact Execution Steps</h4>
+        <ol>
+          <li>Create a Python script named <code>audit-billing-roles.py</code> in the scratch directory:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day027/audit-billing-roles.py
+#!/usr/bin/env python3
+"""
+audit-billing-roles.py
+Audits segregation of duties across Cloud Billing IAM roles.
+"""
+import json
+
+BILLING_POLICY = {
+    "resource": "billingAccounts/01A2B3-4C5D6E-7F8G9H",
+    "bindings": [
+        {
+            "role": "roles/billing.admin",
+            "members": [
+                "group:finance-controllers@brightloaf.com",
+                "user:cfo@brightloaf.com"
+            ]
+        },
+        {
+            "role": "roles/billing.user",
+            "members": [
+                "group:engineering-leads@brightloaf.com",
+                "serviceAccount:terraform-deployer@brightloaf-ops.iam.gserviceaccount.com"
+            ]
+        },
+        {
+            "role": "roles/billing.viewer",
+            "members": [
+                "group:finops-analysts@brightloaf.com",
+                "group:engineering-managers@brightloaf.com"
+            ]
+        }
+    ]
+}
+
+def audit_segregation_of_duties(policy):
+    print("=== Cloud Billing IAM Role Compliance Audit ===")
+    violations = []
+    
+    for binding in policy["bindings"]:
+        role = binding["role"]
+        members = binding["members"]
+        print(f"\nEvaluating Role: {role}")
+        for m in members:
+            # Rule: Engineering groups must NEVER hold roles/billing.admin
+            if role == "roles/billing.admin" and ("engineering" in m or "dev" in m):
+                violations.append(f"VIOLATION: Non-finance identity '{m}' holds {role}")
+                print(f"  [FAIL] {m} -> Ineligible for Billing Admin")
+            else:
+                print(f"  [PASS] {m} -> Approved")
+                
+    if violations:
+        print("\n[AUDIT RESULT: NON-COMPLIANT]")
+        for v in violations:
+            print(f"  {v}")
+        return False
+    else:
+        print("\n[AUDIT RESULT: COMPLIANT] All roles strictly segregated according to financial policy.")
+        return True
+
+if __name__ == "__main__":
+    audit_segregation_of_duties(BILLING_POLICY)
+EOF
+chmod +x scratch/day027/audit-billing-roles.py</code></pre>
+          </li>
+          <li>Run the role compliance audit:
+            <pre><code class="language-bash">python3 scratch/day027/audit-billing-roles.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">=== Cloud Billing IAM Role Compliance Audit ===
+
+Evaluating Role: roles/billing.admin
+  [PASS] group:finance-controllers@brightloaf.com -&gt; Approved
+  [PASS] user:cfo@brightloaf.com -&gt; Approved
+
+Evaluating Role: roles/billing.user
+  [PASS] group:engineering-leads@brightloaf.com -&gt; Approved
+  [PASS] serviceAccount:terraform-deployer@brightloaf-ops.iam.gserviceaccount.com -&gt; Approved
+
+Evaluating Role: roles/billing.viewer
+  [PASS] group:finops-analysts@brightloaf.com -&gt; Approved
+  [PASS] group:engineering-managers@brightloaf.com -&gt; Approved
+
+[AUDIT RESULT: COMPLIANT] All roles strictly segregated according to financial policy.</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>Compliance Failure:</em> If an engineering group is detected in <code>roles/billing.admin</code>, demote the binding to <code>roles/billing.user</code>.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Retain the script for recurring policy governance scans.</p>
+      </article>
+
+      <!-- Lab 03 -->
+      <article class="card" id="topic-03-lab" aria-labelledby="l3-heading">
+        <span class="badge">Lab 27.3</span>
+        <h3 id="l3-heading">Cloud Budget Alert Ladder &amp; Threshold Calculator</h3>
+        <p><strong>Goal:</strong> Calculate the monetary thresholds for a monthly project budget at 50%, 90%, and 100%, and generate the mandatory Day 27 exit artifact: <code>scratch/day027/billing-responsibility-matrix.md</code>.</p>
+        <p><strong>Expected Result:</strong> An actionable billing responsibility matrix and programmatic Pub/Sub alert schema specification.</p>
+        <p><strong>Mode:</strong> Python calculation and documentation compiler.</p>
+
+        <h4>Preflight Checks</h4>
+        <ol>
+          <li>Confirm target budget allocation ($1,000 monthly for development and sandbox operations).</li>
+          <li>Ensure write permissions in <code>scratch/day027/</code>.</li>
+        </ol>
+
+        <h4>Exact Execution Steps</h4>
+        <ol>
+          <li>Create the budget calculator and artifact generator script <code>calculate-budget-thresholds.py</code>:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day027/calculate-budget-thresholds.py
+#!/usr/bin/env python3
+"""
+calculate-budget-thresholds.py
+Calculates 50%, 90%, and 100% budget alert thresholds and generates
+the Day 27 Exit Artifact: billing-responsibility-matrix.md
+"""
+import os
+from datetime import datetime, timezone
+
+def calculate_thresholds(monthly_budget_usd):
+    thresholds = [
+        {"percent": 0.50, "amount": monthly_budget_usd * 0.50, "severity": "INFORMATIONAL", "action": "Cadence check via email"},
+        {"percent": 0.90, "amount": monthly_budget_usd * 0.90, "severity": "WARNING", "action": "FinOps capacity audit"},
+        {"percent": 1.00, "amount": monthly_budget_usd * 1.00, "severity": "CRITICAL", "action": "Pub/Sub automated remediation"}
+    ]
+    return thresholds
+
+def compile_exit_artifact(budget_usd, thresholds):
+    artifact_content = f"""# Day 27 Exit Artifact: Billing Responsibility Matrix &amp; Budget Thresholds
+
+**Generated:** {datetime.now(timezone.utc).isoformat()}
+**Scope:** Brightloaf Cloud Billing Account `01A2B3-4C5D6E-7F8G9H`
+**Objective:** A billing responsibility matrix and correctly calculated thresholds.
+
+---
+
+## 1. Cloud Billing Responsibility Matrix (RACI)
+
+Segregation of duties between corporate finance, engineering operations, and FinOps:
+
+| Operational Activity | Corporate Finance | DevOps / Eng Leads | FinOps &amp; Audit | Automated CI/CD |
+|:---|:---|:---|:---|:---|
+| **Open / Close Billing Account** | **Accountable (A)** | Informed (I) | Consulted (C) | No Access |
+| **Manage Payment Profile &amp; Credit Line** | **Responsible (R)** | No Access | Informed (I) | No Access |
+| **Create &amp; Link New Projects** | Informed (I) | **Responsible (R)** | Informed (I) | **Responsible (R)** |
+| **Unlink / Migrate Projects** | **Accountable (A)** | Consulted (C) | Consulted (C) | No Access |
+| **Set &amp; Modify Monthly Budgets** | **Accountable (A)** | Consulted (C) | **Responsible (R)** | No Access |
+| **Receive 50% / 90% Email Alerts** | Informed (I) | **Responsible (R)** | **Responsible (R)** | No Access |
+| **Handle 100% Pub/Sub Remediation** | Informed (I) | **Responsible (R)** | Consulted (C) | **Responsible (R)** |
+
+---
+
+## 2. Calculated Monthly Budget Alert Thresholds
+
+- **Baseline Allocation:** ${budget_usd:,.2f} USD / month
+- **Target Container:** `projects/brightloaf-analytics` &amp; `projects/brightloaf-dev-sandbox`
+
+| Threshold (%) | Trigger Amount | Evaluation Metric | Severity | Notification Channel | Operational Response |
+|:---|:---|:---|:---|:---|:---|
+| **50%** | ${thresholds[0]['amount']:,.2f} USD | Actual Spend | Informational | Email (`eng-alerts@brightloaf.com`) | Mid-month pace review; confirm linear burn rate |
+| **90%** | ${thresholds[1]['amount']:,.2f} USD | Actual or Forecasted | Warning | Email (`finops@brightloaf.com`, `eng-mgmt@...`) | Review unpartitioned queries and idle compute |
+| **100%** | ${thresholds[2]['amount']:,.2f} USD | Actual Spend | Critical | Email + Cloud Pub/Sub Event | Automated scale-down of non-prod workloads |
+
+---
+
+## 3. Programmatic Pub/Sub Alert Event Schema
+
+```json
+{{
+  "budgetDisplayName": "brightloaf-analytics-monthly-budget",
+  "costAmount": 1004.50,
+  "costIntervalStart": "2026-09-01T00:00:00Z",
+  "budgetAmount": {budget_usd:.2f},
+  "budgetAmountType": "SPECIFIED_AMOUNT",
+  "alertThresholdExceeded": 1.0,
+  "currencyCode": "USD"
+}}
+```
+
+### Invariant &amp; Safety Compliance Attestation:
+1. **Duplicate Fulfillment Invariant (&le; 1 Physical Fulfillment):** Automated cost-capping scripts triggered by Pub/Sub must strictly filter on resource tags (`env != "production"`). Production order ingestion and dispatch pipelines are shielded from automated termination.
+2. **Key Avoidance:** Project linkage pipelines authenticate strictly via `roles/billing.user` with attached workload identities; zero static JSON keys are used for financial management.
+
+**Attested by:** Brightloaf FinOps &amp; Cloud Architecture Review Board
+"""
+
+    os.makedirs("scratch/day027", exist_ok=True)
+    artifact_path = "scratch/day027/billing-responsibility-matrix.md"
+    with open(artifact_path, "w") as f:
+        f.write(artifact_content)
+    print(f"=== Successfully Compiled Exit Artifact: {artifact_path} ===")
+
+def main():
+    budget = 1000.00
+    print(f"=== Calculating Thresholds for Monthly Budget: ${budget:,.2f} ===")
+    thresholds = calculate_thresholds(budget)
+    for t in thresholds:
+        print(f"  [{t['percent']*100:3.0f}% Threshold]: ${t['amount']:,.2f} USD -> {t['action']}")
+    
+    compile_exit_artifact(budget, thresholds)
+
+if __name__ == "__main__":
+    main()
+EOF
+chmod +x scratch/day027/calculate-budget-thresholds.py</code></pre>
+          </li>
+          <li>Execute the threshold calculator:
+            <pre><code class="language-bash">python3 scratch/day027/calculate-budget-thresholds.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">=== Calculating Thresholds for Monthly Budget: $1,000.00 ===
+  [ 50% Threshold]: $500.00 USD -&gt; Cadence check via email
+  [ 90% Threshold]: $900.00 USD -&gt; FinOps capacity audit
+  [100% Threshold]: $1,000.00 USD -&gt; Pub/Sub automated remediation
+=== Successfully Compiled Exit Artifact: scratch/day027/billing-responsibility-matrix.md ===</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>Calculation Discrepancy:</em> Ensure percentage multipliers evaluate as 0.5, 0.9, and 1.0 against the baseline budget figure.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Save <code>scratch/day027/billing-responsibility-matrix.md</code> to durable storage for upcoming cost attribution reviews on Day 28.</p>
+      </article>
+    </section>

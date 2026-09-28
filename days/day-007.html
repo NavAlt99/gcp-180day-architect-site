@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html data-theme="dark" lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1" name="viewport"/>
+  <meta content="dark light" name="color-scheme"/>
+  <title>
+   Day 7: SSH, scripts and process inspection · GCP 180 days
+  </title>
+  <link href="../assets/site.css" rel="stylesheet"/>
+  <style>
+   .topic-card table{width:100%;border-collapse:collapse;margin:18px 0;display:block;overflow-x:auto}.topic-card caption{text-align:left;color:var(--rose);font-weight:800;margin-bottom:8px}.topic-card th,.topic-card td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top;min-width:150px}.topic-card th{color:var(--cyan);background:rgba(56,189,248,.06)}.diagram-figure{margin:20px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-x:auto}.diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}.diagram-figure figcaption{color:var(--muted);font-size:12px;margin-top:10px}.diagram-scroll-hint{display:none;color:var(--muted);font-size:11px}.further{border-left:3px solid var(--cyan);padding:11px 14px;background:rgba(56,189,248,.06);margin-top:18px}.further h4,.lab h4{color:var(--cyan);margin:0 0 8px}.lab h4{margin-top:20px}@media(max-width:720px){.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+  </style>
+  <style>#part-2 article>p:last-child{border-left:3px solid var(--cyan);padding:11px 14px;background:rgba(56,189,248,.06);margin-top:18px}</style>
+  <script defer="" src="../assets/site.js">
+  </script>
+ </head>
+ <body>
+  <a class="skip" href="#main">
+   Skip to content
+  </a>
+  <header class="site-nav">
+   <nav aria-label="Site navigation" class="nav-inner">
+    <a class="brand" href="../index.html">
+     ◆
+     <span>
+      GCP · 180 days
+     </span>
+    </a>
+    <a href="../index.html">
+     Day index
+    </a>
+    <a href="../glossary.html">
+     Glossary
+    </a>
+    <a href="../sources.html">
+     Sources
+    </a>
+    <a href="../artifacts.html">
+     Artifacts
+    </a>
+    <a aria-label="Previous day" href="day-006.html">
+     ← Day 6
+    </a>
+    <a aria-label="Next day" href="day-008.html">
+     Day 8 →
+    </a>
+    <label class="jump-label" for="day-jump">
+     Jump to day
+    </label>
+    <select aria-label="Jump to day" id="day-jump">
+     <option value="">
+      Choose a day…
+     </option>
+     <optgroup label="Foundations">
+      <option value="day-001.html">
+       Day 1: Local workspace and learning baseline
+      </option>
+      <option value="day-002.html">
+       Day 2: IP addressing and packet paths
+      </option>
+      <option value="day-003.html">
+       Day 3: DNS, sockets and transport
+      </option>
+      <option value="day-004.html">
+       Day 4: TLS, HTTP, MTU and routing vocabulary
+      </option>
+      <option value="day-005.html">
+       Day 5: VPN, load balancers and firewalls
+      </option>
+      <option value="day-006.html">
+       Day 6: Shell, processes and services
+      </option>
+      <option selected="" value="day-007.html">
+       Day 7: SSH, scripts and process inspection
+      </option>
+      <option value="day-008.html">
+       Day 8: CPU, memory and diagnostic signals
+      </option>
+      <option value="day-009.html">
+       Day 9: VM and container isolation
+      </option>
+      <option value="day-010.html">
+       Day 10: Images, filesystems and orchestration
+      </option>
+      <option value="day-011.html">
+       Day 11: Cloud service models and responsibility
+      </option>
+      <option value="day-012.html">
+       Day 12: Regions, scaling and economics
+      </option>
+      <option value="day-013.html">
+       Day 13: State, availability and recovery vocabulary
+      </option>
+      <option value="day-014.html">
+       Day 14: Git, APIs and JSON
+      </option>
+      <option value="day-015.html">
+       Day 15: Small application and architecture styles
+      </option>
+      <option value="day-016.html">
+       Day 16: SQL foundations and business outcomes
+      </option>
+      <option value="day-017.html">
+       Day 17: Gate 1 — Foundation recall and repair
+      </option>
+     </optgroup>
+     <optgroup label="Cloud environment and identity">
+      <option value="day-018.html">
+       Day 18: Cloud sandbox and cost controls
+      </option>
+      <option value="day-019.html">
+       Day 19: CLI configuration and identity checks
+      </option>
+      <option value="day-020.html">
+       Day 20: APIs, client libraries and emulators
+      </option>
+      <option value="day-021.html">
+       Day 21: Resource hierarchy and ownership
+      </option>
+      <option value="day-022.html">
+       Day 22: Inheritance, labels and tags
+      </option>
+      <option value="day-023.html">
+       Day 23: Organization policies and lifecycle
+      </option>
+      <option value="day-024.html">
+       Day 24: Principals and workforce identity
+      </option>
+      <option value="day-025.html">
+       Day 25: Roles and authorization decisions
+      </option>
+      <option value="day-026.html">
+       Day 26: Credentials, tokens and impersonation
+      </option>
+      <option value="day-027.html">
+       Day 27: Billing roles and budget ownership
+      </option>
+      <option value="day-028.html">
+       Day 28: Cost attribution and notifications
+      </option>
+      <option value="day-029.html">
+       Day 29: Cost exports, quota and capacity
+      </option>
+      <option value="day-030.html">
+       Day 30: Region and resource-scope decisions
+      </option>
+      <option value="day-031.html">
+       Day 31: Network tiers and delivery paths
+      </option>
+      <option value="day-032.html">
+       Day 32: Support, inventory and learning tracker
+      </option>
+      <option value="day-033.html">
+       Day 33: Lifecycle policies and operating assumptions
+      </option>
+      <option value="day-034.html">
+       Day 34: First controlled cloud resource operation
+      </option>
+      <option value="day-035.html">
+       Day 35: Gate 2 — Sandbox and identity readiness
+      </option>
+     </optgroup>
+     <optgroup label="Core services and integrated practice">
+      <option value="day-036.html">
+       Day 36: VM sizing and image choices
+      </option>
+      <option value="day-037.html">
+       Day 37: Disks, metadata and persistence
+      </option>
+      <option value="day-038.html">
+       Day 38: Templates, MIGs and scaling
+      </option>
+      <option value="day-039.html">
+       Day 39: Autohealing and deployment changes
+      </option>
+      <option value="day-040.html">
+       Day 40: Spot, tenancy and secure VM access
+      </option>
+      <option value="day-041.html">
+       Day 41: VM operations and resource diagnosis
+      </option>
+      <option value="day-042.html">
+       Day 42: Kubernetes architecture and cluster choices
+      </option>
+      <option value="day-043.html">
+       Day 43: Scheduling, scaling and Kubernetes access
+      </option>
+      <option value="day-044.html">
+       Day 44: Service networking and persistent volumes
+      </option>
+      <option value="day-045.html">
+       Day 45: Probes, secrets and workload failures
+      </option>
+      <option value="day-046.html">
+       Day 46: Fleet, supply chain and mesh trade-offs
+      </option>
+      <option value="day-047.html">
+       Day 47: Cloud Run and event-driven functions
+      </option>
+      <option value="day-048.html">
+       Day 48: Workflows and runtime selection
+      </option>
+      <option value="day-049.html">
+       Day 49: VPC address and route design
+      </option>
+      <option value="day-050.html">
+       Day 50: Firewall policy and private API access
+      </option>
+      <option value="day-051.html">
+       Day 51: Peering, Shared VPC, PSC and NAT
+      </option>
+      <option value="day-052.html">
+       Day 52: DNS, hybrid transit and network diagnosis
+      </option>
+      <option value="day-053.html">
+       Day 53: Load-balancer architecture
+      </option>
+      <option value="day-054.html">
+       Day 54: Health checks, certificates and draining
+      </option>
+      <option value="day-055.html">
+       Day 55: CDN, WAF and traffic management
+      </option>
+      <option value="day-056.html">
+       Day 56: Hybrid topology and failure domains
+      </option>
+      <option value="day-057.html">
+       Day 57: BGP, MTU and NAT diagnosis
+      </option>
+      <option value="day-058.html">
+       Day 58: Object storage and local durability
+      </option>
+      <option value="day-059.html">
+       Day 59: Transfers, block storage and restore
+      </option>
+      <option value="day-060.html">
+       Day 60: File systems and backup design
+      </option>
+      <option value="day-061.html">
+       Day 61: Relational databases and transactions
+      </option>
+      <option value="day-062.html">
+       Day 62: Distributed and nonrelational database choices
+      </option>
+      <option value="day-063.html">
+       Day 63: Caching, CDC and database selection
+      </option>
+      <option value="day-064.html">
+       Day 64: Messaging, outbox and duplicate handling
+      </option>
+      <option value="day-065.html">
+       Day 65: Integrate one order-service path
+      </option>
+      <option value="day-066.html">
+       Day 66: Reproduce and recover the integrated baseline
+      </option>
+      <option value="day-067.html">
+       Day 67: Gate 3 — Operate the core application
+      </option>
+     </optgroup>
+     <optgroup label="Requirements, migration and architecture">
+      <option value="day-068.html">
+       Day 68: Requirements from observed behavior
+      </option>
+      <option value="day-069.html">
+       Day 69: Stakeholders and priority trade-offs
+      </option>
+      <option value="day-070.html">
+       Day 70: Well-Architected review lenses
+      </option>
+      <option value="day-071.html">
+       Day 71: Performance, sustainability and trade-offs
+      </option>
+      <option value="day-072.html">
+       Day 72: Application architecture patterns
+      </option>
+      <option value="day-073.html">
+       Day 73: Data and hybrid architecture vocabulary
+      </option>
+      <option value="day-074.html">
+       Day 74: Regional and tenant boundaries
+      </option>
+      <option value="day-075.html">
+       Day 75: Migration assessment and VMware fit
+      </option>
+      <option value="day-076.html">
+       Day 76: Migration rehearsal and reconciliation
+      </option>
+      <option value="day-077.html">
+       Day 77: Migration waves and acceptance
+      </option>
+      <option value="day-078.html">
+       Day 78: Decision matrices grounded in experiments
+      </option>
+      <option value="day-079.html">
+       Day 79: ADRs, TCO and risk registers
+      </option>
+      <option value="day-080.html">
+       Day 80: Architecture diagrams and failure sequences
+      </option>
+      <option value="day-081.html">
+       Day 81: First architecture defense
+      </option>
+      <option value="day-082.html">
+       Day 82: Gate 4 — Design from operational evidence
+      </option>
+     </optgroup>
+     <optgroup label="Reliability and security">
+      <option value="day-083.html">
+       Day 83: Availability math and dependency risk
+      </option>
+      <option value="day-084.html">
+       Day 84: Failure domains and graceful degradation
+      </option>
+      <option value="day-085.html">
+       Day 85: Retries, timeouts and overload vocabulary
+      </option>
+      <option value="day-086.html">
+       Day 86: SLIs, SLOs and error budgets
+      </option>
+      <option value="day-087.html">
+       Day 87: Incidents, toil and capacity
+      </option>
+      <option value="day-088.html">
+       Day 88: Availability across infrastructure layers
+      </option>
+      <option value="day-089.html">
+       Day 89: Messaging, DNS and application health
+      </option>
+      <option value="day-090.html">
+       Day 90: Recovery targets and patterns
+      </option>
+      <option value="day-091.html">
+       Day 91: Backups and replication correctness
+      </option>
+      <option value="day-092.html">
+       Day 92: Failover and failback planning
+      </option>
+      <option value="day-093.html">
+       Day 93: Metrics, alerting and burn rates
+      </option>
+      <option value="day-094.html">
+       Day 94: Logs, traces and profiling
+      </option>
+      <option value="day-095.html">
+       Day 95: Central observability and audit evidence
+      </option>
+      <option value="day-096.html">
+       Day 96: Bounded failure experiment design
+      </option>
+      <option value="day-097.html">
+       Day 97: Run a recovery and overload experiment
+      </option>
+      <option value="day-098.html">
+       Day 98: Restore and failover acceptance
+      </option>
+      <option value="day-099.html">
+       Day 99: Advanced IAM and policy evaluation
+      </option>
+      <option value="day-100.html">
+       Day 100: Workload federation and short-lived access
+      </option>
+      <option value="day-101.html">
+       Day 101: Workforce federation and remote access
+      </option>
+      <option value="day-102.html">
+       Day 102: Privileged access and break-glass
+      </option>
+      <option value="day-103.html">
+       Day 103: Defense in depth and network policy
+      </option>
+      <option value="day-104.html">
+       Day 104: Data perimeters and egress controls
+      </option>
+      <option value="day-105.html">
+       Day 105: Certificates, mTLS and hybrid encryption
+      </option>
+      <option value="day-106.html">
+       Day 106: Data classification and key lifecycle
+      </option>
+      <option value="day-107.html">
+       Day 107: Secrets and de-identification
+      </option>
+      <option value="day-108.html">
+       Day 108: Residency, confidentiality and data access
+      </option>
+      <option value="day-109.html">
+       Day 109: Compliance evidence and responsibility
+      </option>
+      <option value="day-110.html">
+       Day 110: Policy as code and audit retention
+      </option>
+      <option value="day-111.html">
+       Day 111: Regulated workload design
+      </option>
+      <option value="day-112.html">
+       Day 112: Threat detection and triage
+      </option>
+      <option value="day-113.html">
+       Day 113: Incident response and threat modelling
+      </option>
+      <option value="day-114.html">
+       Day 114: Artifact integrity and admission
+      </option>
+      <option value="day-115.html">
+       Day 115: Container and pipeline hardening
+      </option>
+      <option value="day-116.html">
+       Day 116: Integrate private access and key controls
+      </option>
+      <option value="day-117.html">
+       Day 117: Security handover and evidence repair
+      </option>
+      <option value="day-118.html">
+       Day 118: Gate 5 — Reliability and security acceptance
+      </option>
+     </optgroup>
+     <optgroup label="Performance, delivery and operations">
+      <option value="day-119.html">
+       Day 119: Cost baseline and commitments
+      </option>
+      <option value="day-120.html">
+       Day 120: Storage, network and database costs
+      </option>
+      <option value="day-121.html">
+       Day 121: Runtime, analytics and carbon cost drivers
+      </option>
+      <option value="day-122.html">
+       Day 122: Unit economics and sensitivity
+      </option>
+      <option value="day-123.html">
+       Day 123: Caching correctness under load
+      </option>
+      <option value="day-124.html">
+       Day 124: Database, network and I/O bottlenecks
+      </option>
+      <option value="day-125.html">
+       Day 125: Profiling and capacity evidence
+      </option>
+      <option value="day-126.html">
+       Day 126: Terraform baseline and state boundaries
+      </option>
+      <option value="day-127.html">
+       Day 127: Terraform testing, drift and recovery
+      </option>
+      <option value="day-128.html">
+       Day 128: Build and deployment pipeline
+      </option>
+      <option value="day-129.html">
+       Day 129: Release rollback and delivery measures
+      </option>
+      <option value="day-130.html">
+       Day 130: Service catalog and ownership
+      </option>
+      <option value="day-131.html">
+       Day 131: Lifecycle, exceptions and adoption
+      </option>
+      <option value="day-132.html">
+       Day 132: Customer success and platform outcomes
+      </option>
+      <option value="day-133.html">
+       Day 133: Operations integration and remediation
+      </option>
+     </optgroup>
+     <optgroup label="Data, AI and distributed correctness">
+      <option value="day-134.html">
+       Day 134: Warehouse foundations and query costs
+      </option>
+      <option value="day-135.html">
+       Day 135: Warehouse security and reporting
+      </option>
+      <option value="day-136.html">
+       Day 136: Batch and streaming processing choices
+      </option>
+      <option value="day-137.html">
+       Day 137: Streaming correctness and CDC
+      </option>
+      <option value="day-138.html">
+       Day 138: Lakehouse and open table design
+      </option>
+      <option value="day-139.html">
+       Day 139: Catalogs, lineage and data contracts
+      </option>
+      <option value="day-140.html">
+       Day 140: ML lifecycle and model selection
+      </option>
+      <option value="day-141.html">
+       Day 141: Build a small grounded-answer flow
+      </option>
+      <option value="day-142.html">
+       Day 142: Bounded tools and enterprise assistants
+      </option>
+      <option value="day-143.html">
+       Day 143: AI security and evaluation
+      </option>
+      <option value="day-144.html">
+       Day 144: AI serving and infrastructure choices
+      </option>
+      <option value="day-145.html">
+       Day 145: Distributed state and regional correctness
+      </option>
+     </optgroup>
+     <optgroup label="Discovery, cases and exam preparation">
+      <option value="day-146.html">
+       Day 146: Case analysis and discovery method
+      </option>
+      <option value="day-147.html">
+       Day 147: Extract facts and numeric requirements
+      </option>
+      <option value="day-148.html">
+       Day 148: Map requirements and conflicts
+      </option>
+      <option value="day-149.html">
+       Day 149: Discovery: business, load and recovery
+      </option>
+      <option value="day-150.html">
+       Day 150: Discovery: data, regulation and skills
+      </option>
+      <option value="day-151.html">
+       Day 151: Discovery: budget, risks and success
+      </option>
+      <option value="day-152.html">
+       Day 152: EHR Healthcare — facts and migration constraints
+      </option>
+      <option value="day-153.html">
+       Day 153: EHR Healthcare — defend the design
+      </option>
+      <option value="day-154.html">
+       Day 154: Altostrat Media — content and AI requirements
+      </option>
+      <option value="day-155.html">
+       Day 155: Altostrat Media — architecture defense
+      </option>
+      <option value="day-156.html">
+       Day 156: Cymbal Retail — catalog and commerce requirements
+      </option>
+      <option value="day-157.html">
+       Day 157: Cymbal Retail — architecture defense
+      </option>
+      <option value="day-158.html">
+       Day 158: KnightMotives — modernization requirements
+      </option>
+      <option value="day-159.html">
+       Day 159: KnightMotives — architecture defense
+      </option>
+      <option value="day-160.html">
+       Day 160: Case synthesis and feedback
+      </option>
+      <option value="day-161.html">
+       Day 161: Changed-constraint design exercise
+      </option>
+      <option value="day-162.html">
+       Day 162: Exam domain mapping and sample questions
+      </option>
+      <option value="day-163.html">
+       Day 163: Timed reasoning and source-backed limits
+      </option>
+      <option value="day-164.html">
+       Day 164: Readiness plan and remaining repairs
+      </option>
+     </optgroup>
+     <optgroup label="Multi-team architecture and synthesis">
+      <option value="day-165.html">
+       Day 165: Landing zones and multi-team platform boundaries
+      </option>
+      <option value="day-166.html">
+       Day 166: Production identity across teams
+      </option>
+      <option value="day-167.html">
+       Day 167: API contracts and compatibility
+      </option>
+      <option value="day-168.html">
+       Day 168: Sustainability and assisted operations
+      </option>
+      <option value="day-169.html">
+       Day 169: Capacity allocation and overload governance
+      </option>
+      <option value="day-170.html">
+       Day 170: Compute and database decision synthesis
+      </option>
+      <option value="day-171.html">
+       Day 171: Network decision synthesis
+      </option>
+      <option value="day-172.html">
+       Day 172: Storage, messaging and limits synthesis
+      </option>
+      <option value="day-173.html">
+       Day 173: Consulting, portfolio and customer handover
+      </option>
+     </optgroup>
+     <optgroup label="Final gate and capstone defenses">
+      <option value="day-174.html">
+       Day 174: Gate 6 — Integrated readiness and remediation
+      </option>
+      <option value="day-175.html">
+       Day 175: Capstone 1 — Landing-zone defense
+      </option>
+      <option value="day-176.html">
+       Day 176: Capstone 2 — Regulated-workload defense
+      </option>
+      <option value="day-177.html">
+       Day 177: Capstone 3 — Global-application defense
+      </option>
+      <option value="day-178.html">
+       Day 178: Capstone 4 — Migration defense
+      </option>
+      <option value="day-179.html">
+       Day 179: Capstone 5 — Cost and reliability rescue
+      </option>
+     </optgroup>
+     <optgroup label="Final review and rest">
+      <option value="day-180.html">
+       Day 180: Final review, logistics and rest
+      </option>
+     </optgroup>
+    </select>
+    <button aria-label="Toggle light and dark theme" id="theme-toggle" type="button">
+     ☀ Theme
+    </button>
+   </nav>
+  </header>
+  <main class="container day" data-day="7" data-index="../index.html" data-next="day-008.html" data-prev="day-006.html" id="main">
+   <div class="crumb">
+    <a href="../index.html">
+     Roadmap index
+    </a>
+    /
+    <a href="../index.html#block-foundations">
+     Foundations
+    </a>
+    / Day 7 of 180
+   </div>
+   <section class="hero">
+    <div class="pills">
+     <span class="pill">
+      DAY 7
+     </span>
+     <span class="pill">
+      2–3 hours
+     </span>
+     <span class="pill">
+      local exercise
+     </span>
+     <span class="pill">
+      Topics 002
+     </span>
+    </div>
+    <h1>
+     Day 7 — SSH, scripts and process inspection
+    </h1>
+    <p class="lead">
+     <strong>
+      Outcome:
+     </strong>
+     Use a local test VM to inspect SSH configuration; write a small script that parses synthetic JSON and fails explicitly on invalid input.
+    </p>
+    <div>
+     <strong>
+      Entry prerequisites:
+     </strong>
+     <p>
+      <a href="day-006.html">
+       Day 6
+      </a>
+      ; bring their exit artifacts.
+     </p>
+    </div>
+    <div class="callout success">
+     <strong>
+      Exit artifact
+     </strong>
+     <p>
+      A script with successful and failed runs, quoting explained, and no stored credentials.
+     </p>
+    </div>
+    <p class="small">
+     Roadmap and linked command documentation reviewed 2026-09-27. Exercises use synthetic local files and processes; they do not prove behavior on a production VM.
+    </p>
+   </section>
+   <aside aria-label="On this page" class="toc">
+    <strong>
+     On this page
+    </strong>
+    <a href="#part-1">
+     1 · Topics
+    </a>
+    <a href="#part-2">
+     2 · Technical discussion
+    </a>
+    <a href="#part-3">
+     3 · Problems and solutions
+    </a>
+    <a href="#part-4">
+     4 · Labs
+    </a>
+    <div class="toc-topic">
+     <span>
+      SSH
+     </span>
+     <a href="#topic-01-overview">
+      overview
+     </a>
+     ·
+     <a href="#topic-01-technical">
+      discussion
+     </a>
+     ·
+     <a href="#topic-01-problem">
+      problem
+     </a>
+     ·
+     <a href="#topic-01-lab">
+      lab
+     </a>
+    </div>
+    <div class="toc-topic">
+     <span>
+      Package managers (apt, yum/dnf)
+     </span>
+     <a href="#topic-02-overview">
+      overview
+     </a>
+     ·
+     <a href="#topic-02-technical">
+      discussion
+     </a>
+     ·
+     <a href="#topic-02-problem">
+      problem
+     </a>
+     ·
+     <a href="#topic-02-lab">
+      lab
+     </a>
+    </div>
+    <div class="toc-topic">
+     <span>
+      Shell scripting
+     </span>
+     <a href="#topic-03-overview">
+      overview
+     </a>
+     ·
+     <a href="#topic-03-technical">
+      discussion
+     </a>
+     ·
+     <a href="#topic-03-problem">
+      problem
+     </a>
+     ·
+     <a href="#topic-03-lab">
+      lab
+     </a>
+    </div>
+    <div class="toc-topic">
+     <span>
+      /proc virtual filesystem and process trees
+     </span>
+     <a href="#topic-04-overview">
+      overview
+     </a>
+     ·
+     <a href="#topic-04-technical">
+      discussion
+     </a>
+     ·
+     <a href="#topic-04-problem">
+      problem
+     </a>
+     ·
+     <a href="#topic-04-lab">
+      lab
+     </a>
+    </div>
+   </aside>
+   <section class="part" id="part-1">
+    <h2>
+     1 · Topics of the day
+    </h2>
+    <article class="topic-card" id="topic-01-overview">
+     <h3>
+      SSH
+     </h3>
+     <p>
+      SSH provides an authenticated, encrypted channel to a remote host. A client can authenticate with a key, apply per-host settings from a configuration file, forward a local port through the connection, or reach a private target through a bastion (jump) host.
+     </p>
+     <p><strong>Why today and where it sits:</strong> Day 7 applies Day 6 process and permission evidence to controlled remote administration. SSH sits between the operator workstation, an optional bastion and the private target, with a separate host-identity and user-authentication decision at each hop.</p>
+     <p><strong>Problem preview:</strong> An operator reaches the bastion but cannot reach the private Order API VM and responds by exposing SSH to the internet. The change enlarges the attack surface while leaving the missing jump-host path unresolved.</p>
+     <p>
+      <a href="#topic-01-technical">
+       Technical discussion
+      </a>
+      ·
+      <a href="#topic-01-problem">
+       Real-world problem
+      </a>
+      ·
+      <a href="#topic-01-lab">
+       Exercise
+      </a>
+     </p>
+    </article>
+    <article class="topic-card" id="topic-02-overview">
+     <h3>
+      Package managers (apt, yum/dnf)
+     </h3>
+     <p>
+      A package manager resolves, installs, updates and removes software from configured repositories while tracking dependencies and package metadata. APT is common on Debian-derived systems; DNF and its predecessors are common on RPM-derived systems. Their package names and repository state can differ.
+     </p>
+     <p><strong>Why today and where it sits:</strong> VM operations require a trustworthy way to identify and change installed software after access is established. The package manager connects repository metadata and signatures to an explicit host transaction and any resulting service restart.</p>
+     <p><strong>Problem preview:</strong> An operator refreshes repository metadata and records the Brightloaf VM as patched even though the installed library never changed. The vulnerable process remains in service and the audit evidence asserts a repair that did not occur.</p>
+     <p>
+      <a href="#topic-02-technical">
+       Technical discussion
+      </a>
+      ·
+      <a href="#topic-02-problem">
+       Real-world problem
+      </a>
+      ·
+      <a href="#topic-02-lab">
+       Exercise
+      </a>
+     </p>
+    </article>
+    <article class="topic-card" id="topic-03-overview">
+     <h3>
+      Shell scripting
+     </h3>
+     <p>
+      A shell script is a file of commands interpreted by a shell. Variables hold values, loops repeat work, conditionals branch on a command's exit status, and quoting preserves a value as one argument. A useful automation script reports failure explicitly when an input is invalid.
+     </p>
+     <p><strong>Why today and where it sits:</strong> Shell scripting turns the day's inspection commands into repeatable controls. It sits at the automation boundary where argument expansion, command status and output streams determine whether the next deployment step may run.</p>
+     <p><strong>Problem preview:</strong> A validator prints an error for malformed order JSON but the wrapper finishes with exit status zero. The release pipeline publishes invalid configuration and interrupts order intake.</p>
+     <p>
+      <a href="#topic-03-technical">
+       Technical discussion
+      </a>
+      ·
+      <a href="#topic-03-problem">
+       Real-world problem
+      </a>
+      ·
+      <a href="#topic-03-lab">
+       Exercise
+      </a>
+     </p>
+    </article>
+    <article class="topic-card" id="topic-04-overview">
+     <h3>
+      /proc virtual filesystem and process trees
+     </h3>
+     <p>
+      The
+      <code>
+       /proc
+      </code>
+      filesystem exposes live kernel and process information through file-like paths. Each process has a PID directory with status, command-line and file-descriptor information. A process tree relates a child PID to its parent PID.
+     </p>
+     <p><strong>Why today and where it sits:</strong> <code>/proc</code> connects a service manager's unit view to the kernel's live process view. Parent PID, state and descriptors help identify the actual Order API worker before an operator sends a signal.</p>
+     <p><strong>Problem preview:</strong> Several Python processes share the same command name and an operator terminates the wrong PID. An unrelated worker stops while the stalled order worker and customer backlog remain.</p>
+     <p>
+      <a href="#topic-04-technical">
+       Technical discussion
+      </a>
+      ·
+      <a href="#topic-04-problem">
+       Real-world problem
+      </a>
+      ·
+      <a href="#topic-04-lab">
+       Exercise
+      </a>
+     </p>
+    </article>
+   </section>
+   <section class="part" id="part-2">
+    <h2>
+     2 · Technical discussion of each topic
+    </h2>
+    <article class="topic-card" id="topic-01-technical">
+     <h3>
+      SSH
+     </h3>
+     <p>
+      The SSH client first verifies the server's host identity, then authenticates the user and establishes an encrypted session. A private key stays with the client; the server receives proof that the client possesses it, not the private key itself. Client configuration can map a short host alias to a hostname, user, identity file and jump host. A ProxyJump setting reaches a private destination via an intermediate SSH server; it does not make the final server public. Local port forwarding binds a client-side port and carries traffic through SSH to a specified target reachable from the remote side.
+     </p>
+     <p>
+      In cloud environments, an architect should know which host is reachable, which identity is used at each hop and who controls the host keys. A bastion reduces direct exposure but becomes a high-value access point. Port forwarding can bypass an intended network boundary if granted carelessly. Treat a host-key warning as an identity problem to investigate, not an error to suppress. Record only host aliases and synthetic names in the lab; never commit a private key.
+     </p>
+     <table><caption>SSH trust and reachability boundaries</caption><thead><tr><th>Boundary</th><th>Decision</th><th>Evidence</th><th>Limit</th></tr></thead><tbody><tr><td>Client → bastion</td><td>Host identity, user key and network path</td><td>Known host, selected identity and authenticated session</td><td>Does not prove private-target access.</td></tr><tr><td>Bastion → private VM</td><td>Second host identity, authorization and route</td><td>Target host key and successful final authentication</td><td>The private key still belongs on the client.</td></tr><tr><td>Local forward</td><td>Client bind plus remote-side destination</td><td>Bound local port and permitted destination</td><td>Can bypass policy if granted broadly.</td></tr></tbody></table>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 230" role="img" aria-labelledby="d7-ssh-title d7-ssh-desc"><title id="d7-ssh-title">SSH client, bastion and private target path</title><desc id="d7-ssh-desc">The client verifies and authenticates to the bastion, then separately verifies and authenticates to the private VM. An optional local forward terminates at a destination reachable from the remote side.</desc><defs><marker id="d7-ssh-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"/></marker></defs><g fill="#121526" stroke="#38bdf8" stroke-width="2"><rect x="20" y="45" width="220" height="110" rx="10"/><rect x="360" y="45" width="220" height="110" rx="10"/><rect x="700" y="45" width="220" height="110" rx="10"/></g><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="130" y="80">Operator client</text><text x="470" y="80">Bastion</text><text x="810" y="80">Private Order VM</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="130" y="115">private key stays here</text><text x="470" y="115">first host boundary</text><text x="810" y="115">second host boundary</text></g><g stroke="#38bdf8" stroke-width="2" marker-end="url(#d7-ssh-arrow)"><path d="M240 100L354 100"/><path d="M580 100L694 100"/></g><text x="470" y="195" fill="#a9b7cb" font-size="12" text-anchor="middle">ProxyJump composes two SSH hops; it does not publish the target.</text></svg><figcaption>Figure 7.1: Conceptual ProxyJump path with separate identity decisions at both hosts. It does not assert that either network path or account is configured.</figcaption></figure>
+     <p>
+      <strong>
+       Further study:
+      </strong>
+      <a href="https://man.openbsd.com/ssh_config.5#ProxyJump">
+       OpenSSH client configuration — ProxyJump, IdentityFile and LocalForward
+      </a>
+      and
+      <a href="https://man.openbsd.com/ssh.1">
+       OpenSSH client manual
+      </a>
+      .
+     </p>
+    </article>
+    <article class="topic-card" id="topic-02-technical">
+     <h3>
+      Package managers (apt, yum/dnf)
+     </h3>
+     <p>
+      Package management is more than downloading an executable. A repository publishes metadata about versions, dependencies and signatures; the manager uses that metadata to choose a transaction. Refreshing package metadata does not by itself install an update. Installing or upgrading changes the VM image state and may restart services. An architect therefore needs a patch window, repository trust policy, version record and rollback plan, especially when a VM is used as a long-lived server. Cloud image updates and in-guest package updates are related but distinct responsibilities.
+     </p>
+     <p>
+      APT and DNF provide analogous operations but not identical syntax or version choices. A diagnostic first identifies the OS and available manager, then inspects a package before changing it. Running both managers on one host because a guide lists both would be a mistake. For this foundation day, the lab is read-only; package installation is introduced only when a later task has an approved disposable VM and cleanup plan.
+     </p>
+     <table><caption>Package change control flow</caption><thead><tr><th>Stage</th><th>Evidence</th><th>State change?</th><th>Completion test</th></tr></thead><tbody><tr><td>Identify platform</td><td><code>/etc/os-release</code> and manager path</td><td>No</td><td>One applicable manager selected.</td></tr><tr><td>Refresh metadata</td><td>Repository and candidate versions</td><td>Metadata only</td><td>Candidate known; package remains unchanged.</td></tr><tr><td>Approved transaction</td><td>Package-manager transaction log</td><td>Yes</td><td>Installed version matches target.</td></tr><tr><td>Runtime verification</td><td>Restart evidence and process version</td><td>Possibly</td><td>Running service uses intended build.</td></tr></tbody></table>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 230" role="img" aria-labelledby="d7-pkg-title d7-pkg-desc"><title id="d7-pkg-title">Package metadata, installation and runtime verification</title><desc id="d7-pkg-desc">Repository metadata supplies a candidate version, an approved transaction changes the installed package, and a restart plus process check verifies the running version.</desc><defs><marker id="d7-pkg-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"/></marker></defs><g fill="#121526" stroke-width="2"><rect x="18" y="45" width="190" height="110" rx="10" stroke="#38bdf8"/><rect x="256" y="45" width="190" height="110" rx="10" stroke="#38bdf8"/><rect x="494" y="45" width="190" height="110" rx="10" stroke="#f43f5e"/><rect x="732" y="45" width="190" height="110" rx="10" stroke="#34d399"/></g><g fill="#fce7f3" font-size="14" font-weight="700" text-anchor="middle"><text x="113" y="80">Repository metadata</text><text x="351" y="80">Candidate version</text><text x="589" y="80">Install transaction</text><text x="827" y="80">Running process</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="113" y="117">refresh only</text><text x="351" y="117">compare installed</text><text x="589" y="117">changes host</text><text x="827" y="117">verify after restart</text></g><g stroke="#38bdf8" stroke-width="2" marker-end="url(#d7-pkg-arrow)"><path d="M208 100L250 100"/><path d="M446 100L488 100"/><path d="M684 100L726 100"/></g><text x="470" y="195" fill="#a9b7cb" font-size="12" text-anchor="middle">Downloading metadata is evidence of discovery, not evidence of patch installation.</text></svg><figcaption>Figure 7.2: The package lifecycle separates metadata refresh, host mutation and runtime proof. Exact commands and restart behavior depend on the selected distribution and package.</figcaption></figure>
+     <p>
+      <strong>
+       Further study:
+      </strong>
+      <a href="https://www.debian.org/doc/manuals/debian-faq/pkgtools.en.html">
+       Debian package tools
+      </a>
+      ,
+      <a href="https://www.debian.org/doc/manuals/apt-guide/ch2.en.html">
+       Debian APT update guide
+      </a>
+      , and
+      <a href="https://dnf5.readthedocs.io/en/latest/commands/install.8.html#description">
+       DNF install reference
+      </a>
+      .
+     </p>
+    </article>
+    <article class="topic-card" id="topic-03-technical">
+     <h3>
+      Shell scripting
+     </h3>
+     <p>
+      The shell expands variables before launching commands. Double quotes preserve spaces and wildcard characters inside a value as a single argument; omitting quotes can split a filename and change what a command receives. A loop can process multiple files, while an
+      <code>
+       if
+      </code>
+      statement tests a command's exit status. In Bash, zero means success and a nonzero status means failure; the status is not the command's printed output. A pipeline can hide an earlier failure unless its status behavior is understood. For architecture automation, an apparent green exit after skipped or invalid input is dangerous because later deployment steps may rely on a false artifact.
+     </p>
+     <p>
+      Scripts should validate inputs, print a useful error on standard error, and return a nonzero status for a failed check. Keep secrets out of source files and logs. The lab below uses synthetic JSON and validates it without installing another parser. It is a small, reproducible example of the same control needed in build and deployment pipelines.
+     </p>
+     <table><caption>Shell validation contract</caption><thead><tr><th>Input</th><th>Control</th><th>Output stream</th><th>Exit status</th></tr></thead><tbody><tr><td>Quoted valid path</td><td>Parser succeeds</td><td><code>valid:</code> on stdout</td><td>0</td></tr><tr><td>Quoted invalid path</td><td>Parser fails</td><td><code>invalid:</code> on stderr</td><td>1</td></tr><tr><td>No arguments</td><td>Usage guard</td><td>Usage on stderr</td><td>2</td></tr></tbody></table>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 230" role="img" aria-labelledby="d7-shell-title d7-shell-desc"><title id="d7-shell-title">Quoted shell arguments and validation exit gate</title><desc id="d7-shell-desc">Quoted file arguments remain intact in a loop, Python validates each JSON file, and the script combines failures into a nonzero exit that blocks publishing.</desc><defs><marker id="d7-shell-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"/></marker></defs><g fill="#121526" stroke="#38bdf8" stroke-width="2"><rect x="18" y="45" width="205" height="110" rx="10"/><rect x="257" y="45" width="205" height="110" rx="10"/><rect x="496" y="45" width="205" height="110" rx="10"/><rect x="735" y="45" width="187" height="110" rx="10"/></g><g fill="#fce7f3" font-size="14" font-weight="700" text-anchor="middle"><text x="120" y="80">Quoted "$@"</text><text x="359" y="80">for path loop</text><text x="598" y="80">JSON validator</text><text x="828" y="80">Exit gate</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="120" y="117">spaces stay intact</text><text x="359" y="117">one file per iteration</text><text x="598" y="117">stdout / stderr</text><text x="828" y="117">0 pass · 1 fail</text></g><g stroke="#38bdf8" stroke-width="2" marker-end="url(#d7-shell-arrow)"><path d="M223 100L251 100"/><path d="M462 100L490 100"/><path d="M701 100L729 100"/></g><text x="470" y="195" fill="#a9b7cb" font-size="12" text-anchor="middle">The last printed message must not overwrite the validator's failure status.</text></svg><figcaption>Figure 7.3: The script contract preserves arguments and carries validation failure to the caller. It depicts control flow, not measured pipeline behavior.</figcaption></figure>
+     <p>
+      <strong>
+       Further study:
+      </strong>
+      <a href="https://www.gnu.org/software/bash/manual/html_node/Quoting.html#Quoting">
+       GNU Bash manual — quoting
+      </a>
+      and
+      <a href="https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html#Exit-Status">
+       GNU Bash manual — exit status
+      </a>
+      .
+     </p>
+    </article>
+    <article class="topic-card" id="topic-04-technical">
+     <h3>
+      /proc virtual filesystem and process trees
+     </h3>
+     <p>
+      <code>
+       /proc
+      </code>
+      is a pseudo-filesystem, not a durable log. Its entries reflect live kernel state and disappear when a process exits. A PID can later be reused, so record timestamps and process identity along with a PID when diagnosing an incident. The status file includes process state and parent PID; the file-descriptor directory shows open endpoints such as files, pipes and sockets, subject to permissions. A shell-launched child normally has the shell as its parent until process relationships change. This helps distinguish an application worker from its supervisor and track whether a leaked descriptor or orphaned child is involved.
+     </p>
+     <p>
+      Cloud VM troubleshooting often starts with service status and logs, then narrows to a process's PID, parent, state and open descriptors.
+      <code>
+       /proc
+      </code>
+      supports that inspection without changing the process, but it does not explain business correctness or replace a service's structured logs. Avoid copying full environments or command lines into study notes because they can contain credentials.
+     </p>
+     <table><caption>Process identity evidence</caption><thead><tr><th>Source</th><th>Question answered</th><th>Volatility</th><th>Limit</th></tr></thead><tbody><tr><td>Service manager</td><td>Which unit owns the main PID?</td><td>Changes on restart</td><td>Active state is not business health.</td></tr><tr><td><code>/proc/PID/status</code></td><td>What are the state and parent PID?</td><td>Disappears on exit</td><td>PID can later be reused.</td></tr><tr><td><code>/proc/PID/fd</code></td><td>Which endpoints are open?</td><td>Changes live</td><td>Access is permission constrained.</td></tr><tr><td>Application logs</td><td>What work was attempted?</td><td>Retention dependent</td><td>A log line is not a committed outcome.</td></tr></tbody></table>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 230" role="img" aria-labelledby="d7-proc-title d7-proc-desc"><title id="d7-proc-title">Service unit, process tree and proc evidence</title><desc id="d7-proc-desc">The service unit owns a main PID, the main process owns a worker child, and the matching proc PID paths expose transient status and file descriptors.</desc><defs><marker id="d7-proc-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"/></marker></defs><g fill="#121526" stroke="#38bdf8" stroke-width="2"><rect x="18" y="45" width="205" height="110" rx="10"/><rect x="257" y="45" width="205" height="110" rx="10"/><rect x="496" y="45" width="205" height="110" rx="10"/><rect x="735" y="45" width="187" height="110" rx="10"/></g><g fill="#fce7f3" font-size="14" font-weight="700" text-anchor="middle"><text x="120" y="80">Service unit</text><text x="359" y="80">Main PID 410</text><text x="598" y="80">Worker PID 427</text><text x="828" y="80">/proc/427</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="120" y="117">supervisor identity</text><text x="359" y="117">parent process</text><text x="598" y="117">PPid: 410</text><text x="828" y="117">status + fd</text></g><g stroke="#38bdf8" stroke-width="2" marker-end="url(#d7-proc-arrow)"><path d="M223 100L251 100"/><path d="M462 100L490 100"/><path d="M701 100L729 100"/></g><text x="470" y="195" fill="#a9b7cb" font-size="12" text-anchor="middle">Record timestamp and command identity because /proc entries vanish and PIDs can be reused.</text></svg><figcaption>Figure 7.4: The supplied PIDs illustrate the evidence relationship only. A live diagnosis must read the current unit, process tree and permitted <code>/proc</code> paths.</figcaption></figure>
+     <p>
+      <strong>
+       Further study:
+      </strong>
+      <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">
+       Linux proc manual
+      </a>
+      ,
+      <a href="https://man7.org/linux/man-pages/man5/proc_pid_status.5.html#DESCRIPTION">
+       process status fields
+      </a>
+      , and
+      <a href="https://man7.org/linux/man-pages/man5/proc_pid_fd.5.html#DESCRIPTION">
+       open file descriptors
+      </a>
+      .
+     </p>
+    </article>
+   </section>
+   <section class="part" id="part-3">
+    <h2>
+     3 · Real-world problem and solution for each topic
+    </h2>
+    <article class="topic-card" id="topic-01-problem">
+     <h3>
+      SSH
+     </h3>
+     <p>
+      <strong>
+       Failure:
+      </strong>
+      A learner connects to the bastion but cannot reach a private VM, then opens the VM's SSH port to the entire internet to “fix” access.
+     </p>
+     <p>
+      <strong>
+       Cause:
+      </strong>
+      The private VM was intentionally reachable only from the bastion. The client configuration lacked the jump setting or the bastion-to-VM path was blocked. Public exposure changes the security design without proving the original route.
+     </p>
+     <p>
+      <strong>
+       Fix:
+      </strong>
+      Verify the target alias, jump host, user, key selection and authorized bastion-to-VM route. Test host identity and authentication at each hop. Repair the missing jump or narrow firewall path; remove the accidental public rule and confirm it is gone. Keep access logs and document the intended SSH path.
+     </p>
+     <p><strong>Constraints and evidence:</strong> keep the VM private, do not copy private keys to the bastion, preserve access logs, and record host-key fingerprints through an approved channel. Diagnose client alias expansion, each hop's authentication, and the bastion-to-target route before changing a firewall.</p>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 330" role="img" aria-labelledby="d7-ssh-inc-title d7-ssh-inc-desc"><title id="d7-ssh-inc-title">Broken and corrected SSH jump-host paths</title><desc id="d7-ssh-inc-desc">The failing path reaches the bastion but lacks a configured or permitted final hop, while an unsafe public rule exposes the target. The corrected path restores the client to bastion to private VM route and removes public reachability.</desc><defs><marker id="d7-ssh-inc-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"/></marker></defs><text x="20" y="28" fill="#f43f5e" font-weight="700">BEFORE · bastion reached, final hop broken, public rule added</text><text x="20" y="185" fill="#34d399" font-weight="700">AFTER · intended private path restored and verified</text><g fill="#121526" stroke-width="2"><rect x="25" y="48" width="220" height="90" rx="10" stroke="#38bdf8"/><rect x="360" y="48" width="220" height="90" rx="10" stroke="#38bdf8"/><rect x="695" y="48" width="220" height="90" rx="10" stroke="#f43f5e"/><rect x="25" y="205" width="220" height="90" rx="10" stroke="#38bdf8"/><rect x="360" y="205" width="220" height="90" rx="10" stroke="#34d399"/><rect x="695" y="205" width="220" height="90" rx="10" stroke="#34d399"/></g><g fill="#fce7f3" text-anchor="middle"><text x="135" y="82">Client</text><text x="470" y="82">Bastion reached</text><text x="805" y="82">Private VM · BROKEN</text><text x="135" y="239">Client + ProxyJump</text><text x="470" y="239">Bastion path allowed</text><text x="805" y="239">Private VM · VERIFIED</text></g><g stroke="#38bdf8" stroke-width="2" marker-end="url(#d7-ssh-inc-arrow)"><path d="M245 95L354 95"/><path d="M580 95L689 95" stroke-dasharray="7 5"/><path d="M245 252L354 252"/><path d="M580 252L689 252"/></g><text x="470" y="320" fill="#a9b7cb" font-size="12" text-anchor="middle">Verify both host identities and remove the accidental public ingress rule.</text></svg><figcaption>Figure 7.5: Supplied incident example. Dashed final-hop routing marks the failed path; the corrected row keeps the target private. Actual firewall and host-key evidence must come from the environment.</figcaption></figure>
+     <p><strong>Verification and residual risk:</strong> expand the effective client configuration locally, authenticate through both known host identities, confirm the target has no unintended public SSH path, and retain logs. The bastion remains a privileged access point requiring hardening, patching and monitored identities.</p>
+    </article>
+    <article class="topic-card" id="topic-02-problem">
+     <h3>
+      Package managers (apt, yum/dnf)
+     </h3>
+     <p>
+      <strong>
+       Failure:
+      </strong>
+      A VM still runs a vulnerable library after an operator refreshes repository metadata and reports “patch complete.”
+     </p>
+     <p>
+      <strong>
+       Cause:
+      </strong>
+      A metadata refresh lists candidate versions but does not install them. The operator did not inspect the installed version or execute and verify an approved update transaction.
+     </p>
+     <p>
+      <strong>
+       Fix:
+      </strong>
+      Identify the OS and package manager, compare installed and candidate versions, apply the update under the service's change procedure, and verify the running process uses the intended version. If a restart is required, schedule and observe it. Do not claim a patch based on metadata-download output alone.
+     </p>
+     <p><strong>Constraints and evidence:</strong> use the host's actual package family, approved repositories and maintenance window; capture installed and candidate versions before mutation. Retain the transaction result, restart decision and post-change process version with a rollback package or image plan.</p>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 330" role="img" aria-labelledby="d7-pkg-inc-title d7-pkg-inc-desc"><title id="d7-pkg-inc-title">Metadata refresh mistaken for a completed package patch</title><desc id="d7-pkg-inc-desc">Before repair, repository metadata is current but the installed and running versions remain vulnerable. After repair, an approved transaction changes the installed package and runtime verification confirms the intended process version.</desc><defs><marker id="d7-pkg-inc-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"/></marker></defs><text x="20" y="28" fill="#f43f5e" font-weight="700">BEFORE · metadata current ≠ package patched</text><text x="20" y="185" fill="#34d399" font-weight="700">AFTER · approved transaction plus runtime proof</text><g fill="#121526" stroke-width="2"><rect x="25" y="48" width="260" height="90" rx="10" stroke="#38bdf8"/><rect x="340" y="48" width="260" height="90" rx="10" stroke="#f43f5e"/><rect x="655" y="48" width="260" height="90" rx="10" stroke="#f43f5e"/><rect x="25" y="205" width="260" height="90" rx="10" stroke="#38bdf8"/><rect x="340" y="205" width="260" height="90" rx="10" stroke="#34d399"/><rect x="655" y="205" width="260" height="90" rx="10" stroke="#34d399"/></g><g fill="#fce7f3" text-anchor="middle"><text x="155" y="82">Candidate refreshed</text><text x="470" y="82">Installed: old</text><text x="785" y="82">Process: vulnerable</text><text x="155" y="239">Candidate compared</text><text x="470" y="239">Installed: target</text><text x="785" y="239">Process: verified</text></g><g stroke="#38bdf8" stroke-width="2" marker-end="url(#d7-pkg-inc-arrow)"><path d="M285 95L334 95"/><path d="M600 95L649 95"/><path d="M285 252L334 252"/><path d="M600 252L649 252"/></g><text x="470" y="320" fill="#a9b7cb" font-size="12" text-anchor="middle">The acceptance boundary is the running process, not metadata-download output.</text></svg><figcaption>Figure 7.6: Supplied incident example separating discovery, installation and runtime state. Package names, versions and restart requirements must be measured on the target host.</figcaption></figure>
+     <p><strong>Verification and residual risk:</strong> compare installed and intended versions, inspect transaction success, restart only when required, and verify the running process mapping. A later repository change or rollback can reintroduce drift, so the evidence needs a timestamp and host identity.</p>
+    </article>
+    <article class="topic-card" id="topic-03-problem">
+     <h3>
+      Shell scripting
+     </h3>
+     <p>
+      <strong>
+       Failure:
+      </strong>
+      A deployment script prints “validated” for a malformed order fixture and the next step publishes it.
+     </p>
+     <p>
+      <strong>
+       Cause:
+      </strong>
+      The script ran a validator but ignored its exit status, or used an unquoted filename that split into multiple arguments. The final successful print command made the script exit zero.
+     </p>
+     <p>
+      <strong>
+       Fix:
+      </strong>
+      Quote file paths, branch on the validator's result, emit errors to standard error and exit nonzero when validation fails. Test a valid file, an invalid file and a filename containing spaces. Preserve those outputs in the review artifact before the script is used with cloud resources.
+     </p>
+     <p><strong>Constraints and evidence:</strong> the validator must work with spaces in paths, preserve distinct stdout and stderr semantics, and block publication when any input fails. Run valid, invalid, mixed and no-argument cases and record their exact statuses.</p>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 330" role="img" aria-labelledby="d7-shell-inc-title d7-shell-inc-desc"><title id="d7-shell-inc-title">Malformed JSON published before and blocked after script repair</title><desc id="d7-shell-inc-desc">Before repair, validation fails but a later successful print command sets exit zero and publishing continues. After repair, quoted inputs and an accumulated failure status return exit one and block publishing.</desc><defs><marker id="d7-shell-inc-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"/></marker></defs><text x="20" y="28" fill="#f43f5e" font-weight="700">BEFORE · validator failure overwritten by exit 0</text><text x="20" y="185" fill="#34d399" font-weight="700">AFTER · quoted inputs and nonzero release gate</text><g fill="#121526" stroke-width="2"><rect x="25" y="48" width="260" height="90" rx="10" stroke="#f43f5e"/><rect x="340" y="48" width="260" height="90" rx="10" stroke="#f43f5e"/><rect x="655" y="48" width="260" height="90" rx="10" stroke="#f43f5e"/><rect x="25" y="205" width="260" height="90" rx="10" stroke="#38bdf8"/><rect x="340" y="205" width="260" height="90" rx="10" stroke="#34d399"/><rect x="655" y="205" width="260" height="90" rx="10" stroke="#34d399"/></g><g fill="#fce7f3" text-anchor="middle"><text x="155" y="82">Malformed JSON</text><text x="470" y="82">Error then print succeeds</text><text x="785" y="82">PUBLISH · wrong</text><text x="155" y="239">Quoted "$@"</text><text x="470" y="239">failed=1 retained</text><text x="785" y="239">BLOCK · exit 1</text></g><g stroke="#38bdf8" stroke-width="2" marker-end="url(#d7-shell-inc-arrow)"><path d="M285 95L334 95"/><path d="M600 95L649 95"/><path d="M285 252L334 252"/><path d="M600 252L649 252"/></g><text x="470" y="320" fill="#a9b7cb" font-size="12" text-anchor="middle">Verification observes both emitted messages and the caller-visible exit status.</text></svg><figcaption>Figure 7.7: Supplied incident example. The labels, not color alone, distinguish the incorrect publish path and corrected blocking gate. It does not represent a live release pipeline.</figcaption></figure>
+     <p><strong>Verification and residual risk:</strong> require status 0 only for all-valid inputs, status 1 when any file is invalid and status 2 for missing arguments. Future commands added after validation can still mask the status unless the script preserves or exits with the recorded result.</p>
+    </article>
+    <article class="topic-card" id="topic-04-problem">
+     <h3>
+      /proc virtual filesystem and process trees
+     </h3>
+     <p>
+      <strong>
+       Failure:
+      </strong>
+      A worker appears “running,” but it no longer processes orders. An operator restarts the wrong PID because several Python processes are present.
+     </p>
+     <p>
+      <strong>
+       Cause:
+      </strong>
+      The operator used a process name alone, without relating the PID to its parent service and open descriptors. The selected process was a different child.
+     </p>
+     <p>
+      <strong>
+       Fix:
+      </strong>
+      Identify the service unit or supervisor, inspect its main PID and child tree, then compare the relevant process state, command identity and logs. Stop or restart only the intended disposable process under its supervisor. After recovery, verify order processing with a synthetic request rather than treating a listed PID as success.
+     </p>
+     <p><strong>Constraints and evidence:</strong> do not signal a PID selected only by process name, avoid copying sensitive command lines or environments, and retain a timestamp because PIDs can be reused. Correlate unit, main PID, parent-child relationship, state, descriptors and application logs.</p>
+     <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 330" role="img" aria-labelledby="d7-proc-inc-title d7-proc-inc-desc"><title id="d7-proc-inc-title">Wrong PID selection and corrected process-tree diagnosis</title><desc id="d7-proc-inc-desc">Before repair, a shared Python command name leads the operator to stop an unrelated worker. After repair, the service unit, parent PID, child PID, proc status and logs identify the stalled order worker before a supervisor action.</desc><defs><marker id="d7-proc-inc-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"/></marker></defs><text x="20" y="28" fill="#f43f5e" font-weight="700">BEFORE · command-name match selects the wrong PID</text><text x="20" y="185" fill="#34d399" font-weight="700">AFTER · unit and process tree identify the intended worker</text><g fill="#121526" stroke-width="2"><rect x="25" y="48" width="260" height="90" rx="10" stroke="#38bdf8"/><rect x="340" y="48" width="260" height="90" rx="10" stroke="#f43f5e"/><rect x="655" y="48" width="260" height="90" rx="10" stroke="#f43f5e"/><rect x="25" y="205" width="260" height="90" rx="10" stroke="#38bdf8"/><rect x="340" y="205" width="260" height="90" rx="10" stroke="#34d399"/><rect x="655" y="205" width="260" height="90" rx="10" stroke="#34d399"/></g><g fill="#fce7f3" text-anchor="middle"><text x="155" y="82">Many "python" rows</text><text x="470" y="82">Wrong PID signaled</text><text x="785" y="82">Stall remains</text><text x="155" y="239">Unit → main PID</text><text x="470" y="239">PPid + /proc + logs</text><text x="785" y="239">Supervisor restart</text></g><g stroke="#38bdf8" stroke-width="2" marker-end="url(#d7-proc-inc-arrow)"><path d="M285 95L334 95"/><path d="M600 95L649 95"/><path d="M285 252L334 252"/><path d="M600 252L649 252"/></g><text x="470" y="320" fill="#a9b7cb" font-size="12" text-anchor="middle">Recovery is accepted only after a synthetic order succeeds; a listed PID is insufficient.</text></svg><figcaption>Figure 7.8: Supplied incident example contrasting a name-only PID choice with supervisor-aware evidence. Live PIDs and descriptors are environment-specific and transient.</figcaption></figure>
+     <p><strong>Verification and residual risk:</strong> act through the owning supervisor, confirm the old process exited, observe the intended replacement PID and test a synthetic order. A healthy process tree still does not prove downstream dependencies or Fulfillment idempotency.</p>
+    </article>
+   </section>
+   <section class="part" id="part-4">
+    <h2>
+     4 · Step-by-step labs for each topic
+    </h2>
+    <article class="topic-card lab" id="topic-01-lab">
+     <h3>
+      SSH
+     </h3>
+     <p>
+      <strong>
+       Goal:
+      </strong>
+      Inspect an SSH client configuration without making any network connection or creating a key.
+      <strong>
+       Mode:
+      </strong>
+      local Linux terminal with OpenSSH client.
+     </p>
+     <p><strong>Expected Result:</strong> the effective configuration for <code>lab-private</code> shows the private hostname, learner user, jump alias and synthetic identity path without opening a connection. <strong>Preflight:</strong> confirm <code>ssh</code> and <code>grep</code> are available and use no real key or hostname.</p>
+     <h4>
+      Step 1 — Create a synthetic config
+     </h4>
+     <p>
+      Open a terminal in the Day 1 repository. Check for the client, then create a local example file:
+     </p>
+     <pre><code class="language-sh">command -v ssh
+cd ~/gcp-architect-learning
+cat &gt; day-007-ssh-config &lt;&lt;'EOF'
+Host lab-bastion
+    HostName bastion.example.test
+    User learner
+    IdentityFile ~/.ssh/nonexistent-lab-key
+
+Host lab-private
+    HostName private.example.test
+    User learner
+    ProxyJump lab-bastion
+    IdentityFile ~/.ssh/nonexistent-lab-key
+EOF
+</code></pre>
+     <p>
+      The names and key path are documentation fixtures. Do not create or copy a real private key into the repository.
+     </p>
+     <h4>
+      Step 2 — Expand the settings locally
+     </h4>
+     <pre><code class="language-sh">ssh -T -F day-007-ssh-config -G lab-private | grep -E '^(hostname|user|proxyjump|identityfile) '
+</code></pre>
+     <p>
+      Expected lines include the private hostname, learner user, jump alias and the configured identity path. Exact path expansion varies by machine. The
+      <code>
+       -G
+      </code>
+      option prints the effective client configuration and exits; it does not connect. In your note, draw client → bastion → private VM and label where host identity must be checked.
+      <strong>
+       Cleanup:
+      </strong>
+      keep the synthetic config as evidence or delete only that file. No VM, key or cloud resource was created.
+     </p>
+     <p><strong>Troubleshooting:</strong> if the client's effective-configuration option is unsupported, record the installed OpenSSH client version and skip without connecting. <strong>Artifact Acceptance:</strong> save the effective host, user, proxy jump and identity-file lines plus a client → bastion → private VM drawing with both host checks labeled.</p>
+     <p>
+      <label class="check">
+       <input data-progress="lab-7-topic-01" type="checkbox"/>
+       I completed and checked this topic exercise
+      </label>
+     </p>
+    </article>
+    <article class="topic-card lab" id="topic-02-lab">
+     <h3>
+      Package managers (apt, yum/dnf)
+     </h3>
+     <p>
+      <strong>
+       Goal:
+      </strong>
+      Inspect package state without altering the operating system.
+      <strong>
+       Mode:
+      </strong>
+      local Linux terminal or disposable VM; no sudo required.
+     </p>
+     <p><strong>Expected Result:</strong> identify exactly one applicable package family and record the installed Bash version without refreshing repositories or changing packages. <strong>Preflight:</strong> use an ordinary account and confirm the exercise remains read-only; do not use <code>sudo</code>.</p>
+     <h4>
+      Step 1 — Identify the distribution
+     </h4>
+     <pre><code class="language-sh">cat /etc/os-release
+command -v apt-get || true
+command -v dnf || true
+</code></pre>
+     <p>
+      Expected: an OS identity and a path for the relevant manager. One or both manager checks may print nothing;
+      <code>
+       true
+      </code>
+      keeps the read-only inspection going. Record which family applies.
+     </p>
+     <h4>
+      Step 2 — Inspect one installed package
+     </h4>
+     <p>
+      On an APT-based host, run:
+     </p>
+     <pre><code class="language-sh">apt-cache policy bash
+dpkg-query -W bash
+</code></pre>
+     <p>
+      On a DNF-based host, run instead:
+     </p>
+     <pre><code class="language-sh">dnf info bash
+rpm -q bash
+</code></pre>
+     <p>
+      Expected: an installed version and package metadata. The exact version differs by distribution and date. Compare installed and available versions in your note; do not run both branches unless both managers genuinely apply. No installation is needed for this lab.
+     </p>
+     <p>
+      <strong>
+       Verification:
+      </strong>
+      the note identifies the distribution, manager and installed package version, and explains why reading metadata does not patch a running program.
+      <strong>
+       Cleanup:
+      </strong>
+      no package or cloud resource was changed; retain only the note.
+     </p>
+     <p><strong>Troubleshooting:</strong> if neither manager exists, record the distribution and its native package tool instead of installing APT or DNF. <strong>Artifact Acceptance:</strong> the note contains OS identity, selected manager, installed version, available metadata when locally present, and an explanation that inspection did not patch the process.</p>
+     <p>
+      <label class="check">
+       <input data-progress="lab-7-topic-02" type="checkbox"/>
+       I completed and checked this topic exercise
+      </label>
+     </p>
+    </article>
+    <article class="topic-card lab" id="topic-03-lab">
+     <h3>
+      Shell scripting
+     </h3>
+     <p>
+      <strong>
+       Goal:
+      </strong>
+      Build a Bash script with a loop, conditional, quoted path and meaningful exit status.
+      <strong>
+       Mode:
+      </strong>
+      local Linux terminal with Bash and Python 3.
+     </p>
+     <p><strong>Expected Result:</strong> the valid file returns 0, the mixed run returns 1, and the filename containing a space remains one argument. <strong>Preflight:</strong> confirm <code>bash</code> and <code>python3</code> are available and create only the three named synthetic files.</p>
+     <h4>
+      Step 1 — Create fixtures and the script
+     </h4>
+     <p>
+      Open a terminal in your Day 1 repository and run:
+     </p>
+     <pre><code class="language-sh">cd ~/gcp-architect-learning
+printf '{"order_id":"demo-001"}\n' &gt; 'day-007-valid order.json'
+printf '{"order_id":\n' &gt; day-007-invalid.json
+cat &gt; day-007-validate.sh &lt;&lt;'SH'
+#!/usr/bin/env bash
+if [ "$#" -eq 0 ]; then
+  printf 'usage: %s FILE...\n' "$0" &gt;&amp;2
+  exit 2
+fi
+failed=0
+for path in "$@"; do
+  if python3 -m json.tool "$path" &gt;/dev/null 2&gt;&amp;1; then
+    printf 'valid: %s\n' "$path"
+  else
+    printf 'invalid: %s\n' "$path" &gt;&amp;2
+    failed=1
+  fi
+done
+exit "$failed"
+SH
+</code></pre>
+     <p>
+      The quoted argument keeps the valid filename containing a space intact. The loop checks each supplied file and remembers whether any failed.
+     </p>
+     <h4>
+      Step 2 — Run a success and failure case
+     </h4>
+     <pre><code class="language-sh">bash day-007-validate.sh 'day-007-valid order.json'
+printf 'success exit=%s\n' "$?"
+bash day-007-validate.sh 'day-007-valid order.json' day-007-invalid.json
+printf 'mixed exit=%s\n' "$?"
+</code></pre>
+     <p>
+      Expected:
+     </p>
+     <pre><code class="language-text">valid: day-007-valid order.json
+success exit=0
+valid: day-007-valid order.json
+invalid: day-007-invalid.json
+mixed exit=1
+</code></pre>
+     <p>
+      The invalid line goes to standard error, so ordering can vary if output streams are captured separately. In your note, explain why the final mixed status is 1 even though one file passed.
+      <strong>
+       Verification:
+      </strong>
+      save the script and both runs; include a no-argument check if you want to test usage status 2.
+      <strong>
+       Cleanup:
+      </strong>
+      keep the synthetic files as fixtures or remove only these three Day 7 files after recording evidence. No cloud resources exist.
+     </p>
+     <p><strong>Troubleshooting:</strong> capture stdout and stderr together when comparing order, and record the status immediately after each script run before another command overwrites <code>$?</code>. <strong>Artifact Acceptance:</strong> save the complete script, success status 0, mixed status 1, no-argument status 2, and a short explanation of <code>"$@"</code> quoting.</p>
+     <p>
+      <label class="check">
+       <input data-progress="lab-7-topic-03" type="checkbox"/>
+       I completed and checked this topic exercise
+      </label>
+     </p>
+    </article>
+    <article class="topic-card lab" id="topic-04-lab">
+     <h3>
+      /proc virtual filesystem and process trees
+     </h3>
+     <p>
+      <strong>
+       Goal:
+      </strong>
+      Inspect a short-lived child process and its relationship to the shell.
+      <strong>
+       Mode:
+      </strong>
+      local Linux terminal; no cloud use.
+     </p>
+     <p><strong>Expected Result:</strong> relate the disposable child PID to the current shell, inspect its live status and descriptors, then observe its <code>/proc</code> directory disappear after termination. <strong>Preflight:</strong> confirm the process, text-filter, directory-listing and signal tools plus Bash job control are available.</p>
+     <h4>
+      Step 1 — Start and inspect a child
+     </h4>
+     <p>
+      Keep the same terminal open and run:
+     </p>
+     <pre><code class="language-sh">sleep 30 &amp;
+child_pid=$!
+ps -o pid,ppid,stat,comm -p "$$" -p "$child_pid"
+grep -E '^(Name|State|Pid|PPid):' "/proc/$child_pid/status"
+ls -l "/proc/$child_pid/fd"
+</code></pre>
+     <p>
+      Expected: the sleep process has its own PID, its PPID normally matches your shell PID, and its status is live. Its file-descriptor list is small and machine-dependent. The process may exit before inspection on a very slow machine; start a new disposable child if needed. Do not inspect a different person's process.
+     </p>
+     <h4>
+      Step 2 — Stop and verify cleanup
+     </h4>
+     <pre><code class="language-sh">kill -TERM "$child_pid"
+wait "$child_pid"
+child_status=$?
+printf 'child exit=%s\n' "$child_status"
+if ps -p "$child_pid" -o pid,stat,comm; then
+  printf 'unexpected: child still present\n'
+else
+  printf 'child stopped\n'
+fi
+</code></pre>
+     <p>
+      Expected: Bash commonly reports 143 for a process terminated by SIGTERM, and the final
+      <code>
+       ps
+      </code>
+      finds no live child. A different shell can report differently; record the actual status. In your note, relate the child PID to the parent and explain why
+      <code>
+       /proc/$child_pid
+      </code>
+      disappears afterward.
+      <strong>
+       Cleanup:
+      </strong>
+      the disposable sleep process is stopped; no file or cloud resource was created.
+     </p>
+     <p><strong>Troubleshooting:</strong> if the child exits before inspection, start a new disposable <code>sleep 30</code> process and replace the captured PID; never select another process by name. <strong>Artifact Acceptance:</strong> record shell PID, child PID, PPID, state, descriptor listing, observed wait status and proof that the child no longer exists.</p>
+     <p>
+      <label class="check">
+       <input data-progress="lab-7-topic-04" type="checkbox"/>
+       I completed and checked this topic exercise
+      </label>
+     </p>
+    </article>
+   </section>
+   <section class="completion">
+    <h2>
+     Daily evidence
+    </h2>
+    <label class="check">
+     <input data-progress="read-7" type="checkbox"/>
+     I read and reviewed the day
+    </label>
+    <label class="check">
+     <input data-progress="artifact-7" type="checkbox"/>
+     I saved the exit artifact
+    </label>
+   </section>
+   <nav aria-label="Day pagination" class="pager">
+    <a href="day-006.html">
+     ← Day 6
+     <small>
+      Shell, processes and services
+     </small>
+    </a>
+    <a href="../index.html">
+     All 180 days
+     <small>
+      Browse the roadmap
+     </small>
+    </a>
+    <a href="day-008.html">
+     Day 8 →
+     <small>
+      CPU, memory and diagnostic signals
+     </small>
+    </a>
+   </nav>
+   <p class="shortcut">
+    Keyboard: P or [ previous · N or ] next · I index
+   </p>
+  </main>
+  <footer class="site-footer">
+   GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.
+  </footer>
+ </body>
+</html>

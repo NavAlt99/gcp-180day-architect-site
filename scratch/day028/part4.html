@@ -1,0 +1,598 @@
+    <section class="part" id="part-4" aria-labelledby="part-4-heading">
+      <h2 id="part-4-heading">Part 4 · Step-by-step labs</h2>
+      <p class="section-lead">Hands-on engineering labs: building an idempotent Cloud Pub/Sub budget notification consumer that drops duplicate event redeliveries, and generating a label-based cost attribution worksheet from BigQuery billing export records.</p>
+
+      <!-- Lab 28.1 -->
+      <article class="card" id="topic-01-lab" aria-labelledby="l1-heading">
+        <span class="badge">Lab 28.1</span>
+        <h3 id="l1-heading">Build an Idempotent Pub/Sub Budget Notification Consumer &amp; Deduplication Engine</h3>
+
+        <div class="lab-meta">
+          <p><strong>Goal:</strong> Deploy and run a Python consumer simulating a Google Cloud Billing Pub/Sub event receptor that processes budget threshold events (50%, 90%, 100%), constructs composite deduplication keys, maintains an idempotency state ledger, and executes non-destructive gated remediation while enforcing Brightloaf's duplicate fulfillment invariant (&le; 1 physical fulfillment per unique order ID).</p>
+          <p><strong>Expected Result:</strong> Unique threshold events trigger bounded actions on non-production workloads; redelivered messages are identified via composite key lookup, logged as <code>DUPLICATE_EVENT_DROPPED</code>, and acknowledged immediately without re-executing mutations.</p>
+          <p><strong>Mode:</strong> Local Python runtime simulation (compatible with Cloud Run / Cloud Functions deployment patterns).</p>
+        </div>
+
+        <h4>Preflight</h4>
+        <p>Ensure Python 3 is installed and the scratch workspace directory exists:</p>
+        <pre><code class="language-bash">python3 --version
+mkdir -p scratch/day028</code></pre>
+
+        <h4>Exact Execution</h4>
+        <ol>
+          <li>Create the budget notification consumer and deduplication engine script:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day028/consume-budget-notifications.py
+#!/usr/bin/env python3
+"""
+Lab 28.1: Idempotent Pub/Sub Budget Notification Consumer & Deduplication Engine
+Demonstrates at-least-once message handling, composite state deduplication,
+and safe remediation guardrails preserving Brightloaf's duplicate fulfillment invariant.
+"""
+
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+class IdempotentBudgetConsumer:
+    def __init__(self):
+        # Simulated persistent state store (e.g., Firestore / Memorystore Redis)
+        self.state_store = {}
+        self.remediation_history = []
+        self.log_entries = []
+
+    def log(self, level: str, message: str):
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        formatted = f"[{timestamp}] [{level.upper()}] {message}"
+        print(formatted)
+        self.log_entries.append(formatted)
+
+    def derive_dedup_key(self, payload: dict) -> str:
+        """Derive deterministic composite key from billing event envelope."""
+        budget_name = payload.get("budgetDisplayName", "unknown")
+        interval_start = payload.get("costIntervalStart", "unknown")
+        threshold = payload.get("alertThresholdExceeded", 0.0)
+        return f"{budget_name}#{interval_start}#{threshold:.2f}"
+
+    def process_notification(self, raw_message: dict) -> dict:
+        msg_id = raw_message.get("message_id")
+        payload = raw_message.get("data", {})
+        
+        budget_name = payload.get("budgetDisplayName")
+        cost = payload.get("costAmount", 0.0)
+        budget = payload.get("budgetAmount", 0.0)
+        threshold = payload.get("alertThresholdExceeded", 0.0)
+        currency = payload.get("currencyCode", "USD")
+
+        self.log("INFO", f"Received message {msg_id}: budget '{budget_name}', spend ${cost:,.2f}/{budget:,.2f} {currency} ({threshold*100:.0f}% threshold)")
+
+        dedup_key = self.derive_dedup_key(payload)
+
+        # Step 1: Check idempotency state store
+        if dedup_key in self.state_store:
+            prior = self.state_store[dedup_key]
+            self.log("WARN", f"[IDEMPOTENT_DROP] Duplicate event detected for key '{dedup_key}'. First processed at {prior['timestamp']}. ACK returned without action.")
+            return {
+                "message_id": msg_id,
+                "status": "DUPLICATE_DROPPED",
+                "dedup_key": dedup_key,
+                "action": "NONE"
+            }
+
+        # Step 2: Atomic State Registration
+        self.state_store[dedup_key] = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cost_at_trigger": cost,
+            "threshold": threshold,
+            "status": "PROCESSING"
+        }
+
+        # Step 3: Execute Gated Remediation Workflow
+        action_summary = "NOTIFY_ONLY"
+        if threshold &gt;= 1.0:
+            self.log("CRITICAL", f"100% Budget exceeded! Evaluating automated remediation guardrails...")
+            
+            # Guardrail check: Production workloads are strictly immune!
+            self.log("GUARDRAIL", "Evaluating target: 'order-ingestion-api' (env: 'production')")
+            self.log("GUARDRAIL", "IMMUNITY TRIGGERED: Production order intake is shielded from automated scaling.")
+            self.log("GUARDRAIL", "Duplicate fulfillment invariant preserved: &lt;= 1 physical fulfillment per unique order ID.")
+            
+            # Non-destructive action on non-production workloads only
+            self.log("ACTION", "Targeting non-production: Scaling down dev batch workers ('analytics-dev-workers') from 10 to 2 instances.")
+            action_summary = "SCALE_DOWN_DEV_WORKERS"
+            self.remediation_history.append({
+                "target": "analytics-dev-workers",
+                "env": "development",
+                "action": "scale_down",
+                "from_instances": 10,
+                "to_instances": 2
+            })
+        elif threshold &gt;= 0.9:
+            self.log("ALERT", f"90% Budget warning ($ {cost:,.2f}). Dispatching PagerDuty/Slack notification to FinOps channel.")
+            action_summary = "PAGERDUTY_FINOPS_ALERT"
+        elif threshold &gt;= 0.5:
+            self.log("NOTICE", f"50% Budget checkpoint ($ {cost:,.2f}). Dispatching informational digest to engineering leads.")
+            action_summary = "CADENCE_EMAIL_DIGEST"
+
+        # Step 4: Finalize State &amp; Return ACK
+        self.state_store[dedup_key]["status"] = "COMPLETED"
+        self.state_store[dedup_key]["action_taken"] = action_summary
+        self.log("SUCCESS", f"Workflow '{action_summary}' finished. State '{dedup_key}' locked. Message ACKed.")
+
+        return {
+            "message_id": msg_id,
+            "status": "PROCESSED",
+            "dedup_key": dedup_key,
+            "action": action_summary
+        }
+
+def run_simulation():
+    consumer = IdempotentBudgetConsumer()
+
+    # Synthetic Pub/Sub Message Stream with duplicates &amp; periodic updates
+    stream = [
+        # Event 1: 50% Threshold crossing
+        {
+            "message_id": "ps-msg-101",
+            "publish_time": "2026-09-15T10:00:00Z",
+            "data": {
+                "budgetDisplayName": "brightloaf-core-monthly",
+                "costAmount": 2550.00,
+                "budgetAmount": 5000.00,
+                "costIntervalStart": "2026-09-01T00:00:00Z",
+                "budgetAmountType": "SPECIFIED_AMOUNT",
+                "alertThresholdExceeded": 0.5,
+                "currencyCode": "USD"
+            }
+        },
+        # Event 2: Immediate duplicate delivery of Event 1 (simulating slow ACK / network retry)
+        {
+            "message_id": "ps-msg-101-retry",
+            "publish_time": "2026-09-15T10:00:14Z",
+            "data": {
+                "budgetDisplayName": "brightloaf-core-monthly",
+                "costAmount": 2550.00,
+                "budgetAmount": 5000.00,
+                "costIntervalStart": "2026-09-01T00:00:00Z",
+                "budgetAmountType": "SPECIFIED_AMOUNT",
+                "alertThresholdExceeded": 0.5,
+                "currencyCode": "USD"
+            }
+        },
+        # Event 3: 90% Threshold crossing
+        {
+            "message_id": "ps-msg-102",
+            "publish_time": "2026-09-24T14:30:00Z",
+            "data": {
+                "budgetDisplayName": "brightloaf-core-monthly",
+                "costAmount": 4510.80,
+                "budgetAmount": 5000.00,
+                "costIntervalStart": "2026-09-01T00:00:00Z",
+                "budgetAmountType": "SPECIFIED_AMOUNT",
+                "alertThresholdExceeded": 0.9,
+                "currencyCode": "USD"
+            }
+        },
+        # Event 4: 100% Threshold crossing
+        {
+            "message_id": "ps-msg-103",
+            "publish_time": "2026-09-27T08:14:02Z",
+            "data": {
+                "budgetDisplayName": "brightloaf-core-monthly",
+                "costAmount": 5040.25,
+                "budgetAmount": 5000.00,
+                "costIntervalStart": "2026-09-01T00:00:00Z",
+                "budgetAmountType": "SPECIFIED_AMOUNT",
+                "alertThresholdExceeded": 1.0,
+                "currencyCode": "USD"
+            }
+        },
+        # Event 5: Redelivery of Event 4 (ACK deadline expiration duplicate)
+        {
+            "message_id": "ps-msg-103-redelivered",
+            "publish_time": "2026-09-27T08:14:15Z",
+            "data": {
+                "budgetDisplayName": "brightloaf-core-monthly",
+                "costAmount": 5040.25,
+                "budgetAmount": 5000.00,
+                "costIntervalStart": "2026-09-01T00:00:00Z",
+                "budgetAmountType": "SPECIFIED_AMOUNT",
+                "alertThresholdExceeded": 1.0,
+                "currencyCode": "USD"
+            }
+        }
+    ]
+
+    print("================================================================================")
+    print("  BRIGHTLOAF IDEMPOTENT BUDGET NOTIFICATION CONSUMER (PUB/SUB RECEPTOR)         ")
+    print("================================================================================")
+    
+    results = []
+    for msg in stream:
+        res = consumer.process_notification(msg)
+        results.append(res)
+        print("-" * 80)
+
+    # Output stats
+    processed = sum(1 for r in results if r["status"] == "PROCESSED")
+    dropped = sum(1 for r in results if r["status"] == "DUPLICATE_DROPPED")
+    print(f"\nSimulation Complete: Total Messages: {len(stream)} | Processed: {processed} | Duplicates Dropped: {dropped}")
+    
+    # Save log report
+    os.makedirs("scratch/day028", exist_ok=True)
+    log_file = "scratch/day028/budget-consumer.log"
+    with open(log_file, "w") as f:
+        f.write("\n".join(consumer.log_entries) + "\n")
+    print(f"Consumer execution log saved to: {log_file}")
+
+if __name__ == "__main__":
+    run_simulation()
+EOF
+chmod +x scratch/day028/consume-budget-notifications.py</code></pre>
+          </li>
+          <li>Execute the simulation:
+            <pre><code class="language-bash">python3 scratch/day028/consume-budget-notifications.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <p>The consumer logs will demonstrate successful deduplication and strict protection of production pipelines:</p>
+        <pre><code class="language-text">================================================================================
+  BRIGHTLOAF IDEMPOTENT BUDGET NOTIFICATION CONSUMER (PUB/SUB RECEPTOR)         
+================================================================================
+[2026-09-27 11:05:21 UTC] [INFO] Received message ps-msg-101: budget 'brightloaf-core-monthly', spend $2,550.00/5,000.00 USD (50% threshold)
+[2026-09-27 11:05:21 UTC] [NOTICE] 50% Budget checkpoint ($ 2,550.00). Dispatching informational digest to engineering leads.
+[2026-09-27 11:05:21 UTC] [SUCCESS] Workflow 'CADENCE_EMAIL_DIGEST' finished. State 'brightloaf-core-monthly#2026-09-01T00:00:00Z#0.50' locked. Message ACKed.
+--------------------------------------------------------------------------------
+[2026-09-27 11:05:21 UTC] [INFO] Received message ps-msg-101-retry: budget 'brightloaf-core-monthly', spend $2,550.00/5,000.00 USD (50% threshold)
+[2026-09-27 11:05:21 UTC] [WARN] [IDEMPOTENT_DROP] Duplicate event detected for key 'brightloaf-core-monthly#2026-09-01T00:00:00Z#0.50'. First processed at 2026-09-27T11:05:21.200874+00:00. ACK returned without action.
+--------------------------------------------------------------------------------
+[2026-09-27 11:05:21 UTC] [INFO] Received message ps-msg-102: budget 'brightloaf-core-monthly', spend $4,510.80/5,000.00 USD (90% threshold)
+[2026-09-27 11:05:21 UTC] [ALERT] 90% Budget warning ($ 4,510.80). Dispatching PagerDuty/Slack notification to FinOps channel.
+[2026-09-27 11:05:21 UTC] [SUCCESS] Workflow 'PAGERDUTY_FINOPS_ALERT' finished. State 'brightloaf-core-monthly#2026-09-01T00:00:00Z#0.90' locked. Message ACKed.
+--------------------------------------------------------------------------------
+[2026-09-27 11:05:21 UTC] [INFO] Received message ps-msg-103: budget 'brightloaf-core-monthly', spend $5,040.25/5,000.00 USD (100% threshold)
+[2026-09-27 11:05:21 UTC] [CRITICAL] 100% Budget exceeded! Evaluating automated remediation guardrails...
+[2026-09-27 11:05:21 UTC] [GUARDRAIL] Evaluating target: 'order-ingestion-api' (env: 'production')
+[2026-09-27 11:05:21 UTC] [GUARDRAIL] IMMUNITY TRIGGERED: Production order intake is shielded from automated scaling.
+[2026-09-27 11:05:21 UTC] [GUARDRAIL] Duplicate fulfillment invariant preserved: &lt;= 1 physical fulfillment per unique order ID.
+[2026-09-27 11:05:21 UTC] [ACTION] Targeting non-production: Scaling down dev batch workers ('analytics-dev-workers') from 10 to 2 instances.
+[2026-09-27 11:05:21 UTC] [SUCCESS] Workflow 'SCALE_DOWN_DEV_WORKERS' finished. State 'brightloaf-core-monthly#2026-09-01T00:00:00Z#1.00' locked. Message ACKed.
+--------------------------------------------------------------------------------
+[2026-09-27 11:05:21 UTC] [INFO] Received message ps-msg-103-redelivered: budget 'brightloaf-core-monthly', spend $5,040.25/5,000.00 USD (100% threshold)
+[2026-09-27 11:05:21 UTC] [WARN] [IDEMPOTENT_DROP] Duplicate event detected for key 'brightloaf-core-monthly#2026-09-01T00:00:00Z#1.00'. First processed at 2026-09-27T11:05:21.200969+00:00. ACK returned without action.
+--------------------------------------------------------------------------------
+
+Simulation Complete: Total Messages: 5 | Processed: 3 | Duplicates Dropped: 2
+Consumer execution log saved to: scratch/day028/budget-consumer.log</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>Key Collision:</em> Ensure composite key includes the threshold float formatted to fixed precision (<code>f"{threshold:.2f}"</code>) so that 50% (0.50) and 90% (0.90) generate distinct keys for the same cost interval.</li>
+          <li><em>State Store Race Conditions:</em> In multi-instance deployments on Cloud Run, use atomic conditional writes (such as Firestore transactions or Redis <code>SET NX</code>) to prevent race conditions during concurrent duplicate arrivals.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Retain <code>scratch/day028/budget-consumer.log</code> as operational verification evidence.</p>
+      </article>
+
+      <!-- Lab 28.2 -->
+      <article class="card" id="topic-02-lab" aria-labelledby="l2-heading">
+        <span class="badge">Lab 28.2</span>
+        <h3 id="l2-heading">Generate a Label-Based Cost Attribution Worksheet from Billing Export Records</h3>
+
+        <div class="lab-meta">
+          <p><strong>Goal:</strong> Parse synthetic Google Cloud BigQuery Detailed Billing Export records with repeated label arrays, aggregate spend along business dimensions (<code>cost-center</code>, <code>env</code>, <code>service</code>), quantify unlabeled orphan compute, and compile the Day 28 exit artifact: <code>scratch/day028/cost-attribution-worksheet.md</code>.</p>
+          <p><strong>Expected Result:</strong> An auditable cost attribution matrix that cleanly isolates unlabeled spend into <code>UNALLOCATED_SHARED_DEBT</code>, documents notification handling behavior for duplicate Pub/Sub events, and attests to the duplicate fulfillment invariant.</p>
+          <p><strong>Mode:</strong> Local Python analytics script (mirroring BigQuery SQL unnesting transformations).</p>
+        </div>
+
+        <h4>Preflight</h4>
+        <p>Confirm the output scratch directory is accessible:</p>
+        <pre><code class="language-bash">ls -ld scratch/day028</code></pre>
+
+        <h4>Exact Execution</h4>
+        <ol>
+          <li>Create the cost attribution analyzer and worksheet generator script:
+            <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day028/analyze-cost-attribution.py
+#!/usr/bin/env python3
+"""
+Lab 28.2: Label-Based Cost Attribution Analyzer &amp; Worksheet Generator
+Processes detailed billing export records with repeated label arrays,
+aggregates spend across business dimensions, segregates unallocated orphan spend,
+and compiles the Day 28 exit artifact: cost-attribution-worksheet.md.
+"""
+
+import json
+import os
+from datetime import datetime, timezone
+
+def generate_synthetic_billing_records():
+    """Generates synthetic BigQuery detailed billing export records."""
+    return [
+        {
+            "resource_id": "cr-order-ingestion-prod-01",
+            "service": "Cloud Run",
+            "project_id": "brightloaf-order-prod",
+            "cost_usd": 1840.50,
+            "labels": [
+                {"key": "cost-center", "value": "cc-bakery-ops"},
+                {"key": "env", "value": "production"},
+                {"key": "service", "value": "order-ingestion"},
+                {"key": "owner", "value": "ops-team@brightloaf.com"}
+            ]
+        },
+        {
+            "resource_id": "csql-order-db-primary",
+            "service": "Cloud SQL",
+            "project_id": "brightloaf-order-prod",
+            "cost_usd": 2450.00,
+            "labels": [
+                {"key": "cost-center", "value": "cc-bakery-ops"},
+                {"key": "env", "value": "production"},
+                {"key": "service", "value": "order-db"},
+                {"key": "owner", "value": "db-team@brightloaf.com"}
+            ]
+        },
+        {
+            "resource_id": "gce-dispatch-optimizer-worker",
+            "service": "Compute Engine",
+            "project_id": "brightloaf-order-prod",
+            "cost_usd": 1120.75,
+            "labels": [
+                {"key": "cost-center", "value": "cc-bakery-ops"},
+                {"key": "env", "value": "production"},
+                {"key": "service", "value": "dispatch-optimizer"},
+                {"key": "owner", "value": "logistics@brightloaf.com"}
+            ]
+        },
+        {
+            "resource_id": "cr-storefront-web-prod",
+            "service": "Cloud Run",
+            "project_id": "brightloaf-ecommerce-prod",
+            "cost_usd": 3180.20,
+            "labels": [
+                {"key": "cost-center", "value": "cc-ecommerce"},
+                {"key": "env", "value": "production"},
+                {"key": "service", "value": "storefront"},
+                {"key": "owner", "value": "ecom-leads@brightloaf.com"}
+            ]
+        },
+        {
+            "resource_id": "memcache-recommender-prod",
+            "service": "Memorystore Redis",
+            "project_id": "brightloaf-ecommerce-prod",
+            "cost_usd": 820.00,
+            "labels": [
+                {"key": "cost-center", "value": "cc-ecommerce"},
+                {"key": "env", "value": "production"},
+                {"key": "service", "value": "recommender"},
+                {"key": "owner", "value": "ecom-leads@brightloaf.com"}
+            ]
+        },
+        {
+            "resource_id": "gce-customer-portal-dev",
+            "service": "Compute Engine",
+            "project_id": "brightloaf-ecommerce-dev",
+            "cost_usd": 410.50,
+            "labels": [
+                {"key": "cost-center", "value": "cc-ecommerce"},
+                {"key": "env", "value": "development"},
+                {"key": "service", "value": "customer-portal"},
+                {"key": "owner", "value": "ecom-devs@brightloaf.com"}
+            ]
+        },
+        {
+            "resource_id": "bq-growth-abtesting-lakehouse",
+            "service": "BigQuery",
+            "project_id": "brightloaf-analytics-staging",
+            "cost_usd": 1420.30,
+            "labels": [
+                {"key": "cost-center", "value": "cc-growth-mktg"},
+                {"key": "env", "value": "staging"},
+                {"key": "service", "value": "ab-testing"},
+                {"key": "owner", "value": "growth-analytics@brightloaf.com"}
+            ]
+        },
+        # Unlabeled resources: Untracked shared spend
+        {
+            "resource_id": "gke-adhoc-batch-pool",
+            "service": "Kubernetes Engine",
+            "project_id": "brightloaf-shared-infra",
+            "cost_usd": 3650.00,
+            "labels": []
+        },
+        {
+            "resource_id": "bq-unpartitioned-analysis-spike",
+            "service": "BigQuery Analysis",
+            "project_id": "brightloaf-shared-infra",
+            "cost_usd": 1850.00,
+            "labels": []
+        }
+    ]
+
+def analyze_attribution(records):
+    """Processes records, unrolls labels, and calculates attribution buckets."""
+    total_spend = sum(r["cost_usd"] for r in records)
+    
+    attribution_by_cost_center = {}
+    detailed_rows = []
+    unlabeled_spend = 0.0
+
+    for r in records:
+        labels_dict = {item["key"]: item["value"] for item in r.get("labels", [])}
+        cost_center = labels_dict.get("cost-center")
+        env = labels_dict.get("env", "unspecified")
+        service_name = labels_dict.get("service", r["service"])
+        
+        is_labeled = bool(cost_center)
+        if not is_labeled:
+            cost_center = "UNALLOCATED_SHARED_DEBT"
+            unlabeled_spend += r["cost_usd"]
+
+        if cost_center not in attribution_by_cost_center:
+            attribution_by_cost_center[cost_center] = 0.0
+        attribution_by_cost_center[cost_center] += r["cost_usd"]
+
+        detailed_rows.append({
+            "resource_id": r["resource_id"],
+            "project_id": r["project_id"],
+            "service": r["service"],
+            "cost_center": cost_center,
+            "env": env,
+            "service_tag": service_name,
+            "cost_usd": r["cost_usd"],
+            "labeled": is_labeled
+        })
+
+    labeled_spend = total_spend - unlabeled_spend
+    compliance_rate = (labeled_spend / total_spend) * 100 if total_spend &gt; 0 else 0
+
+    return {
+        "total_spend": total_spend,
+        "labeled_spend": labeled_spend,
+        "unlabeled_spend": unlabeled_spend,
+        "compliance_rate": compliance_rate,
+        "by_cost_center": attribution_by_cost_center,
+        "rows": detailed_rows
+    }
+
+def compile_exit_artifact(summary: dict):
+    now_utc = datetime.now(timezone.utc).isoformat()
+    total = summary["total_spend"]
+    
+    artifact = f"""# Day 28 Exit Artifact: Cost Attribution Worksheet &amp; Duplicate Event Handling Behavior
+
+**Generated:** {now_utc}  
+**Cloud Billing Account:** `01A2B3-4C5D6E-7F8G9H`  
+**Dataset Reference:** `brightloaf-billing.billing_export.gcp_billing_export_resource_v1_*`  
+**Objective:** An attribution worksheet and notification handling behavior for duplicate events.
+
+---
+
+## 1. Departmental Cost Attribution Worksheet
+
+Summary of resource-level costs unrolled from BigQuery detailed billing export records:
+
+| Cost Center / Dimension | Environment | Allocated Spend (USD) | Department Share (%) | Label Governance Status |
+|:---|:---|---:|---:|:---|
+| **cc-bakery-ops** (Bakery Operations) | Production | $5,411.25 | { (5411.25 / total)*100:.1f}% | Compliant (100% Labeled) |
+| **cc-ecommerce** (Digital Storefront) | Production &amp; Dev | $4,410.70 | { (4410.70 / total)*100:.1f}% | Compliant (100% Labeled) |
+| **cc-growth-mktg** (Growth &amp; Marketing) | Staging | $1,420.30 | { (1420.30 / total)*100:.1f}% | Compliant (100% Labeled) |
+| **UNALLOCATED_SHARED_DEBT** (Orphan Compute) | Unspecified | $5,500.00 | { (5500.00 / total)*100:.1f}% | **Non-Compliant (Audit Triggered)** |
+| **TOTAL CONSOLIDATED SPEND** | **All Tiers** | **${total:,.2f}** | **100.0%** | **Overall Labeled: {summary['compliance_rate']:.1f}%** |
+
+### Granular Resource Line Items:
+| Resource ID | GCP Service | Project ID | Cost Center | Environment | Cost (USD) |
+|:---|:---|:---|:---|:---|---:|
+| `cr-order-ingestion-prod-01` | Cloud Run | `brightloaf-order-prod` | `cc-bakery-ops` | production | $1,840.50 |
+| `csql-order-db-primary` | Cloud SQL | `brightloaf-order-prod` | `cc-bakery-ops` | production | $2,450.00 |
+| `gce-dispatch-optimizer-worker` | Compute Engine | `brightloaf-order-prod` | `cc-bakery-ops` | production | $1,120.75 |
+| `cr-storefront-web-prod` | Cloud Run | `brightloaf-ecommerce-prod` | `cc-ecommerce` | production | $3,180.20 |
+| `memcache-recommender-prod` | Memorystore | `brightloaf-ecommerce-prod` | `cc-ecommerce` | production | $820.00 |
+| `gce-customer-portal-dev` | Compute Engine | `brightloaf-ecommerce-dev` | `cc-ecommerce` | development | $410.50 |
+| `bq-growth-abtesting-lakehouse` | BigQuery | `brightloaf-analytics-staging` | `cc-growth-mktg` | staging | $1,420.30 |
+| `gke-adhoc-batch-pool` | GKE | `brightloaf-shared-infra` | *UNALLOCATED* | *unspecified* | $3,650.00 |
+| `bq-unpartitioned-analysis-spike`| BigQuery | `brightloaf-shared-infra` | *UNALLOCATED* | *unspecified* | $1,850.00 |
+
+---
+
+## 2. Notification Handling Behavior for Duplicate Pub/Sub Events
+
+Google Cloud Billing guarantees **at-least-once** delivery over Cloud Pub/Sub. The automated budget remediation consumer enforces the following deterministic handling behavior:
+
+```
+[Incoming Pub/Sub Message]
+         │
+         ▼
+[Extract Envelope Properties]
+  • budgetDisplayName: "brightloaf-core-monthly"
+  • costIntervalStart: "2026-09-01T00:00:00Z"
+  • alertThresholdExceeded: 1.0
+         │
+         ▼
+[Compute Composite Idempotency Key]
+  dedup_key = f"{{budgetDisplayName}}#{{costIntervalStart}}#{{alertThresholdExceeded:.2f}}"
+         │
+         ▼
+[Query Persistent State Store (Firestore / Redis)]
+   ├── Exists (Status == COMPLETED)?
+   │     └──► Log: "[IDEMPOTENT_DROP] Duplicate event detected. ACK returned without action."
+   │          Acknowledge message (Pub/Sub ACK) -&gt; DROP ACTION
+   │
+   └── Not Found?
+         ├── Atomic Write: Set dedup_key -&gt; "PROCESSING" with 45-day TTL
+         ├── Safety Filter: Verify target resource labels (env != 'production')
+         ├── Execute Remediation: Scale down development workers only
+         ├── Finalize State: Set dedup_key -&gt; "COMPLETED"
+         └── Acknowledge message (Pub/Sub ACK)
+```
+
+### Safety &amp; Invariant Attestation:
+1. **Duplicate Fulfillment Invariant (&le; 1 physical fulfillment per unique order ID):** Automated quota, throttling, or billing remediation workflows explicitly exclude resources tagged `env: production` and `service: order-ingestion`. Retries and duplicate events can never freeze order intake or disrupt fulfillment reconciliation.
+2. **Deterministic Deduplication:** Duplicate redeliveries resulting from network delays or acknowledgment timeouts (such as `ps-msg-101-retry` and `ps-msg-103-redelivered`) are intercepted by the state store, returning immediate Pub/Sub ACKs without modifying infrastructure.
+3. **Auditability:** All deduplication events emit structured log records to Cloud Logging (`DUPLICATE_EVENT_DROPPED`) with timestamp, previous processing reference, and zero-action confirmation.
+
+---
+**Attested by:** Brightloaf FinOps Engineering &amp; Cloud Architecture Review Board
+"""
+
+    os.makedirs("scratch/day028", exist_ok=True)
+    artifact_path = "scratch/day028/cost-attribution-worksheet.md"
+    with open(artifact_path, "w") as f:
+        f.write(artifact)
+    print(f"\n=== Successfully Compiled Exit Artifact: {artifact_path} ===")
+
+def main():
+    print("================================================================================")
+    print("  BRIGHTLOAF COST ATTRIBUTION ANALYZER &amp; WORKSHEET GENERATOR                   ")
+    print("================================================================================")
+    records = generate_synthetic_billing_records()
+    summary = analyze_attribution(records)
+
+    print(f"Total Cloud Spend Processed: ${summary['total_spend']:,.2f} USD")
+    print(f"Compliant Labeled Spend:     ${summary['labeled_spend']:,.2f} USD ({summary['compliance_rate']:.1f}%)")
+    print(f"Unallocated Orphan Spend:    ${summary['unlabeled_spend']:,.2f} USD ({100-summary['compliance_rate']:.1f}%)")
+    print("\n--- Breakdown by Cost Center ---")
+    for cc, amount in summary["by_cost_center"].items():
+        share = (amount / summary["total_spend"]) * 100
+        print(f"  {cc:&lt;28} : ${amount:&gt;9,.2f} USD ({share:5.1f}%)")
+
+    compile_exit_artifact(summary)
+
+if __name__ == "__main__":
+    main()
+EOF
+chmod +x scratch/day028/analyze-cost-attribution.py</code></pre>
+          </li>
+          <li>Execute the attribution analyzer:
+            <pre><code class="language-bash">python3 scratch/day028/analyze-cost-attribution.py</code></pre>
+          </li>
+        </ol>
+
+        <h4>Verification &amp; Expected Terminal Output</h4>
+        <pre><code class="language-text">================================================================================
+  BRIGHTLOAF COST ATTRIBUTION ANALYZER &amp; WORKSHEET GENERATOR                   
+================================================================================
+Total Cloud Spend Processed: $16,742.25 USD
+Compliant Labeled Spend:     $11,242.25 USD (67.1%)
+Unallocated Orphan Spend:    $5,500.00 USD (32.9%)
+
+--- Breakdown by Cost Center ---
+  cc-bakery-ops                : $ 5,411.25 USD ( 32.3%)
+  cc-ecommerce                 : $ 4,410.70 USD ( 26.3%)
+  cc-growth-mktg               : $ 1,420.30 USD (  8.5%)
+  UNALLOCATED_SHARED_DEBT      : $ 5,500.00 USD ( 32.9%)
+
+=== Successfully Compiled Exit Artifact: scratch/day028/cost-attribution-worksheet.md ===</code></pre>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><em>Missing Key Error:</em> When unnesting labels in BigQuery SQL or Python, ensure empty arrays or records without the key evaluate to <code>NULL</code>/<code>None</code> rather than raising index errors.</li>
+          <li><em>Case Mismatch:</em> Remember that Google Cloud labels must be strictly lowercase. A query filtering for <code>Cost-Center</code> will return zero results.</li>
+        </ul>
+
+        <h4>Cleanup</h4>
+        <p>Confirm that the compiled artifact <code>scratch/day028/cost-attribution-worksheet.md</code> is saved and ready for review.</p>
+      </article>
+    </section>

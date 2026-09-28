@@ -1,0 +1,105 @@
+
+<figure class="diagram-figure" id="fig-20-3">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig20-3-title fig20-3-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig20-3-title">Incident 20.1: Premature Execution on Unpolled LRO vs Exponential Backoff Polling</title>
+      <desc id="fig20-3-desc">Incident flow contrasting an automated deployment that failed by executing schema migrations against an unpolled PENDING_CREATE database versus an exponential backoff polling loop verifying done: true.</desc>
+      <defs>
+        <linearGradient id="p20-f3-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p20-f3-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p20-f3-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p20-f3-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 20.3: Incident Flow · Premature Execution on Unpolled Asynchronous LRO</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Pipeline Synchronous Assumption · Connection Refusal Crash · LRO Polling Engine Defense</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: DB Deployment</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">08:30 UTC Launch</text>
+      <text x="42" y="146" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">CI pipeline provisions</text>
+      <text x="42" y="164" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Cloud SQL PostgreSQL</text>
+      <text x="42" y="186" fill="#38bdf8" font-family="monospace" font-size="9">POST /instances</text>
+      <text x="42" y="204" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">Returns HTTP 200 (LRO)</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Premature Migration on Unfinished LRO]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Pipeline treats HTTP 200 as instance ready</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Immediately executes flyway schema migration</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. Cloud SQL is in PENDING_CREATE state!</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: Connection refused on port 5432; migration aborts!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. Container pods boot against half-migrated database</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">Launch halted; order dispatch stalled for 2 business days.</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Exponential Backoff LRO Polling Gate]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Pipeline captures operation handle: operations/op-sql-99</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Polls GET /operations/op-sql-99 with exponential backoff</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Polling asserts: done == True &amp;&amp; error == None</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Migration dispatches only after instance is RUNNABLE</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. UNIQUE(order_id) constraint verified in schema</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">100% deterministic deployment with zero crash downtime.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p20-f3-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p20-f3-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed Pipeline State:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">$ flyway migrate</text>
+        <text x="25" y="90" fill="#fca5a5" font-family="monospace" font-size="9">FATAL: Connection refused</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">LRO state: PENDING_CREATE</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected Pipeline State:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">$ python3 poll_lro.py</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">[POLL] done: false (t=5s)</text>
+        <text x="25" y="206" fill="#86efac" font-family="system-ui, sans-serif" font-size="9">[POLL] done: true (t=45s)</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">[PASS] State: RUNNABLE</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">Migrations executed 100%</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Zero partial transactions</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Single fulfillment invariant held</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p20-f3-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p20-f3-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Never execute downstream mutations on pending LROs. Poll with exponential backoff.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Ensure database schema migrations commit unique order constraints before client traffic is enabled.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 20.3: Incident Flow · Premature Execution on Unpolled Asynchronous LRO.</strong>
+    Contrasts a pipeline crash caused by executing migrations against a pending Cloud SQL instance with an automated exponential backoff polling gate.
+    <br><strong>Supplied facts:</strong> Infrastructure creation APIs return an Operation handle immediately; database instances remain in <code>PENDING_CREATE</code> until background provisioning completes.
+    <br><strong>Architectural inference:</strong> Pipelines that bypass LRO polling trigger immediate connection refused errors, leaving environments in an unrecoverable half-configured state.
+    <br><strong>Expected post-fix behavior:</strong> Automation workflows poll operations using exponential backoff with jitter, asserting <code>done: true</code> and verifying zero errors before executing schema migrations.
+  </figcaption>
+</figure>

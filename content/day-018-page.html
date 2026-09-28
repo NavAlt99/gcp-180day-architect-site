@@ -1,0 +1,1237 @@
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Day 18: Cloud sandbox and cost controls · GCP 180 days</title><link rel="stylesheet" href="../assets/site.css"><script defer src="../assets/site.js"></script><style>
+    .day-badge{display:inline-block;border:1px solid #f43f5e;border-radius:999px;color:#f43f5e;padding:4px 10px;font-size:12px;font-weight:800;white-space:nowrap}
+    .topic-card h4{color:#f43f5e;margin:22px 0 7px}
+    .topic-card table{width:100%;border-collapse:collapse;margin:16px 0;display:block;overflow-x:auto}
+    .topic-card caption{text-align:left;color:var(--rose,#f43f5e);font-weight:800;margin-bottom:8px}
+    .topic-card th,.topic-card td{border:1px solid #3b1d38;padding:9px 12px;text-align:left;vertical-align:top;min-width:150px}
+    .topic-card th{background:#090d16;color:#38bdf8}
+    .topic-card code{overflow-wrap:anywhere}
+    .topic-card pre code{overflow-wrap:normal}
+    .topic-card>span[id]{display:block;scroll-margin-top:140px}
+    .step{border-left:2px solid #3b1d38;padding-left:17px;margin:18px 0}
+    .step h4{margin-top:0}
+    .further{border-left:3px solid #38bdf8;padding:12px 16px;background:rgba(56,189,248,.06);margin-top:20px}
+    .further h4{margin:0 0 7px}
+    .further ul{margin:6px 0}
+    .meta{color:#a9b7cb;font-size:13px}
+    .topic-card p{max-width:82ch}
+    .diagram-figure{margin:20px 0;padding:14px;border:1px solid #3b1d38;border-radius:12px;background:#090d16;overflow-x:auto}
+    .diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}
+    .diagram-figure figcaption{color:#a9b7cb;font-size:12px;margin-top:10px}
+    .diagram-scroll-hint{display:none;color:#a9b7cb;font-size:11px}
+    @media(max-width:720px){.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+  </style></head><body><a class="skip" href="#main">Skip to content</a><header class="site-nav"><nav class="nav-inner" aria-label="Site navigation"><a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a><a href="../index.html">Day index</a><a href="../glossary.html">Glossary</a><a href="../sources.html">Sources</a><a href="../artifacts.html">Artifacts</a><a href="day-017.html" aria-label="Previous day">← Day 17</a><a href="day-019.html" aria-label="Next day">Day 19 →</a><label class="jump-label" for="day-jump">Jump to day</label><select id="day-jump" aria-label="Jump to day"><option value="">Choose a day…</option><optgroup label="Foundations"><option value="day-001.html">Day 1: Local workspace and learning baseline</option><option value="day-002.html">Day 2: IP addressing and packet paths</option><option value="day-003.html">Day 3: DNS, sockets and transport</option><option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option><option value="day-005.html">Day 5: VPN, load balancers and firewalls</option><option value="day-006.html">Day 6: Shell, processes and services</option><option value="day-007.html">Day 7: SSH, scripts and process inspection</option><option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option><option value="day-009.html">Day 9: VM and container isolation</option><option value="day-010.html">Day 10: Images, filesystems and orchestration</option><option value="day-011.html">Day 11: Cloud service models and responsibility</option><option value="day-012.html">Day 12: Regions, scaling and economics</option><option value="day-013.html">Day 13: State, availability and recovery vocabulary</option><option value="day-014.html">Day 14: Git, APIs and JSON</option><option value="day-015.html">Day 15: Small application and architecture styles</option><option value="day-016.html">Day 16: SQL foundations and business outcomes</option><option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option></optgroup><optgroup label="Cloud environment and identity"><option value="day-018.html" selected>Day 18: Cloud sandbox and cost controls</option><option value="day-019.html">Day 19: CLI configuration and identity checks</option><option value="day-020.html">Day 20: APIs, client libraries and emulators</option><option value="day-021.html">Day 21: Resource hierarchy and ownership</option><option value="day-022.html">Day 22: Inheritance, labels and tags</option><option value="day-023.html">Day 23: Organization policies and lifecycle</option><option value="day-024.html">Day 24: Principals and workforce identity</option><option value="day-025.html">Day 25: Roles and authorization decisions</option><option value="day-026.html">Day 26: Credentials, tokens and impersonation</option><option value="day-027.html">Day 27: Billing roles and budget ownership</option><option value="day-028.html">Day 28: Cost attribution and notifications</option><option value="day-029.html">Day 29: Cost exports, quota and capacity</option><option value="day-030.html">Day 30: Region and resource-scope decisions</option><option value="day-031.html">Day 31: Network tiers and delivery paths</option><option value="day-032.html">Day 32: Support, inventory and learning tracker</option><option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option><option value="day-034.html">Day 34: First controlled cloud resource operation</option><option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option></optgroup><optgroup label="Core services and integrated practice"><option value="day-036.html">Day 36: VM sizing and image choices</option><option value="day-037.html">Day 37: Disks, metadata and persistence</option><option value="day-038.html">Day 38: Templates, MIGs and scaling</option><option value="day-039.html">Day 39: Autohealing and deployment changes</option><option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option><option value="day-041.html">Day 41: VM operations and resource diagnosis</option><option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option><option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option><option value="day-044.html">Day 44: Service networking and persistent volumes</option><option value="day-045.html">Day 45: Probes, secrets and workload failures</option><option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option><option value="day-047.html">Day 47: Cloud Run and event-driven functions</option><option value="day-048.html">Day 48: Workflows and runtime selection</option><option value="day-049.html">Day 49: VPC address and route design</option><option value="day-050.html">Day 50: Firewall policy and private API access</option><option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option><option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option><option value="day-053.html">Day 53: Load-balancer architecture</option><option value="day-054.html">Day 54: Health checks, certificates and draining</option><option value="day-055.html">Day 55: CDN, WAF and traffic management</option><option value="day-056.html">Day 56: Hybrid topology and failure domains</option><option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option><option value="day-058.html">Day 58: Object storage and local durability</option><option value="day-059.html">Day 59: Transfers, block storage and restore</option><option value="day-060.html">Day 60: File systems and backup design</option><option value="day-061.html">Day 61: Relational databases and transactions</option><option value="day-062.html">Day 62: Distributed and nonrelational database choices</option><option value="day-063.html">Day 63: Caching, CDC and database selection</option><option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option><option value="day-065.html">Day 65: Integrate one order-service path</option><option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option><option value="day-067.html">Day 67: Gate 3 — Operate the core application</option></optgroup><optgroup label="Requirements, migration and architecture"><option value="day-068.html">Day 68: Requirements from observed behavior</option><option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option><option value="day-070.html">Day 70: Well-Architected review lenses</option><option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option><option value="day-072.html">Day 72: Application architecture patterns</option><option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option><option value="day-074.html">Day 74: Regional and tenant boundaries</option><option value="day-075.html">Day 75: Migration assessment and VMware fit</option><option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option><option value="day-077.html">Day 77: Migration waves and acceptance</option><option value="day-078.html">Day 78: Decision matrices grounded in experiments</option><option value="day-079.html">Day 79: ADRs, TCO and risk registers</option><option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option><option value="day-081.html">Day 81: First architecture defense</option><option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option></optgroup><optgroup label="Reliability and security"><option value="day-083.html">Day 83: Availability math and dependency risk</option><option value="day-084.html">Day 84: Failure domains and graceful degradation</option><option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option><option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option><option value="day-087.html">Day 87: Incidents, toil and capacity</option><option value="day-088.html">Day 88: Availability across infrastructure layers</option><option value="day-089.html">Day 89: Messaging, DNS and application health</option><option value="day-090.html">Day 90: Recovery targets and patterns</option><option value="day-091.html">Day 91: Backups and replication correctness</option><option value="day-092.html">Day 92: Failover and failback planning</option><option value="day-093.html">Day 93: Metrics, alerting and burn rates</option><option value="day-094.html">Day 94: Logs, traces and profiling</option><option value="day-095.html">Day 95: Central observability and audit evidence</option><option value="day-096.html">Day 96: Bounded failure experiment design</option><option value="day-097.html">Day 97: Run a recovery and overload experiment</option><option value="day-098.html">Day 98: Restore and failover acceptance</option><option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option><option value="day-100.html">Day 100: Workload federation and short-lived access</option><option value="day-101.html">Day 101: Workforce federation and remote access</option><option value="day-102.html">Day 102: Privileged access and break-glass</option><option value="day-103.html">Day 103: Defense in depth and network policy</option><option value="day-104.html">Day 104: Data perimeters and egress controls</option><option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option><option value="day-106.html">Day 106: Data classification and key lifecycle</option><option value="day-107.html">Day 107: Secrets and de-identification</option><option value="day-108.html">Day 108: Residency, confidentiality and data access</option><option value="day-109.html">Day 109: Compliance evidence and responsibility</option><option value="day-110.html">Day 110: Policy as code and audit retention</option><option value="day-111.html">Day 111: Regulated workload design</option><option value="day-112.html">Day 112: Threat detection and triage</option><option value="day-113.html">Day 113: Incident response and threat modelling</option><option value="day-114.html">Day 114: Artifact integrity and admission</option><option value="day-115.html">Day 115: Container and pipeline hardening</option><option value="day-116.html">Day 116: Integrate private access and key controls</option><option value="day-117.html">Day 117: Security handover and evidence repair</option><option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option></optgroup><optgroup label="Performance, delivery and operations"><option value="day-119.html">Day 119: Cost baseline and commitments</option><option value="day-120.html">Day 120: Storage, network and database costs</option><option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option><option value="day-122.html">Day 122: Unit economics and sensitivity</option><option value="day-123.html">Day 123: Caching correctness under load</option><option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option><option value="day-125.html">Day 125: Profiling and capacity evidence</option><option value="day-126.html">Day 126: Terraform baseline and state boundaries</option><option value="day-127.html">Day 127: Terraform testing, drift and recovery</option><option value="day-128.html">Day 128: Build and deployment pipeline</option><option value="day-129.html">Day 129: Release rollback and delivery measures</option><option value="day-130.html">Day 130: Service catalog and ownership</option><option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option><option value="day-132.html">Day 132: Customer success and platform outcomes</option><option value="day-133.html">Day 133: Operations integration and remediation</option></optgroup><optgroup label="Data, AI and distributed correctness"><option value="day-134.html">Day 134: Warehouse foundations and query costs</option><option value="day-135.html">Day 135: Warehouse security and reporting</option><option value="day-136.html">Day 136: Batch and streaming processing choices</option><option value="day-137.html">Day 137: Streaming correctness and CDC</option><option value="day-138.html">Day 138: Lakehouse and open table design</option><option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option><option value="day-140.html">Day 140: ML lifecycle and model selection</option><option value="day-141.html">Day 141: Build a small grounded-answer flow</option><option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option><option value="day-143.html">Day 143: AI security and evaluation</option><option value="day-144.html">Day 144: AI serving and infrastructure choices</option><option value="day-145.html">Day 145: Distributed state and regional correctness</option></optgroup><optgroup label="Discovery, cases and exam preparation"><option value="day-146.html">Day 146: Case analysis and discovery method</option><option value="day-147.html">Day 147: Extract facts and numeric requirements</option><option value="day-148.html">Day 148: Map requirements and conflicts</option><option value="day-149.html">Day 149: Discovery: business, load and recovery</option><option value="day-150.html">Day 150: Discovery: data, regulation and skills</option><option value="day-151.html">Day 151: Discovery: budget, risks and success</option><option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option><option value="day-153.html">Day 153: EHR Healthcare — defend the design</option><option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option><option value="day-155.html">Day 155: Altostrat Media — architecture defense</option><option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option><option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option><option value="day-158.html">Day 158: KnightMotives — modernization requirements</option><option value="day-159.html">Day 159: KnightMotives — architecture defense</option><option value="day-160.html">Day 160: Case synthesis and feedback</option><option value="day-161.html">Day 161: Changed-constraint design exercise</option><option value="day-162.html">Day 162: Exam domain mapping and sample questions</option><option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option><option value="day-164.html">Day 164: Readiness plan and remaining repairs</option></optgroup><optgroup label="Multi-team architecture and synthesis"><option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option><option value="day-166.html">Day 166: Production identity across teams</option><option value="day-167.html">Day 167: API contracts and compatibility</option><option value="day-168.html">Day 168: Sustainability and assisted operations</option><option value="day-169.html">Day 169: Capacity allocation and overload governance</option><option value="day-170.html">Day 170: Compute and database decision synthesis</option><option value="day-171.html">Day 171: Network decision synthesis</option><option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option><option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option></optgroup><optgroup label="Final gate and capstone defenses"><option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option><option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option><option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option><option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option><option value="day-178.html">Day 178: Capstone 4 — Migration defense</option><option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option></optgroup><optgroup label="Final review and rest"><option value="day-180.html">Day 180: Final review, logistics and rest</option></optgroup></select><button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button></nav></header><div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div><main id="main" class="container day" data-day="18" data-prev="day-017.html" data-next="day-019.html" data-index="../index.html">
+    <div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-cloud-environment-and-identity">Cloud environment and identity</a> / Day 18 of 180</div>
+    <section class="hero" aria-labelledby="day-title">
+      <div class="pills"><span class="pill">DAY 18</span><span class="pill">Cloud Environment</span><span class="pill">2–3 hours</span><span class="pill">Local Exercise</span><span class="pill">Topics 007</span></div>
+      <h1 id="day-title">Day 18 — Cloud sandbox and cost controls</h1>
+      <p class="lead"><strong>Outcome:</strong> Select a training sandbox or disposable project, inspect billing access and configure budget notifications if authorized.</p>
+      <p><strong>Entry prerequisites:</strong> <a href="day-017.html">Day 17</a>; bring their exit artifacts.</p>
+      <div class="callout success"><strong>Exit artifact</strong><p>A redacted project/billing preflight and cleanup plan; explain why an alert is not a hard spend cap.</p></div>
+      <p class="meta">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+    </section>
+    <aside class="toc" aria-label="On this page">
+      <strong>On this page</strong>
+      <a href="#part-1">1 · Topics of the day</a>
+      <a href="#part-2">2 · Technical discussion</a>
+      <a href="#part-3">3 · Real-world problems</a>
+      <a href="#part-4">4 · Step-by-step labs</a>
+      <div class="toc-topic"><span>Google Cloud accounts and the Free Trial</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+      <div class="toc-topic"><span>Google Cloud Free Tier and monthly limits</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+      <div class="toc-topic"><span>Google Cloud Console navigation and project selection</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+    </aside>
+
+    <section class="part" id="part-1" aria-labelledby="part-1-title">
+      <h2 id="part-1-title">1 · Concepts and problem previews</h2>
+
+      <article class="topic-card" id="topic-01-overview">
+        <h3>Google Cloud accounts and the Free Trial</h3>
+        <p><strong>What it is.</strong> A Google Cloud Account binds a corporate or personal Google identity to cloud resources through an associated Cloud Billing Account. Google Cloud offers a Free Trial providing $300 in promotional credit valid for 90 days across Compute Engine, Cloud Storage, BigQuery, and managed services. Claiming the Free Trial requires a verified credit card or bank account for identity authentication, but Google Cloud guarantees that accounts are never automatically billed upon trial expiration unless an administrator explicitly upgrades to a paid account. Cloud Billing Accounts exist as standalone administrative objects linked across one or more projects to fund operational workloads.</p>
+        <p><strong>Why today.</strong> Day 18 marks the entrance into Block 2 (Cloud environment and identity, Days 18–35). Before provisioning cloud infrastructure, an architect must establish secure billing boundaries, understand credit consumption lifecycles, and implement governance controls to prevent billing accidents in sandbox environments.</p>
+        <p><strong>System location.</strong> Cloud Billing Accounts sit at the administrative root of the Google Cloud commercial relationship, connected to projects via the Cloud Resource Manager API.</p>
+        <p><strong>Problem preview.</strong> An expired corporate payment method on an unmonitored billing account triggers automated suspension across training sandbox projects, instantly terminating running compute instances. Without redundant payment routing and billing preflight verification, sudden cloud account lockouts disrupt engineering onboarding and delay critical project timelines.</p>
+      </article>
+
+      <article class="topic-card" id="topic-02-overview">
+        <h3>Google Cloud Free Tier and monthly limits</h3>
+        <p><strong>What it is.</strong> Distinct from the 90-day Free Trial credit, the Google Cloud Free Tier provides non-expiring monthly usage allowances ("Always Free") across core infrastructure services. Eligible resources include one <code>e2-micro</code> virtual machine instance per month in qualifying US regions (us-central1, us-east1, us-west1) with 30 GB standard persistent disk, 5 GB-months of regional Cloud Storage, 2 million Cloud Run requests, and 1 TB of monthly BigQuery analysis. Crucially, a budget alert is merely a notification mechanism—it does not programmatically halt running compute instances or cap billable API invocations.</p>
+        <p><strong>Why today.</strong> Architects must distinguish between promotional credits, Always Free limits, and billable compute usage. Assuming that budget notifications enforce hard spending limits is among the most frequent and costly operational misconceptions made by cloud practitioners.</p>
+        <p><strong>System location.</strong> The Google Cloud billing meter and Cloud Monitoring quota subsystem continuously evaluate API consumption against published service limits.</p>
+        <p><strong>Problem preview.</strong> A training pipeline exceeds its monthly Always Free Compute Engine quota by running an oversized VM in a non-qualifying region, incurring unexpected daily billing charges. Misinterpreting passive budget alert emails as automated hard spend caps leads to budget exhaustion and unexpected corporate credit card overages.</p>
+      </article>
+
+      <article class="topic-card" id="topic-03-overview">
+        <h3>Google Cloud Console navigation and project selection</h3>
+        <p><strong>What it is.</strong> The Google Cloud Console provides a centralized web interface and integrated Cloud Shell terminal for administering cloud resources. Navigation is structured around the resource hierarchy (Organization &rarr; Folders &rarr; Projects). Projects serve as the foundational isolation boundary, characterized by three distinct identifiers: (1) a human-friendly, mutable Project Name; (2) an immutable, globally unique Project ID; and (3) an immutable, system-assigned numeric Project Number. Navigating the console requires pinned service shortcuts, search filters, and active project context management.</p>
+        <p><strong>Why today.</strong> All cloud operations—whether executed via web console, <code>gcloud</code> CLI, or Terraform—operate within an active project context. Conflating mutable project names with immutable project IDs or operating in the wrong ambient project context creates critical security and operational risks.</p>
+        <p><strong>System location.</strong> The Google Cloud Console, Cloud Resource Manager, and Cloud Shell execution environment mediating operator access to cloud APIs.</p>
+        <p><strong>Problem preview.</strong> An engineer executing a resource cleanup command from Cloud Shell targets the production project instead of the training sandbox due to ambient project context drift. Conflating project display names with immutable project IDs risks accidental deletion of production microservice endpoints, creating immediate customer checkout outages.</p>
+      </article>
+    </section>
+
+    <section class="part" id="part-2" aria-labelledby="part-2-title">
+      <h2 id="part-2-title">2 · Architecture, control flow, boundaries, and limits</h2>
+
+      <article class="topic-card" id="topic-01-technical">
+        <h3>Google Cloud account structure, billing accounts, and project linkages</h3>
+        <p><strong>Scope, control flow, and ownership.</strong> Managing Google Cloud infrastructure requires a clear separation between identity, resource management, and commercial billing:</p>
+        <ul>
+          <li><strong>Identity Layer:</strong> User accounts (Google Accounts, Google Workspace, or Cloud Identity) authenticate through OAuth 2.0 to access Google Cloud APIs.</li>
+          <li><strong>Resource Hierarchy:</strong> Projects organize compute, storage, and networking resources into isolated security and administrative domains. A project cannot exist without a parent organization or folder in enterprise deployments.</li>
+          <li><strong>Cloud Billing Account:</strong> An administrative construct that defines how Google is paid (credit card, bank account, or invoiced corporate billing). A single billing account can fund multiple projects, but each project can be linked to at most one billing account at any given time.</li>
+        </ul>
+
+        <p><strong>Free Trial versus Paid Account transitions.</strong> The $300 Free Trial credit applies to all billable Google Cloud services over 90 days. While the trial is active, accounts are constrained by lower default quotas (e.g. GPU allocations and Windows Server licenses are restricted to prevent fraud). When promotional credits expire or 90 days elapse, all active workloads are suspended unless an administrator explicitly upgrades to a paid account. Upgrading activates standard service quotas while retaining access to the ongoing Always Free tier allowances.</p>
+
+        <table>
+          <caption>Table 18.1: Google Cloud Commercial Models, Credit Lifecycles, and Operational Boundaries</caption>
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Allowance / Credit</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Expiration Behavior</th>
+              <th scope="col">Architectural Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Free Trial</strong></td>
+              <td>$300 USD promotional credit</td>
+              <td>90 days from signup</td>
+              <td>Workloads suspended; zero automatic billing</td>
+              <td>Proof-of-concept testing and platform evaluation</td>
+            </tr>
+            <tr>
+              <td><strong>Always Free Tier</strong></td>
+              <td>Fixed monthly quotas (e.g. 1 e2-micro, 5 GB storage)</td>
+              <td>Perpetual (renews monthly)</td>
+              <td>Usage beyond quota billed at standard rates</td>
+              <td>Low-volume utility services, learning sandboxes, telemetry</td>
+            </tr>
+            <tr>
+              <td><strong>Paid Account</strong></td>
+              <td>Standard pay-as-you-go consumption</td>
+              <td>Indefinite</td>
+              <td>Monthly automatic debit or 30-day net invoicing</td>
+              <td>Authoritative production and enterprise workloads</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day18-hier-title day18-hier-desc" viewBox="0 0 940 370">
+<title id="day18-hier-title">Google Cloud Resource Hierarchy, Billing Account Association, and Project Boundaries</title>
+<desc id="day18-hier-desc">Architectural diagram illustrating the Google Cloud resource hierarchy from Organization through Folders to Projects, demonstrating project identifier uniqueness, billing account linking, and IAM policy inheritance.</desc>
+<defs>
+<marker id="day18-hier-arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#38bdf8"/></marker>
+<marker id="day18-bill-arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#22c55e"/></marker>
+</defs>
+
+<!-- Organization Node -->
+<g fill="#121526" stroke="#38bdf8" stroke-width="1.5">
+<rect x="330" y="25" width="280" height="60" rx="8"/>
+</g>
+<g fill="#f8fafc" font-size="11" font-weight="700" text-anchor="middle">
+<text x="470" y="47">ORGANIZATION (Root Node)</text>
+<text x="470" y="62" fill="#38bdf8" font-size="9" font-weight="400">brightloaf.com · Domain Identity Root</text>
+<text x="470" y="74" fill="#a9b7cb" font-size="8">Inherits Organization Policies &amp; Central IAM</text>
+</g>
+
+<!-- Connect Org to Folders -->
+<path d="M410,85 L260,115" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#day18-hier-arrow)"/>
+<path d="M530,85 L680,115" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#day18-hier-arrow)"/>
+
+<!-- Folders -->
+<g fill="#121526" stroke="#475569" stroke-width="1.5">
+<rect x="120" y="115" width="280" height="55" rx="6"/>
+<rect x="540" y="115" width="280" height="55" rx="6"/>
+</g>
+<g fill="#f8fafc" font-size="10" font-weight="700">
+<text x="135" y="135">FOLDER: Production Environment</text>
+<text x="135" y="150" fill="#a9b7cb" font-size="8" font-weight="400">ID: folders/7012938102 · Department Policy Guard</text>
+
+<text x="555" y="135">FOLDER: Training &amp; Sandbox</text>
+<text x="555" y="150" fill="#a9b7cb" font-size="8" font-weight="400">ID: folders/9284019283 · Ephemeral Study Scope</text>
+</g>
+
+<!-- Connect Folders to Projects -->
+<path d="M260,170 L260,200" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#day18-hier-arrow)"/>
+<path d="M680,170 L680,200" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#day18-hier-arrow)"/>
+
+<!-- Projects (Core Focus) -->
+<g fill="#121526" stroke="#f43f5e" stroke-width="1.5">
+<rect x="70" y="200" width="380" height="145" rx="8"/>
+</g>
+<g fill="#f8fafc" font-size="10" font-weight="700">
+<text x="85" y="222" fill="#f43f5e">PROJECT: brightloaf-prod-us</text>
+<text x="85" y="238" fill="#e2e8f0" font-size="9">Project Name: "Brightloaf Production Main"</text>
+<text x="85" y="252" fill="#a9b7cb" font-size="8">Project ID (Globally Unique, Immutable): brightloaf-prod-us</text>
+<text x="85" y="265" fill="#a9b7cb" font-size="8">Project Number (System Assigned): 104928374619</text>
+<rect x="85" y="275" width="350" height="55" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="95" y="292" fill="#22c55e" font-size="8">Linked Billing Account: 01A2B3-4C5D6E-7F8G9H (Active)</text>
+<text x="95" y="306" fill="#e2e8f0" font-size="8">Resources: Cloud Run (Order API), Cloud SQL, Pub/Sub</text>
+<text x="95" y="320" fill="#a9b7cb" font-size="8">Enforces duplicate fulfillment invariant (&lt;= 1 physical shipment)</text>
+</g>
+
+<g fill="#121526" stroke="#22c55e" stroke-width="1.5">
+<rect x="490" y="200" width="380" height="145" rx="8"/>
+</g>
+<g fill="#f8fafc" font-size="10" font-weight="700">
+<text x="505" y="222" fill="#22c55e">PROJECT: brightloaf-sandbox-18</text>
+<text x="505" y="238" fill="#e2e8f0" font-size="9">Project Name: "Naveen Study Sandbox Day 18"</text>
+<text x="505" y="252" fill="#a9b7cb" font-size="8">Project ID (Globally Unique, Immutable): brightloaf-sandbox-18</text>
+<text x="505" y="265" fill="#a9b7cb" font-size="8">Project Number (System Assigned): 859201948271</text>
+<rect x="505" y="275" width="350" height="55" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="515" y="292" fill="#22c55e" font-size="8">Linked Billing Account: Free Trial / Cloud Billing Credit</text>
+<text x="515" y="306" fill="#e2e8f0" font-size="8">Resources: e2-micro instance (Always Free), Cloud Shell</text>
+<text x="515" y="320" fill="#f59e0b" font-size="8">Budget Notification: $50 threshold (Alert != Hard Cap)</text>
+</g>
+
+<!-- Central Billing Account Box -->
+<g fill="#090d16" stroke="#22c55e" stroke-width="1.5">
+<rect x="360" y="145" width="220" height="42" rx="6"/>
+</g>
+<text x="470" y="162" fill="#22c55e" font-size="9" font-weight="700" text-anchor="middle">CLOUD BILLING ACCOUNT</text>
+<text x="470" y="176" fill="#a9b7cb" font-size="8" text-anchor="middle">01A2B3-4C5D6E-7F8G9H (Corporate)</text>
+<path d="M420,187 L380,200" stroke="#22c55e" stroke-width="1.5" marker-end="url(#day18-bill-arrow)"/>
+<path d="M520,187 L560,200" stroke="#22c55e" stroke-width="1.5" marker-end="url(#day18-bill-arrow)"/>
+</svg>
+<figcaption>Figure 18.1: Google Cloud resource hierarchy and billing association. The Organization node anchors enterprise domain policies, decomposing downward into Folders (Production vs Training) and individual Projects. Each Project possesses an immutable, globally unique Project ID, a system-generated Project Number, and a mutable display name. A single Cloud Billing Account connects across multiple projects to fund resource consumption, while project boundaries establish complete IAM, networking, and quota isolation.</figcaption>
+</figure>
+
+        <div class="further">
+          <h4>Further study</h4>
+          <ul>
+            <li><a href="https://cloud.google.com/free">Google Cloud Free Program Overview</a> — official eligibility criteria, promotional credit terms, and Always Free service boundaries.</li>
+            <li><a href="https://docs.cloud.google.com/billing/docs/how-to/manage-billing-account">Cloud Billing Documentation: Manage Billing Accounts</a> — procedures for linking projects, setting up payment methods, and managing billing roles.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-technical">
+        <h3>Always Free tier boundaries and the budget alert misconception</h3>
+        <p><strong>Always Free service boundaries and regional rules.</strong> Google Cloud provides recurring monthly usage allowances across key products without charging the linked billing account, provided usage strictly complies with published regional and SKU parameters:</p>
+        <ul>
+          <li><strong>Compute Engine:</strong> 1 non-preemptible <code>e2-micro</code> virtual machine instance per month (approximately 744 hours), limited to <code>us-central1</code> (Iowa), <code>us-east1</code> (South Carolina), or <code>us-west1</code> (Oregon). Includes 30 GB-months of standard persistent disk storage and 1 GB per month of outbound internet egress. Provisioning an <code>e2-micro</code> in Europe or Asia immediately incurs standard compute billing.</li>
+          <li><strong>Cloud Storage:</strong> 5 GB-months of Standard Storage, restricted to regional buckets in <code>us-central1</code>, <code>us-east1</code>, or <code>us-west1</code>. Includes 5,000 Class A (mutation) operations and 50,000 Class B (read) operations per month. Dual-region or multi-region buckets do not qualify.</li>
+          <li><strong>Cloud Run &amp; Functions:</strong> 2 million requests per month, 360,000 GB-seconds of memory, and 180,000 vCPU-seconds. Idle services scaled to zero instances incur zero charges.</li>
+          <li><strong>BigQuery:</strong> 1 TB of query data scanning per month and 10 GB of active storage.</li>
+          <li><strong>Cloud Logging:</strong> 50 GB of log ingestion per project per month free of charge.</li>
+        </ul>
+
+        <p><strong>The Budget Alert Misconception: Notifications versus Hard Spend Caps.</strong> One of the most critical operational lessons for a cloud architect is understanding that <strong>a Cloud Billing budget alert is an advisory notification, not a programmatic spend cap</strong>:</p>
+        <ul>
+          <li>When actual or forecasted spending crosses configured thresholds (e.g. 50%, 90%, 100% of $50), Google Cloud dispatches notification emails to billing administrators and optionally publishes a JSON event to a Google Cloud Pub/Sub topic.</li>
+          <li><strong>Crucially, Google Cloud will NOT automatically shut down running virtual machines, delete storage buckets, or throttle API traffic when a budget alert fires.</strong> Resources continue running, and financial charges continue to accrue uninhibited until an operator intervenes.</li>
+          <li>To enforce an absolute, programmatic spend cap, an architect must build an automated kill-switch: configure the budget to publish to a Pub/Sub topic, subscribe a serverless Cloud Function, and write code that invokes the Cloud Billing API (<code>projects.billingInfo.update</code>) to programmatically unlink the billing account or stop Compute Engine instances.</li>
+        </ul>
+
+        <table>
+          <caption>Table 18.2: Always Free Resource Limits, Qualifying Regional Constraints, and Overuse Impacts</caption>
+          <thead>
+            <tr>
+              <th scope="col">Service</th>
+              <th scope="col">Free Monthly Allowance</th>
+              <th scope="col">Qualifying Geographic Region</th>
+              <th scope="col">Overuse Consequence</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Compute Engine</strong></td>
+              <td>1 e2-micro VM, 30 GB disk, 1 GB egress</td>
+              <td>us-central1, us-east1, us-west1 only</td>
+              <td>Billed at ~$0.0084/hr per additional VM hour</td>
+            </tr>
+            <tr>
+              <td><strong>Cloud Storage</strong></td>
+              <td>5 GB-months Standard, 5k Class A, 50k Class B</td>
+              <td>us-central1, us-east1, us-west1 (Regional only)</td>
+              <td>Billed at ~$0.020/GB/month for excess storage</td>
+            </tr>
+            <tr>
+              <td><strong>Cloud Run</strong></td>
+              <td>2M requests, 360k GB-sec, 180k vCPU-sec</td>
+              <td>All global Cloud Run regions</td>
+              <td>Billed at standard execution tier rates</td>
+            </tr>
+            <tr>
+              <td><strong>BigQuery</strong></td>
+              <td>1 TB query analysis, 10 GB storage</td>
+              <td>Global BigQuery multi-regions</td>
+              <td>Billed at $6.25 per TB scanned beyond 1 TB</td>
+            </tr>
+            <tr>
+              <td><strong>Budget Alert</strong></td>
+              <td>Unlimited notification alerts</td>
+              <td>Global billing scope</td>
+              <td><strong>Zero workload enforcement</strong>; spend continues</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day18-cost-title day18-cost-desc" viewBox="0 0 940 330">
+<title id="day18-cost-title">Free Tier Boundaries, Consumption Tracking, and Budget Alert Mechanisms</title>
+<desc id="day18-cost-desc">Architecture diagram contrasting the Always Free tier resource boundaries with the Cloud Billing Budget Alert notification pipeline, demonstrating why budget alerts notify operators but do not stop billable resources.</desc>
+<defs>
+<marker id="day18-alert-arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#f59e0b"/></marker>
+<marker id="day18-stop-arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#22c55e"/></marker>
+</defs>
+
+<!-- Left Panel: Always Free Tier Limits -->
+<g fill="#121526" stroke="#475569" stroke-width="1.5">
+<rect x="20" y="25" width="440" height="285" rx="8"/>
+</g>
+<g fill="#f8fafc" font-size="11" font-weight="700">
+<text x="35" y="47">GOOGLE CLOUD ALWAYS FREE BOUNDARIES</text>
+<text x="35" y="63" fill="#a9b7cb" font-size="9" font-weight="400">Monthly allowances that never expire (subject to regional rules)</text>
+</g>
+<g font-size="9">
+<!-- e2-micro -->
+<rect x="35" y="78" width="410" height="48" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="45" y="95" fill="#38bdf8" font-weight="700">Compute Engine (1 e2-micro VM)</text>
+<text x="45" y="108" fill="#e2e8f0">• 1 F1-micro/e2-micro instance/month in us-central1, us-east1, us-west1</text>
+<text x="45" y="120" fill="#a9b7cb">• 30 GB standard persistent disk · 1 GB egress/month to North America</text>
+
+<!-- Cloud Storage -->
+<rect x="35" y="134" width="410" height="48" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="45" y="151" fill="#38bdf8" font-weight="700">Cloud Storage (5 GB-Months Standard)</text>
+<text x="45" y="164" fill="#e2e8f0">• 5 GB Standard Storage in US regions (us-central1, us-east1, us-west1)</text>
+<text x="45" y="176" fill="#a9b7cb">• 5,000 Class A operations (PUT/POST) · 50,000 Class B operations (GET)</text>
+
+<!-- Cloud Run & Functions -->
+<rect x="35" y="190" width="410" height="48" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="45" y="207" fill="#38bdf8" font-weight="700">Serverless (Cloud Run &amp; Functions)</text>
+<text x="45" y="220" fill="#e2e8f0">• 2,000,000 requests/month · 360,000 GB-seconds memory allocation</text>
+<text x="45" y="232" fill="#a9b7cb">• 180,000 vCPU-seconds · Always Free egress within same region</text>
+
+<!-- BigQuery -->
+<rect x="35" y="246" width="410" height="52" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="45" y="263" fill="#38bdf8" font-weight="700">BigQuery &amp; Observability</text>
+<text x="45" y="276" fill="#e2e8f0">• 1 TB querying/month · 10 GB active storage</text>
+<text x="45" y="289" fill="#a9b7cb">• 50 GB Cloud Logging ingestion/month free of charge</text>
+</g>
+
+<!-- Right Panel: Budget Alert vs Hard Cap -->
+<g fill="#121526" stroke="#475569" stroke-width="1.5">
+<rect x="480" y="25" width="440" height="285" rx="8"/>
+</g>
+<g fill="#f8fafc" font-size="11" font-weight="700">
+<text x="495" y="47">BUDGET ALERTS VS PROGRAMMATIC KILL-SWITCH</text>
+<text x="495" y="63" fill="#a9b7cb" font-size="9" font-weight="400">Budget alerts notify people; they do not halt running resources</text>
+</g>
+<g font-size="9">
+<!-- Alert Flow (Passive) -->
+<rect x="495" y="80" width="410" height="85" rx="4" fill="#1e293b" stroke="#f59e0b"/>
+<text x="505" y="98" fill="#f59e0b" font-weight="700">STANDARD BUDGET ALERT (NOTIFICATION ONLY)</text>
+<text x="505" y="112" fill="#e2e8f0">Target: $50 budget · Thresholds: 50%, 90%, 100%</text>
+<text x="505" y="126" fill="#a9b7cb">Triggers: Email to Billing Admins &amp; Cloud Monitoring Alert</text>
+<text x="505" y="142" fill="#f43f5e" font-weight="700">CRITICAL FACT: RESOURCES CONTINUE RUNNING!</text>
+<text x="505" y="156" fill="#fce7f3">Billing charges accrue continuously until manual human intervention.</text>
+
+<!-- Programmatic Cap (Active) -->
+<rect x="495" y="180" width="410" height="118" rx="4" fill="#1e293b" stroke="#22c55e"/>
+<text x="505" y="198" fill="#22c55e" font-weight="700">PROGRAMMATIC HARD CAP ARCHITECTURE (OPTIONAL ADVANCED)</text>
+<text x="505" y="214" fill="#e2e8f0">1. Budget publishes to Google Cloud Pub/Sub topic.</text>
+<text x="505" y="228" fill="#e2e8f0">2. Cloud Function / Cloud Run subscriber receives budget event.</text>
+<text x="505" y="242" fill="#e2e8f0">3. When spend &gt; 100%, script calls Cloud Billing API:</text>
+<text x="505" y="256" fill="#38bdf8">   projects.billingInfo.update(billingAccountName="")</text>
+<text x="505" y="272" fill="#22c55e" font-weight="700">RESULT: Unlinks billing, shutting down all paid VMs instantly.</text>
+<text x="505" y="286" fill="#a9b7cb" font-size="8">Protects budget from runaway loops; requires deliberate restoration plan.</text>
+</g>
+</svg>
+<figcaption>Figure 18.2: Google Cloud Free Tier boundaries and cost control mechanics. Left: Monthly Always Free allowances across Compute Engine, Cloud Storage, Serverless runtimes, and BigQuery. Right: Architectural distinction between standard Cloud Billing budget alerts (which send passive email/PubSub notifications without interrupting workloads) and automated programmatic kill-switches (which invoke the Cloud Billing API to disable project billing when financial thresholds are breached).</figcaption>
+</figure>
+
+        <div class="further">
+          <h4>Further study</h4>
+          <ul>
+            <li><a href="https://docs.cloud.google.com/billing/docs/how-to/budgets">Google Cloud Documentation: Create, Edit, or Delete Budgets and Budget Alerts</a> — step-by-step procedures for configuring budget thresholds and Pub/Sub notifications.</li>
+            <li><a href="https://docs.cloud.google.com/billing/docs/how-to/notify#cap_disable_billing">Google Cloud Documentation: Cap Billing to Stop Usage</a> — reference architecture for programmatically disabling billing via Pub/Sub and Cloud Functions.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-03-technical">
+        <h3>Console navigation, project identifiers, and Cloud Shell execution</h3>
+        <p><strong>Scope, control flow, and ownership.</strong> All administrative operations in Google Cloud occur within a specific project context. Managing multi-project enterprise environments requires understanding the exact roles and constraints of project identifiers:</p>
+
+        <table>
+          <caption>Table 18.3: Comparison of Google Cloud Project Identifiers and Operational Usage</caption>
+          <thead>
+            <tr>
+              <th scope="col">Identifier</th>
+              <th scope="col">Format / Rules</th>
+              <th scope="col">Mutability</th>
+              <th scope="col">Scope of Uniqueness</th>
+              <th scope="col">Architectural Usage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Project Name</strong></td>
+              <td>4–30 characters, arbitrary text</td>
+              <td>Mutable at any time</td>
+              <td>Not unique (purely cosmetic)</td>
+              <td>Human-friendly display in Cloud Console</td>
+            </tr>
+            <tr>
+              <td><strong>Project ID</strong></td>
+              <td>6–30 characters, lowercase, digits, hyphens</td>
+              <td><strong>Immutable</strong> (set once at creation)</td>
+              <td><strong>Globally unique</strong> across all of Google Cloud</td>
+              <td>Primary key for CLI, Terraform, and APIs (<code>--project</code>)</td>
+            </tr>
+            <tr>
+              <td><strong>Project Number</strong></td>
+              <td>12-digit integer (e.g. 104928374619)</td>
+              <td><strong>Immutable</strong> (system assigned)</td>
+              <td><strong>Globally unique</strong> across all of Google Cloud</td>
+              <td>Internal IAM service agent binding (e.g. <code>[num]@cloudbuild...</code>)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p><strong>Cloud Shell execution environment.</strong> Google Cloud Console includes Cloud Shell—a browser-accessible, ephemeral Debian virtual machine provisioned with 5 GB of persistent <code>$HOME</code> storage. Cloud Shell provides pre-installed, pre-authenticated developer tools including the <code>gcloud</code> CLI, Docker, Terraform, Git, and Python 3. Because Cloud Shell caches active CLI configuration in <code>~/.config/gcloud</code>, engineers working across multiple projects must guard against <em>ambient project drift</em>—accidentally issuing commands against an unintended environment because the default project was left pointing to another project.</p>
+
+        <div class="further">
+          <h4>Further study</h4>
+          <ul>
+            <li><a href="https://docs.cloud.google.com/shell/docs">Google Cloud Documentation: Cloud Shell Overview</a> — architecture of the Cloud Shell virtual machine, persistent storage limits, and command-line usage.</li>
+            <li><a href="https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects">Google Cloud Documentation: Creating and Managing Projects</a> — guidelines for project creation, naming conventions, and lifecycle state management.</li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="part" id="part-3" aria-labelledby="part-3-title">
+      <h2 id="part-3-title">3 · Real-world field problems and incident handling</h2>
+
+      <article class="topic-card" id="topic-01-problem">
+        <h3>Incident exercise · Billing account disconnection suspends active workloads</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> During an ongoing engineering study cohort at Brightloaf, team members arriving for morning lab work reported that all experimental Cloud Run microservices and Compute Engine instances in the <code>brightloaf-sandbox-18</code> project were unreachable. Developers attempting to deploy code via Cloud Shell received the error: <code>ERROR: (gcloud.run.deploy) PERMISSION_DENIED: The billing account for project [brightloaf-sandbox-18] is disabled in state [CLOSED]. Billing must be enabled to activate services.</code> When the platform lead logged into the Google Cloud Console, they discovered that the corporate purchasing credit card linked to the primary Cloud Billing Account had expired on the first of the month. Because no secondary payment method was configured and billing notification emails were sent to a legacy distribution alias, Google Cloud suspended the billing account after a grace period, disabling APIs and stopping all compute resources across six associated projects.</p>
+
+        <p><strong>Constraints:</strong> Rely on synthetic Brightloaf test fixtures, observe zero budget spend, and preserve the duplicate fulfillment invariant.</p>
+
+        <p><strong>Root cause analysis:</strong> The organization lacked billing account redundancy and automated preflight verification: (1) no backup payment method was linked to the Cloud Billing Account; (2) billing alerts were routed to an unmonitored mailbox; and (3) CI/CD deployment pipelines did not include a billing health verification preflight step, allowing infrastructure to run blind until payment failure caused catastrophic service suspension.</p>
+
+        <p><strong>5-step diagnostic sequence:</strong></p>
+        <ol>
+          <li>Execute the billing project inspection command: the billing project describe command to check the <code>billingEnabled</code> boolean and retrieve the linked <code>billingAccountName</code>.</li>
+          <li>Query the billing account status using the Cloud Billing API or console to verify whether the account state is <code>OPEN</code> or <code>CLOSED</code>.</li>
+          <li>Audit Cloud Audit Logs to identify the exact timestamp of billing suspension and review the list of halted compute and serverless instances.</li>
+          <li>Update the Cloud Billing Account with an active primary payment method and configure a verified secondary backup credit card or bank account.</li>
+          <li>Re-link the project to the active billing account (the billing project link command) and verify that API operations resume with zero orphaned resources.</li>
+        </ol>
+
+        <p><strong>Defensible solution:</strong> Establish robust billing governance and automated pipeline preflight checks: First, configure a secondary payment method in the Google Cloud Billing Console to guarantee automated failover if primary card processing fails. Second, update the Cloud Billing Account notification contacts to include active engineering leads and financial operations channels. Third, implement an automated preflight script in all deployment pipelines asserting <code>billingEnabled == true</code> before initiating resource provisioning. Fourth, confirm that restored microservices uphold the duplicate fulfillment invariant (&le; 1 physical fulfillment per unique order ID) when processing re-submitted transactions.</p>
+
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day18-inc1-title day18-inc1-desc" viewBox="0 0 940 330">
+<title id="day18-inc1-title">Incident Diagram: Billing Account Disconnection Suspends Active Workloads</title>
+<desc id="day18-inc1-desc">Incident diagram showing how an expired credit card or severed billing account link halts active cloud resources, contrasted with active multi-payment billing linkage and preflight health checks.</desc>
+<defs>
+<marker id="day18-bill-fail" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#f43f5e"/></marker>
+<marker id="day18-bill-corr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#22c55e"/></marker>
+</defs>
+
+<!-- Intake / Trigger -->
+<g fill="#121526" stroke="#475569" stroke-width="1.5">
+<rect x="20" y="25" width="180" height="280" rx="8"/>
+</g>
+<g fill="#f8fafc" font-size="10" font-weight="700" text-anchor="middle">
+<text x="110" y="50">BILLING LIFECYCLE EVENT</text>
+<text x="110" y="65" fill="#a9b7cb" font-size="9" font-weight="400">Payment Authorization</text>
+</g>
+<g font-size="9">
+<rect x="30" y="80" width="160" height="55" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="40" y="98" fill="#e2e8f0">Primary Payment Method</text>
+<text x="40" y="112" fill="#f59e0b">Corporate Credit Card</text>
+<text x="40" y="125" fill="#f43f5e">Card Expired / Charge Denied</text>
+</g>
+
+<!-- FAILED PATH (Top) -->
+<g fill="#121526" stroke="#f43f5e" stroke-width="1.5">
+<rect x="230" y="25" width="690" height="130" rx="8"/>
+</g>
+<g fill="#f43f5e" font-size="10" font-weight="700">
+<text x="245" y="47">[FAILED PATH: Severed billing link cascades into instant service shutdown]</text>
+</g>
+<g font-size="9">
+<rect x="245" y="60" width="190" height="55" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="255" y="78" fill="#f43f5e" font-weight="700">1. Payment Failure</text>
+<text x="255" y="92" fill="#fce7f3">No backup payment method</text>
+<text x="255" y="105" fill="#f43f5e">Billing Account CLOSED</text>
+
+<path d="M435,87 L470,87" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#day18-bill-fail)"/>
+
+<rect x="470" y="60" width="200" height="55" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="480" y="78" fill="#f43f5e" font-weight="700">2. Project Billing Disabled</text>
+<text x="480" y="92" fill="#fce7f3">billingEnabled = false</text>
+<text x="480" y="105" fill="#f43f5e">API access suspended</text>
+
+<path d="M670,87 L700,87" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#day18-bill-fail)"/>
+
+<rect x="700" y="60" width="205" height="85" rx="4" fill="#3b1d38" stroke="#f43f5e"/>
+<text x="710" y="78" fill="#f43f5e" font-weight="700">CATASTROPHIC OUTAGE</text>
+<text x="710" y="92" fill="#fce7f3">• All VMs forcibly stopped</text>
+<text x="710" y="106" fill="#fce7f3">• Cloud Run returns HTTP 403</text>
+<text x="710" y="120" fill="#fce7f3">• External IP addresses released</text>
+<text x="710" y="134" fill="#fce7f3">• Study environment offline</text>
+</g>
+
+<!-- Connect Intake to Failed -->
+<path d="M190,110 L230,87" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#day18-bill-fail)"/>
+
+<!-- CORRECTED PATH (Bottom) -->
+<g fill="#121526" stroke="#22c55e" stroke-width="1.5">
+<rect x="230" y="175" width="690" height="130" rx="8"/>
+</g>
+<g fill="#22c55e" font-size="10" font-weight="700">
+<text x="245" y="197">[CORRECTED PATH: Backup payment method + automated billing preflight check]</text>
+</g>
+<g font-size="9">
+<rect x="245" y="210" width="190" height="55" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="255" y="228" fill="#38bdf8" font-weight="700">1. Redundant Payment Routing</text>
+<text x="255" y="242" fill="#e2e8f0">Primary card fails -&gt; Fallback</text>
+<text x="255" y="255" fill="#22c55e">Secondary card charged</text>
+
+<path d="M435,237 L470,237" stroke="#22c55e" stroke-width="2" marker-end="url(#day18-bill-corr)"/>
+
+<rect x="470" y="210" width="200" height="55" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="480" y="228" fill="#38bdf8" font-weight="700">2. Preflight Billing Verification</text>
+<text x="480" y="242" fill="#e2e8f0">gcloud billing projects describe</text>
+<text x="480" y="255" fill="#22c55e">billingEnabled == true</text>
+
+<path d="M670,237 L700,237" stroke="#22c55e" stroke-width="2" marker-end="url(#day18-bill-corr)"/>
+
+<rect x="700" y="210" width="205" height="85" rx="4" fill="#052e16" stroke="#22c55e"/>
+<text x="710" y="228" fill="#22c55e" font-weight="700">UNINTERRUPTED AVAILABILITY</text>
+<text x="710" y="242" fill="#dcfce7">✓ Zero unexpected shutdowns</text>
+<text x="710" y="256" fill="#dcfce7">✓ Workloads remain online</text>
+<text x="710" y="270" fill="#dcfce7">✓ Proactive billing alert sent</text>
+<text x="710" y="284" fill="#dcfce7">✓ Invariants strictly preserved</text>
+</g>
+
+<!-- Connect Intake to Corrected -->
+<path d="M190,120 L230,237" stroke="#22c55e" stroke-width="2" marker-end="url(#day18-bill-corr)"/>
+</svg>
+<figcaption>Figure 18.3: Supplied facts: A training sandbox environment suffered unexpected resource termination when billing was disabled following an expired corporate card. Architectural inference: When a Cloud Billing Account enters suspended status, Google Cloud terminates paid compute services and revokes API permissions within minutes. Expected post-fix behavior: Configuring automated backup payment methods and embedding billing health verification into deployment preflight scripts ensures continuous environment availability.</figcaption>
+</figure>
+
+        <p><strong>Verification and residual risk:</strong> Execute a simulated billing verification script asserting that <code>billingEnabled</code> is True and that the linked billing account is Open; verify that Cloud Run services process synthetic order requests and return HTTP 201; confirm that duplicate order submissions are rejected by relational constraints. Residual risk: When billing is re-enabled following suspension, ephemeral external IP addresses previously assigned to Compute Engine VMs may have been released and reassigned by Google Cloud; mitigate by reserving static external IP addresses or relying on Cloud DNS hostnames for inter-service communication.</p>
+      </article>
+
+      <article class="topic-card" id="topic-02-problem">
+        <h3>Incident exercise · Budget alert misconception leads to cloud spend overrun</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> A development squad at Brightloaf configured a $50 monthly budget alert on their sandbox project to conduct performance benchmarking on order intake models. Believing that Google Cloud would automatically cut off compute instances when spending reached $50, the engineers initiated an unconstrained load test on Friday afternoon spinning up four <code>a2-highgpu-1g</code> GPU-accelerated virtual machine instances ($3.67/hr each) to benchmark receipt parsing. At 11:30 PM Friday, total project spend crossed $50, and Google Cloud dutifully dispatched an alert email to the billing administrator. However, because the email arrived outside business hours, nobody reviewed the notification. The GPU instances continued computing throughout the weekend. By Monday morning, the project had accumulated 68 hours of continuous multi-GPU execution, racking up an unexpected charge of over $1,400 against the corporate credit card, exceeding the intended budget by 2,800%.</p>
+
+        <p><strong>Constraints:</strong> Rely on synthetic Brightloaf test fixtures, observe zero budget spend, and preserve prior audit evidence.</p>
+
+        <p><strong>Root cause analysis:</strong> The engineering team conflated passive budget notifications with programmatic spending caps. Standard Cloud Billing budget alerts send emails and publish Pub/Sub messages, but they deliberately do not interrupt running resources or cancel billable API operations.</p>
+
+        <p><strong>5-step diagnostic sequence:</strong></p>
+        <ol>
+          <li>Inspect active billing account budgets using the budget list command with the billing account parameter to verify configured threshold percentages (e.g. 50%, 90%, 100%) and notification channels.</li>
+          <li>Review billing export data in BigQuery or the Cloud Console Cost Table report to pinpoint the exact SKU (e.g. <code>Compute Engine GPU running in us-central1</code>) responsible for the cost surge.</li>
+          <li>Inspect running virtual machines using the compute instance list command to identify orphaned, unmonitored benchmark instances.</li>
+          <li>Immediately terminate all rogue GPU instances (the compute instance deletion command) to stop financial hemorrhaging.</li>
+          <li>Construct an automated Pub/Sub programmatic billing kill-switch architecture that subscribes a Cloud Function to budget alert topics and programmatically unlinks billing or stops instances when spend exceeds 100%.</li>
+        </ol>
+
+        <p><strong>Defensible solution:</strong> Implement programmatic cost controls, Compute Engine resource quotas, and automated instance self-termination: First, establish hard project-level Compute Engine quotas requesting 0 GPU allocations in sandbox projects, preventing engineers from accidentally launching high-cost instances. Second, for specialized workloads, embed automated self-termination timers into startup scripts (e.g. <code>shutdown -h +120</code> to halt the VM after 2 hours). Third, deploy a programmatic billing cap using Cloud Functions subscribed to the budget Pub/Sub topic; when received spend exceeds the target budget, the function calls the Cloud Billing API to disable project billing or halt compute instances. Fourth, emphasize the Cloud Digital Leader business principle: automated financial governance protects corporate operating margins from runaway development loops.</p>
+
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day18-inc2-title day18-inc2-desc" viewBox="0 0 940 330">
+<title id="day18-inc2-title">Incident Diagram: Budget Alert Misconception Leads to Cloud Spend Overrun</title>
+<desc id="day18-inc2-desc">Diagnostic incident diagram illustrating how treating budget alerts as hard spend caps allowed runaway compute benchmarking to rack up unexpected charges, contrasted with a programmatic Pub/Sub billing kill-switch.</desc>
+<defs>
+<marker id="day18-cost-fail" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#f43f5e"/></marker>
+<marker id="day18-cost-corr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#22c55e"/></marker>
+</defs>
+
+<!-- Intake / Trigger -->
+<g fill="#121526" stroke="#475569" stroke-width="1.5">
+<rect x="20" y="25" width="180" height="280" rx="8"/>
+</g>
+<g fill="#f8fafc" font-size="10" font-weight="700" text-anchor="middle">
+<text x="110" y="50">BENCHMARK WORKLOAD</text>
+<text x="110" y="65" fill="#a9b7cb" font-size="9" font-weight="400">Stress Testing Script</text>
+</g>
+<g font-size="9">
+<rect x="30" y="80" width="160" height="55" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="40" y="98" fill="#e2e8f0">Spins up 4x a2-highgpu</text>
+<text x="40" y="112" fill="#38bdf8">Cost: $14.68 / hour</text>
+<text x="40" y="125" fill="#a9b7cb">Team assumes $50 cap</text>
+</g>
+
+<!-- FAILED PATH (Top) -->
+<g fill="#121526" stroke="#f43f5e" stroke-width="1.5">
+<rect x="230" y="25" width="690" height="130" rx="8"/>
+</g>
+<g fill="#f43f5e" font-size="10" font-weight="700">
+<text x="245" y="47">[FAILED PATH: Passive budget alert sends unread email while VMs run continuously]</text>
+</g>
+<g font-size="9">
+<rect x="245" y="60" width="190" height="55" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="255" y="78" fill="#f43f5e" font-weight="700">1. Spend Crosses $50</text>
+<text x="255" y="92" fill="#fce7f3">Budget Alert triggers at 3.4 hrs</text>
+<text x="255" y="105" fill="#f59e0b">Email sent to billing-admin</text>
+
+<path d="M435,87 L470,87" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#day18-cost-fail)"/>
+
+<rect x="470" y="60" width="200" height="55" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="480" y="78" fill="#f43f5e" font-weight="700">2. No Automated Action</text>
+<text x="480" y="92" fill="#fce7f3">Email unread over weekend</text>
+<text x="480" y="105" fill="#f43f5e">VMs continue computing 72h</text>
+
+<path d="M670,87 L700,87" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#day18-cost-fail)"/>
+
+<rect x="700" y="60" width="205" height="85" rx="4" fill="#3b1d38" stroke="#f43f5e"/>
+<text x="710" y="78" fill="#f43f5e" font-weight="700">FINANCIAL OVERRUN</text>
+<text x="710" y="92" fill="#fce7f3">• Billed $1,400+ on credit card</text>
+<text x="710" y="106" fill="#fce7f3">• Budget exceeded by 2,800%</text>
+<text x="710" y="120" fill="#fce7f3">• Team reprimanded for waste</text>
+<text x="710" y="134" fill="#fce7f3">• Alert was NOT a hard cap!</text>
+</g>
+
+<!-- Connect Intake to Failed -->
+<path d="M190,110 L230,87" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#day18-cost-fail)"/>
+
+<!-- CORRECTED PATH (Bottom) -->
+<g fill="#121526" stroke="#22c55e" stroke-width="1.5">
+<rect x="230" y="175" width="690" height="130" rx="8"/>
+</g>
+<g fill="#22c55e" font-size="10" font-weight="700">
+<text x="245" y="197">[CORRECTED PATH: Programmatic Pub/Sub alert + automated instance shutdown]</text>
+</g>
+<g font-size="9">
+<rect x="245" y="210" width="190" height="55" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="255" y="228" fill="#38bdf8" font-weight="700">1. Pub/Sub Notification</text>
+<text x="255" y="242" fill="#e2e8f0">Budget emits JSON to Pub/Sub</text>
+<text x="255" y="255" fill="#22c55e">costAmount &gt; budgetAmount</text>
+
+<path d="M435,237 L470,237" stroke="#22c55e" stroke-width="2" marker-end="url(#day18-cost-corr)"/>
+
+<rect x="470" y="210" width="200" height="55" rx="4" fill="#1e293b" stroke="#22c55e"/>
+<text x="480" y="228" fill="#22c55e" font-weight="700">2. Automated Cloud Function</text>
+<text x="480" y="242" fill="#e2e8f0">gcloud compute instances stop</text>
+<text x="480" y="255" fill="#22c55e">Halts expensive GPU workers</text>
+
+<path d="M670,237 L700,237" stroke="#22c55e" stroke-width="2" marker-end="url(#day18-cost-corr)"/>
+
+<rect x="700" y="210" width="205" height="85" rx="4" fill="#052e16" stroke="#22c55e"/>
+<text x="710" y="228" fill="#22c55e" font-weight="700">SPEND STRICTLY BOUNDED</text>
+<text x="710" y="242" fill="#dcfce7">✓ Total bill capped at $52.10</text>
+<text x="710" y="256" fill="#dcfce7">✓ Zero unmonitored charges</text>
+<text x="710" y="270" fill="#dcfce7">✓ Quota caps prevent respin</text>
+<text x="710" y="284" fill="#dcfce7">✓ Cloud Digital Leader value</text>
+</g>
+
+<!-- Connect Intake to Corrected -->
+<path d="M190,120 L230,237" stroke="#22c55e" stroke-width="2" marker-end="url(#day18-cost-corr)"/>
+</svg>
+<figcaption>Figure 18.4: Supplied facts: An unconstrained GPU benchmark ran over a weekend, accumulating over $1,400 in charges despite a $50 budget alert having been configured. Architectural inference: Google Cloud budget alerts are passive notifications that do not interrupt running instances or prevent API requests. Expected post-fix behavior: Coupling Cloud Billing budget Pub/Sub messages with an automated Cloud Function that stops instances or unlinks billing programmatically enforces hard financial boundaries.</figcaption>
+</figure>
+
+        <p><strong>Verification and residual risk:</strong> Execute a synthetic cost monitoring script simulating budget notifications at 50%, 90%, and 100%; verify that reaching 100% triggers automated instance termination; confirm that the core order fulfillment service maintains the duplicate fulfillment invariant (&le; 1 shipment) across recovery cycles. Residual risk: Programmatically unlinking billing as a hard spend cap shuts down all resources indiscriminately, including persistent database instances; mitigate in production environments by implementing targeted instance shutdown (halting compute VMs while preserving databases) rather than complete billing disconnection.</p>
+      </article>
+
+      <article class="topic-card" id="topic-03-problem">
+        <h3>Incident exercise · Project context drift deploys resources to wrong environment</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> A site reliability engineer at Brightloaf was assigned to clean up an outdated testing service named <code>order-api-v1</code> in the development sandbox project. Opening Cloud Shell in the Google Cloud Console, the engineer executed a cleanup command: a service deletion command targeting <code>order-api-v1</code>. Unbeknownst to the engineer, a colleague had previously used the shared workstation terminal to troubleshoot an incident in the production project, executing setting the active project to <code>brightloaf-prod-us</code> without resetting the default. Because the deletion command did not specify an explicit <code>--project</code> parameter, the <code>gcloud</code> CLI executed against the ambient production project, instantly terminating Brightloaf's live production Order API. Real-time customer checkout immediately failed with HTTP 404 Not Found errors across all retail channels, triggering an emergency P1 outage that lasted 22 minutes until the service could be redeployed from the CI/CD artifact repository.</p>
+
+        <p><strong>Constraints:</strong> Rely on synthetic Brightloaf test fixtures, observe zero budget spend, and preserve the duplicate fulfillment invariant.</p>
+
+        <p><strong>Root cause analysis:</strong> The operational failure stemmed from relying on implicit ambient project state in the CLI across multi-tenant environments. Without visual project indicators in shell prompts or mandatory <code>--project</code> flags in operational runbooks, human error caused a destructive command to cross project isolation boundaries.</p>
+
+        <p><strong>5-step diagnostic sequence:</strong></p>
+        <ol>
+          <li>Query active <code>gcloud</code> CLI configuration using the active project lookup command to determine the current ambient project context.</li>
+          <li>Inspect Cloud Audit Logs in the production project filtering on <code>resource.type="cloud_run_revision"</code> and <code>methodName="google.cloud.run.v1.Services.DeleteService"</code> to identify the caller and deletion timestamp.</li>
+          <li>Correlate the caller's identity with Cloud Shell access logs to confirm project context drift as the root cause.</li>
+          <li>Immediately restore production availability by triggering the automated CI/CD pipeline to redeploy the latest immutable container image from Artifact Registry.</li>
+          <li>Enforce operational controls: reconfigure terminal shell prompts (<code>PS1</code>) to dynamically display the active project ID, and enforce mandatory <code>--project</code> flags in all script runbooks.</li>
+        </ol>
+
+        <p><strong>Defensible solution:</strong> Eliminate ambient project ambiguity through prompt configuration, CLI configurations, and IAM privilege separation: First, customize the shell prompt (<code>PS1</code>) in Cloud Shell and local developer environments to dynamically display the active <code>gcloud</code> project in bold colors, providing immediate visual feedback of the target environment. Second, utilize named <code>gcloud</code> configurations (creating a configuration profile for <code>prod</code> and a profile for <code>sandbox</code>) to switch between fully isolated profile contexts. Third, mandate that all operational runbooks, automation scripts, and destruction commands explicitly specify <code>--project="${TARGET_PROJECT_ID}"</code> rather than relying on default state. Fourth, enforce strict IAM privilege boundaries: revoke administrative write/delete permissions for regular developers in production projects, requiring break-glass privileged access workflows to prevent accidental cross-project destruction.</p>
+
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day18-inc3-title day18-inc3-desc" viewBox="0 0 940 330">
+<title id="day18-inc3-title">Incident Diagram: Project Context Drift Deploys Resources to Wrong Environment</title>
+<desc id="day18-inc3-desc">Diagnostic incident diagram illustrating how ambient project state in Cloud Shell caused a destructive deletion intended for a sandbox to terminate a production service, contrasted with deterministic project pinning and IAM service boundary guards.</desc>
+<defs>
+<marker id="day18-drift-fail" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#f43f5e"/></marker>
+<marker id="day18-drift-corr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#22c55e"/></marker>
+</defs>
+
+<!-- Operator Terminal -->
+<g fill="#121526" stroke="#475569" stroke-width="1.5">
+<rect x="20" y="25" width="180" height="280" rx="8"/>
+</g>
+<g fill="#f8fafc" font-size="10" font-weight="700" text-anchor="middle">
+<text x="110" y="50">OPERATOR TERMINAL</text>
+<text x="110" y="65" fill="#a9b7cb" font-size="9" font-weight="400">Cloud Shell Session</text>
+</g>
+<g font-size="9">
+<rect x="30" y="80" width="160" height="65" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="40" y="98" fill="#e2e8f0">Intended Target:</text>
+<text x="40" y="112" fill="#38bdf8">brightloaf-sandbox-18</text>
+<text x="40" y="125" fill="#f59e0b">Destructive command:</text>
+<text x="40" y="137" fill="#f43f5e">gcloud run services delete</text>
+</g>
+
+<!-- FAILED PATH (Top) -->
+<g fill="#121526" stroke="#f43f5e" stroke-width="1.5">
+<rect x="230" y="25" width="690" height="130" rx="8"/>
+</g>
+<g fill="#f43f5e" font-size="10" font-weight="700">
+<text x="245" y="47">[FAILED PATH: Ambient project context set to production without explicit flag]</text>
+</g>
+<g font-size="9">
+<rect x="245" y="60" width="200" height="55" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="255" y="78" fill="#f43f5e" font-weight="700">1. Ambient gcloud Context</text>
+<text x="255" y="92" fill="#fce7f3">gcloud config get-value project</text>
+<text x="255" y="105" fill="#f43f5e">Returns: brightloaf-prod-us</text>
+
+<path d="M445,87 L480,87" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#day18-drift-fail)"/>
+
+<rect x="480" y="60" width="190" height="55" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="490" y="78" fill="#f43f5e" font-weight="700">2. Command Executed</text>
+<text x="490" y="92" fill="#fce7f3">Omits explicit --project flag</text>
+<text x="490" y="105" fill="#f43f5e">Targets prod-order-api</text>
+
+<path d="M670,87 L700,87" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#day18-drift-fail)"/>
+
+<rect x="700" y="60" width="205" height="85" rx="4" fill="#3b1d38" stroke="#f43f5e"/>
+<text x="710" y="78" fill="#f43f5e" font-weight="700">PRODUCTION OUTAGE</text>
+<text x="710" y="92" fill="#fce7f3">• Production Order API deleted</text>
+<text x="710" y="106" fill="#fce7f3">• Customer checkout broken</text>
+<text x="710" y="120" fill="#fce7f3">• Emergency redeployment needed</text>
+<text x="710" y="134" fill="#fce7f3">• Caused by project picker drift</text>
+</g>
+
+<!-- Connect Intake to Failed -->
+<path d="M190,110 L230,87" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#day18-drift-fail)"/>
+
+<!-- CORRECTED PATH (Bottom) -->
+<g fill="#121526" stroke="#22c55e" stroke-width="1.5">
+<rect x="230" y="175" width="690" height="130" rx="8"/>
+</g>
+<g fill="#22c55e" font-size="10" font-weight="700">
+<text x="245" y="197">[CORRECTED PATH: Explicit --project parameter + PS1 context prompt + IAM boundaries]</text>
+</g>
+<g font-size="9">
+<rect x="245" y="210" width="200" height="55" rx="4" fill="#1e293b" stroke="#334155"/>
+<text x="255" y="228" fill="#38bdf8" font-weight="700">1. Context-Aware PS1 Prompt</text>
+<text x="255" y="242" fill="#e2e8f0">Prompt displays active project</text>
+<text x="255" y="255" fill="#22c55e">operator@sandbox-18:~$</text>
+
+<path d="M445,237 L480,237" stroke="#22c55e" stroke-width="2" marker-end="url(#day18-drift-corr)"/>
+
+<rect x="480" y="210" width="190" height="55" rx="4" fill="#1e293b" stroke="#22c55e"/>
+<text x="490" y="228" fill="#22c55e" font-weight="700">2. Mandatory --project Flag</text>
+<text x="490" y="242" fill="#e2e8f0">Explicit CLI project binding</text>
+<text x="490" y="255" fill="#22c55e">IAM denies cross-project write</text>
+
+<path d="M670,237 L700,237" stroke="#22c55e" stroke-width="2" marker-end="url(#day18-drift-corr)"/>
+
+<rect x="700" y="210" width="205" height="85" rx="4" fill="#052e16" stroke="#22c55e"/>
+<text x="710" y="228" fill="#22c55e" font-weight="700">DETERMINISTIC CONTROL</text>
+<text x="710" y="242" fill="#dcfce7">✓ Sandbox resource isolated</text>
+<text x="710" y="256" fill="#dcfce7">✓ Production untouched</text>
+<text x="710" y="270" fill="#dcfce7">✓ Zero accidental deletions</text>
+<text x="710" y="284" fill="#dcfce7">✓ Order invariant preserved</text>
+</g>
+
+<!-- Connect Intake to Corrected -->
+<path d="M190,120 L230,237" stroke="#22c55e" stroke-width="2" marker-end="url(#day18-drift-corr)"/>
+</svg>
+<figcaption>Figure 18.5: Supplied facts: An engineer intending to clean up a test service in a development sandbox accidentally executed a deletion command against production due to ambient Cloud Shell configuration. Architectural inference: Relying on implicit gcloud CLI project defaults across multi-tenant environments invites destructive human error. Expected post-fix behavior: Enforcing explicit --project flags in automation, displaying active project IDs in shell prompts, and restricting production IAM privileges ensures strict environment segregation.</figcaption>
+</figure>
+
+        <p><strong>Verification and residual risk:</strong> Execute a test script verifying that the shell prompt dynamically reflects project changes; assert that issuing destructive commands without an explicit <code>--project</code> flag is blocked by policy wrappers; verify that production order endpoints maintain continuous availability and uphold the duplicate fulfillment invariant (&le; 1 shipment). Residual risk: Complex shell prompt hooks that invoke the active project lookup command on every command execution can introduce latency in terminal rendering; mitigate by caching the active project in an environment variable updated only during project switching.</p>
+      </article>
+    </section>
+
+    <section class="part" id="part-4" aria-labelledby="part-4-title">
+      <h2 id="part-4-title">4 · Step-by-step labs for each topic</h2>
+
+      <article class="topic-card lab" id="topic-01-lab">
+        <h3>Lab 18.1 · Cloud preflight, billing inspection, and budget notification architecture</h3>
+        <p><strong>Goal and expected result.</strong> Author and execute a Python-based preflight script that inspects Google Cloud project billing status, verifies active billing account linkages, and validates budget notification event payloads against standard Pub/Sub schemas. Confirm that the script correctly validates an active project (<code>billingEnabled: True</code>) and rejects an unlinked project with a clear diagnostic exit code.</p>
+        <p><strong>Mode.</strong> Local terminal with Python 3. <strong>Preflight checklist.</strong> Confirm Python 3 availability and initialize a disposable local lab directory.</p>
+
+        <div class="step">
+          <h4>1. Preflight environment and create isolated workspace</h4>
+          <pre><code class="language-bash">python3 --version
+LAB18_DIR="$(mktemp -d -t gcp-day18.XXXXXX)"
+export LAB18_DIR
+cd "$LAB18_DIR"
+printf 'Lab 18.1 workspace established at: %s\n' "$LAB18_DIR"</code></pre>
+          <p><strong>Expected output.</strong> Python 3 version displays (e.g. <code>Python 3.12.x</code>) and a temporary directory path is confirmed.</p>
+        </div>
+
+        <div class="step">
+          <h4>2. Author billing preflight and budget notification validator</h4>
+          <p>Create a script simulating Google Cloud Billing API inspection and validating Cloud Billing budget Pub/Sub message schemas.</p>
+          <pre><code class="language-bash">cat &gt; "$LAB18_DIR/billing_preflight.py" &lt;&lt;'PY'
+import json
+import sys
+import time
+
+def inspect_project_billing(project_id, mock_projects_db):
+    print(f"Inspecting billing status for project: '{project_id}'...")
+    project_info = mock_projects_db.get(project_id)
+    if not project_info:
+        raise ValueError(f"Project '{project_id}' not found in organization hierarchy.")
+
+    billing_enabled = project_info.get("billingEnabled", False)
+    billing_account = project_info.get("billingAccountName", "")
+
+    if not billing_enabled or not billing_account:
+        print(f"  [CRITICAL] Billing is DISABLED on project '{project_id}'.")
+        print("  API access and compute provisioning will fail with PERMISSION_DENIED.")
+        return False, project_info
+
+    print(f"  ✓ Billing verified: ACTIVE on project '{project_id}'")
+    print(f"  ✓ Linked Billing Account: '{billing_account}'")
+    return True, project_info
+
+def parse_budget_pubsub_notification(pubsub_payload_json):
+    """
+    Validates Google Cloud Billing budget Pub/Sub notification schema.
+    """
+    data = json.loads(pubsub_payload_json)
+    budget_display_name = data.get("budgetDisplayName")
+    cost_amount = float(data.get("costAmount", 0.0))
+    budget_amount = float(data.get("budgetAmount", 0.0))
+    currency = data.get("currencyCode", "USD")
+
+    percent_spent = (cost_amount / budget_amount) * 100.0 if budget_amount > 0 else 0.0
+    print(f"\nBudget Alert Event: '{budget_display_name}'")
+    print(f"  Current Spend: {cost_amount:.2f} {currency} / {budget_amount:.2f} {currency} ({percent_spent:.1f}%)")
+
+    # Critical architectural check: alert does not equal hard cap
+    is_breached = cost_amount >= budget_amount
+    if is_breached:
+        print("  [!] Budget threshold BREACHED (>= 100%).")
+        print("  [FACT] Running resources are NOT stopped by default alert.")
+        print("  [ACTION] Programmatic kill-switch required to halt billable compute.")
+    else:
+        print(f"  ✓ Spend is within bounds ({percent_spent:.1f}% of limit).")
+    return is_breached, percent_spent
+
+if __name__ == "__main__":
+    # Mock GCP Resource Manager & Billing database
+    mock_db = {
+        "brightloaf-prod-us": {
+            "projectId": "brightloaf-prod-us",
+            "projectNumber": "104928374619",
+            "billingAccountName": "billingAccounts/01A2B3-4C5D6E-7F8G9H",
+            "billingEnabled": True
+        },
+        "brightloaf-sandbox-18": {
+            "projectId": "brightloaf-sandbox-18",
+            "projectNumber": "859201948271",
+            "billingAccountName": "billingAccounts/01A2B3-4C5D6E-7F8G9H",
+            "billingEnabled": True
+        },
+        "orphaned-lab-project": {
+            "projectId": "orphaned-lab-project",
+            "projectNumber": "492819482710",
+            "billingAccountName": "",
+            "billingEnabled": False
+        }
+    }
+
+    print("=== Test 1: Verifying Active Production Project Billing ===")
+    ok1, _ = inspect_project_billing("brightloaf-prod-us", mock_db)
+    assert ok1 is True
+
+    print("\n=== Test 2: Verifying Active Sandbox Project Billing ===")
+    ok2, _ = inspect_project_billing("brightloaf-sandbox-18", mock_db)
+    assert ok2 is True
+
+    print("\n=== Test 3: Detecting Disabled Billing on Orphaned Project ===")
+    ok3, _ = inspect_project_billing("orphaned-lab-project", mock_db)
+    assert ok3 is False
+
+    print("\n=== Test 4: Parsing Cloud Billing Budget Pub/Sub Alert ===")
+    mock_alert_json = json.dumps({
+        "budgetDisplayName": "Monthly Sandbox $50 Budget",
+        "costAmount": 54.20,
+        "costIntervalStart": "2026-09-01T00:00:00Z",
+        "budgetAmount": 50.00,
+        "budgetAmountType": "SPECIFIED_AMOUNT",
+        "currencyCode": "USD"
+    })
+    breached, pct = parse_budget_pubsub_notification(mock_alert_json)
+    assert breached is True
+    assert pct > 100.0
+
+    print("\nAll billing preflight and budget validation assertions passed successfully.")
+PY
+python3 "$LAB18_DIR/billing_preflight.py"</code></pre>
+          <p><strong>Expected terminal output.</strong> Active billing confirmed for production and sandbox; disabled billing detected on the orphaned project; budget alert parsed showing $54.20 spend exceeding $50 threshold.</p>
+        </div>
+
+        <div class="step">
+          <h4>3. Record execution transcript and clean up workspace</h4>
+          <pre><code class="language-bash">cat &gt; "$LAB18_DIR/day-018-billing-preflight.log" &lt;&lt;'LOG'
+BRIGHTLOAF CLOUD BILLING PREFLIGHT TRANSCRIPT
+Timestamp: 2026-09-27T13:38:00Z
+Project: brightloaf-sandbox-18
+Linked Billing Account: billingAccounts/01A2B3-4C5D6E-7F8G9H
+Billing Status: ACTIVE (billingEnabled: True)
+Budget Notification Test: Parsed Pub/Sub schema; spend ($54.20) > budget ($50.00).
+Critical Finding: Budget alerts do not stop running resources without programmatic kill-switches.
+LOG
+
+cat "$LAB18_DIR/day-018-billing-preflight.log"
+rm -rf "$LAB18_DIR"
+test ! -d "$LAB18_DIR"
+printf 'Lab 18.1 temporary workspace cleanly removed.\n'</code></pre>
+          <p><strong>Expected output.</strong> The billing preflight log prints to stdout, followed by clean removal of the temporary lab directory.</p>
+        </div>
+
+        <div class="callout success">
+          <strong>Verification and acceptance</strong>
+          <p>Confirm that: (1) active project billing is verified; (2) disabled project billing is caught during preflight; (3) budget alert JSON is parsed accurately; and (4) the distinction between passive notification and active hard spend capping is explicitly recorded.</p>
+        </div>
+
+        <div class="callout caution">
+          <strong>Troubleshooting</strong>
+          <p>If billing inspection fails with <code>PERMISSION_DENIED</code>, confirm that the caller possesses <code>roles/billing.viewer</code> or <code>roles/resourcemanager.organizationViewer</code> privileges.</p>
+        </div>
+
+        <div class="callout">
+          <strong>Cleanup and cost</strong>
+          <p>All temporary files are deleted in Step 3. Zero cloud billing incurred.</p>
+        </div>
+      </article>
+
+      <article class="topic-card lab" id="topic-02-lab">
+        <h3>Lab 18.2 · Free Tier limit auditing and synthetic cost consumption modeling</h3>
+        <p><strong>Goal and expected result.</strong> Author and execute a Python script that models resource consumption across Compute Engine, Cloud Storage, Cloud Run, and BigQuery against Google Cloud Always Free limits. Calculate billable overages when usage exceeds free quotas or when resources run in non-qualifying regions. Verify that within-quota US-region usage generates exactly $0.00 in charges.</p>
+        <p><strong>Mode.</strong> Local terminal with Python 3. <strong>Preflight checklist.</strong> Confirm Python 3 availability and initialize a disposable local lab directory.</p>
+
+        <div class="step">
+          <h4>1. Preflight environment and set up workspace</h4>
+          <pre><code class="language-bash">LAB18_2_DIR="$(mktemp -d -t gcp-day18-lab2.XXXXXX)"
+export LAB18_2_DIR
+cd "$LAB18_2_DIR"
+printf 'Lab 18.2 workspace established at: %s\n' "$LAB18_2_DIR"</code></pre>
+          <p><strong>Expected output.</strong> Temporary workspace directory path confirmed.</p>
+        </div>
+
+        <div class="step">
+          <h4>2. Author Free Tier cost calculation engine</h4>
+          <p>Create a script enforcing Always Free regional rules and quota calculations.</p>
+          <pre><code class="language-bash">cat &gt; "$LAB18_2_DIR/free_tier_auditor.py" &lt;&lt;'PY'
+import sys
+
+# Google Cloud Always Free Monthly Quotas
+FREE_TIER_LIMITS = {
+    "compute_hours_per_month": 744,       # 1 e2-micro instance 24/7
+    "compute_allowed_regions": {"us-central1", "us-east1", "us-west1"},
+    "storage_gb_months": 5.0,             # 5 GB Standard Storage
+    "storage_allowed_regions": {"us-central1", "us-east1", "us-west1"},
+    "cloud_run_requests": 2_000_000,      # 2 million requests
+    "bigquery_query_tb": 1.0              # 1 TB scanned
+}
+
+# Standard On-Demand Rates for Overages
+RATES = {
+    "e2_micro_hourly": 0.0084,            # ~$6.25/mo
+    "storage_gb_monthly": 0.020,          # $0.02/GB
+    "cloud_run_per_million": 0.40,        # $0.40 per million requests
+    "bigquery_per_tb": 6.25               # $6.25 per TB scanned
+}
+
+def calculate_monthly_bill(workload):
+    name = workload["name"]
+    region = workload["region"]
+    vm_hours = workload.get("vm_hours", 0)
+    storage_gb = workload.get("storage_gb", 0.0)
+    run_reqs = workload.get("cloud_run_requests", 0)
+    bq_tb = workload.get("bigquery_tb_scanned", 0.0)
+
+    billable_charges = {}
+
+    # 1. Compute Engine Calculation
+    if region not in FREE_TIER_LIMITS["compute_allowed_regions"]:
+        # Regional disqualification: 100% of compute hours are billable
+        billable_hours = vm_hours
+        print(f"  [!] Compute in non-free region '{region}': Free tier does not apply.")
+    else:
+        billable_hours = max(0, vm_hours - FREE_TIER_LIMITS["compute_hours_per_month"])
+
+    if billable_hours > 0:
+        billable_charges["Compute Engine"] = billable_hours * RATES["e2_micro_hourly"]
+
+    # 2. Cloud Storage Calculation
+    if region not in FREE_TIER_LIMITS["storage_allowed_regions"]:
+        billable_storage = storage_gb
+    else:
+        billable_storage = max(0.0, storage_gb - FREE_TIER_LIMITS["storage_gb_months"])
+
+    if billable_storage > 0:
+        billable_charges["Cloud Storage"] = billable_storage * RATES["storage_gb_monthly"]
+
+    # 3. Cloud Run Calculation (Global)
+    billable_run = max(0, run_reqs - FREE_TIER_LIMITS["cloud_run_requests"])
+    if billable_run > 0:
+        billable_charges["Cloud Run"] = (billable_run / 1_000_000) * RATES["cloud_run_per_million"]
+
+    # 4. BigQuery Calculation (Global)
+    billable_bq = max(0.0, bq_tb - FREE_TIER_LIMITS["bigquery_query_tb"])
+    if billable_bq > 0:
+        billable_charges["BigQuery"] = billable_bq * RATES["bigquery_per_tb"]
+
+    total_cost = sum(billable_charges.values())
+    print(f"\nWorkload: '{name}' (Region: {region})")
+    print(f"  Total Monthly Cost: ${total_cost:.2f}")
+    for svc, cost in billable_charges.items():
+        print(f"    - {svc}: ${cost:.2f}")
+    if total_cost == 0.0:
+        print("  ✓ Completely covered by Always Free Tier ($0.00 charged).")
+    return total_cost
+
+if __name__ == "__main__":
+    # Case A: Ideal Sandbox Workload within US-Central1 Always Free
+    workload_free = {
+        "name": "Standard Study Sandbox",
+        "region": "us-central1",
+        "vm_hours": 744,
+        "storage_gb": 4.5,
+        "cloud_run_requests": 1_200_000,
+        "bigquery_tb_scanned": 0.5
+    }
+    cost_a = calculate_monthly_bill(workload_free)
+    assert cost_a == 0.0, "Expected $0.00 for within-quota US workload"
+
+    # Case B: Region Violation (Running VM in Europe)
+    workload_europe = {
+        "name": "Accidental European VM",
+        "region": "europe-west1",
+        "vm_hours": 744,
+        "storage_gb": 4.5,
+        "cloud_run_requests": 500_000,
+        "bigquery_tb_scanned": 0.1
+    }
+    cost_b = calculate_monthly_bill(workload_europe)
+    assert cost_b > 6.0, "Expected non-zero bill for European VM"
+
+    # Case C: Overuse in US (Running 2 VMs and 10 GB Storage)
+    workload_overuse = {
+        "name": "Overused US Sandbox",
+        "region": "us-east1",
+        "vm_hours": 1488, # 2 VMs running all month
+        "storage_gb": 15.0, # 10 GB over free tier
+        "cloud_run_requests": 5_000_000,
+        "bigquery_tb_scanned": 2.0
+    }
+    cost_c = calculate_monthly_bill(workload_overuse)
+    assert cost_c > 13.0, "Expected overage charges"
+
+    print("\n✓ Free tier cost modeling calculations verified successfully.")
+PY
+python3 "$LAB18_2_DIR/free_tier_auditor.py"</code></pre>
+          <p><strong>Expected terminal output.</strong> Case A confirms $0.00 total for US-central1 Always Free resources; Case B calculates billable charges for European deployment; Case C calculates overage costs for multiple VMs and excess storage.</p>
+        </div>
+
+        <div class="step">
+          <h4>3. Record evidence and clean up workspace</h4>
+          <pre><code class="language-bash">cat &gt; "$LAB18_2_DIR/free-tier-audit.md" &lt;&lt;'NOTE'
+# Free Tier Audit & Cost Modeling Findings
+1. Regional Eligibility: Compute Engine e2-micro is ONLY free in us-central1, us-east1, and us-west1. Deploying in europe-west1 incurs $6.25/month.
+2. Resource Quantity: Exactly 1 e2-micro VM (744 hours/mo) is covered. A second VM incurs standard hourly billing.
+3. Budget Alert Truth: An alert triggers notification emails; it does not pause or terminate billable overages.
+NOTE
+
+cat "$LAB18_2_DIR/free-tier-audit.md"
+rm -rf "$LAB18_2_DIR"
+test ! -d "$LAB18_2_DIR"
+printf 'Lab 18.2 workspace cleaned up successfully.\n'</code></pre>
+          <p><strong>Expected output.</strong> Free tier findings print to stdout, followed by clean removal of the temporary lab directory.</p>
+        </div>
+
+        <div class="callout success">
+          <strong>Verification and acceptance</strong>
+          <p>Confirm that: (1) US-region within-quota workloads yield exactly $0.00; (2) non-qualifying regions trigger billable compute charges; and (3) excess storage and request counts calculate overages according to published rates.</p>
+        </div>
+
+        <div class="callout caution">
+          <strong>Troubleshooting</strong>
+          <p>If Always Free compute charges appear on your invoice, verify that the VM machine type is strictly <code>e2-micro</code> and not <code>e2-small</code> or <code>e2-medium</code>, and that the boot disk does not exceed 30 GB.</p>
+        </div>
+
+        <div class="callout">
+          <strong>Cleanup and cost</strong>
+          <p>All temporary scripts are deleted in Step 3. Zero cloud billing incurred.</p>
+        </div>
+      </article>
+
+      <article class="topic-card lab" id="topic-03-lab">
+        <h3>Lab 18.3 · Project context resolution, identifier validation, and environment safety guard</h3>
+        <p><strong>Goal and expected result.</strong> Author a Python safety wrapper that parses and validates Google Cloud project identifiers (distinguishing mutable Project Names, globally unique Project IDs, and numeric Project Numbers). Enforce strict project validation rules (6–30 characters, lowercase letters, digits, hyphens) and simulate a shell context guard that halts destructive operations if the active CLI context points to a production project without explicit override.</p>
+        <p><strong>Mode.</strong> Local terminal with Python 3. <strong>Preflight checklist.</strong> Confirm Python 3 availability and initialize a disposable local lab directory.</p>
+
+        <div class="step">
+          <h4>1. Preflight environment and set up workspace</h4>
+          <pre><code class="language-bash">LAB18_3_DIR="$(mktemp -d -t gcp-day18-lab3.XXXXXX)"
+export LAB18_3_DIR
+cd "$LAB18_3_DIR"
+printf 'Lab 18.3 workspace established at: %s\n' "$LAB18_3_DIR"</code></pre>
+          <p><strong>Expected output.</strong> Temporary workspace directory path confirmed.</p>
+        </div>
+
+        <div class="step">
+          <h4>2. Author project identifier validator and execution safety guard</h4>
+          <p>Create a script validating Project ID formatting rules and simulating CLI context protection.</p>
+          <pre><code class="language-bash">cat &gt; "$LAB18_3_DIR/project_guard.py" &lt;&lt;'PY'
+import re
+import sys
+
+def validate_project_id(project_id):
+    """
+    Google Cloud Project ID rules:
+    - 6 to 30 characters in length
+    - Starts with a lowercase letter
+    - Contains only lowercase letters, digits, and hyphens
+    - Cannot end with a hyphen
+    - Cannot contain uppercase letters or underscores
+    """
+    pattern = r'^[a-z][a-z0-9-]{4,28}[a-z0-9]$'
+    is_valid = bool(re.match(pattern, project_id))
+    return is_valid
+
+def execute_safe_operation(active_context_project, target_project, command_type):
+    """
+    Guards against ambient project context drift.
+    Requires explicit target project matching active context and blocks production deletions.
+    """
+    print(f"\nEvaluating command: '{command_type}'")
+    print(f"  Active CLI Context: '{active_context_project}'")
+    print(f"  Target Flag Project: '{target_project}'")
+
+    if not validate_project_id(target_project):
+        raise ValueError(f"Invalid Project ID format: '{target_project}'")
+
+    if active_context_project != target_project:
+        print("  [ERROR] Project context mismatch! Active context does not match target flag.")
+        print("  Aborting execution to prevent accidental cross-project modification.")
+        return False
+
+    if "prod" in target_project and command_type in ("DELETE", "DESTROY", "TEARDOWN"):
+        print("  [BLOCKED] Destructive operation on PRODUCTION project rejected by safety guard.")
+        print("  Requires explicit break-glass bypass token.")
+        return False
+
+    print(f"  ✓ Operation '{command_type}' authorized on project '{target_project}'.")
+    return True
+
+if __name__ == "__main__":
+    print("=== 1. Validating Project ID Conformance Rules ===")
+    valid_ids = ["brightloaf-sandbox-18", "my-study-prj-01", "gcp-arch-2026"]
+    invalid_ids = [
+        "Short",                  # Too short (<6 chars) and uppercase
+        "brightloaf_sandbox",     # Underscore prohibited
+        "123-starts-with-digit",  # Must start with lowercase letter
+        "ends-with-hyphen-",      # Cannot end with hyphen
+        "ThisIsAVeryLongProjectIdentifierThatExceedsThirtyCharactersLimit" # >30 chars
+    ]
+
+    for pid in valid_ids:
+        assert validate_project_id(pid) is True, f"Expected '{pid}' to be valid"
+        print(f"  ✓ Valid: '{pid}'")
+
+    for pid in invalid_ids:
+        assert validate_project_id(pid) is False, f"Expected '{pid}' to be invalid"
+        print(f"  ✓ Correctly Rejected: '{pid}'")
+
+    print("\n=== 2. Testing Execution Safety Guard Against Project Drift ===")
+    # Case A: Sandbox safe deletion
+    ok1 = execute_safe_operation("brightloaf-sandbox-18", "brightloaf-sandbox-18", "DELETE")
+    assert ok1 is True
+
+    # Case B: Context Drift (Active is prod, target is sandbox)
+    ok2 = execute_safe_operation("brightloaf-prod-us", "brightloaf-sandbox-18", "DELETE")
+    assert ok2 is False
+
+    # Case C: Accidental Production Destruction
+    ok3 = execute_safe_operation("brightloaf-prod-us", "brightloaf-prod-us", "DELETE")
+    assert ok3 is False
+
+    print("\nAll project identifier and safety guard assertions passed successfully.")
+PY
+python3 "$LAB18_3_DIR/project_guard.py"</code></pre>
+          <p><strong>Expected terminal output.</strong> Valid and invalid Project IDs categorized correctly; ambient context drift caught and rejected; destructive operations on production blocked.</p>
+        </div>
+
+        <div class="step">
+          <h4>3. Generate official Day 18 exit artifact and clean up</h4>
+          <pre><code class="language-bash">cat &gt; "$LAB18_3_DIR/day-018-exit-plan.md" &lt;&lt;'DOC'
+# Day 18 Exit Artifact: Project & Billing Preflight and Cleanup Plan
+**Project ID:** brightloaf-sandbox-18 (Globally unique, immutable)
+**Project Number:** 859201948271 (Immutable 12-digit system integer)
+**Project Name:** "Brightloaf Sandbox Day 18" (Mutable display label)
+**Billing Account:** Linked (billingAccounts/01A2B3-4C5D6E-7F8G9H)
+
+## 1. Cost Control Architecture
+- Budget Target: $50.00 / month
+- Notification Thresholds: 50% ($25), 90% ($45), 100% ($50) via email and Pub/Sub.
+- Critical Finding: Budget alerts are advisory notifications; they DO NOT stop running resources.
+- Protection Mechanism: Automated programmatic kill-switch required for unattended compute workloads.
+
+## 2. Invariant Defense
+- Invariant: Replaying orders or retry loops must never cause duplicate physical fulfillment (<= 1 shipment).
+- Operational Segregation: Sandbox projects maintain strictly isolated network, IAM, and database boundaries from production.
+DOC
+
+cat "$LAB18_3_DIR/day-018-exit-plan.md"
+rm -rf "$LAB18_3_DIR"
+test ! -d "$LAB18_3_DIR"
+printf 'Lab 18.3 workspace cleaned up cleanly. Artifact verified.\n'</code></pre>
+          <p><strong>Expected output.</strong> The Day 18 exit plan artifact prints to stdout, followed by confirmation of clean directory deletion.</p>
+        </div>
+
+        <div class="callout success">
+          <strong>Verification and acceptance</strong>
+          <p>Confirm that: (1) project ID naming rules are validated; (2) context drift between active CLI configuration and command target is caught; (3) destructive commands on production are blocked; and (4) the exit plan artifact documents the immutable project identifiers and cost control architecture.</p>
+        </div>
+
+        <div class="callout caution">
+          <strong>Troubleshooting</strong>
+          <p>If project creation fails with "Project ID already taken", choose a different globally unique string (e.g. appending a random 6-character suffix).</p>
+        </div>
+
+        <div class="callout">
+          <strong>Cleanup and cost</strong>
+          <p>All temporary files are removed in Step 3. Zero cloud billing incurred.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="completion" aria-labelledby="exit-title">
+      <h2 id="exit-title">Daily evidence</h2>
+      <p>Submit the recorded terminal test log demonstrating billing preflight inspection, Always Free tier cost calculations, project identifier validation, and the completed redacted project/billing preflight and cleanup plan explaining why a budget alert is not a hard spend cap.</p>
+      <label class="check"><input type="checkbox" data-progress="read-18"> I read and reviewed the day</label>
+      <label class="check"><input type="checkbox" data-progress="artifact-18"> I saved the exit artifact</label>
+    </section>
+
+    <nav class="pager" aria-label="Day pagination">
+      <a href="day-017.html">← Day 17<small>Gate 1 — Foundation recall and repair</small></a>
+      <a href="../index.html">All 180 days<small>Roadmap index</small></a>
+      <a href="day-019.html">Day 19 →<small>Cloud Shell and gcloud fundamentals</small></a>
+    </nav>
+  </main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer></body></html>

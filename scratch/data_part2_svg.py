@@ -1,0 +1,222 @@
+# scratch/data_part2_svg.py
+"""Part 2 Architectural SVG Diagram (Figure 63.1) and Figcaption."""
+
+PART_2_SVG = """<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d63-arch-title d63-arch-desc" viewBox="0 0 1080 780" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d63-arch-title">Enterprise In-Memory Caching, Datastream CDC &amp; Real-Time Sync Fabric</title>
+<desc id="d63-arch-desc">Comprehensive architectural topology detailing Memorystore for Redis Cluster with Cache-Aside and Mutex Locking, Cloud SQL / AlloyDB OLTP engine with WAL logging, Datastream serverless CDC mining transaction logs without query locks, BigQuery streaming merge upsert, and Cloud Pub/Sub distributed cache invalidation bus.</desc>
+<defs>
+<marker id="d63-m-cache" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d63-m-db" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d63-m-cdc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#a855f7"/>
+</marker>
+<marker id="d63-m-bq" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#06b6d4"/>
+</marker>
+<marker id="d63-m-pubsub" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+<marker id="d63-m-inval" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#ec4899"/>
+</marker>
+</defs>
+
+<!-- SECTION 1: IN-MEMORY CACHING FABRIC (MEMORYSTORE REDIS CLUSTER) -->
+<rect x="20" y="20" width="1040" height="230" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="42" fill="#38bdf8" font-size="13" font-weight="700">1. ENTERPRISE IN-MEMORY CACHING TIER: Memorystore Redis Cluster, Cache-Aside &amp; Stampede Protection</text>
+
+<!-- Microservices Client Box -->
+<rect x="35" y="55" width="260" height="180" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="45" y="75" fill="#38bdf8" font-size="11" font-weight="700">Application Microservices</text>
+<text x="45" y="93" fill="#cbd5e1" font-size="10">GKE Workloads &bull; Cloud Run Services</text>
+<rect x="45" y="102" width="240" height="34" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="55" y="117" fill="#7dd3fc" font-family="monospace" font-size="9">Pattern: Cache-Aside (Lazy Load)</text>
+<text x="55" y="130" fill="#cbd5e1" font-size="9">Read Cache &rarr; Miss &rarr; Read DB &rarr; Set Cache</text>
+<text x="45" y="152" fill="#f59e0b" font-size="10">&#9733; Stampede / Thundering Herd Defense:</text>
+<text x="45" y="167" fill="#fde68a" font-size="9">&bull; Mutex Lock: SET key:lock uuid NX EX 5</text>
+<text x="45" y="181" fill="#fde68a" font-size="9">&bull; Probabilistic Early Refresh: XFetch</text>
+<text x="45" y="195" fill="#cbd5e1" font-size="9">&bull; Delayed Double Deletion on mutations</text>
+<text x="45" y="212" fill="#22c55e" font-size="9">Sub-millisecond p99 latency (&lt;1ms)</text>
+
+<!-- Memorystore Redis Cluster Topology Box -->
+<rect x="315" y="55" width="440" height="180" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+<text x="325" y="75" fill="#7dd3fc" font-size="11" font-weight="700">Memorystore for Redis Cluster (16,384 Hash Slots &bull; up to 250 Nodes)</text>
+
+<!-- Shard 1 -->
+<rect x="325" y="85" width="135" height="138" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="333" y="101" fill="#c7d2fe" font-size="10" font-weight="700">Shard 0: Slots 0-5460</text>
+<text x="333" y="116" fill="#38bdf8" font-size="9">&#9679; Primary Node (Zone A)</text>
+<text x="333" y="129" fill="#94a3b8" font-size="8">Handles Writes &amp; Reads</text>
+<text x="333" y="145" fill="#a855f7" font-size="9">&#9679; Replica (Zone B)</text>
+<text x="333" y="158" fill="#94a3b8" font-size="8">Async Replication &bull; HA</text>
+<text x="333" y="174" fill="#22c55e" font-size="9">Auto-Failover: &lt;30s</text>
+<text x="333" y="189" fill="#cbd5e1" font-size="8">CRC16(key) % 16384</text>
+<text x="333" y="204" fill="#f59e0b" font-size="8">volatile-lru eviction</text>
+
+<!-- Shard 2 -->
+<rect x="470" y="85" width="135" height="138" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="478" y="101" fill="#c7d2fe" font-size="10" font-weight="700">Shard 1: Slots 5461-10922</text>
+<text x="478" y="116" fill="#38bdf8" font-size="9">&#9679; Primary Node (Zone B)</text>
+<text x="478" y="129" fill="#94a3b8" font-size="8">Handles Writes &amp; Reads</text>
+<text x="478" y="145" fill="#a855f7" font-size="9">&#9679; Replica (Zone C)</text>
+<text x="478" y="158" fill="#94a3b8" font-size="8">Cross-Zone Read Replica</text>
+<text x="478" y="174" fill="#22c55e" font-size="9">Multi-TB Total RAM</text>
+<text x="478" y="189" fill="#cbd5e1" font-size="8">Online Slot Resharding</text>
+<text x="478" y="204" fill="#f59e0b" font-size="8">Zero-downtime scaling</text>
+
+<!-- Shard 3 -->
+<rect x="615" y="85" width="130" height="138" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="623" y="101" fill="#c7d2fe" font-size="10" font-weight="700">Shard 2: Slots 10923-16383</text>
+<text x="623" y="116" fill="#38bdf8" font-size="9">&#9679; Primary Node (Zone C)</text>
+<text x="623" y="129" fill="#94a3b8" font-size="8">Handles Writes &amp; Reads</text>
+<text x="623" y="145" fill="#a855f7" font-size="9">&#9679; Replica (Zone A)</text>
+<text x="623" y="158" fill="#94a3b8" font-size="8">Cross-Zone Read Replica</text>
+<text x="623" y="174" fill="#22c55e" font-size="9">Millions of QPS SLA</text>
+<text x="623" y="189" fill="#cbd5e1" font-size="8">Hash Tag: {user_123}</text>
+<text x="623" y="204" fill="#f59e0b" font-size="8">99.99% Availability</text>
+
+<!-- Invalidation & Eviction Control Box -->
+<rect x="775" y="55" width="270" height="180" rx="4" fill="#0f172a" stroke="#ec4899" stroke-width="1"/>
+<text x="785" y="75" fill="#f472b6" font-size="11" font-weight="700">Distributed Invalidation &amp; Policies</text>
+<text x="785" y="93" fill="#cbd5e1" font-size="10">Maxmemory Eviction Policies:</text>
+<text x="785" y="108" fill="#fbcfe8" font-size="9">&bull; volatile-lru (evict expired LRU)</text>
+<text x="785" y="122" fill="#cbd5e1" font-size="9">&bull; allkeys-lru (evict any key LRU)</text>
+<text x="785" y="136" fill="#cbd5e1" font-size="9">&bull; noeviction (OOM on write - safe queues)</text>
+<rect x="785" y="148" width="250" height="74" rx="3" fill="#1e1b4b" stroke="#ec4899" stroke-width="1"/>
+<text x="793" y="164" fill="#f472b6" font-size="9" font-weight="700">Pub/Sub Cache Invalidation Loop</text>
+<text x="793" y="178" fill="#cbd5e1" font-size="8">CDC Invalidation Consumer receives mutated IDs</text>
+<text x="793" y="191" fill="#cbd5e1" font-size="8">Executes async DEL key on all cluster shards</text>
+<text x="793" y="204" fill="#38bdf8" font-size="8">&rarr; Eliminates permanent stale read drift</text>
+
+<!-- Connectors in Section 1 -->
+<path d="M 295 130 L 315 130" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d63-m-cache)"/>
+
+<!-- SECTION 2: RELATIONAL OLTP TIER & DATASTREAM SERVERLESS CDC LOG MINING -->
+<rect x="20" y="265" width="1040" height="235" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="287" fill="#22c55e" font-size="13" font-weight="700">2. RELATIONAL OLTP STORE &amp; DATASTREAM SERVERLESS CDC ENGINE</text>
+
+<!-- Cloud SQL / AlloyDB Box -->
+<rect x="35" y="300" width="310" height="185" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1"/>
+<text x="45" y="320" fill="#4ade80" font-size="11" font-weight="700">Transactional OLTP Store: Cloud SQL / AlloyDB</text>
+<text x="45" y="338" fill="#cbd5e1" font-size="10">ACID Relational Engine (PostgreSQL / MySQL)</text>
+<rect x="45" y="348" width="290" height="50" rx="3" fill="#022c22" stroke="#059669" stroke-width="1"/>
+<text x="55" y="365" fill="#86efac" font-size="10" font-weight="700">Write-Ahead Log (WAL) / Binlog Engine</text>
+<text x="55" y="380" fill="#cbd5e1" font-size="9">Append-only durable transaction log &bull; 64-bit LSN</text>
+<text x="55" y="392" fill="#cbd5e1" font-size="9">Row mutations: INSERT, UPDATE, DELETE records</text>
+<text x="45" y="414" fill="#f59e0b" font-size="10">&#9888; Zero OLTP Impact (Non-Locking Mining):</text>
+<text x="45" y="428" fill="#fde68a" font-size="9">&bull; No SELECT queries &bull; Zero table lock acquisitions</text>
+<text x="45" y="442" fill="#fde68a" font-size="9">&bull; Replication Slot: logical decoding (pgoutput)</text>
+<text x="45" y="456" fill="#cbd5e1" font-size="9">&bull; Continuous checkpointing prevents WAL disk saturation</text>
+<text x="45" y="470" fill="#22c55e" font-size="9">Cross-Zone HA &bull; 99.99% OLTP SLA</text>
+
+<!-- Datastream Serverless CDC Engine Box -->
+<rect x="365" y="300" width="390" height="185" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+<text x="375" y="320" fill="#c084fc" font-size="11" font-weight="700">Google Cloud Datastream (Serverless Real-Time CDC)</text>
+<text x="375" y="338" fill="#cbd5e1" font-size="10">Continuous Transaction Stream Mining without ETL Batches</text>
+
+<!-- Phase Boxes -->
+<rect x="375" y="348" width="180" height="75" rx="3" fill="#1e1b4b" stroke="#a855f7" stroke-width="1"/>
+<text x="383" y="364" fill="#e9d5ff" font-size="10" font-weight="700">1. Initial Backfill Phase</text>
+<text x="383" y="378" fill="#cbd5e1" font-size="8">Concurrent chunked table read</text>
+<text x="383" y="391" fill="#cbd5e1" font-size="8">Captures full historical state</text>
+<text x="383" y="404" fill="#f59e0b" font-size="8">Tuned connection pools (10-20 conn)</text>
+<text x="383" y="417" fill="#cbd5e1" font-size="8">Establishes baseline snapshot</text>
+
+<rect x="565" y="348" width="180" height="75" rx="3" fill="#1e1b4b" stroke="#a855f7" stroke-width="1"/>
+<text x="573" y="364" fill="#e9d5ff" font-size="10" font-weight="700">2. Continuous Stream Phase</text>
+<text x="573" y="378" fill="#cbd5e1" font-size="8">Tails WAL/binlog replication stream</text>
+<text x="573" y="391" fill="#cbd5e1" font-size="8">Zero table scans or index locks</text>
+<text x="573" y="404" fill="#22c55e" font-size="8">Sub-second commit-to-sink lag</text>
+<text x="573" y="417" fill="#cbd5e1" font-size="8">Auto-propagates non-breaking DDL</text>
+
+<rect x="375" y="430" width="370" height="45" rx="3" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+<text x="385" y="445" fill="#a855f7" font-size="9" font-weight="700">Replication Telemetry &amp; SLIs:</text>
+<text x="385" y="458" fill="#cbd5e1" font-size="8">datastream.googleapis.com/stream/stream_latency &bull; Monitored lag alert: &gt; 10s</text>
+<text x="385" y="470" fill="#f59e0b" font-size="8">Replication slot bytes lag &bull; Auto-scale target storage to avoid disk exhaustion</text>
+
+<!-- DMS vs Datastream Distinction Box -->
+<rect x="775" y="300" width="270" height="185" rx="4" fill="#0f172a" stroke="#06b6d4" stroke-width="1"/>
+<text x="785" y="320" fill="#22d3ee" font-size="11" font-weight="700">DMS vs Datastream Architecture</text>
+<rect x="785" y="332" width="250" height="68" rx="3" fill="#164e63" stroke="#0891b2" stroke-width="1"/>
+<text x="793" y="348" fill="#a5f3fc" font-size="10" font-weight="700">Database Migration Service (DMS):</text>
+<text x="793" y="362" fill="#cbd5e1" font-size="8">&bull; Homogeneous database migration</text>
+<text x="793" y="374" fill="#cbd5e1" font-size="8">&bull; Source: On-prem / AWS RDS &rarr; Target: Cloud SQL</text>
+<text x="793" y="386" fill="#cbd5e1" font-size="8">&bull; Full initial dump + continuous sync until cutover</text>
+<text x="793" y="396" fill="#22c55e" font-size="8">&bull; Minimal-downtime permanent database shift</text>
+
+<rect x="785" y="408" width="250" height="68" rx="3" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="793" y="423" fill="#c7d2fe" font-size="10" font-weight="700">Datastream Real-Time CDC Fabric:</text>
+<text x="793" y="437" fill="#cbd5e1" font-size="8">&bull; Heterogeneous continuous data streaming</text>
+<text x="793" y="449" fill="#cbd5e1" font-size="8">&bull; Targets: BigQuery, Cloud Storage, Pub/Sub</text>
+<text x="793" y="461" fill="#cbd5e1" font-size="8">&bull; Never terminates; permanent operational pipeline</text>
+<text x="793" y="472" fill="#06b6d4" font-size="8">&bull; Powers real-time analytics &amp; cache invalidation</text>
+
+<!-- Connectors in Section 2 -->
+<path d="M 345 390 L 365 390" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#d63-m-cdc)"/>
+
+<!-- SECTION 3: DOWNSTREAM SINK DESTINATIONS & DATABASE SELECTION DECISION BOUNDARY -->
+<rect x="20" y="515" width="1040" height="245" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="537" fill="#f59e0b" font-size="13" font-weight="700">3. EVENT SINK TARGETS, DETERMINISTIC RECONCILIATION &amp; SELECTION FRAMEWORK</text>
+
+<!-- BigQuery Real-Time Analytics Box -->
+<rect x="35" y="550" width="310" height="195" rx="4" fill="#0f172a" stroke="#06b6d4" stroke-width="1"/>
+<text x="45" y="570" fill="#22d3ee" font-size="11" font-weight="700">Target 1: BigQuery (Real-Time Upsert)</text>
+<text x="45" y="588" fill="#cbd5e1" font-size="10">Automated Continuous MERGE Ingestion</text>
+<rect x="45" y="598" width="290" height="60" rx="3" fill="#164e63" stroke="#0891b2" stroke-width="1"/>
+<text x="55" y="614" fill="#a5f3fc" font-size="9" font-weight="700">CDC Metadata Vector Fields:</text>
+<text x="55" y="628" fill="#cbd5e1" font-size="8">&bull; _metadata_source_timestamp: Event time</text>
+<text x="55" y="640" fill="#cbd5e1" font-size="8">&bull; _metadata_lsn: 64-bit Log Sequence Number</text>
+<text x="55" y="652" fill="#cbd5e1" font-size="8">&bull; _metadata_change_type: INSERT / UPDATE / DELETE</text>
+<text x="45" y="675" fill="#f59e0b" font-size="9">&#9733; Deterministic Out-of-Order MERGE Reconciliation:</text>
+<text x="45" y="689" fill="#fde68a" font-size="8">QUALIFY ROW_NUMBER() OVER(PARTITION BY entity_id</text>
+<text x="45" y="701" fill="#fde68a" font-size="8">ORDER BY _metadata_source_timestamp DESC, _metadata_lsn DESC) = 1</text>
+<text x="45" y="718" fill="#22c55e" font-size="9">Zero ETL delay &bull; Sub-minute reporting tables</text>
+<text x="45" y="733" fill="#cbd5e1" font-size="8">Decoupled Dremel compute &bull; Petabyte scale</text>
+
+<!-- Pub/Sub & Cloud Storage Box -->
+<rect x="365" y="550" width="310" height="195" rx="4" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
+<text x="375" y="570" fill="#fbbf24" font-size="11" font-weight="700">Target 2 &amp; 3: Pub/Sub &amp; Cloud Storage</text>
+<rect x="375" y="580" width="290" height="70" rx="3" fill="#1e1b4b" stroke="#f59e0b" stroke-width="1"/>
+<text x="385" y="597" fill="#fde68a" font-size="10" font-weight="700">Cloud Pub/Sub (Event-Driven Broker):</text>
+<text x="385" y="612" fill="#cbd5e1" font-size="8">&bull; Transport: At-least-once delivery with Ordering Keys</text>
+<text x="385" y="624" fill="#cbd5e1" font-size="8">&bull; Triggers Cloud Functions / Cloud Run microservices</text>
+<text x="385" y="636" fill="#ec4899" font-size="8">&bull; Publishes cache invalidation tokens to Redis Cluster</text>
+
+<rect x="375" y="660" width="290" height="75" rx="3" fill="#1e1b4b" stroke="#0284c7" stroke-width="1"/>
+<text x="385" y="677" fill="#7dd3fc" font-size="10" font-weight="700">Cloud Storage Lakehouse Sink:</text>
+<text x="385" y="692" fill="#cbd5e1" font-size="8">&bull; Formats: Apache Avro / JSON newline-delimited</text>
+<text x="385" y="704" fill="#cbd5e1" font-size="8">&bull; Partitioning: /year/month/day/hour/schema</text>
+<text x="385" y="716" fill="#cbd5e1" font-size="8">&bull; BigLake external tables &bull; Dataproc batch analytics</text>
+
+<!-- Unified Database Selection Framework Matrix Box -->
+<rect x="695" y="550" width="350" height="195" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1"/>
+<text x="705" y="570" fill="#4ade80" font-size="11" font-weight="700">Unified GCP Database Selection Framework</text>
+<text x="705" y="586" fill="#cbd5e1" font-size="9">Architectural Decision Tree (Workload Archetype Mapping):</text>
+<rect x="705" y="594" width="330" height="142" rx="3" fill="#022c22" stroke="#059669" stroke-width="1"/>
+<text x="713" y="609" fill="#86efac" font-size="9">&bull; Standard Relational OLTP (&lt;64TB, single-region): <tspan fill="#38bdf8" font-weight="700">Cloud SQL</tspan></text>
+<text x="713" y="624" fill="#86efac" font-size="9">&bull; High-Scale HTAP Postgres (Columnar, fast failover): <tspan fill="#38bdf8" font-weight="700">AlloyDB</tspan></text>
+<text x="713" y="639" fill="#86efac" font-size="9">&bull; Global Horizontal Relational (Multi-region 99.999%): <tspan fill="#38bdf8" font-weight="700">Spanner</tspan></text>
+<text x="713" y="654" fill="#86efac" font-size="9">&bull; Mobile / Web Document NoSQL (Live sync, offline): <tspan fill="#38bdf8" font-weight="700">Firestore</tspan></text>
+<text x="713" y="669" fill="#86efac" font-size="9">&bull; High-Throughput Wide-Column (IoT, &gt;100k QPS): <tspan fill="#38bdf8" font-weight="700">Bigtable</tspan></text>
+<text x="713" y="684" fill="#86efac" font-size="9">&bull; Sub-ms In-Memory Key-Value / Session Caching: <tspan fill="#38bdf8" font-weight="700">Memorystore</tspan></text>
+<text x="713" y="699" fill="#86efac" font-size="9">&bull; Petabyte-Scale Serverless OLAP Warehouse: <tspan fill="#38bdf8" font-weight="700">BigQuery</tspan></text>
+<text x="713" y="722" fill="#fde68a" font-size="8">&#9733; Core Invariant: Never use OLTP stores for high-QPS telemetry</text>
+
+<!-- Major Cross-Tier Data Flow Connectors -->
+<!-- Flow 1: Microservice write to Cloud SQL -->
+<path d="M 120 235 L 120 300" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d63-m-db)"/>
+<!-- Flow 2: Datastream to BigQuery -->
+<path d="M 450 485 L 450 510 L 200 510 L 200 550" fill="none" stroke="#06b6d4" stroke-width="2" marker-end="url(#d63-m-bq)"/>
+<!-- Flow 3: Datastream to Pub/Sub -->
+<path d="M 560 485 L 560 550" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#d63-m-pubsub)"/>
+<!-- Flow 4: Pub/Sub Invalidation loop back to Memorystore Redis Cluster -->
+<path d="M 520 550 L 520 500 L 910 500 L 910 235" fill="none" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#d63-m-inval)"/>
+</svg>
+<figcaption>Figure 63.1: Enterprise In-Memory Caching, Datastream CDC &amp; Real-Time Sync Fabric. Architectural topology showing: (1) Enterprise in-memory caching tier utilizing Memorystore for Redis Cluster with 16,384 keyspace hash slots across primary and cross-zone replica shards, protected against cache stampedes via distributed mutex locking (SETNX) and probabilistic early expiration (XFetch), paired with a Pub/Sub invalidation loop; (2) Relational OLTP tier (Cloud SQL / AlloyDB) coupled with Datastream serverless Change Data Capture mining the append-only Write-Ahead Log (WAL) via non-locking logical decoding (pgoutput) with continuous stream latency telemetry; and (3) Downstream destinations including BigQuery continuous streaming merge upsert with deterministic LSN ordering, Pub/Sub event bus, and Cloud Storage lakehouse sink, anchored by Google Cloud's Unified Database Selection Decision Matrix across all seven managed datastores.</figcaption>
+</figure>
+"""

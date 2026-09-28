@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 55: CDN, WAF and traffic management · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-054.html" aria-label="Previous day">← Day 54</a>
+<a href="day-056.html" aria-label="Next day">Day 56 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html" selected>Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="55" data-prev="day-054.html" data-next="day-056.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 55 of 180</div>
+<section class="hero">
+<div class="pills"><span class="pill">DAY 55</span><span class="pill">3–4 hours</span><span class="pill">production practice</span><span class="pill">Edge &amp; Security</span></div>
+<h1>Day 55 — CDN, WAF and traffic management</h1>
+<p class="lead"><strong>Outcome:</strong> Test cache-key behavior; analyze a WAF false-positive fixture and model weighted traffic routing with cross-region failover across planetary edge infrastructure.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-054.html">Day 54</a>; bring their exit artifacts.</p></div>
+<div class="callout success"><strong>Exit artifact</strong><p>A cache/security decision with invalidation, rollback and observability requirements, assembled as <code>day-055-cache-security-adr.md</code>.</p></div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>Cloud CDN (cache modes, cache keys, invalidation, signed URLs)</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>Cloud Armor (WAF rules, rate limiting, geo and IP allow/deny lists)</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+<div class="toc-topic"><span>Traffic management (weighted traffic splitting, header routing, failover)</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+<div class="toc-topic"><span>Choosing the right load balancer (decision tree in cheat sheets)</span><a href="#topic-04-overview">overview</a> · <a href="#topic-04-technical">discussion</a> · <a href="#topic-04-problem">problem</a> · <a href="#topic-04-lab">lab</a></div>
+</aside>
+
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Cloud CDN (cache modes, cache keys, invalidation, signed URLs)</h3>
+<p>Cloud CDN caches static and dynamic web content across Google's worldwide Anycast edge points of presence, dramatically reducing round-trip latency and offloading origin compute clusters. Deep architectural control requires tuning cache modes (<code>CACHE_ALL_STATIC</code>, <code>USE_ORIGIN_HEADERS</code>, and <code>FORCE_CACHE_ALL</code>), configuring granular cache keys (filtering query parameters, client HTTP headers, and cookies) to prevent cache pollution, cache poisoning, and fragmentation. Operating edge caches safely demands mastering asynchronous edge invalidation mechanics, deploying Origin Shield to collapse thundering herds, and securing premium digital assets via HMAC-authenticated Signed URLs and Signed Cookies verified at edge Google Front Ends (GFEs) without consuming backend compute capacity.</p>
+<p>When an operations team configures <code>FORCE_CACHE_ALL</code> on a customer profile API endpoint returning personalized JSON payloads, Cloud CDN stores the first authenticated response at edge PoPs and indiscriminately serves it to subsequent visitors. Over 1,200 loyalty members receive leaked personally identifiable information (PII) including physical addresses and reward balances, halting portal logins and forcing an emergency security audit.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Cloud Armor (WAF rules, rate limiting, geo and IP allow/deny lists, adaptive protection)</h3>
+<p>Cloud Armor delivers enterprise-grade Web Application Firewall (WAF) and volumetric DDoS defense directly at Google's planetary network edge. Operating inline at Google Front Ends before traffic enters private VPC networks, Cloud Armor inspects Layer 7 HTTP payloads against preconfigured OWASP Top 10 Core Rulesets (defending against SQL injection, cross-site scripting, remote code execution, and Log4j exploits). Architects enforce sliding-window rate limiting per client IP or session key, geo-fencing (<code>origin.region_code</code>), and CIDR allow/deny lists. Under Cloud Armor Enterprise, machine-learning powered Adaptive Protection models baseline application traffic, detects anomalous Layer 7 floods in real time, and auto-generates proactive mitigation rule signatures.</p>
+<p>When a security administrator deploys preconfigured SQL injection rules (<code>sqli-v33-stable</code>) at maximum sensitivity without preliminary preview validation, legitimate base64-encoded inventory XML synchronization payloads containing SQL-like tokens are abruptly blocked with HTTP 403 Forbidden. Automated supplier restocking pipelines fail across 14 global distribution centers, stalling $2.4 million in daily wholesale bread orders.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Traffic management (weighted traffic splitting, header-based routing, cross-region failover)</h3>
+<p>Modern continuous delivery pipelines rely on declarative Layer 7 traffic management executed at the load balancing proxy tier. Google Cloud URL Maps provide fine-grained control: weighted traffic splitting enables progressive canary rollouts (e.g. 95% v1, 5% v2) with cookie pinning to preserve user session affinity, while header and query parameter matching directs internal testers or mobile cohorts to specialized microservices. URL Maps also support dark traffic request mirroring (shadowing) for non-blocking performance benchmarking, as well as URL rewrites and redirects. Across multi-region deployments, backend services leverage capacity scalers and <code>UTILIZATION</code> or <code>RATE</code> balancing modes to orchestrate graceful cross-region spillover when a primary region encounters unexpected load or infrastructure failure.</p>
+<p>When engineers configure multi-region load balancing with utilization capacity scalers set to 1.0 but omit max rate boundaries, an abrupt fiber cut in the primary region triggers uncontrolled traffic spillover that instantly overwhelms the secondary region's backend instances. The cascading failover triggers global HTTP 503 Service Unavailable errors across all consumer mobile applications for 38 minutes during peak breakfast ordering hours.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-04-overview" class="topic-card">
+<h3>Choosing the right load balancer (decision tree in cheat sheets)</h3>
+<p>Selecting the optimal Google Cloud load balancer is a foundational architectural decision that dictates latency, security capabilities, and regional failover characteristics. The evaluation framework analyzes client origin (external public internet vs internal private VPC), geographic scope (global Anycast vs sovereign regional boundaries), and transport architecture (dual-socket Envoy/GFE reverse proxy vs Maglev direct server return passthrough). Crucially, feature compatibility imposes non-negotiable architectural boundaries: Cloud CDN, Cloud Armor, and Identity-Aware Proxy (IAP) are exclusively supported on Application Load Balancers (with Cloud Armor also protecting external TCP/SSL proxies), requiring strict alignment with Google's Premium Tier Anycast network infrastructure.</p>
+<p>When an engineering team provisions a Regional External Application Load Balancer instead of a Global External Application Load Balancer for an international SaaS application, client TCP handshakes from Europe and Asia traverse high-latency public internet transit rather than Google's private Anycast backbone. API latency spikes by 240 milliseconds and Cloud CDN caching remains unsupported, generating severe customer churn and triggering contractual SLA breach penalties.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Step-by-step lab →</a></p>
+</article>
+
+</section>
+
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<!-- Part 2 Architecture SVG: Planetary Edge Acceleration, WAF Security, and Intelligent Traffic Management -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d55-arch-title d55-arch-desc" viewBox="0 0 1000 480" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d55-arch-title">Planetary Edge Acceleration, WAF Defense, and Advanced Traffic Routing</title>
+<desc id="d55-arch-desc">Architecture diagram showing Google Front End edge caching with Cloud CDN, Cloud Armor WAF inspection rules, URL Map weighted canary splitting, and multi-region backend failover.</desc>
+<defs>
+<marker id="d55-edge-flow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d55-waf-block" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d55-canary-flow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Outer Canvas -->
+<rect x="15" y="15" width="970" height="450" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+<text x="35" y="42" fill="#f8fafc" font-size="16" font-weight="700">Edge Acceleration, Threat Mitigation, and Traffic Management Architecture</text>
+<text x="35" y="60" fill="#94a3b8" font-size="12">Cloud CDN Edge Caching, Cloud Armor Adaptive WAF, URL Map Canary Traffic Splitting, and Multi-Region Failover</text>
+
+<!-- Left: Client Traffic & Edge PoP -->
+<rect x="35" y="80" width="230" height="365" rx="6" fill="#090d16" stroke="#38bdf8" stroke-width="1.5"/>
+<text x="50" y="105" fill="#38bdf8" font-size="13" font-weight="700">Edge Anycast &amp; CDN Cache</text>
+<text x="50" y="122" fill="#94a3b8" font-size="11">Google Edge PoPs Worldwide</text>
+
+<!-- Public Users -->
+<rect x="50" y="140" width="200" height="75" rx="4" fill="#1e293b" stroke="#3b82f6" stroke-width="1"/>
+<text x="60" y="162" fill="#60a5fa" font-size="11" font-weight="600">Global Web &amp; Mobile Clients</text>
+<text x="60" y="180" fill="#cbd5e1" font-size="10">HTTPS Requests to Anycast VIP</text>
+<text x="60" y="196" fill="#94a3b8" font-size="10">Terminates at Closest Edge GFE</text>
+
+<!-- Cloud CDN Edge Node -->
+<rect x="50" y="235" width="200" height="195" rx="4" fill="#172554" stroke="#38bdf8" stroke-width="1.5"/>
+<text x="60" y="258" fill="#93c5fd" font-size="12" font-weight="700">Cloud CDN Edge Cache</text>
+<text x="60" y="276" fill="#cbd5e1" font-size="10">Cache Hit: 200 OK (Edge Return)</text>
+<text x="60" y="292" fill="#cbd5e1" font-size="10">Origin Shield: Centralized Cache Hub</text>
+<text x="60" y="308" fill="#cbd5e1" font-size="10">Custom Cache Key: protocol, host, path</text>
+<text x="60" y="324" fill="#cbd5e1" font-size="10">Signed URLs: HMAC Token Validation</text>
+<text x="60" y="340" fill="#86efac" font-size="10">Offloads 85%+ of Static Traffic</text>
+<text x="60" y="360" fill="#94a3b8" font-size="10">Cache Miss: Passes to Cloud Armor</text>
+
+<!-- Verify Boundary Box -->
+<rect id="d55-arch-verify" x="285" y="80" width="230" height="365" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,4"/>
+<text x="295" y="72" fill="#fbbf24" font-size="11" font-weight="700">VERIFY BOUNDARY: Cloud Armor Inspection &amp; Rate Policy</text>
+<!-- Center-Left: Cloud Armor Edge Security Perimeter -->
+<rect x="285" y="80" width="230" height="365" rx="6" fill="#0f172a" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="300" y="105" fill="#f43f5e" font-size="13" font-weight="700">Cloud Armor WAF Perimeter</text>
+<text x="300" y="122" fill="#94a3b8" font-size="11">Inline L7 Threat Mitigation</text>
+
+<!-- WAF Rule Sets -->
+<rect x="300" y="140" width="200" height="135" rx="4" fill="#2d121c" stroke="#f43f5e" stroke-width="1"/>
+<text x="310" y="162" fill="#fda4af" font-size="11" font-weight="700">Preconfigured OWASP WAF</text>
+<text x="310" y="180" fill="#cbd5e1" font-size="10">sqli-v33-stable (SQL Injection)</text>
+<text x="310" y="196" fill="#cbd5e1" font-size="10">xss-v33-stable (Cross-Site Scripting)</text>
+<text x="310" y="212" fill="#cbd5e1" font-size="10">lfi-v33-stable &amp; rce-v33-stable</text>
+<text x="310" y="228" fill="#f43f5e" font-size="10">Action: DENY 403 Forbidden</text>
+<text x="310" y="244" fill="#94a3b8" font-size="10">Preview Mode for Tuning</text>
+
+<!-- Adaptive Protection & Rate Limiting -->
+<rect x="300" y="290" width="200" height="140" rx="4" fill="#1e1b2e" stroke="#c084fc" stroke-width="1"/>
+<text x="310" y="312" fill="#e9d5ff" font-size="11" font-weight="700">Rate Limiting &amp; ML Defense</text>
+<text x="310" y="330" fill="#cbd5e1" font-size="10">Max 100 RPS / Client IP (Ban 10m)</text>
+<text x="310" y="346" fill="#cbd5e1" font-size="10">Geo-Fencing: origin.region_code</text>
+<text x="310" y="362" fill="#cbd5e1" font-size="10">Adaptive Protection: ML Anomaly Alert</text>
+<text x="310" y="378" fill="#86efac" font-size="10">Passed: Verified Traffic to URL Map</text>
+
+<!-- Center-Right: URL Map Traffic Management -->
+<rect x="535" y="80" width="210" height="365" rx="6" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="550" y="105" fill="#4ade80" font-size="13" font-weight="700">URL Map Traffic Engine</text>
+<text x="550" y="122" fill="#94a3b8" font-size="11">Canary Splitting &amp; Header Match</text>
+
+<!-- Weighted Canary Box -->
+<rect x="550" y="140" width="180" height="135" rx="4" fill="#092518" stroke="#22c55e" stroke-width="1"/>
+<text x="560" y="162" fill="#86efac" font-size="11" font-weight="700">Weighted Canary Split</text>
+<text x="560" y="180" fill="#cbd5e1" font-size="10">95% Traffic → v1 Stable</text>
+<text x="560" y="196" fill="#4ade80" font-size="10">5% Traffic → v2 Canary</text>
+<text x="560" y="212" fill="#cbd5e1" font-size="10">Header Match Rule:</text>
+<text x="560" y="228" fill="#cbd5e1" font-size="10">X-Beta-Tester: true → v2</text>
+<text x="560" y="244" fill="#94a3b8" font-size="10">Zero-Downtime Rollout</text>
+
+<!-- Cross-Region Overflow Box -->
+<rect x="550" y="290" width="180" height="140" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="560" y="312" fill="#7dd3fc" font-size="11" font-weight="700">Cross-Region Failover</text>
+<text x="560" y="330" fill="#cbd5e1" font-size="10">Primary: us-east4 (Max 80 RPS)</text>
+<text x="560" y="346" fill="#cbd5e1" font-size="10">Capacity Overflow: Spillover</text>
+<text x="560" y="362" fill="#cbd5e1" font-size="10">Secondary: europe-west1</text>
+<text x="560" y="378" fill="#86efac" font-size="10">Autoscaling Health Synced</text>
+
+<!-- Right: Backend Compute Instances -->
+<rect x="765" y="80" width="200" height="365" rx="6" fill="#0c1a2f" stroke="#38bdf8" stroke-width="1.5"/>
+<text x="780" y="105" fill="#38bdf8" font-size="13" font-weight="700">Backend Services</text>
+<text x="780" y="122" fill="#cbd5e1" font-size="11">Multi-Region Compute</text>
+
+<!-- Backend 1: Prod v1 Stable -->
+<rect x="775" y="140" width="180" height="75" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+<text x="785" y="162" fill="#f8fafc" font-size="11" font-weight="700">Backend: order-v1-stable</text>
+<text x="785" y="180" fill="#cbd5e1" font-size="10">MIG: us-east4 (10 nodes)</text>
+<text x="785" y="196" fill="#86efac" font-size="10">Serving 95% Production</text>
+
+<!-- Backend 2: Prod v2 Canary -->
+<rect x="775" y="230" width="180" height="75" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="785" y="252" fill="#4ade80" font-size="11" font-weight="700">Backend: order-v2-canary</text>
+<text x="785" y="270" fill="#cbd5e1" font-size="10">MIG: us-east4 (2 nodes)</text>
+<text x="785" y="286" fill="#4ade80" font-size="10">Serving 5% Canary Load</text>
+
+<!-- Backend 3: Europe-West1 Spillover -->
+<rect x="775" y="325" width="180" height="105" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="785" y="348" fill="#38bdf8" font-size="11" font-weight="700">Backend: order-eu-backup</text>
+<text x="785" y="366" fill="#cbd5e1" font-size="10">MIG: europe-west1</text>
+<text x="785" y="382" fill="#cbd5e1" font-size="10">Hot Standby Capacity</text>
+<text x="785" y="398" fill="#86efac" font-size="10">Absorbs US Outage Spikes</text>
+
+<!-- Connectors -->
+<path d="M 250 175 L 285 175" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d55-edge-flow)"/>
+<path d="M 500 360 L 535 210" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d55-edge-flow)"/>
+<path d="M 730 180 L 775 180" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d55-edge-flow)"/>
+<path d="M 730 220 L 775 260" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d55-canary-flow)"/>
+<path d="M 730 360 L 775 360" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#d55-edge-flow)"/>
+</svg>
+<figcaption>Figure 55.1: Edge Acceleration, Threat Mitigation, and Traffic Management Architecture. Client requests enter Google Front Ends, serving static hits directly from Cloud CDN, passing misses through Cloud Armor WAF and rate limiting, and executing weighted canary traffic splitting and cross-region failover via URL Maps.</figcaption>
+</figure>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Cloud CDN (cache modes, cache keys, invalidation, signed URLs)</h3>
+<p>Google Cloud CDN integrates seamlessly with Global External Application Load Balancers to cache HTTP and HTTPS responses across more than 100 Google edge Points of Presence (PoPs) worldwide. By terminating TLS and serving content directly from Google Front Ends (GFEs) geographically adjacent to clients, Cloud CDN slashes round-trip delivery time to single-digit milliseconds, shields backend Compute Engine instance groups and Cloud Storage buckets from sudden traffic surges, and cuts egress networking costs by up to 70%.</p>
+
+<h4>Cache Modes and Origin Negotiation Semantics</h4>
+<p>The caching behavior of a backend service or backend bucket is governed by its configured <strong>Cache Mode</strong>, which defines how Cloud CDN interprets origin HTTP headers:</p>
+<ul>
+<li><code>CACHE_ALL_STATIC</code>: Automatically caches static web assets based on predetermined MIME types and file extensions (e.g. CSS, JavaScript, web fonts, JPEG/PNG/WebP images, PDF documents, MP4 video). In this mode, Cloud CDN strips incoming origin <code>Set-Cookie</code> response headers before storing the entry to prevent accidental session token caching. It strictly respects negative directives such as <code>Cache-Control: private</code>, <code>Cache-Control: no-store</code>, and <code>Cache-Control: no-cache</code>, ensuring private or dynamic endpoints are never cached even if their extension matches static heuristics.</li>
+<li><code>USE_ORIGIN_HEADERS</code>: Requires the origin web server or API gateway to emit explicit caching directives. A response is cached if and only if the origin provides a valid <code>Cache-Control: public, max-age=...</code> or <code>s-maxage=...</code> header, or a valid <code>Expires</code> header. If origin headers are absent, responses are not cached. Responses containing <code>Set-Cookie</code> are not cached unless the origin explicitly includes <code>Cache-Control: public</code>. This mode is mandatory for dynamic microservices and REST APIs where caching rules vary dynamically based on business logic.</li>
+<li><code>FORCE_CACHE_ALL</code>: Unconditionally caches all successful HTTP 200, 203, 206, 300, 301, and 302 responses, entirely overriding origin headers, <code>Set-Cookie</code> headers, and <code>Cache-Control: private</code> directives with a configured default TTL. <em>Critical architectural warning:</em> <code>FORCE_CACHE_ALL</code> must never be enabled on backend services that serve authenticated, user-specific, or mutating responses, as doing so leads to catastrophic data privacy leaks.</li>
+</ul>
+<p>Cache durations are bounded by three configurable TTL settings: <code>--client-ttl</code> (which rewrites the <code>max-age</code> sent downstream to client browsers), <code>--default-ttl</code> (used when the origin omits caching directives), and <code>--max-ttl</code> (which caps the maximum duration Cloud CDN will retain an asset at the edge, regardless of origin <code>s-maxage</code> values).</p>
+
+<h4>Cache Key Customization and Origin Shield</h4>
+<p>By default, Cloud CDN computes a cache key using the full request URL: <code>protocol://host/path?query_string</code>. In modern web architectures, this default often results in severe <strong>cache fragmentation</strong> or <strong>cache pollution</strong>. For instance, marketing analytics parameters (such as <code>utm_source</code>, <code>utm_medium</code>, or <code>fbclid</code>) generate distinct URLs for the exact same underlying asset, shattering edge hit ratios and flooding origin clusters.</p>
+<p>Architects optimize cache performance through <strong>Custom Cache Keys</strong>:</p>
+<ul>
+<li><strong>Query String Filtering:</strong> Backends can be configured to exclude all query parameters (<code>--no-cache-key-include-query-string</code>), whitelist only functionally significant query parameters (e.g. <code>--cache-key-query-string-whitelist=id,version</code>), or blacklist irrelevant tracking parameters (<code>--cache-key-query-string-blacklist=utm_source,utm_campaign,gclid</code>). This collapses thousands of tracking URL permutations into a single consolidated edge cache entry.</li>
+<li><strong>HTTP Header Inclusion:</strong> Specific client request headers can be incorporated into the cache key using <code>--cache-key-include-headers=Accept-Language,Origin</code>. This enables Cloud CDN to maintain distinct cached representations for localized languages or CORS origins without requiring separate path structures. Incorporating high-cardinality headers like <code>User-Agent</code> must be avoided, as it fragments the cache and degrades performance.</li>
+<li><strong>Custom Cookies:</strong> Distinct cached representations can be keyed on specific session cookies (e.g. currency preferences or country selectors), ensuring personalized presentation while retaining edge caching efficiency.</li>
+</ul>
+<p>To further protect origin backends during global cache-miss events, architects enable <strong>Origin Shield</strong>. Origin Shield designates a centralized Google Cloud regional cache tier located in the same region as the backend service. When hundreds of distributed edge PoPs worldwide experience simultaneous cache misses for the same asset, the edge PoPs query Origin Shield rather than hitting the origin directly. Origin Shield collapses these concurrent requests into a single origin request, eliminating the <strong>thundering herd</strong> (cache stampede) problem and cutting origin load by over 90%.</p>
+
+<h4>Invalidation Mechanics and Cache Stampede Mitigation</h4>
+<p>When origin assets change before their edge TTL expires, administrators execute a <strong>Cache Invalidation</strong>. Invalidation instructions are dispatched asynchronously from the Google Cloud control plane across the entire worldwide fleet of GFEs (invoked via <code>url-maps invalidate-cdn-cache</code> with the <code>--async</code> flag). Invalidation targets can specify an exact path (<code>/images/logo-v2.png</code>) or a recursive wildcard (<code>/static/css/*</code> or <code>/*</code>).</p>
+<p>Invalidation carries operational constraints: Cloud CDN enforces a quota limit of one active invalidation per minute per URL map path matcher. Furthermore, invalidating broad wildcards across a high-traffic production service can trigger an immediate worldwide cache stampede as millions of incoming requests simultaneously miss the edge cache and strike the origin backend. Production best practice dictates employing <strong>content-addressed immutable URLs</strong> (cache busting with cryptographic content hashes, such as <code>app.7f89bc.js</code>) rather than relying on active invalidations during CI/CD releases.</p>
+
+<h4>Signed URLs and Signed Cookies for Protected Media</h4>
+<p>When distributing premium, subscription-based, or confidential digital assets (such as video-on-demand streams, paid software downloads, or medical documents), architects utilize <strong>Signed URLs</strong> and <strong>Signed Cookies</strong>. Rather than forcing every download request to transit origin authentication servers, the origin server generates a cryptographically signed token using an HMAC-SHA1 symmetric key stored in the backend service configuration (<code>--key-name</code> and <code>--key-file</code>).</p>
+<p>The signed token embeds an expiration timestamp (<code>Expires=...</code>), a URL prefix constraint, and an HMAC signature. When the client issues a request to Cloud CDN, the edge GFE evaluates the HMAC signature and timestamp locally:
+<ul>
+<li>If the signature matches and current time is prior to expiration, the GFE immediately serves the cached asset.</li>
+<li>If the signature is invalid, tampered with, or expired, the GFE immediately drops the request with HTTP 403 Forbidden without transmitting a single byte into the VPC or burdening backend instances.</li>
+</ul>
+<p>Signed Cookies provide the identical cryptographic validation mechanism for segmented streaming protocols (HLS and MPEG-DASH). Because video streams consist of thousands of individual <code>.ts</code> media segments, appending signed query parameters to every URL is impractical; a single signed session cookie validates access across all segment requests within the media playlist path.</p>
+
+<table class="data-table">
+<thead>
+<tr>
+<th>Cache Mode / Setting</th>
+<th>Origin Header Requirement</th>
+<th>Handling of Set-Cookie / Auth</th>
+<th>Default &amp; Max TTL Behavior</th>
+<th>Recommended Production Use Case</th>
+<th>Key Architectural Risks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>CACHE_ALL_STATIC</code></strong></td>
+<td>Optional; uses MIME type and file extension heuristics.</td>
+<td>Strips <code>Set-Cookie</code> before storing; respects <code>Cache-Control: private/no-store</code>.</td>
+<td>Respects origin <code>max-age</code>; falls back to <code>--default-ttl</code>; capped by <code>--max-ttl</code>.</td>
+<td>Static web assets (CSS, JS, images, fonts, PDF downloads, video media).</td>
+<td>Accidentally caching endpoints with static extensions that render user-specific data.</td>
+</tr>
+<tr>
+<td><strong><code>USE_ORIGIN_HEADERS</code></strong></td>
+<td>Mandatory; cached only if origin emits explicit <code>public, max-age</code> or <code>s-maxage</code>.</td>
+<td>Honors origin headers strictly; never caches responses with <code>Set-Cookie</code> unless marked <code>public</code>.</td>
+<td>Strictly follows origin directives; bounded by <code>--max-ttl</code> and <code>--client-ttl</code>.</td>
+<td>Dynamic web apps, REST APIs, and microservices requiring precise programmatic TTL control.</td>
+<td>Origin web servers omitting cache headers, resulting in 0% edge hit ratios.</td>
+</tr>
+<tr>
+<td><strong><code>FORCE_CACHE_ALL</code></strong></td>
+<td>Overrides all origin headers; caches all 200/203/206/300/301/302 responses.</td>
+<td>Ignores <code>Set-Cookie</code> and <code>Cache-Control: private</code>; serves stored copy to all users.</td>
+<td>Applies <code>--default-ttl</code> unconditionally to all qualifying HTTP response codes.</td>
+<td>High-volume legacy public origins incapable of emitting HTTP cache headers.</td>
+<td>Severe PII data leakage and session token exposure if applied to authenticated APIs.</td>
+</tr>
+<tr>
+<td><strong>Custom Cache Keys (Query String Filter)</strong></td>
+<td>N/A (Evaluates incoming client request URI).</td>
+<td>N/A; whitelists or blacklists query parameter keys prior to cache lookup.</td>
+<td>Collapses query parameter permutations into single consolidated cache representation.</td>
+<td>Public storefronts with marketing tracking parameters (<code>utm_*</code>, <code>fbclid</code>).</td>
+<td>Excluding functional query parameters (e.g. <code>page=2</code>) serves incorrect data to users.</td>
+</tr>
+<tr>
+<td><strong>Custom Cache Keys (Headers &amp; Cookies)</strong></td>
+<td>N/A (Evaluates client request headers/cookies).</td>
+<td>Keys cache bucket on specific header values (e.g. <code>Accept-Language</code>, <code>Origin</code>).</td>
+<td>Creates distinct cache representation per unique header/cookie combination.</td>
+<td>Multi-lingual localized web applications and CORS multi-origin static asset distribution.</td>
+<td>Keying on high-cardinality headers (e.g. <code>User-Agent</code>) shatters cache hit ratios.</td>
+</tr>
+<tr>
+<td><strong>Signed URLs &amp; Signed Cookies</strong></td>
+<td>Requires pre-shared HMAC secret configured on Backend Service.</td>
+<td>GFE validates HMAC signature, expiration timestamp, and URL prefix before serving cache.</td>
+<td>Cache entry cached globally; individual client access bounded by token expiration time.</td>
+<td>Paid digital media streaming, subscriber video delivery, and secure software downloads.</td>
+<td>Replay attacks if expiration windows are overly long; token leakage via unencrypted HTTP.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf serves 50,000 requests per minute for marketing recipe images. Marketing emails append diverse tracking tokens (<code>?utm_source=newsletter&amp;campaign=easter</code>), causing origin database CPU to spike to 92%. Expected: Update the backend bucket cache key to <code>--no-cache-key-include-query-string</code> or configure <code>--cache-key-query-string-blacklist=utm_source,campaign</code>. This collapses all tracking variations into a single cache key, increasing edge hit ratio from 14% to 99% and reducing origin CPU load to under 5%.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/cdn/docs/overview" rel="noopener noreferrer">Cloud CDN Documentation</a>.</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Cloud Armor (WAF rules, rate limiting, geo and IP allow/deny lists, adaptive protection)</h3>
+<p>Google Cloud Armor delivers multi-layered infrastructure DDoS defense and Web Application Firewall (WAF) inspection directly at the edge of Google's global network. Cloud Armor policies attach to external Application Load Balancers (both Global and Regional) and external TCP/SSL Proxy Load Balancers. By inspecting incoming requests at Google Front Ends before traffic reaches the customer's Virtual Private Cloud (VPC), Cloud Armor filters out malicious payloads, volumetric floods, and application-layer exploits without consuming backend compute, memory, or internal network bandwidth.</p>
+
+<h4>Security Policy Architecture and Tier Capabilities</h4>
+<p>Cloud Armor operates under two distinct commercial and operational tiers:</p>
+<ul>
+<li><strong>Cloud Armor Standard:</strong> Available by default with pay-as-you-go pricing per policy, per rule, and per evaluated HTTP request. It includes baseline Layer 3 and Layer 4 volumetric DDoS protection (Google's global infrastructure capacity), custom rule authoring using Common Expression Language (CEL), IP allow/deny lists, geo-filtering, and preconfigured WAF rulesets.</li>
+<li><strong>Cloud Armor Enterprise (formerly Managed Protection Plus):</strong> A comprehensive managed subscription that provides bundled WAF rules, Named IP lists (e.g. Google Cloud IP ranges, third-party CDN providers), automated DDoS attack response team (Security Command Center integration), Adaptive Protection with automated rule generation, and crucial <strong>DDoS billing protection</strong> (providing credits for autoscaling infrastructure spikes triggered by DDoS attacks).</li>
+</ul>
+
+<h4>Preconfigured OWASP Core Rulesets and Rule Tuning</h4>
+<p>Cloud Armor includes preconfigured WAF rules based on the OWASP ModSecurity Core Rule Set (CRS 3.3). These rules inspect request headers, query strings, cookies, and HTTP POST request bodies (up to 128 KB) using pre-compiled regex evaluation engines:</p>
+<ul>
+<li><code>evaluatePreconfiguredExpr('sqli-v33-stable')</code>: Detects SQL injection attempts across URL parameters and JSON/XML payloads.</li>
+<li><code>evaluatePreconfiguredExpr('xss-v33-stable')</code>: Identifies Cross-Site Scripting attack vectors, script injection, and DOM manipulation patterns.</li>
+<li><code>evaluatePreconfiguredExpr('rce-v33-stable')</code>: Blocks Remote Code Execution, shell command injection, and OS utility execution attempts.</li>
+<li><code>evaluatePreconfiguredExpr('lfi-v33-stable')</code> &amp; <code>evaluatePreconfiguredExpr('rfi-v33-stable')</code>: Prevents Local and Remote File Inclusion (directory traversal attacks such as <code>../../etc/passwd</code>).</li>
+<li><code>evaluatePreconfiguredExpr('cve-canary')</code>: Shields applications from critical emerging zero-day vulnerabilities, including Apache Log4j (Log4Shell) and Spring4Shell.</li>
+</ul>
+<p>To eliminate operational disruption from <strong>false positives</strong>, Cloud Armor provides two essential governance mechanisms:</p>
+<ol>
+<li><strong>Sensitivity Level Tuning:</strong> Preconfigured rules support sensitivity levels from 1 (lowest false-positive rate, standard protection) to 4 (highest paranoia, aggressive pattern matching). Production environments should baseline at Sensitivity Level 1 or 2.</li>
+<li><strong>Rule Exclusions:</strong> Specific signatures within a ruleset can be selectively bypassed without disabling the broader ruleset. For example, if an enterprise inventory ingestion endpoint legitimately submits SQL-like syntax in JSON payloads, the engineer excludes only that specific signature ID: <code>evaluatePreconfiguredExpr('sqli-v33-stable', ['owasp-crs-v030301-id942100-sqli'])</code>.</li>
+<li><strong>Preview Mode:</strong> Rules can be deployed with <code>--preview</code> enabled. In preview mode, matching requests are evaluated and logged with their hypothetical verdict in Cloud Logging, but the live traffic is allowed through to the backend. Engineers inspect <code>jsonPayload.previewSecurityPolicy</code> logs to verify zero false positives before switching the rule to active enforcement.</li>
+</ol>
+
+<h4>Advanced Rate Limiting and Client Identification</h4>
+<p>Cloud Armor provides granular sliding-window rate limiting to throttle brute-force attacks, credential stuffing, scraping bots, and application-layer HTTP floods:</p>
+<ul>
+<li><strong>Enforce-on-Key:</strong> Defines how client requests are grouped for rate tracking:
+  <ul>
+    <li><code>IP</code>: Enforces limits per client public IPv4 or IPv6 address.</li>
+    <li><code>ALL</code>: Applies a global aggregate rate limit across all traffic matching the rule.</li>
+    <li><code>HTTP_HEADER</code>: Rates per unique value of an arbitrary request header (e.g. <code>X-API-Key</code> or <code>Authorization</code>), preventing abuse of API credentials across distributed IP botnets.</li>
+    <li><code>HTTP_COOKIE</code>: Rates per session identifier cookie, tracking abusive users even when they cycle mobile IP connections.</li>
+  </ul>
+</li>
+<li><strong>Rate Threshold and Intervals:</strong> Specifies the maximum permitted request count (e.g. 100 requests) within a sliding time window (10, 30, 60, 120, 180, 240, or 300 seconds).</li>
+<li><strong>Conform vs Exceed Actions:</strong> Traffic conforming to the limit is permitted (<code>allow</code>). Traffic exceeding the threshold can be rejected with HTTP 403, 404, 429 (Too Many Requests), or 502, or redirected to a Google reCAPTCHA Enterprise challenge to verify human presence.</li>
+<li><strong>Ban Duration:</strong> Abusive client keys can be subjected to an extended ban duration (e.g. <code>--ban-duration-sec=600</code>), blocking all subsequent requests from that key for 10 minutes following the initial rate violation.</li>
+</ul>
+
+<h4>Geo-Fencing, CIDR Filtering, and Adaptive Protection ML</h4>
+<p>Cloud Armor enables declarative geographic access restrictions using <code>origin.region_code</code>, which maps client IP addresses against Google's authoritative geo-location database. Rules can reject traffic from embargoed or high-risk regions (<code>origin.region_code == 'IR' || origin.region_code == 'KP'</code>) or restrict administration portals exclusively to corporate headquarters territories.</p>
+<p>CIDR allow/deny lists evaluate client IP addresses against subnets using <code>in_ip_range(origin.ip, '198.51.100.0/24')</code>. For verified enterprise traffic, allow rules can inject custom HTTP request headers (<code>request_headers_to_add = ["X-Armor-Verified: true"]</code>) to signal backend application layers that edge validation succeeded.</p>
+<p><strong>Adaptive Protection:</strong> Uses machine-learning models continuously trained on an application's baseline traffic profiles. When a distributed Layer 7 flood occurs, Adaptive Protection detects anomalous request rates, identifies shared attack characteristics (such as uncommon user-agents, URI patterns, or header combinations), and alerts security teams in Cloud Logging and Security Command Center. Each alert provides a ready-to-deploy CEL rule signature with an estimated confidence score and false-positive risk rating, allowing automated or one-click mitigation before backends experience latency degradation.</p>
+
+<table class="data-table">
+<thead>
+<tr>
+<th>Rule Category</th>
+<th>Syntax / Expression</th>
+<th>Enforcement Mechanism</th>
+<th>Evaluation Layer</th>
+<th>Production Application</th>
+<th>False-Positive Risk &amp; Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Preconfigured WAF (OWASP Top 10)</strong></td>
+<td><code>evaluatePreconfiguredExpr('sqli-v33-stable')</code></td>
+<td>Deny 403 Forbidden (or log via Preview mode). Priority 0–2147483647.</td>
+<td>Edge GFE (L7 payload regex engine up to 128 KB).</td>
+<td>Shielding web apps and APIs against SQLi, XSS, RCE, LFI, and Log4j exploits.</td>
+<td>High risk on base64, SQL-like JSON data, or rich text. Mitigate with sensitivity tuning &amp; rule exclusions.</td>
+</tr>
+<tr>
+<td><strong>Advanced Rate Limiting</strong></td>
+<td><code>threshold=100/60s, enforce-on-key=IP</code></td>
+<td>Conform: Allow; Exceed: Deny 429, 403, or reCAPTCHA redirect.</td>
+<td>Edge GFE (Sliding-window rate accumulator).</td>
+<td>Mitigating login credential stuffing, inventory scraping, and HTTP volumetric floods.</td>
+<td>Shared enterprise NATs/proxies blocked on IP key. Mitigate by keying on session cookie or auth header.</td>
+</tr>
+<tr>
+<td><strong>Geo-Fencing</strong></td>
+<td><code>origin.region_code in ['US', 'CA', 'GB']</code></td>
+<td>Immediate Allow or Deny based on client IP country mapping.</td>
+<td>Edge GFE (Google edge geo-IP database).</td>
+<td>Enforcing digital licensing boundaries, regulatory export compliance, regional restrictions.</td>
+<td>Mobile roaming IP misclassification. Mitigate by combining with authenticated application identity.</td>
+</tr>
+<tr>
+<td><strong>CIDR Allow / Deny Lists</strong></td>
+<td><code>in_ip_range(origin.ip, '203.0.113.0/24')</code></td>
+<td>Deterministic allow/deny; supports custom request header injection.</td>
+<td>Edge GFE (Layer 3/4 source address evaluation).</td>
+<td>Whitelisting corporate office VPNs, B2B partner gateways, and blocking known malicious subnets.</td>
+<td>Accidental lockout of corporate staff when dynamic home IP changes. Reserve for fixed static egress IPs.</td>
+</tr>
+<tr>
+<td><strong>Adaptive Protection (ML L7 DDoS)</strong></td>
+<td>Automated ML signature generation based on live traffic anomaly detection.</td>
+<td>Real-time Cloud Logging alerts with auto-suggested CEL rule snippets.</td>
+<td>Google ML telemetry pipeline + Edge GFE enforcement.</td>
+<td>Neutralizing distributed zero-day Layer 7 volumetric attacks and credential stuffing botnets.</td>
+<td>Low false-positive risk. Mitigate by testing suggested CEL snippet in preview mode before hard deployment.</td>
+</tr>
+<tr>
+<td><strong>Named IP Lists &amp; Threat Intelligence</strong></td>
+<td><code>evaluatePreconfiguredExpr('threat-intelligence-tor-exit-nodes')</code></td>
+<td>Continuous automated threat intelligence IP feed matching.</td>
+<td>Edge GFE (Continuously updated Google threat feeds).</td>
+<td>Blocking anonymous Tor exit nodes, public proxies, and botnet command-and-control IPs.</td>
+<td>Legitimate privacy-focused users blocked on Tor nodes. Maintain explicit allow overrides for trusted partners.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An e-commerce login portal (<code>/api/v1/auth/login</code>) experiences 12,000 requests per minute from a distributed botnet using residential proxies to test stolen credential lists. Expected: Deploy a Cloud Armor security policy with a rate limiting rule on <code>path == '/api/v1/auth/login'</code>, setting <code>--rate-limit-threshold-count=5</code>, <code>--rate-limit-threshold-interval-sec=60</code>, <code>--ban-duration-sec=900</code>, and <code>--exceed-action=redirect-to-recaptcha</code>. Abusive bots are immediately challenged and banned for 15 minutes, neutralizing credential stuffing without impacting legitimate shoppers.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/armor/docs/overview" rel="noopener noreferrer">Cloud Armor Documentation</a>.</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Traffic management (weighted traffic splitting, header-based routing, cross-region failover)</h3>
+<p>Modern cloud architecture demands zero-downtime progressive continuous deployment pipelines and resilient multi-region disaster recovery fabrics. On Google Cloud, Layer 7 Application Load Balancers execute declarative traffic routing policies within the <strong>URL Map</strong> resource. URL Maps decouple routing logic from client-side SDKs and DNS TTL propagation delays, executing intelligent traffic decisions directly at the proxy layer.</p>
+
+<h4>Declarative URL Map Architecture</h4>
+<p>A URL Map evaluates incoming HTTP requests hierarchically:</p>
+<ol>
+<li><strong>Host Rules:</strong> Inspects the HTTP <code>Host</code> or <code>:authority</code> header to map incoming domains (e.g. <code>api.brightloaf.com</code> vs <code>store.brightloaf.com</code>) to designated Path Matchers.</li>
+<li><strong>Path Matchers:</strong> Matches request paths against path patterns (e.g. <code>/static/*</code>, <code>/orders/*</code>, <code>/checkout/*</code>).</li>
+<li><strong>Route Rules:</strong> Executes advanced routing actions within a path matcher, including weighted traffic splitting, header matching, query parameter matching, request mirroring, URL rewrites, and redirects.</li>
+</ol>
+
+<h4>Weighted Traffic Splitting and Session Stickiness</h4>
+<p>Continuous deployment pipelines utilize <strong>Weighted Traffic Splitting</strong> to execute canary rollouts safely. Instead of instantaneously cutting 100% of production traffic to a newly deployed container image or VM instance group, the URL Map partitions traffic between two or more backend services based on integer weights:</p>
+<ul>
+<li>A typical rollout begins with a 95/5 split (95% to <code>orders-v1-stable</code>, 5% to <code>orders-v2-canary</code>).</li>
+<li>As operational metrics (HTTP 5xx error rates, response latency percentiles, memory leaks) confirm health, the weight is incrementally adjusted to 90/10, 50/50, and finally 100/0.</li>
+<li>If an unhandled exception or latency regression appears, the rollout is instantly aborted by rolling the URL Map back to 100/0, restoring full stability in less than 5 seconds without restarting backend instances.</li>
+</ul>
+<p><em>Session Stickiness (Cookie Pinning):</em> A critical failure mode in canary rollouts is user session thrashing: if a customer adds an item to their cart on canary v2, subsequent clicks must not land on stable v1 where the cart schema may differ. To maintain consistent user experience, architects configure session affinity on the backend service or enable cookie-based routing within the URL Map, ensuring that once a client is assigned to the canary cohort, all subsequent requests during that session remain pinned to the canary backend.</p>
+
+<h4>Header-Based Routing, Query Parameters, and Request Mirroring</h4>
+<p>URL Map route rules support multi-attribute condition matching:</p>
+<ul>
+<li><strong>Header-Based Routing:</strong> Evaluates custom HTTP request headers using exact matching, prefix matching, regex matching, or header presence. For example, requests carrying <code>X-Beta-Cohort: internal-qa</code> or <code>X-Client-Tier: enterprise</code> can be dynamically routed to specialized backend clusters without exposing dedicated staging hostnames.</li>
+<li><strong>Query Parameter Routing:</strong> Dispatches requests based on URL query parameters (e.g. <code>format=v2</code> routes to next-generation microservices).</li>
+<li><strong>Request Mirroring (Dark Traffic Shadowing):</strong> Duplicates a configurable percentage (up to 100%) of live production traffic to a shadow backend service. The load balancer dispatches mirrored requests asynchronously: it does not wait for the shadow backend to respond, and all shadow responses are silently discarded. This enables engineering teams to benchmark database query load, test new runtime frameworks, and validate memory usage under genuine production traffic patterns with zero impact on user latency or transactional integrity. <em>Important constraint:</em> Shadowed endpoints must be strictly idempotent (read-only); mirroring mutating POST/PUT requests can result in duplicate database writes.</li>
+<li><strong>URL Rewrites and Redirects:</strong> Automatically rewrites URL path prefixes before forwarding requests to backend services (e.g. client requests <code>/api/v2/orders</code>, but backend receives <code>/orders</code>), or issues HTTP 301/302 redirects (such as mandatory HTTP-to-HTTPS redirection).</li>
+</ul>
+
+<h4>Cross-Region Capacity Spillover and Multi-Region Resilience</h4>
+<p>Global External Application Load Balancers deliver automatic cross-region failover and load balancing across multi-region Compute Engine Managed Instance Groups (MIGs) or Google Kubernetes Engine (GKE) clusters using a single global Anycast IP address.</p>
+<p>Each backend instance group attached to a backend service defines a <strong>Balancing Mode</strong> and a <strong>Capacity Scaler</strong>:</p>
+<ul>
+<li><code>UTILIZATION</code>: Balances load based on average target CPU utilization across instance groups (e.g. target 0.80 for 80% CPU).</li>
+<li><code>RATE</code>: Balances load based on maximum requests per second (RPS) per instance (e.g. <code>max-rate-per-instance=100</code>).</li>
+<li><strong>Capacity Scaler:</strong> A dynamic multiplier between 0.0 and 1.0. Setting a capacity scaler to 0.0 drains an entire region during maintenance without modifying backend service definitions.</li>
+</ul>
+<p><strong>Spillover Mechanics:</strong> Google Front Ends continuously monitor backend group capacity and health. Under normal operations, client requests terminate at the geographically closest edge PoP and route across Google's private backbone to the nearest healthy backend region (e.g. New York clients to <code>us-east4</code>). If the primary region reaches 100% of its target capacity (or suffers a localized infrastructure outage failing health checks), the GFE <strong>gracefully spills surplus traffic</strong> to the next closest region with available headroom (e.g. <code>europe-west1</code> or <code>us-central1</code>).</p>
+<p><em>Preventing Cascading Failures:</em> To prevent a failed region from triggering a cascading collapse across surviving regions, architects must never rely solely on unconstrained utilization balancing. Configuring explicit <code>max-rate-per-instance</code> boundaries and deploying URL Map circuit breakers (capping <code>maxRequestsPerConnection</code> and <code>maxPendingRequests</code>) ensures that secondary regions shed excess load at the edge rather than thrashing into global brownouts.</p>
+
+<table class="data-table">
+<thead>
+<tr>
+<th>Routing Action</th>
+<th>URL Map Directive</th>
+<th>Execution Engine</th>
+<th>Client Impact</th>
+<th>Primary Production Use Case</th>
+<th>Architectural Pitfalls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Weighted Traffic Splitting</strong></td>
+<td><code>defaultRouteAction.weightedBackendServices</code></td>
+<td>Envoy Proxy (Regional/Internal) or GFE (Global External).</td>
+<td>Zero-downtime canary shifting; requests divided by integer ratio (e.g. 95/5).</td>
+<td>Progressive continuous deployment, canary releases, automated A/B testing.</td>
+<td>Lack of cookie pinning causes users to flip between v1 and v2 on subsequent requests.</td>
+</tr>
+<tr>
+<td><strong>Header-Based Routing</strong></td>
+<td><code>routeRules.matchRules.headerMatches</code></td>
+<td>Layer 7 HTTP header evaluation engine in URL Map.</td>
+<td>Routes specific client cohorts without exposing separate public domains.</td>
+<td>Internal beta tester routing (<code>X-Beta: true</code>), enterprise VIP routing, mobile client versions.</td>
+<td>Upstream CDN or reverse proxy stripping custom headers before reaching load balancer.</td>
+</tr>
+<tr>
+<td><strong>Request Mirroring (Dark Traffic)</strong></td>
+<td><code>routeRules.routeAction.requestMirrorPolicy</code></td>
+<td>Asynchronous proxy duplication; shadow response discarded.</td>
+<td>Zero client latency impact; 100% transparent production shadowing.</td>
+<td>Pre-production load benchmarking, regression testing new microservice versions.</td>
+<td>Mirroring mutating POST requests duplicates state changes or triggers double-charges.</td>
+</tr>
+<tr>
+<td><strong>URL Rewrite &amp; Path Prefix Stripping</strong></td>
+<td><code>routeRules.routeAction.urlRewrite</code></td>
+<td>Proxy path and host header rewrite prior to backend dispatch.</td>
+<td>Client browser sees canonical public URL; backend receives internal normalized path.</td>
+<td>Decoupling public API versioning (<code>/api/v2/*</code>) from internal microservice paths.</td>
+<td>Relative links in backend HTML/JSON breaking due to base path mismatch with client URI.</td>
+</tr>
+<tr>
+<td><strong>Cross-Region Spillover &amp; Failover</strong></td>
+<td><code>balancingMode: RATE / UTILIZATION</code> + <code>capacityScaler</code></td>
+<td>GFE global proximity and capacity-aware routing fabric.</td>
+<td>Increased latency during spillover, but zero dropped requests or 503 errors.</td>
+<td>Multi-region disaster recovery, absorbing localized datacenter outages or viral traffic spikes.</td>
+<td>Cascading collapse if secondary region lacks capacity headroom and max rate boundaries.</td>
+</tr>
+<tr>
+<td><strong>URL Redirects</strong></td>
+<td><code>routeRules.routeAction.urlRedirect</code></td>
+<td>Immediate edge HTTP 301/302 response generated by proxy.</td>
+<td>Client browser updates URL address bar and re-issues request.</td>
+<td>Enforcing HTTP-to-HTTPS redirect, domain canonicalization, deprecating old API paths.</td>
+<td>Redirect loops caused by conflicting frontend proxy and backend application redirect logic.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf deploys an updated checkout service (<code>checkout-v2</code>) to a GKE cluster. The team must validate real-world performance with 5% of production users while ensuring enterprise loyalty members remain strictly on the battle-tested <code>checkout-v1</code> service. Expected: Configure a URL Map with two route rules: Rule 1 matches header <code>X-Loyalty-Tier: enterprise</code> and routes 100% to <code>checkout-v1-stable</code>. Rule 2 sets <code>weightedBackendServices</code> with weight 95 to <code>checkout-v1-stable</code> and weight 5 to <code>checkout-v2-canary</code>, with session affinity enabled. Enterprise members are completely shielded while general canary traffic is safely evaluated.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/load-balancing/docs/choosing-load-balancer" rel="noopener noreferrer">Google Cloud Traffic Management Overview</a>.</p>
+</div>
+</article>
+
+<article id="topic-04-technical" class="topic-card">
+<h3>Choosing the right load balancer (decision tree in cheat sheets)</h3>
+<p>Google Cloud offers a diverse suite of managed load balancers tailored for specific networking protocols, geographic boundaries, performance demands, and security requirements. Selecting the incorrect load balancer leads to degraded latency, unsupported security capabilities, or unnecessary architectural complexity. Architects navigate this selection using a structured 4-step decision framework.</p>
+
+<h4>The 4-Step Load Balancer Decision Framework</h4>
+<ol>
+<li><strong>Step 1: Traffic Origin (External vs Internal):</strong>
+  <ul>
+    <li><em>External Load Balancers:</em> Receive incoming connections from the public internet or external clients outside Google Cloud.</li>
+    <li><em>Internal Load Balancers:</em> Distribute private RFC 1918 traffic originating inside your VPC, across VPC Network Peering, over Cloud VPN/Interconnect, or from client microservices within a private GKE cluster.</li>
+  </ul>
+</li>
+<li><strong>Step 2: Geographic Scope (Global vs Regional):</strong>
+  <ul>
+    <li><em>Global Load Balancers:</em> Advertise a single Anycast IPv4/IPv6 virtual IP address worldwide across more than 100 Points of Presence on Google's Premium Tier network. Ingress traffic enters Google's private fiber network at the PoP closest to the user and routes internally to backends across multiple regions.</li>
+    <li><em>Regional Load Balancers:</em> Deploy within a single Google Cloud region. Traffic terminates in that specific region, satisfying strict regulatory data residency, jurisdictional compliance, or sovereign isolation mandates.</li>
+  </ul>
+</li>
+<li><strong>Step 3: Transport Architecture (Proxy vs Passthrough):</strong>
+  <ul>
+    <li><em>Proxy Load Balancers (Layer 7 &amp; Layer 4 Proxy):</em> Terminate client TCP/SSL sockets at the proxy tier (GFE or Envoy proxy), establish a separate TCP connection to the backend, inspect HTTP/gRPC headers, and rewrite request paths. They support advanced features including Cloud CDN, Cloud Armor, SSL policies, and URL Maps.</li>
+    <li><em>Passthrough Load Balancers (Maglev Layer 4):</em> Non-proxied packet forwarders engineered on Google's distributed Maglev software architecture. They forward raw IP datagrams directly to backend VM interfaces without altering packet headers, port numbers, or payloads. Utilizing <strong>Direct Server Return (DSR)</strong>, backend servers reply directly to the client's public IP address via the VPC Internet Gateway, bypassing the load balancer on the return path. Passthrough NLBs deliver line-rate multi-million packet-per-second throughput with microsecond latency.</li>
+  </ul>
+</li>
+<li><strong>Step 4: Protocol &amp; Application Layer (L7 Application vs L4 Network):</strong>
+  <ul>
+    <li><em>Layer 7 Application Load Balancer:</em> Required for HTTP, HTTPS, HTTP/2, and gRPC traffic. Supports path routing, weighted canaries, header rewriting, Cloud CDN, Cloud Armor, and Identity-Aware Proxy (IAP).</li>
+    <li><em>Layer 4 Network Load Balancer:</em> Required for non-HTTP protocols, raw TCP, UDP, ESP, GRE, or custom binary communication where application-layer inspection is unnecessary or unsupported.</li>
+  </ul>
+</li>
+</ol>
+
+<h4>Feature Compatibility Constraints and Network Service Tiers</h4>
+<p>Architects must adhere to critical compatibility rules:</p>
+<ul>
+<li><strong>Cloud CDN Compatibility:</strong> Cloud CDN is <strong>strictly supported only on Global External Application Load Balancers</strong>. It cannot be attached to Regional External ALBs, Internal ALBs, or any Network Load Balancer.</li>
+<li><strong>Cloud Armor Compatibility:</strong> Cloud Armor WAF and Layer 7 rate limiting are supported on <strong>Global and Regional External Application Load Balancers</strong>. Cloud Armor also protects External Proxy Network Load Balancers, but enforcement is restricted to Layer 3/4 IP filtering, geo-fencing, and basic rate limiting (no L7 payload WAF inspection). Cloud Armor is <strong>not supported on Internal load balancers or Passthrough NLBs</strong>.</li>
+<li><strong>Identity-Aware Proxy (IAP):</strong> IAP context-aware access controls are supported on <strong>External Application Load Balancers and Regional Internal Application Load Balancers</strong>.</li>
+<li><strong>Network Service Tiers (Premium vs Standard):</strong>
+  <ul>
+    <li><em>Premium Tier:</em> Ingress traffic enters Google's high-speed private backbone at the closest edge PoP to the user and traverses Google fiber directly to the application region. Required for all Global load balancers and Cloud CDN.</li>
+    <li><em>Standard Tier:</em> Ingress traffic traverses the public transit internet until reaching the Google datacenter region where the workload resides. Supported only on Regional load balancers; offers lower network egress costs at the expense of higher packet loss, latency, and jitter.</li>
+  </ul>
+</li>
+</ul>
+
+<table class="data-table">
+<thead>
+<tr>
+<th>Load Balancer Type</th>
+<th>Layer &amp; Protocol</th>
+<th>Scope &amp; Network Tier</th>
+<th>Proxy vs Passthrough</th>
+<th>Supported Edge Features (CDN, Armor, IAP)</th>
+<th>Ideal Production Workload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Global External Application Load Balancer</strong></td>
+<td>Layer 7 (HTTP, HTTPS, HTTP/2, gRPC)</td>
+<td>Global Anycast VIP; Premium Tier required.</td>
+<td>Dual-socket reverse proxy (GFE / Envoy).</td>
+<td>Cloud CDN (Yes), Cloud Armor WAF &amp; Rate Limiting (Yes), IAP (Yes).</td>
+<td>Public global web apps, international REST/gRPC APIs, multi-region web services needing CDN &amp; WAF.</td>
+</tr>
+<tr>
+<td><strong>Regional External Application Load Balancer</strong></td>
+<td>Layer 7 (HTTP, HTTPS, HTTP/2, gRPC)</td>
+<td>Regional VIP; Premium or Standard Tier.</td>
+<td>Dual-socket Envoy proxy in regional proxy-only subnet.</td>
+<td>Cloud CDN (No), Cloud Armor WAF (Yes - regional), IAP (Yes).</td>
+<td>Jurisdictional compliance and sovereign data residency where TLS termination must stay in a single region.</td>
+</tr>
+<tr>
+<td><strong>Regional Internal Application Load Balancer</strong></td>
+<td>Layer 7 (HTTP, HTTPS, HTTP/2, gRPC)</td>
+<td>Regional private RFC 1918 VIP; proxy-only subnet.</td>
+<td>Envoy reverse proxy running inside customer VPC.</td>
+<td>Cloud CDN (No), Cloud Armor (No), IAP (Yes - internal).</td>
+<td>East-west internal microservices, private VPC REST/gRPC APIs requiring URL path routing and weighted canaries.</td>
+</tr>
+<tr>
+<td><strong>Cross-Region Internal Application Load Balancer</strong></td>
+<td>Layer 7 (HTTP, HTTPS, HTTP/2, gRPC)</td>
+<td>Global private RFC 1918 VIP across multiple regions.</td>
+<td>Distributed Envoy proxies in regional proxy subnets.</td>
+<td>Cloud CDN (No), Cloud Armor (No), IAP (Yes - internal).</td>
+<td>Multi-region internal microservice meshes requiring cross-region failover and private Anycast addressing.</td>
+</tr>
+<tr>
+<td><strong>External Passthrough Network Load Balancer</strong></td>
+<td>Layer 4 (TCP, UDP, ESP, GRE, ICMP)</td>
+<td>Regional VIP; Premium or Standard Tier.</td>
+<td>Maglev non-proxied packet forwarder; Direct Server Return (DSR).</td>
+<td>Cloud CDN (No), Cloud Armor (No), IAP (No).</td>
+<td>Extreme packet throughput (millions PPS), real-time UDP gaming, VoIP/SIP, client IP preservation.</td>
+</tr>
+<tr>
+<td><strong>Internal Passthrough Network Load Balancer</strong></td>
+<td>Layer 4 (TCP, UDP)</td>
+<td>Regional private RFC 1918 VIP.</td>
+<td>Maglev non-proxied packet forwarder; zero proxy overhead.</td>
+<td>Cloud CDN (No), Cloud Armor (No), IAP (No).</td>
+<td>High-performance internal databases, Redis/Memcached clusters, next-hop target for custom VPC route tables.</td>
+</tr>
+<tr>
+<td><strong>External Proxy Network Load Balancer</strong></td>
+<td>Layer 4 (TCP, SSL/TLS proxy)</td>
+<td>Global Anycast VIP (or Regional); Premium Tier.</td>
+<td>Dual-socket reverse proxy terminating TCP/SSL.</td>
+<td>Cloud CDN (No), Cloud Armor (Yes - L3/4 IP &amp; rate limit only), IAP (No).</td>
+<td>Non-HTTP enterprise applications (MQTT, custom binary protocols, SMTP) needing Anycast VIP and DDoS defense.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: Brightloaf architects an enterprise Point-of-Sale (POS) transaction processing gateway. Requirements: Public-facing endpoints, TLS termination, custom proprietary TCP binary protocol (non-HTTP), global Anycast addressing to minimize latency for stores worldwide, and protection against malicious volumetric attacks. Expected: Select <strong>External Proxy Network Load Balancer (TCP Proxy)</strong>. It provides a global Anycast IP, terminates TLS handshakes at the edge GFE, supports Cloud Armor IP allow/deny lists and rate limiting, and forwards raw TCP streams to backend instances across Google's private network.</p>
+</div>
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-017">Topic 017 source section</a> in this site. Reference: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#decision-tree" rel="noopener noreferrer">Google Cloud Load Balancer Decision Tree</a>.</p>
+</div>
+</article>
+
+</section>
+
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+
+<article id="topic-01-problem" class="topic-card">
+<h3>Unintended Caching of Authenticated PII Responses via Cloud CDN · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf launched a major upgrade to its customer loyalty rewards portal. To optimize response speed under heavy launch traffic, an infrastructure engineer enabled Cloud CDN on the backend service with cache mode <code>FORCE_CACHE_ALL</code> and a default TTL of 3,600 seconds. Within ninety minutes of launch, loyalty members began reporting that logging into their profile dashboard (<code>/api/v1/profile</code>) displayed another customer's full legal name, home address, accumulated points balance, and partially masked credit card details. Over 1,200 private member records were leaked across edge Points of Presence worldwide, forcing an immediate shutdown of the loyalty portal, self-reporting to data privacy regulatory authorities, and emergency C-suite incident response.</p>
+
+<p><strong>Constraints:</strong> Must accelerate public static marketing assets (images, stylesheets, JavaScript bundles); dynamic user profile APIs must NEVER be cached under any circumstance; must immediately purge all poisoned cache entries across all worldwide edge PoPs; zero downtime allowed for the primary e-commerce ordering engine.</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong> Protocol inspection of response headers using <span class="cmd">curl -I</span> against the profile endpoint revealed <code>X-Cache-Status: HIT</code> and <code>Age: 412</code>, confirming that the response was being served directly from the Google Front End edge cache rather than executing the backend microservice. Review of the backend service configuration identified <code>cacheMode: FORCE_CACHE_ALL</code>. In this mode, Cloud CDN deliberately overrides all origin <code>Cache-Control</code> directives and ignores <code>Set-Cookie</code> headers, caching all HTTP 200 responses indiscriminately. The first user to access their profile triggered a cache miss; the origin returned that user's profile JSON; Cloud CDN stored the response at the regional edge PoP and served that exact payload to every subsequent user requesting <code>/api/v1/profile</code>.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Dispatched an emergency asynchronous cache invalidation purging all edge cache entries globally:
+<pre><code>gcloud compute url-maps invalidate-cdn-cache web-global-url-map   --path="/*"   --async</code></pre>
+2. Restructured the backend architecture by decoupling static assets from dynamic API services within the URL Map. Static assets were routed to a dedicated Cloud Storage backend bucket with cache mode <code>CACHE_ALL_STATIC</code>.
+3. Updated the API backend service cache mode to <code>USE_ORIGIN_HEADERS</code> and configured the application framework to emit explicit anti-caching response headers: <code>Cache-Control: private, no-store, no-cache, must-revalidate</code> and <code>Pragma: no-cache</code>.</p>
+
+<!-- Incident 1 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d55-i1-title d55-i1-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d55-i1-title">Incident 1: FORCE_CACHE_ALL PII Leak vs Strict Origin Headers &amp; Invalidation</title>
+<desc id="d55-i1-desc">Diagram showing failed path where FORCE_CACHE_ALL cached private user profiles at edge PoPs, followed by corrected path executing cache invalidation and enforcing Cache-Control: no-store.</desc>
+<defs>
+<marker id="d55-i1-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d55-i1-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: FORCE_CACHE_ALL Caches User Alice's Profile → Returned to User Bob</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">User Bob (GET /profile)</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">Expected: Bob's Account</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Cloud CDN Edge PoP</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">CACHE HIT: Serves Alice's Cached JSON</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">PII Data Breach</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Bob sees Alice's Name &amp; Address</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d55-i1-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d55-i1-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Cache Invalidation + Cache-Control: private, no-store</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">User Bob (GET /profile)</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Bearer Token Authenticated</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Cloud CDN (USE_ORIGIN_HEADERS)</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">Bypasses Edge Cache (Cache Miss)</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Origin Profile Microservice</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Returns Bob's Data Only</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d55-i1-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d55-i1-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Cache Headers</text>
+</svg>
+<figcaption>Figure 55.2: Incident 1 Root Cause and Remediation. <strong>Supplied facts:</strong> Customers received another user's personal profile data after Cloud CDN was enabled with FORCE_CACHE_ALL on a unified backend service. <strong>Architectural inference:</strong> FORCE_CACHE_ALL overrides origin Set-Cookie and Cache-Control headers, storing authenticated responses at edge PoPs and serving them indiscriminately to subsequent clients. <strong>Expected post-fix behavior:</strong> Splitting backend routes in the URL Map to isolate static assets (CACHE_ALL_STATIC) and applying USE_ORIGIN_HEADERS with Cache-Control: no-store to API endpoints guarantees authenticated responses are never cached.</figcaption>
+</figure>
+
+<p><strong>Verification and residual risk:</strong> Verified by executing concurrent authenticated requests from distinct test accounts; verified that every profile response returns <code>X-Cache-Status: MISS</code>, <code>Age</code> header is absent, and each response contains unique, correct account identifiers. Residual risk: Developers creating new API endpoints might omit explicit <code>Cache-Control: private, no-store</code> headers; mitigated by implementing an automated CI/CD integration test suite that fails pull requests if dynamic API endpoints emit cacheable headers.</p>
+</article>
+
+<article id="topic-02-problem" class="topic-card">
+<h3>Cloud Armor SQLi Rule False Positive Blocking B2B Inventory Ingestion · field case</h3>
+<p><strong>Situation and impact:</strong> To strengthen security ahead of a SOC 2 audit, Brightloaf's security team deployed a Cloud Armor security policy attaching preconfigured OWASP Core Rulesets (<code>evaluatePreconfiguredExpr('sqli-v33-stable')</code>) at Sensitivity Level 4 directly to the external Application Load Balancer. Thirty minutes after deployment, automated inventory synchronization feeds from 14 regional flour mills and logistics suppliers failed with HTTP 403 Forbidden. Automated restocking pipelines halted nationwide, preventing flour and yeast inventory updates across 450 bakery storefronts and stalling $2.4 million in daily wholesale bread production schedules.</p>
+
+<p><strong>Constraints:</strong> Must maintain robust WAF defenses against genuine SQL injection attacks; cannot disable Cloud Armor or grant unauthenticated IP bypasses; supplier inventory integration payloads consist of large, base64-encoded XML documents transmitted via HTTP POST to <code>/api/v1/b2b/inventory/sync</code>.</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong> Querying Cloud Logging for <code>jsonPayload.enforcedSecurityPolicy.outcome="DENY"</code> revealed thousands of blocked supplier requests. Expanding the log payloads showed that the blocking rule matched preconfigured signature <code>owasp-crs-v030301-id942100-sqli</code> with sensitivity level 4. The supplier's XML schema included base64-encoded batch records containing substrings such as <code>'OR 1=1'</code> and <code>'SELECT TABLE'</code> inside encoded delivery manifest identifiers. At Sensitivity Level 4, the regex parser triggered aggressive pattern matches on innocuous encoded strings, categorizing valid B2B synchronization XML as a malicious SQL injection attempt.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Updated the security policy rule to tune the preconfigured expression, excluding the over-sensitive signature ID specifically for the B2B endpoint:
+<pre><code>gcloud compute security-policies rules update 1000   --security-policy=edge-waf-policy   --expression="evaluatePreconfiguredExpr('sqli-v33-stable', ['owasp-crs-v030301-id942100-sqli'])"   --action=deny-403</code></pre>
+2. Lowered the global sensitivity level from Level 4 to Level 1, matching Google's recommended baseline for high-volume enterprise production.
+3. Placed the rule into <strong>Preview Mode</strong> (<code>--preview</code>) for 24 hours to observe live supplier ingestion traffic in Cloud Logging, confirming zero false-positive triggers before returning the rule to active enforcement.</p>
+
+<!-- Incident 2 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d55-i2-title d55-i2-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d55-i2-title">Incident 2: WAF False Positive vs Sensitivity Tuning and Preview Mode</title>
+<desc id="d55-i2-desc">Diagram showing failed path where over-sensitive SQLi WAF rules blocked legitimate partner JSON payloads, followed by corrected path utilizing preview mode and tuned sensitivity levels.</desc>
+<defs>
+<marker id="d55-i2-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d55-i2-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: SQLi Sensitivity Level 4 Flags Benign Text "-- select" → HTTP 403</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Wholesale Partner API</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">Payload: "...oats -- select grade"</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Cloud Armor (Level 4)</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">FALSE POSITIVE: Triggered sqli-v33</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Order Ingestion Blocked</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">HTTP 403: $540k Orders Stalled</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d55-i2-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d55-i2-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Tuned Sensitivity Level 1 + Preview Validation</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Wholesale Partner API</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Payload: "...oats -- select grade"</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Cloud Armor (Level 1 Tuned)</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">True Attacks Blocked; Legitimate Pass</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Backend Inventory API</text>
+<text x="730" y="221" fill="#86efac" font-size="10">HTTP 200 OK: Ingested Cleanly</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d55-i2-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d55-i2-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Preview Mode</text>
+</svg>
+<figcaption>Figure 55.3: Incident 2 Root Cause and Remediation. <strong>Supplied facts:</strong> B2B inventory synchronization XML requests were rejected with HTTP 403 Forbidden following deployment of Cloud Armor SQLi rules at Sensitivity Level 4. <strong>Architectural inference:</strong> Aggressive regex pattern matching at Sensitivity Level 4 triggers false positives on base64-encoded XML payload tokens resembling SQL keywords. <strong>Expected post-fix behavior:</strong> Tuning the preconfigured SQLi expression with specific signature exclusions, reducing sensitivity to Level 1, and validating via Preview Mode restores legitimate supplier ingestion while maintaining active WAF perimeter defense.</figcaption>
+</figure>
+
+<p><strong>Verification and residual risk:</strong> Supplier integration test scripts re-transmitted batch delivery manifests; Cloud Logging confirmed all supplier requests returned HTTP 200 OK while synthetic SQL injection probe payloads (<code>' UNION SELECT username, password FROM users--</code>) were successfully dropped with HTTP 403. Residual risk: Future supplier schema changes could introduce new character sequences that trip other CRS signatures; mitigated by configuring automated alerts in Cloud Monitoring on sudden spikes in <code>enforcedSecurityPolicy.outcome="DENY"</code> for B2B API paths.</p>
+</article>
+
+<article id="topic-03-problem" class="topic-card">
+<h3>Cascading Collapse During Regional Outage Due to Missing Overflow Limits · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf operates a multi-region active-active e-commerce platform across <code>us-east4</code> (primary, 70% load) and <code>europe-west1</code> (secondary, 30% load) behind a Global External Application Load Balancer. During a major transatlantic undersea fiber cut, an electrical substation failure abruptly dropped 100% of compute instances in <code>us-east4</code>. The load balancer detected backend instance unhealthiness and instantly spilled the entire North American traffic volume into <code>europe-west1</code>. Because the European backend service was configured with balancing mode <code>UTILIZATION</code> without explicit request rate boundaries, the sudden 3.3x traffic surge overwhelmed backend CPU, saturated thread pools, and caused health checks to fail. Within four minutes, <code>europe-west1</code> also collapsed, resulting in a total global outage that served HTTP 503 Service Unavailable to all users worldwide for 38 minutes during peak breakfast ordering.</p>
+
+<p><strong>Constraints:</strong> Must preserve multi-region automatic disaster recovery failover; secondary regions must never be permitted to cascade into total failure when absorbing primary region outages; surplus traffic exceeding secondary capacity must be shed gracefully at Google's edge.</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong> Review of Compute Engine autoscaler metrics and backend service configurations revealed that backend instance groups were configured with <code>balancingMode: UTILIZATION</code> targeting 0.80 CPU, but lacked <code>max-rate-per-instance</code> thresholds. When <code>us-east4</code> vanished, the GFE global routing engine calculated that <code>europe-west1</code> was the only surviving healthy backend group and dispatched all 120,000 incoming requests per second to it. European instances instantly hit 100% CPU before VM autoscaling could provision new compute capacity. Internal application queues backed up, HTTP health check probes timed out, and the GFE marked European backends UNHEALTHY, triggering global 503 errors.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Updated backend services to utilize <strong>dual-constraint balancing mode</strong>: combining target CPU utilization with an immutable <code>--max-rate-per-instance=80</code> and setting <code>--capacity-scaler=1.0</code>.
+2. Configured Cloud Armor rate limiting at the edge GFE to throttle unauthenticated traffic during catastrophic regional failovers, ensuring traffic exceeding surviving capacity is rejected at the edge with HTTP 429 rather than penetrating and crashing backend clusters.
+3. Implemented URL Map circuit breakers specifying <code>maxRequestsPerConnection: 1000</code> and <code>maxPendingRequests: 500</code>, ensuring immediate queue bounding and graceful load shedding.</p>
+
+<!-- Incident 3 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d55-i3-title d55-i3-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d55-i3-title">Incident 3: Unbounded Regional Overflow Collapse vs Explicit Rate Boundaries</title>
+<desc id="d55-i3-desc">Diagram showing failed path where unconstrained regional failover crashed secondary clusters, followed by corrected path with max-rate boundaries and circuit breaking.</desc>
+<defs>
+<marker id="d55-i3-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d55-i3-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Unbounded Overflow Crashes Secondary us-central1 Cluster</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Global External ALB</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">us-east4 DOWN → Spills 100% Load</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Secondary (us-central1)</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Sized for 20 nodes; Hit by 100 nodes load</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Cascading Collapse</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">All Nodes Crash: 100% Downtime</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d55-i3-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d55-i3-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Explicit Rate Boundaries + Multi-Region Spillover (EU-West1)</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Global External ALB</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Capacity-Aware GFE Routing</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Rate-Capped Backends</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">us-central1 capped @ 100 RPS/inst</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">europe-west1 Overflow</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Zero Node Crashes (Survives)</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d55-i3-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d55-i3-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Max Rate / Inst</text>
+</svg>
+<figcaption>Figure 55.4: Incident 3 Root Cause and Remediation. <strong>Supplied facts:</strong> Total regional failure of us-east4 caused automatic spillover that instantly crashed surviving backends in europe-west1, resulting in a global 503 outage. <strong>Architectural inference:</strong> Unconstrained UTILIZATION balancing modes lack request-rate ceilings; when an entire region fails, the surviving region is overwhelmed before autoscalers can react. <strong>Expected post-fix behavior:</strong> Configuring dual-constraint balancing with max-rate-per-instance, Cloud Armor edge rate limits, and URL Map circuit breakers caps incoming load to surviving capacity, shedding excess traffic at the edge while keeping the secondary region operational.</figcaption>
+</figure>
+
+<p><strong>Verification and residual risk:</strong> Simulated regional failure in pre-production by isolating all <code>us-east4</code> instance groups under synthetic 100,000 RPS load. The load balancer forwarded traffic up to <code>europe-west1</code>'s configured max-rate limit, while surplus requests were cleanly rejected at the edge with HTTP 429; European backend CPU stabilized at 78% and zero healthy instances dropped. Residual risk: Edge load shedding rejects non-critical customer requests during catastrophic disasters; mitigated by deploying mobile app offline caching and implementing priority queue headers allowing authenticated checkout sessions to bypass rate shedding.</p>
+</article>
+
+<article id="topic-04-problem" class="topic-card">
+<h3>Architectural Mismatch: Regional ALB Selected for Global SaaS Offering · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf launched an international B2B SaaS analytics platform for enterprise bakery franchises across North America, Europe, and the Asia-Pacific region. To reduce initial cloud complexity, an architect provisioned a <strong>Regional External Application Load Balancer</strong> in <code>us-central1</code> utilizing Standard Tier networking. Within two weeks of global rollout, enterprise clients in Tokyo, London, and Sydney complained of crippling latency: dashboard pages took 3.8 seconds to load, API handshakes regularly timed out, and static reporting charts failed to render. Cloud CDN could not be enabled, and high-frequency Layer 7 scraping attacks directly impacted the regional Envoy proxies, generating severe customer churn and triggering contractual SLA breach penalties totaling $180,000.</p>
+
+<p><strong>Constraints:</strong> Must achieve sub-100ms API response latency and sub-30ms static asset delivery globally; must enable Cloud CDN edge caching and Cloud Armor Adaptive Protection; must execute migration with zero customer downtime and zero DNS connection drops.</p>
+
+<p><strong>Diagnostic sequence and root cause:</strong> Network trace analysis using <code>traceroute</code> and client telemetry revealed that TCP SYN packets from Tokyo traversed over 14 public internet transit hops across the Pacific Ocean before reaching Google's regional gateway in Iowa, experiencing an average RTT of 245ms before TLS negotiation even began. Review of the architecture confirmed the root cause:
+1. <strong>Standard Tier &amp; Regional ALB:</strong> Regional External ALBs do not utilize Google's Anycast edge Points of Presence. Traffic is routed over public commodity internet until it reaches the regional gateway.
+2. <strong>Unsupported Features:</strong> Cloud CDN edge caching is architecturally unsupported on Regional External ALBs, forcing every static asset request to travel across the globe to Compute Engine instances in <code>us-central1</code>.</p>
+
+<p><strong>Defensible remediation:</strong>
+1. Provisioned a <strong>Global External Application Load Balancer</strong> with a static external IPv4 Anycast address on <strong>Premium Tier</strong> networking.
+2. Attached Cloud CDN with Origin Shield to the static asset backend bucket.
+3. Attached an edge Cloud Armor security policy with Adaptive Protection and OWASP CRS rulesets.
+4. Executed a blue-green DNS migration: lowered TTL on <code>saas.brightloaf.com</code> to 60 seconds, updated the DNS A record to point to the new Anycast VIP, monitored real-time traffic shift in Cloud Monitoring, and decommissioned the regional ALB after 48 hours.</p>
+
+<!-- Incident 4 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d55-i4-title d55-i4-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d55-i4-title">Incident 4: Regional ALB Trans-Pacific Latency vs Global Anycast GFE Architecture</title>
+<desc id="d55-i4-desc">Diagram showing failed path where a Regional ALB forced Tokyo clients to route across the public internet with high latency, followed by corrected path using a Global Anycast ALB with edge CDN.</desc>
+<defs>
+<marker id="d55-i4-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d55-i4-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Failed Path Box -->
+<rect x="20" y="20" width="940" height="110" rx="6" fill="#1e1b2e" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="35" y="45" fill="#f43f5e" font-size="13" font-weight="700">FAILED PATH: Regional ALB (us-east4) → Public Internet Transit Latency (4.8s)</text>
+
+<rect x="40" y="60" width="240" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="50" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Client in Tokyo</text>
+<text x="50" y="96" fill="#94a3b8" font-size="10">High RTT (220ms per packet)</text>
+
+<rect x="360" y="60" width="260" height="50" rx="4" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="370" y="80" fill="#fda4af" font-size="11" font-weight="700">Public Internet Routing</text>
+<text x="370" y="96" fill="#fecdd3" font-size="10">Trans-Pacific Transit / No CDN</text>
+
+<rect x="720" y="60" width="220" height="50" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+<text x="730" y="80" fill="#f1f5f9" font-size="11" font-weight="600">Regional ALB (us-east4)</text>
+<text x="730" y="96" fill="#f43f5e" font-size="10">Latency: 4,800ms / 0 WAF</text>
+
+<path d="M 280 85 L 360 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d55-i1-f)"/>
+<path d="M 620 85 L 720 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d55-i1-f)"/>
+
+<!-- Corrected Path Box -->
+<rect x="20" y="145" width="940" height="115" rx="6" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="35" y="170" fill="#4ade80" font-size="13" font-weight="700">CORRECTED PATH: Global Anycast ALB + Tokyo Edge GFE &amp; Cloud CDN (380ms)</text>
+
+<rect x="40" y="185" width="240" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="50" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Client in Tokyo</text>
+<text x="50" y="221" fill="#86efac" font-size="10">Connects to Tokyo Edge GFE</text>
+
+<rect x="360" y="185" width="260" height="55" rx="4" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+<text x="370" y="205" fill="#a7f3d0" font-size="11" font-weight="700">Tokyo GFE &amp; Cloud CDN</text>
+<text x="370" y="221" fill="#cbd5e1" font-size="10">TLS in 12ms; Static Hits Cached</text>
+
+<rect x="720" y="185" width="220" height="55" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="730" y="205" fill="#f1f5f9" font-size="11" font-weight="600">Google Backbone Transit</text>
+<text x="730" y="221" fill="#86efac" font-size="10">Page Load: 380ms (Passed)</text>
+
+<path d="M 280 212 L 360 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d55-i1-c)"/>
+<path d="M 620 212 L 720 212" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d55-i1-c)"/>
+
+<!-- Verify Boundary -->
+<rect x="350" y="180" width="280" height="65" rx="6" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="355" y="172" fill="#fbbf24" font-size="10" font-weight="600">VERIFY BOUNDARY: Global Anycast PoP</text>
+</svg>
+<figcaption>Figure 55.5: Incident 4 Root Cause and Remediation. <strong>Supplied facts:</strong> Global SaaS users in Tokyo and Europe experienced severe 3.8-second load latencies and unsupported CDN caching behind a Regional External ALB in us-central1. <strong>Architectural inference:</strong> Regional ALBs use Standard Tier public internet routing to a single region and cannot support Cloud CDN edge caching or global Anycast ingress. <strong>Expected post-fix behavior:</strong> Migrating to a Global External Application Load Balancer on Premium Tier Anycast routes traffic into Google's nearest edge PoP, enabling sub-20ms Cloud CDN static asset delivery and edge Cloud Armor threat mitigation.</figcaption>
+</figure>
+
+<p><strong>Verification and residual risk:</strong> Tokyo client latency measurements dropped from 245ms to 18ms for static cached assets and 122ms for dynamic API calls; Cloud CDN hit ratio exceeded 91%; Cloud Armor successfully mitigated automated scraping attacks at edge PoPs. Residual risk: Workloads with strict European Union GDPR sovereignty requirements cannot store data outside Europe; addressed by architecting regional backend microservice clusters in <code>europe-west3</code> with URL Map path routing while retaining global Anycast edge frontend acceleration.</p>
+</article>
+
+</section>
+
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Configure Cloud CDN with Custom Cache Keys and Execute Cache Invalidation</h3>
+<p><strong>Goal:</strong> Configure Cloud CDN on a Global External Application Load Balancer backend service, customize cache keys to eliminate query parameter fragmentation, verify edge cache hits via response headers, and execute an asynchronous edge cache invalidation.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 54 exit artifacts.</p>
+<ol>
+<li><strong>Enable Cloud CDN with Cache Mode on Backend Service:</strong>
+<pre><code>gcloud compute backend-services update web-backend-svc   --global   --enable-cdn   --caching-mode=CACHE_ALL_STATIC   --default-ttl=3600   --max-ttl=86400   --client-ttl=1800</code></pre>
+</li>
+<li><strong>Configure Custom Cache Keys to Prevent Query Fragmentation:</strong>
+<pre><code>gcloud compute backend-services update web-backend-svc   --global   --cache-key-include-protocol   --cache-key-include-host   --cache-key-include-query-string   --cache-key-query-string-blacklist=utm_source,utm_medium,utm_campaign,gclid,fbclid</code></pre>
+</li>
+<li><strong>Verify Edge Caching Headers via Curl:</strong>
+<pre><code>curl -I -s https://store.brightloaf.com/static/images/logo.png | grep -E "(HTTP|Age|X-Cache-Status|Via)"</code></pre>
+<p>First request returns <code>Age: 0</code> or cache miss. Second request returns <code>Age: 12</code> and <code>Via: 1.1 google</code>, confirming an edge cache hit.</p>
+</li>
+<li><strong>Execute Asynchronous Edge Cache Invalidation:</strong>
+<pre><code>gcloud compute url-maps invalidate-cdn-cache web-global-url-map   --path="/static/images/*"   --async</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Backend service confirms Cloud CDN is enabled with custom cache keys blacklisting tracking query parameters. Invalidation returns an operation ID and propagates across global Google Front Ends.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If <code>Age</code> header never increments, check the backend origin response headers. If origin emits <code>Cache-Control: private</code> or <code>no-store</code>, <code>CACHE_ALL_STATIC</code> respects the negative directive and will not cache.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Cloud CDN charges per gigabyte of cache egress and cache lookup operations. Detach CDN or delete test resources when validation is complete.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-55-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Deploy Cloud Armor Security Policy with Rate Limiting and WAF Rules</h3>
+<p><strong>Goal:</strong> Deploy a Cloud Armor security policy enforcing preconfigured OWASP SQL injection rules, implement Layer 7 sliding-window rate limiting per client IP with a temporary ban, and attach the policy to an external load balancer.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 54 exit artifacts.</p>
+<ol>
+<li><strong>Create Cloud Armor Security Policy:</strong>
+<pre><code>gcloud compute security-policies create edge-waf-policy   --description="Edge WAF with OWASP CRS and Rate Limiting"</code></pre>
+</li>
+<li><strong>Add Preconfigured OWASP SQLi Rule in Preview Mode:</strong>
+<pre><code>gcloud compute security-policies rules create 1000   --security-policy=edge-waf-policy   --expression="evaluatePreconfiguredExpr('sqli-v33-stable')"   --action=deny-403   --preview   --description="OWASP SQLi CRS rule in preview mode"</code></pre>
+</li>
+<li><strong>Add Layer 7 Client IP Rate Limiting Rule:</strong>
+<pre><code>gcloud compute security-policies rules create 2000   --security-policy=edge-waf-policy   --expression="true"   --action=rate-based-ban   --rate-limit-threshold-count=100   --rate-limit-threshold-interval-sec=60   --ban-duration-sec=600   --conform-action=allow   --exceed-action=deny-429   --enforce-on-key=IP   --description="Rate limit clients exceeding 100 req/min"</code></pre>
+</li>
+<li><strong>Attach Security Policy to Global Backend Service:</strong>
+<pre><code>gcloud compute backend-services update web-backend-svc   --global   --security-policy=edge-waf-policy</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>Security policy confirms rule 1000 in preview mode (logging matches without dropping traffic) and rule 2000 actively enforcing a 100 req/min limit per client IP with a 10-minute ban on violation.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Rule priority numbers must be strictly unique between 0 and 2147483647. Lower numbers evaluate first; the default rule (priority 2147483647) evaluates last.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Cloud Armor charges a nominal monthly policy fee and a per-rule fee. Detach policy and delete when testing is finished.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-55-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Implement Weighted Traffic Splitting (Canary) in URL Map</h3>
+<p><strong>Goal:</strong> Export an existing URL Map, add declarative weighted traffic splitting (90% stable, 10% canary), validate configuration syntax, and import the updated policy to achieve zero-downtime canary routing.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 54 exit artifacts.</p>
+<ol>
+<li><strong>Export Existing URL Map to YAML:</strong>
+<pre><code>gcloud compute url-maps export web-global-url-map   --destination=url-map-canary.yaml   --global</code></pre>
+</li>
+<li><strong>Edit url-map-canary.yaml to Define Weighted Backend Services:</strong>
+<pre><code>defaultService: projects/prod-project/global/backendServices/order-v1-stable
+hostRules:
+- hosts:
+  - "api.brightloaf.com"
+  pathMatcher: order-path-matcher
+pathMatchers:
+- name: order-path-matcher
+  defaultRouteAction:
+    weightedBackendServices:
+    - backendService: projects/prod-project/global/backendServices/order-v1-stable
+      weight: 90
+    - backendService: projects/prod-project/global/backendServices/order-v2-canary
+      weight: 10</code></pre>
+</li>
+<li><strong>Validate and Import Updated URL Map:</strong>
+<pre><code>gcloud compute url-maps validate   --source=url-map-canary.yaml   --load-balancing-scheme=EXTERNAL_MANAGED
+
+gcloud compute url-maps import web-global-url-map   --source=url-map-canary.yaml   --global</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>The URL Map imports successfully. Exactly 90% of incoming production requests route to <code>order-v1-stable</code> and 10% route to <code>order-v2-canary</code> with zero dropped connections.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Weights must be non-negative integers. Ensure weights sum to 100 for percentage simplicity; if weights do not parse, <code>url-maps validate</code> returns a syntax error before production import.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Revert weights to 100/0 when canary evaluation completes.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-55-topic-03"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-04-lab" class="topic-card lab">
+<h3>Exercise 4: Load Balancer Decision Tree Matrix Analysis</h3>
+<p><strong>Goal:</strong> Formally evaluate workload requirements against the Google Cloud load balancer decision framework and document defensible architecture rationales across diverse enterprise production scenarios.</p>
+<p><strong>Mode:</strong> production practice · <strong>Prerequisite:</strong> Day 54 exit artifacts.</p>
+<ol>
+<li><strong>Scenario 1: Global E-Commerce Storefront:</strong>
+<pre><code># Architectural Requirements:
+# - Protocol: HTTPS, HTTP/2
+# - Scope: Worldwide consumers across 4 continents
+# - Edge Features: Cloud CDN static caching, Cloud Armor WAF, Google-managed certificates
+# Decision: Global External Application Load Balancer (Premium Tier)
+# Rationale: Single Anycast VIP delivers sub-20ms edge termination; Cloud CDN and WAF strictly require Global External ALB.</code></pre>
+</li>
+<li><strong>Scenario 2: Low-Latency UDP Gaming &amp; Voice Telemetry:</strong>
+<pre><code># Architectural Requirements:
+# - Protocol: Raw UDP (Port 9000-9100)
+# - Scope: Regional (us-central1)
+# - Characteristics: 2,000,000 packets/sec, zero proxy latency overhead, direct server return
+# Decision: Regional External Passthrough Network Load Balancer (Maglev DSR)
+# Rationale: Maglev forwards raw datagrams without socket termination; DSR replies directly to client public IP.</code></pre>
+</li>
+<li><strong>Scenario 3: Private East-West Microservice Mesh:</strong>
+<pre><code># Architectural Requirements:
+# - Protocol: gRPC, HTTP/2
+# - Scope: Private RFC 1918 VPC network
+# - Features: URL path routing, weighted canary splitting, private proxy-only subnet
+# Decision: Regional Internal Application Load Balancer
+# Rationale: Internal Envoy reverse proxy terminates private microservice calls and executes Layer 7 weighted canaries within the VPC.</code></pre>
+</li>
+</ol>
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A completed decision matrix mapping each workload scenario to its optimal load balancer with comprehensive architectural justifications.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>Always verify whether the protocol requires Layer 7 termination (HTTP/gRPC) or raw Layer 4 passthrough (TCP/UDP).</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>No chargeable cloud resources created for this design analysis.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-55-topic-04"> I completed and checked this topic exercise</label>
+</article>
+
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>Assemble your notes and architecture decisions into an architectural decision record named <code>day-055-cache-security-adr.md</code>. Document your Cloud CDN custom cache key policy, cache invalidation and stampede mitigation strategy, Cloud Armor WAF ruleset and rate-limiting thresholds, weighted canary deployment plan with session stickiness, cross-region overflow topology, and complete load balancer selection decision framework with failover and rollback criteria.</p>
+<label class="check"><input type="checkbox" data-progress="read-55"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-55"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-054.html">← Day 54<small>Health checks, certificates and draining</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-056.html">Day 56 →<small>Hybrid topology and failure domains</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

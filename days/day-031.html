@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 31: Network tiers and delivery paths · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d;stroke-width:1}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534;stroke-width:1}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+.diagram-figure .lane-neutral{fill:#082f49;fill-opacity:.22;stroke:#075985;stroke-width:1}
+</style>
+<script defer src="../assets/site.js">
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span>
+</a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-030.html" aria-label="Previous day">← Day 30</a>
+<a href="day-032.html" aria-label="Next day">Day 32 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html" selected>Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner">
+<strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="31" data-prev="day-030.html" data-next="day-032.html" data-index="../index.html">
+<div class="crumb">
+<a href="../index.html">Roadmap index</a> / <a href="../index.html#block-cloud-environment-and-identity">Cloud environment and identity</a> / Day 31 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY</span>
+<span class="pill">2–3 hours</span>
+<span class="pill">tabletop / design</span>
+<span class="pill">Topics 011</span>
+</div>
+<h1>Day 31 — Network tiers and delivery paths</h1>
+<p class="lead">
+<strong>Outcome:</strong> Draw two client delivery paths and compare documented Premium/Standard trade-offs against the same traffic assumptions.</p>
+<div>
+<strong>Entry prerequisites:</strong> <p>
+<a href="day-030.html">Day 30</a>; bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A network-tier ADR that identifies pricing and behavior needing current verification.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Google&#x27;s private global network and edge points of presence</span>
+<a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Network Service Tiers (Premium vs Standard)</span>
+<a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Service availability differs by region (always check)</span>
+<a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a>
+</div>
+</aside>
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>Google&#x27;s private global network and edge points of presence</h3>
+<p>A point of presence (PoP) is an edge site where Google connects with peering or transit networks. For an internet-facing service, the chosen Network Service Tier influences where traffic crosses between those external networks and Google&#x27;s network; this belongs after Day 30&#x27;s location decision because a region does not, by itself, describe the client delivery path.</p>
+<p>In Brightloaf, the path sits between a customer&#x27;s ISP and the Order API&#x27;s external frontend; it does not replace DNS, a load balancer, backend placement, or application controls.</p>
+<p>
+<strong>Problem preview:</strong> Customers far from the workload report a path-dependent experience after Brightloaf assumes every external IP enters Google near the user. The uncertain delivery path delays checkout and makes support unable to defend the network choice.</p>
+<p>
+<a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a>
+</p>
+</article>
+<article id="topic-02-overview" class="topic-card">
+<h3>Network Service Tiers (Premium vs Standard)</h3>
+<p>Network Service Tiers is a resource-level choice for eligible internet-facing resources: Premium favors Google&#x27;s backbone and global networking features, while Standard is a cost-oriented regional option with a more limited feature set. It belongs today because the trade-off must be made against the same users, region, frontend type, and traffic assumptions—not as a slogan that one tier is always better.</p>
+<p>The control sits on eligible external IP addresses and related forwarding resources; global external IP addresses are Premium, while eligible regional external IPv4 addresses can use either tier.</p>
+<p>
+<strong>Problem preview:</strong> Brightloaf changes a project default to Standard but leaves an existing global frontend unchanged. The expected saving does not follow from the actual resource configuration, and the unsupported target architecture cannot be approved.</p>
+<p>
+<a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a>
+</p>
+</article>
+<article id="topic-03-overview" class="topic-card">
+<h3>Service availability differs by region (always check)</h3>
+<p>A named Google Cloud region does not guarantee that every product, feature, machine series, quota, or tier-compatible frontend is available there. This check belongs in the delivery-path decision because a paper design is invalid if one of its regional components cannot be provisioned or paired at the required scope.</p>
+<p>The check crosses the product location page, the product-specific availability table, resource scope rules, quota/capacity review, and current pricing; it is an architecture gate, not a one-time memory test.</p>
+<p>
+<strong>Problem preview:</strong> Brightloaf selects a candidate region before confirming that every required frontend and backend option is offered there. Implementation stops at the first unavailable dependency, delaying the release and forcing an architecture review.</p>
+<p>
+<a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a>
+</p>
+</article>
+</section>
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+<article id="topic-01-technical" class="topic-card">
+<h3>Google&#x27;s private global network and edge points of presence</h3>
+<p>Separate the internet segment from the Google-network segment. For Premium inbound traffic, Google advertises next hops across its global network to encourage handoff at a PoP close to the user, then carries traffic toward the workload. For Standard inbound traffic, the preferred handoff is at PoPs close to the region of the Standard-tier IP, so more of the path can remain on ISP or transit networks. These are routing behaviors, not promises of a particular PoP, route, or latency.</p>
+<p>Google owns the backbone and its advertisements; external networks own their routing decisions; Brightloaf owns DNS, frontend type, IP scope/tier, backend health, and application correctness. A traceroute is supporting evidence only: filtering, asymmetric routes, and hidden hops limit what it proves.</p>
+<table class="comparison">
+<caption>Architecture path and control boundary</caption>
+<thead>
+<tr>
+<th>Hop</th>
+<th>Primary control</th>
+<th>Decision evidence</th>
+<th>Limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Client → access ISP</td>
+<td>User / ISP</td>
+<td>Representative client geography and ASN</td>
+<td>Outside Brightloaf and Google control</td>
+</tr>
+<tr>
+<td>ISP/transit → Google PoP</td>
+<td>BGP between networks; tier influences advertisements</td>
+<td>Documented tier behavior plus representative tests</td>
+<td>No fixed PoP or latency guarantee</td>
+</tr>
+<tr>
+<td>Google network → external frontend</td>
+<td>Google and configured IP/frontend</td>
+<td>IP scope, tier, forwarding resource</td>
+<td>Tier does not make an unhealthy backend healthy</td>
+</tr>
+<tr>
+<td>Frontend → Order API</td>
+<td>Brightloaf architecture</td>
+<td>Backend health and request telemetry</td>
+<td>Separate from internet network tier</td>
+</tr>
+</tbody>
+</table>
+<div class="callout">
+<strong>Further study</strong>
+<p>
+<a href="../sources.html#topic-011">Topic 011 sources</a> · <a href="https://docs.cloud.google.com/network-tiers/docs/overview#traffic_routing" rel="noopener noreferrer">Network Service Tiers: Traffic routing</a> · <a href="https://docs.cloud.google.com/vpc/docs/edge-locations" rel="noopener noreferrer">Network edge locations</a>. Sections verified 2026-09-27; no video timestamp is claimed.</p>
+</div>
+</article>
+<article id="topic-02-technical" class="topic-card">
+<h3>Network Service Tiers (Premium vs Standard)</h3>
+<p>Hold the workload assumptions constant. Premium supports global external IPs and global external load-balancing modes; Standard uses eligible regional external IPv4 addresses and regional resources. A project default applies only where no resource-level setting overrides it. Changing pools can require a new IP, so DNS migration and rollback belong in the decision.</p>
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d31-tier-title d31-tier-desc" viewBox="0 0 920 330">
+<title id="d31-tier-title">Premium and Standard client delivery paths</title>
+<desc id="d31-tier-desc">Two conceptual inbound paths compare early entry to Google's network for Premium with regional entry for Standard. Both end at the same regional Brightloaf Order API for a fair design comparison.</desc>
+<defs>
+<marker id="d31-tier-arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#38bdf8"/>
+</marker>
+</defs>
+<rect class="canvas" x="0" y="0" width="920" height="330" rx="8"/>
+<rect class="lane-neutral" x="18" y="16" width="884" height="106" rx="8"/>
+<rect class="lane-neutral" x="18" y="208" width="884" height="106" rx="8"/>
+<rect class="box" x="24" y="34" width="150" height="64" rx="8"/>
+<text x="49" y="63">Client cohort</text>
+<text class="small-label" x="46" y="82">same assumptions</text>
+<rect class="box" x="235" y="24" width="155" height="84" rx="8"/>
+<text x="255" y="55">Nearby Google PoP</text>
+<text class="small-label" x="251" y="77">Premium handoff</text>
+<rect class="box" x="476" y="24" width="180" height="84" rx="8"/>
+<text x="499" y="55">Google backbone</text>
+<text class="small-label" x="500" y="77">toward region</text>
+<rect class="box" x="727" y="128" width="165" height="74" rx="8"/>
+<text x="748" y="157">Regional Order API</text>
+<text class="small-label" x="761" y="179">same backend</text>
+<rect class="box" x="235" y="220" width="155" height="84" rx="8"/>
+<text x="256" y="251">ISP / transit</text>
+<text class="small-label" x="250" y="274">longer internet path</text>
+<rect class="box" x="476" y="220" width="180" height="84" rx="8"/>
+<text x="496" y="251">PoP near region</text>
+<text class="small-label" x="497" y="274">Standard handoff</text>
+<path class="path" marker-end="url(#d31-tier-arrow)" d="M174 66 H235"/>
+<path class="path" marker-end="url(#d31-tier-arrow)" d="M390 66 H476"/>
+<path class="path" marker-end="url(#d31-tier-arrow)" d="M656 66 C700 66 690 146 727 156"/>
+<path class="path" marker-end="url(#d31-tier-arrow)" d="M99 98 C99 262 170 262 235 262"/>
+<path class="path" marker-end="url(#d31-tier-arrow)" d="M390 262 H476"/>
+<path class="path" marker-end="url(#d31-tier-arrow)" d="M656 262 C700 262 690 184 727 174"/>
+<text x="405" y="47">PREMIUM</text>
+<text x="404" y="249">STANDARD</text>
+</svg>
+<figcaption>Conceptual comparison, not an observed trace or performance result. Both lanes deliberately keep client cohort, application region, and backend constant; actual routing is dynamic and current pricing must be checked separately.</figcaption>
+</figure>
+<table class="comparison">
+<caption>Documented trade-offs to record in the ADR</caption>
+<thead>
+<tr>
+<th>Question</th>
+<th>Premium</th>
+<th>Standard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>External path intent</td>
+<td>Use Google&#x27;s network as far as practical</td>
+<td>Use ISP/transit networks with handoff near workload region</td>
+</tr>
+<tr>
+<td>Resource scope</td>
+<td>Global and eligible regional external resources</td>
+<td>Eligible regional external IPv4 resources</td>
+</tr>
+<tr>
+<td>Feature fit</td>
+<td>Required for global external IPs, global modes, Cloud CDN</td>
+<td>Foundational regional feature set; verify exact frontend</td>
+</tr>
+<tr>
+<td>Cost evidence</td>
+<td>Use current source-region/destination pricing</td>
+<td>Use current Standard per-GiB schedule</td>
+</tr>
+</tbody>
+</table>
+<div class="callout">
+<strong>Further study</strong>
+<p>
+<a href="https://docs.cloud.google.com/network-tiers/docs/overview#network_service_tiers_and_google_cloud_resources" rel="noopener noreferrer">Tiers and Google Cloud resources</a> · <a href="https://docs.cloud.google.com/network-tiers/docs/overview#choosing_a_tier" rel="noopener noreferrer">Choosing a tier</a> · <a href="https://cloud.google.com/network-tiers/pricing#pricing" rel="noopener noreferrer">Network Service Tiers pricing</a>. Sections verified 2026-09-27; prices are intentionally not copied into this durable page.</p>
+</div>
+</article>
+<article id="topic-03-technical" class="topic-card">
+<h3>Service availability differs by region (always check)</h3>
+<p>Run availability checks per component and per feature, not merely per product name. Confirm the frontend mode, IP scope/tier, backend service, compute shape, data service, quota/capacity, and residency constraint in both candidate regions. A location catalog is the starting point; product-specific pages are authoritative for feature detail and can change.</p>
+<table class="comparison">
+<caption>Pre-deployment availability gate</caption>
+<thead>
+<tr>
+<th>Boundary</th>
+<th>Evidence to capture</th>
+<th>Reject when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Product / feature</td>
+<td>Specific documentation section and checked date</td>
+<td>Required mode is absent or preview-only against policy</td>
+</tr>
+<tr>
+<td>Resource scope</td>
+<td>Global, regional, or zonal relationship</td>
+<td>IP, forwarding rule, and backend scopes conflict</td>
+</tr>
+<tr>
+<td>Quota / capacity</td>
+<td>Project quota plus current provisioning confirmation</td>
+<td>Documented availability is mistaken for guaranteed capacity</td>
+</tr>
+<tr>
+<td>Residency / pricing</td>
+<td>Policy review and current calculator or price sheet</td>
+<td>Location or cost assumption lacks evidence</td>
+</tr>
+</tbody>
+</table>
+<div class="callout">
+<strong>Further study</strong>
+<p>
+<a href="https://cloud.google.com/about/locations/#lightbox-regions-map" rel="noopener noreferrer">Google Cloud locations and products</a> · <a href="https://docs.cloud.google.com/compute/docs/regions-zones#resource_availability" rel="noopener noreferrer">Compute Engine resource availability</a> · <a href="https://docs.cloud.google.com/compute/docs/regions-zones/global-regional-zonal-resources#resource_scopes" rel="noopener noreferrer">Resource scopes</a>. Sections verified 2026-09-27.</p>
+</div>
+</article>
+</section>
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+<article id="topic-01-problem" class="topic-card">
+<h3>Example incident: the assumed nearest edge</h3>
+<p>
+<strong>Supplied facts:</strong> Brightloaf serves a distant customer cohort through a regional external frontend. The design record says traffic enters Google at the PoP nearest each customer, but it never records the IP&#x27;s tier or validates the frontend path. Support must diagnose without changing production or claiming a measured slowdown.</p>
+<p>
+<strong>Constraints and evidence:</strong> Preserve the single frontend, region, DNS name, and backend while comparing paths. Inventory shows only a regional external IP; the tier field and representative client evidence are missing. The business risk is an indefensible checkout path and a potentially inappropriate tier choice.</p>
+<p>
+<strong>Diagnosis:</strong> (1) resolve the DNS name and identify the serving external IP; (2) map IP → forwarding rule → frontend → backend region; (3) read the configured tier rather than infer it from geography; (4) compare documented inbound routing behavior; (5) design a representative, time-bounded client test and keep its result separate from the architecture model.</p>
+<p>
+<strong>Root cause and solution:</strong> The failure is the undocumented assumption that every tier hands traffic to Google near the client. Record the actual tier and scope, then select Premium if the requirement is early entry to Google&#x27;s network; otherwise retain Standard only with an explicit regional-path and cost rationale.</p>
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d31-i1-title d31-i1-desc" viewBox="0 0 960 330">
+<title id="d31-i1-title">Incident path for an unverified edge-entry assumption</title>
+<desc id="d31-i1-desc">A dashed failed reasoning path jumps from a client to an assumed nearby point of presence without checking tier. The corrected solid path inventories the external IP and tier before a representative verification boundary.</desc>
+<defs>
+<marker id="d31-i1-arrow-f" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#f43f5e"/>
+</marker>
+<marker id="d31-i1-arrow-c" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#34d399"/>
+</marker>
+</defs>
+<rect class="canvas" x="0" y="0" width="960" height="330" rx="8"/>
+<rect class="lane-failed" x="16" y="14" width="928" height="116" rx="8"/>
+<rect class="lane-corrected" x="16" y="202" width="928" height="112" rx="8"/>
+<text class="lane-label" x="32" y="34" fill="#fda4af">FAILED PATH · UNVERIFIED EDGE ASSUMPTION</text>
+<text class="lane-label" x="32" y="222" fill="#4ade80">CORRECTED PATH · INVENTORY, MODEL, VERIFY</text>
+<rect class="box" x="28" y="118" width="135" height="66" rx="8"/>
+<text x="55" y="148">Client cohort</text>
+<text class="small-label" x="51" y="168">supplied input</text>
+<rect class="failbox" x="230" y="25" width="220" height="82" rx="8"/>
+<text x="253" y="54">FAILURE POINT</text>
+<text x="250" y="76">assume nearest PoP</text>
+<text class="small-label" x="246" y="96">root cause: tier omitted</text>
+<rect class="box" x="230" y="215" width="220" height="82" rx="8"/>
+<text x="249" y="245">Inventory external IP</text>
+<text x="263" y="267">+ configured tier</text>
+<rect class="box" x="520" y="118" width="175" height="66" rx="8"/>
+<text x="542" y="148">Documented path</text>
+<text class="small-label" x="549" y="168">tier-specific model</text>
+<rect class="verifybox" x="760" y="105" width="175" height="92" rx="8"/>
+<text x="782" y="136">VERIFY BOUNDARY</text>
+<text x="779" y="158">representative tests</text>
+<text class="small-label" x="784" y="180">before production claim</text>
+<path class="failed" marker-end="url(#d31-i1-arrow-f)" d="M163 137 C190 80 200 66 230 66"/>
+<path class="failed" marker-end="url(#d31-i1-arrow-f)" d="M450 66 C610 66 670 100 760 128"/>
+<text x="469" y="48">FAILED PATH (dashed)</text>
+<path class="corrected" marker-end="url(#d31-i1-arrow-c)" d="M163 168 C190 220 200 250 230 250"/>
+<path class="corrected" marker-end="url(#d31-i1-arrow-c)" d="M450 250 C485 250 490 159 520 151"/>
+<path class="corrected" marker-end="url(#d31-i1-arrow-c)" d="M695 151 H760"/>
+<text x="465" y="282">CORRECTED PATH (solid)</text>
+<rect class="boundary" x="742" y="88" width="210" height="126" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> regional frontend and unverified path claim. <strong>Architectural inference:</strong> the missing tier makes the nearest-PoP conclusion unsupported. <strong>Expected post-fix behavior:</strong> the ADR states the configured tier and only claims results inside the marked verification boundary after representative testing.</figcaption>
+</figure>
+<p>
+<strong>Verification and residual risk:</strong> Require an inventory capture, tier-specific path drawing, and test plan with client geography held constant. Actual BGP selection remains dynamic, and a representative test cannot guarantee every user path.</p>
+</article>
+<article id="topic-02-problem" class="topic-card">
+<h3>Example incident: a project default mistaken for a migration</h3>
+<p>
+<strong>Supplied facts:</strong> To reduce delivery cost, a Brightloaf operator changes the project default tier to Standard. The Order API still uses an existing global external IP and global frontend. The team has not supplied billing results, errors, or performance measurements.</p>
+<p>
+<strong>Constraints and evidence:</strong> The public DNS name must remain stable until a reviewed cutover, and global failover is a stated requirement. Resource inventory shows a global IP; documentation says global external IP addresses use Premium and that a resource setting takes precedence over the project default.</p>
+<p>
+<strong>Diagnosis:</strong> (1) inspect project default; (2) inspect the serving IP, forwarding rule, load-balancer mode, and their scopes; (3) trace configuration precedence; (4) reject Standard if global mode remains required; (5) if requirements become regional, price and design a separate regional Standard frontend plus DNS migration and rollback.</p>
+<p>
+<strong>Root cause and solution:</strong> The exact failure point is the assumption that a project-default change retrofits an existing global resource. Correct the ADR: retain Premium for the global path, or build an eligible regional Standard path under a separately approved architecture; never present either as a proven saving until billing evidence exists.</p>
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d31-i2-title d31-i2-desc" viewBox="0 0 960 330">
+<title id="d31-i2-title">Incident path for a tier-default misconception</title>
+<desc id="d31-i2-desc">The dashed path incorrectly treats a Standard project default as changing a global frontend. The solid path checks resource scope and preserves Premium or creates a separate eligible regional frontend, followed by configuration and DNS verification.</desc>
+<defs>
+<marker id="d31-i2-arrow-f" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#f43f5e"/>
+</marker>
+<marker id="d31-i2-arrow-c" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#34d399"/>
+</marker>
+</defs>
+<rect class="canvas" x="0" y="0" width="960" height="330" rx="8"/>
+<rect class="lane-failed" x="16" y="14" width="928" height="116" rx="8"/>
+<rect class="lane-corrected" x="16" y="202" width="928" height="112" rx="8"/>
+<text class="lane-label" x="32" y="34" fill="#fda4af">FAILED PATH · DEFAULT ASSUMED TO MIGRATE RESOURCE</text>
+<text class="lane-label" x="32" y="222" fill="#4ade80">CORRECTED PATH · INSPECT SCOPE, BUILD ELIGIBLE CONTROL</text>
+<rect class="box" x="25" y="118" width="155" height="70" rx="8"/>
+<text x="44" y="147">Set project default</text>
+<text x="69" y="170">STANDARD</text>
+<rect class="failbox" x="240" y="25" width="220" height="86" rx="8"/>
+<text x="264" y="53">FAILURE POINT</text>
+<text x="259" y="76">assume global IP</text>
+<text class="small-label" x="263" y="97">was converted in place</text>
+<rect class="box" x="240" y="218" width="220" height="86" rx="8"/>
+<text x="261" y="247">Inspect IP + rule</text>
+<text x="273" y="270">scope and tier</text>
+<text class="small-label" x="270" y="290">resource wins</text>
+<rect class="box" x="530" y="118" width="175" height="70" rx="8"/>
+<text x="550" y="147">Correct control</text>
+<text class="small-label" x="545" y="170">Premium global OR</text>
+<text class="small-label" x="541" y="185">new Standard regional</text>
+<rect class="verifybox" x="770" y="105" width="165" height="96" rx="8"/>
+<text x="786" y="135">VERIFY BOUNDARY</text>
+<text x="791" y="158">inventory + DNS</text>
+<text class="small-label" x="787" y="180">billing later, observed</text>
+<path class="failed" marker-end="url(#d31-i2-arrow-f)" d="M180 136 C205 90 215 68 240 68"/>
+<path class="failed" marker-end="url(#d31-i2-arrow-f)" d="M460 68 C620 68 675 105 770 130"/>
+<text x="482" y="49">FAILED PATH (dashed)</text>
+<path class="corrected" marker-end="url(#d31-i2-arrow-c)" d="M180 175 C205 220 215 258 240 258"/>
+<path class="corrected" marker-end="url(#d31-i2-arrow-c)" d="M460 258 C500 258 500 153 530 153"/>
+<path class="corrected" marker-end="url(#d31-i2-arrow-c)" d="M705 153 H770"/>
+<text x="475" y="290">CORRECTED PATH (solid)</text>
+<rect class="boundary" x="752" y="88" width="200" height="130" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Standard project default, existing global frontend, stable-name and global-failover requirements. <strong>Architectural inference:</strong> the default alone does not migrate the serving resource. <strong>Expected post-fix behavior:</strong> scope and tier inventory match the approved path; DNS and billing outcomes are verified separately rather than presumed.</figcaption>
+</figure>
+<p>
+<strong>Verification and residual risk:</strong> Verify the serving IP and rule after any cutover, resolve DNS from representative locations, and compare billed SKUs only after a defined observation window. A new IP can change allowlists and caches; Standard is not a standby classification to apply during an outage.</p>
+</article>
+<article id="topic-03-problem" class="topic-card">
+<h3>Example incident: candidate region passes only a map check</h3>
+<p>
+<strong>Supplied facts:</strong> Brightloaf approves a candidate region because it appears on the global locations map. During design review, no one can produce evidence for the exact load-balancer mode, compute shape, or data-service feature in that region. No deployment has been attempted.</p>
+<p>
+<strong>Constraints and evidence:</strong> Residency keeps the workload inside the approved geography, the public path must match the tier decision, and the release date cannot rely on an unverified feature. The region map proves the region exists, not that every required feature or capacity is available.</p>
+<p>
+<strong>Diagnosis:</strong> (1) decompose the architecture into provisionable resources; (2) check each product-specific location/feature page; (3) validate global/regional/zonal scope compatibility; (4) review project quota and seek current capacity confirmation where needed; (5) record source URLs and dates; (6) reject or redesign every unchecked row.</p>
+<p>
+<strong>Root cause and solution:</strong> The failure point is approval at the coarse region-map boundary. Add an availability gate requiring all rows to pass; if a required feature is absent, choose the already-qualified alternate region or replace the feature while rechecking residency, delivery path, and cost.</p>
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d31-i3-title d31-i3-desc" viewBox="0 0 960 330">
+<title id="d31-i3-title">Incident path for an incomplete regional availability check</title>
+<desc id="d31-i3-desc">A dashed path goes directly from a region map to approval and fails at an unchecked feature. A solid path passes product, scope, quota and residency gates before an evidence review boundary.</desc>
+<defs>
+<marker id="d31-i3-arrow-f" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#f43f5e"/>
+</marker>
+<marker id="d31-i3-arrow-c" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#34d399"/>
+</marker>
+</defs>
+<rect class="canvas" x="0" y="0" width="960" height="330" rx="8"/>
+<rect class="lane-failed" x="16" y="14" width="928" height="116" rx="8"/>
+<rect class="lane-corrected" x="16" y="202" width="928" height="112" rx="8"/>
+<text class="lane-label" x="32" y="34" fill="#fda4af">FAILED PATH · REGION MAP USED AS FEATURE APPROVAL</text>
+<text class="lane-label" x="32" y="222" fill="#4ade80">CORRECTED PATH · COMPONENT-BY-COMPONENT EVIDENCE GATE</text>
+<rect class="box" x="22" y="120" width="145" height="66" rx="8"/>
+<text x="49" y="150">Region map</text>
+<text class="small-label" x="43" y="171">region exists</text>
+<rect class="failbox" x="223" y="24" width="226" height="90" rx="8"/>
+<text x="247" y="53">FAILURE POINT</text>
+<text x="244" y="76">approve architecture</text>
+<text class="small-label" x="241" y="97">root cause: features unchecked</text>
+<rect class="box" x="213" y="220" width="165" height="82" rx="8"/>
+<text x="236" y="249">Product + feature</text>
+<text x="260" y="272">evidence</text>
+<rect class="box" x="430" y="220" width="160" height="82" rx="8"/>
+<text x="455" y="249">Scope + quota</text>
+<text x="466" y="272">+ capacity</text>
+<rect class="box" x="642" y="220" width="140" height="82" rx="8"/>
+<text x="665" y="249">Residency +</text>
+<text x="681" y="272">pricing</text>
+<rect class="verifybox" x="800" y="105" width="145" height="100" rx="8"/>
+<text x="810" y="136">VERIFY BOUNDARY</text>
+<text x="821" y="159">dated matrix</text>
+<text class="small-label" x="815" y="181">all required rows</text>
+<path class="failed" marker-end="url(#d31-i3-arrow-f)" d="M167 135 C190 90 200 68 223 68"/>
+<path class="failed" marker-end="url(#d31-i3-arrow-f)" d="M449 68 C620 68 710 105 800 131"/>
+<text x="486" y="48">FAILED PATH (dashed)</text>
+<path class="corrected" marker-end="url(#d31-i3-arrow-c)" d="M167 174 C190 220 195 260 213 260"/>
+<path class="corrected" marker-end="url(#d31-i3-arrow-c)" d="M378 260 H430"/>
+<path class="corrected" marker-end="url(#d31-i3-arrow-c)" d="M590 260 H642"/>
+<path class="corrected" marker-end="url(#d31-i3-arrow-c)" d="M782 260 C810 250 810 190 800 174"/>
+<text x="410" y="321">CORRECTED PATH (solid)</text>
+<rect class="boundary" x="786" y="89" width="169" height="132" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> only the region map was checked; exact feature evidence is absent. <strong>Architectural inference:</strong> approval is premature, not proof that a deployment would fail. <strong>Expected post-fix behavior:</strong> every required component has dated evidence inside the verification boundary, or the architecture is explicitly redesigned.</figcaption>
+</figure>
+<p>
+<strong>Verification and residual risk:</strong> A reviewer must reproduce every link in the matrix and confirm scopes align. Documentation can change, quota is not capacity, and a passing tabletop gate is still not a successful provisioning test.</p>
+</article>
+</section>
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Trace ownership to the edge</h3>
+<p>
+<strong>Goal:</strong> Draw Premium and Standard inbound paths without confusing documented routing behavior with an observed route.</p>
+<p>
+<strong>Expected Result:</strong> A two-lane path whose hops name the owning party, evidence, and uncertainty.</p>
+<p>
+<strong>Mode:</strong> local tabletop; no account, credentials, or cloud resource required.</p>
+<p>
+<strong>Preflight:</strong> Bring Day 30&#x27;s location matrix. Create <code>day-031-edge-path.md</code> and label it <code>synthetic Brightloaf tabletop — not measured</code>. Use this supplied fixture: one customer cohort, one candidate region, one Order API backend, Premium lane, Standard lane.</p>
+<p>
+<strong>Numbered Exact Execution:</strong>
+</p>
+<ol>
+<li>Write the fixed assumptions at the top: identical client cohort, DNS name, region, and backend.</li>
+<li>Draw <code>client → ISP/transit → Google PoP → Google network → frontend → Order API</code> twice.</li>
+<li>For each hop, record <code>owner | documented behavior | evidence needed</code>.</li>
+<li>On Premium, label the intended early handoff near the user; on Standard, label the intended handoff near the workload region. Add <code>actual route may vary</code> to both.</li>
+<li>Mark the boundary where a representative client test would begin and list DNS resolution, configured IP/tier, and request telemetry as evidence.</li>
+</ol>
+<div class="callout success">
+<strong>Verification with expected output</strong>
+<p>Expected: two paths share the same assumptions; every arrow has an owner; neither lane claims a latency number, fixed PoP, or observed result.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If the lanes differ in region or backend, normalize them before comparing. If a route statement lacks a source, label it a hypothesis. Do not turn traceroute gaps into failure claims.</p>
+</div>
+<div class="callout">
+<strong>Cleanup</strong>
+<p>No resources or cost. Keep the accepted note; remove only scratch copies.</p>
+</div>
+<p>
+<strong>Artifact Acceptance:</strong> The reviewer can point to the internet/Google boundary, the tier-dependent handoff, one limit of the model, and the future verification boundary.</p>
+<label class="check">
+<input type="checkbox" data-progress="lab-31-topic-01"> I completed and checked this topic exercise</label>
+</article>
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Hold assumptions constant</h3>
+<p>
+<strong>Goal:</strong> Produce a defensible tier comparison and expose any incompatible requirement.</p>
+<p>
+<strong>Expected Result:</strong> A decision table with the same workload assumptions in both columns and a provisional tier decision.</p>
+<p>
+<strong>Mode:</strong> local tabletop; no deployment and no cost.</p>
+<p>
+<strong>Preflight:</strong> Create <code>day-031-tier-comparison.md</code>. Copy this fixture: <code>global failover required; Cloud CDN required; one public DNS name; regional Order API backends; cost must use a current price source</code>.</p>
+<p>
+<strong>Numbered Exact Execution:</strong>
+</p>
+<ol>
+<li>Create rows for path, IP scope, frontend scope, backend scope, Cloud CDN, migration, rollback, pricing evidence, and validation.</li>
+<li>Fill Premium and Standard using the linked documentation; write <code>not supported</code> rather than inventing a workaround.</li>
+<li>Reject Standard for this supplied fixture because global external mode and Cloud CDN are required.</li>
+<li>Change only the fixture to <code>single region; no Cloud CDN; regional frontend acceptable</code>, then reassess Standard.</li>
+<li>Record the current pricing URL and checked date, but do not copy a price that will become stale.</li>
+</ol>
+<div class="callout success">
+<strong>Verification with expected output</strong>
+<p>Expected: Premium is selected for the original fixture; Standard becomes a candidate only for the changed regional fixture. The file states that cost and performance remain unmeasured.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If both options appear identical, recheck global IP and Cloud CDN support. If a project default is treated as proof of a resource tier, add the resource-level precedence rule and inventory step.</p>
+</div>
+<div class="callout">
+<strong>Cleanup</strong>
+<p>No resources exist to delete. Retain both fixture decisions so the changed constraint is auditable.</p>
+</div>
+<p>
+<strong>Artifact Acceptance:</strong> Every decision cites a specific documentation section, contains a rejected alternative, and distinguishes documented behavior from tests and current price verification.</p>
+<label class="check">
+<input type="checkbox" data-progress="lab-31-topic-02"> I completed and checked this topic exercise</label>
+</article>
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Build the regional evidence gate</h3>
+<p>
+<strong>Goal:</strong> Turn two candidate regions from Day 30 into a reviewable component-by-component availability matrix.</p>
+<p>
+<strong>Expected Result:</strong> A dated matrix that says pass, fail, or unknown for each required resource in each region.</p>
+<p>
+<strong>Mode:</strong> local documentation review; no provisioning, credentials, or cloud cost.</p>
+<p>
+<strong>Preflight:</strong> Create <code>day-031-region-gate.md</code>. Bring the two real candidate regions and residency requirements from Day 30. Use these required rows: external frontend mode/IP scope, compute shape, data service feature, quota/capacity, residency, and pricing.</p>
+<p>
+<strong>Numbered Exact Execution:</strong>
+</p>
+<ol>
+<li>Create columns <code>component | exact feature | scope | region A evidence/date | region B evidence/date | status | owner</code>.</li>
+<li>Open the product-specific availability section for every row; a general region map may not close a feature row.</li>
+<li>Mark quota and capacity separately: documentation can show availability but does not reserve capacity.</li>
+<li>Fail any region with an unsupported mandatory feature. Mark missing evidence <code>unknown</code>, never pass.</li>
+<li>Add a revalidation date and the person or team that owns each unknown.</li>
+<li>Append the tier comparison from Exercise 2 and write the provisional ADR decision.</li>
+</ol>
+<div class="callout success">
+<strong>Verification with expected output</strong>
+<p>Expected: no blank status cells, every pass has a URL and checked date, and the selected region has no failed mandatory row. Unknowns are explicit blockers or accepted risks.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If a product page lists a service but not the needed feature, keep the row unknown and seek product-specific evidence. If scopes conflict, redraw the resource chain before choosing a region.</p>
+</div>
+<div class="callout">
+<strong>Cleanup</strong>
+<p>No cloud resources were created. Keep the matrix with Day 30 evidence and delete only duplicate drafts.</p>
+</div>
+<p>
+<strong>Artifact Acceptance:</strong> Combine the two paths, tier comparison, regional matrix, decision, rejected alternative, current pricing/behavior checks, verification plan, and residual risks into <code>day-031-network-tier-adr.md</code>.</p>
+<label class="check">
+<input type="checkbox" data-progress="lab-31-topic-03"> I completed and checked this topic exercise</label>
+</article>
+</section>
+<section class="completion">
+<h2>Daily evidence</h2>
+<label class="check">
+<input type="checkbox" data-progress="read-31"> I read and reviewed the day</label>
+<label class="check">
+<input type="checkbox" data-progress="artifact-31"> I saved the exit artifact</label>
+</section>
+<nav class="pager" aria-label="Day pagination">
+<a href="day-030.html">← Day 30<small>Region and resource-scope decisions</small>
+</a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small>
+</a>
+<a href="day-032.html">Day 32 →<small>Support, inventory and learning tracker</small>
+</a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

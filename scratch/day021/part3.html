@@ -1,0 +1,475 @@
+    <section class="part" id="part-3" aria-labelledby="part-3-title">
+      <h2 id="part-3-title">3 · Real-world field problems and incident handling</h2>
+
+      <article class="topic-card" id="topic-01-problem">
+        <h3>Incident exercise · Rogue project creation outside organization node bypasses security baseline</h3>
+        
+        <p><strong>Symptom:</strong> During a quarterly security audit, Brightloaf's central cybersecurity team discovered an active PostgreSQL database instance exposed directly to the public internet on port 5432, containing mirrored franchise order telemetry and customer store coordinates. The instance was not listed in central asset inventories, audit log streams to the corporate SIEM were missing, and the project owner was listed as an external contractor's personal Gmail account who had departed the organization three weeks prior.</p>
+
+        <p><strong>Operational and business constraints:</strong> Brightloaf must maintain strict compliance with franchise privacy agreements and ISO 27001 standards. Any infrastructure hosting customer order data must enforce the corporate baseline: zero public IP access, centralized audit log ingestion, and mandatory customer-managed encryption keys. Crucially, when reconciling orders mirrored to this external database back into the central order ledger, the fulfillment processor must ensure that no orders are re-dispatched to commercial baking lines.</p>
+
+        <p><strong>Evidence:</strong> Inspecting the rogue project using administrative CLI calls revealed that it had no parent organization and sat outside corporate policy boundaries:</p>
+        <pre><code class="language-bash">$ gcloud projects describe brightloaf-analytics-shadow
+createTime: '2026-08-10T14:22:19.491Z'
+lifecycleState: ACTIVE
+name: Brightloaf Analytics Shadow
+parent: null
+projectId: brightloaf-analytics-shadow
+projectNumber: '482910481920'
+
+$ gcloud org-policies list --project=brightloaf-analytics-shadow
+Listed 0 items.
+
+$ gcloud compute instances describe shadow-db-node --zone=us-central1-a --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
+35.192.44.182</code></pre>
+
+        <p><strong>Root cause:</strong> The contractor provisioned the project using an unmanaged personal Google identity rather than an authenticated corporate Cloud Identity account (<code>@brightloaf.com</code>). Because the project was created without specifying an Organization parent, it operated as an unmanaged island. The corporate Organization Policy restricting external IP assignments (<code>constraints/compute.vmExternalIpAccess</code>) and the aggregated Cloud Audit Log sink never applied to the standalone project.</p>
+
+        <p><strong>Diagnostic sequence (5 steps):</strong></p>
+        <ol>
+          <li><strong>Interrogate project lineage and parent container:</strong> Execute project inspection commands to verify whether the <code>parent</code> field references <code>organizations/892019481029</code> or evaluates to <code>null</code>.</li>
+          <li><strong>Audit active organization policies:</strong> Check effective constraint enforcement across the project to confirm policy inheritance status.</li>
+          <li><strong>Inspect network ingress boundaries:</strong> Identify all compute instances and database instances possessing public NAT IP addresses.</li>
+          <li><strong>Execute project migration into corporate organization:</strong> Initiate a project move into the corporate Organization node under a quarantined folder using Resource Manager project move operations.</li>
+          <li><strong>Validate fulfillment transaction deduplication during data recovery:</strong> Replay buffered order transaction logs from the contractor's database into the core fulfillment system, verifying that the database primary key constraint on <code>order_id</code> halts duplicate baking tickets.</li>
+        </ol>
+
+        <p><strong>Defensible solution:</strong> Have the Cloud Identity Super Administrator claim ownership of the contractor's project by linking billing and initiating a project move into <code>organizations/892019481029</code> under <code>folders/quarantine</code>. Once moved, the inherited corporate organization policies immediately block public IP assignments. Reconfigure firewalls to remove the public IP, redirect traffic over Private Service Connect, and bind the project to the centralized audit logging sink.</p>
+
+        <p><strong>Verification:</strong> Verify that the project now reports the corporate Organization as its parent, that external IP policies are enforced, and that reconciliation replays preserve single fulfillment:</p>
+        <pre><code class="language-bash">$ gcloud projects describe brightloaf-analytics-shadow --format="yaml(parent)"
+parent:
+  id: '892019481029'
+  type: organization
+
+$ gcloud compute instances describe shadow-db-node --zone=us-central1-a --format="get(networkInterfaces[0].accessConfigs)"
+[]
+
+$ python3 scripts/reconcile_shadow_orders.py
+[RECONCILE] Processing 450 orders from shadow analytics database...
+[RECONCILE] Dispatched 12 new unfulfilled orders.
+[RECONCILE] Caught 438 duplicate order IDs (DB UNIQUE constraint triggered).
+[RECONCILE] Duplicate baking dispatches suppressed: 438.
+[ASSERTION] Invariant Verified: Total Physical Fulfillments == 1 per order. Status: PASS.</code></pre>
+
+        <p><strong>Residual risk:</strong> Moving a project between organization hierarchies can temporarily interrupt IAM service account authentications if service accounts rely on cross-project bindings tied to old billing identities. Perform migrations during scheduled maintenance windows.</p>
+
+
+<figure class="diagram-figure" id="fig-21-3">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig21-3-title fig21-3-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig21-3-title">Incident 21.1: Rogue Unmanaged Project vs. Organization-Governed Node Migration</title>
+      <desc id="fig21-3-desc">Incident flow contrasting an unmanaged cloud project created outside the organization node bypassing security policies versus an organization-governed project with enforced security guardrails.</desc>
+      <defs>
+        <linearGradient id="p21-f3-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p21-f3-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p21-f3-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p21-f3-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 21.3: Incident Flow · Rogue Unmanaged Project Creation vs. Org Governance</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Personal Gmail Shadow IT · Bypassed Org Policies · Cloud Identity Root Enforcement</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: Shadow IT</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">Contractor creates project</text>
+      <text x="42" y="146" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">using personal Gmail:</text>
+      <text x="42" y="164" fill="#f59e0b" font-family="monospace" font-size="9">dev.contractor@gmail.com</text>
+      <text x="42" y="186" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Orphan project sits</text>
+      <text x="42" y="204" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="10">outside organization node</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Unmanaged Orphan Project Security Breach]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Project parent = No Organization (Orphan)</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Org policies (constraints/compute.vmExternalIp) absent!</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. Contractor deploys database with public 0.0.0.0 IP</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: Port 5432 exposed; automated scanners probe data!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. Contractor departs; corporate admins locked out</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">Replay check: Central DB unique constraint blocked duplicates.</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Cloud Identity Enforced Organization]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Project moved into org: gcloud beta projects move</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Parent set to: organizations/892019481029</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Org policy blocks external IP creation automatically</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Central audit sink aggregates all operational logs</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. Admin ownership retained via Cloud Identity groups</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Zero orphan exposure; single fulfillment invariant held.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p21-f3-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p21-f3-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed State Inspection:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">$ gcloud projects describe rogue</text>
+        <text x="25" y="90" fill="#fca5a5" font-family="monospace" font-size="9">parent: null (No Org)</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">Zero audit visibility!</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected State Inspection:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">$ gcloud projects describe bl-analytics</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">parent: organizations/892019...</text>
+        <text x="25" y="206" fill="#86efac" font-family="monospace" font-size="9">$ gcloud org-policies check</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">[ENFORCED] vmExternalIpAccess</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">Audit logs streaming to SIEM</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Central DB unique constraint</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Order fulfillment count &le; 1</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p21-f3-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p21-f3-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Never permit corporate workloads to run in standalone projects outside the Organization node.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Bind project creation permissions exclusively to corporate Cloud Identity groups to maintain enterprise governance.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 21.3: Incident Flow · Rogue Unmanaged Project Creation vs. Org Governance.</strong>
+    Contrasts a security exposure caused by an orphan project created outside corporate boundaries with an organization-anchored project enforcing centralized guardrails.
+    <br><strong>Supplied facts:</strong> Projects created by personal accounts lack an Organization parent, bypassing organizational constraints and central audit logging.
+    <br><strong>Architectural inference:</strong> Unmanaged shadow IT projects expose infrastructure to automated scanners and risk data loss when contractors depart.
+    <br><strong>Expected post-fix behavior:</strong> Projects are moved under the corporate Organization node, inheriting external IP blocks and centralized audit logging, while database deduplication preserves fulfillment invariants.
+  </figcaption>
+</figure>
+
+
+      </article>
+
+      <article class="topic-card" id="topic-02-problem">
+        <h3>Incident exercise · Flat folder structure leads to catastrophic IAM privilege inheritance leakage</h3>
+        
+        <p><strong>Symptom:</strong> At 10:15 UTC, Brightloaf's automated order dispatch service crashed with database catalog errors: <code>relation "order_fulfillments" does not exist</code>. In-flight bakery delivery dispatching halted across all 32 regional fulfillment centers. Investigation revealed that an automated integration test script running on a junior developer's workstation had executed a complete database reset command (<code>DROP TABLE order_fulfillments CASCADE;</code>) against the <strong>production</strong> database instead of staging.</p>
+
+        <p><strong>Operational and business constraints:</strong> Bakery production runs on tight, temperature-sensitive fermentation schedules. An outage halting order dispatch risks spoiling 50,000 unbaked loaves across regional facilities. The platform must maintain total environment isolation so that developer credentials can never execute mutating actions against production infrastructure, while ensuring that the fulfillment engine recovers without double-fulfilling pending morning orders.</p>
+
+        <p><strong>Evidence:</strong> Querying effective IAM permissions on the production project revealed that developers had full Editor access inherited from a shared parent folder:</p>
+        <pre><code class="language-bash">$ gcloud projects get-ancestors brightloaf-fulfillment-prod
+ID                  TYPE          NAME
+brightloaf-fulfillment-prod project       brightloaf-fulfillment-prod
+918274019283        folder        Order-Fulfillment
+892019481029        organization  brightloaf.com
+
+$ gcloud resource-manager folders get-iam-policy 918274019283
+bindings:
+- members:
+  - group:developers@brightloaf.com
+  role: roles/editor</code></pre>
+
+        <p><strong>Root cause:</strong> The architecture team adopted a flat folder hierarchy where a single folder named <code>Order-Fulfillment</code> contained both <code>brightloaf-fulfillment-dev</code> and <code>brightloaf-fulfillment-prod</code>. When onboarding the development team, an administrator granted <code>roles/editor</code> on the <code>Order-Fulfillment</code> folder. Because IAM permissions in Google Cloud are strictly additive downward, every developer group member inherited full Editor privileges on the production project, completely bypassing local environment separation.</p>
+
+        <p><strong>Diagnostic sequence (5 steps):</strong></p>
+        <ol>
+          <li><strong>Trace resource lineage and folder ancestry:</strong> Run ancestor discovery commands on the production project to map the entire container inheritance path.</li>
+          <li><strong>Audit folder-level IAM bindings:</strong> Extract IAM policies from all parent folders to detect overly permissive role grants (e.g. <code>roles/editor</code> or <code>roles/owner</code>).</li>
+          <li><strong>Restore production database from PITR snapshot:</strong> Execute Point-in-Time Recovery on the Cloud SQL instance to reinstate dropped tables to the state immediately preceding the 10:15 UTC drop.</li>
+          <li><strong>Restructure folder hierarchy to Environment-First:</strong> Move production and development projects into separate, isolated top-level folders (<code>/Production</code> and <code>/Non-Production</code>).</li>
+          <li><strong>Verify order replay deduplication invariant:</strong> Replay buffered order messages from the message queue, verifying that the restored fulfillment table with a unique order constraint rejects duplicate writes.</li>
+        </ol>
+
+        <p><strong>Defensible solution:</strong> Adopt an Environment-First folder hierarchy. Create two top-level sibling folders: <code>/Production</code> and <code>/Non-Production</code>. Move <code>brightloaf-fulfillment-prod</code> under <code>/Production</code> and <code>brightloaf-fulfillment-dev</code> under <code>/Non-Production</code>. Strip all mutating roles from the folder level; grant <code>roles/viewer</code> at parent folders for observability, and bind <code>roles/editor</code> exclusively to non-production leaf projects.</p>
+
+        <p><strong>Verification:</strong> Re-run test scripts using developer credentials against the production project and confirm that access is denied with HTTP 403, while staging operations succeed:</p>
+        <pre><code class="language-bash">$ gcloud compute instances list --project=brightloaf-fulfillment-prod --account=dev@brightloaf.com
+ERROR: (gcloud.compute.instances.list) User [dev@brightloaf.com] does not have permission to access projects instance [brightloaf-fulfillment-prod] (HTTP 403: PERMISSION_DENIED)
+
+$ python3 tests/test_order_dedup.py --project brightloaf-fulfillment-prod
+[TEST] Replaying order: ORD-10928
+[DB] Primary key order_id already exists. Duplicate fulfillment suppressed.
+[PASS] Invariant Verified: fulfillment_count == 1</code></pre>
+
+        <p><strong>Residual risk:</strong> Service accounts deployed inside CI/CD pipelines require granular scoped permissions per project rather than folder-wide access tokens to prevent automation credentials from leaking across environments.</p>
+
+
+<figure class="diagram-figure" id="fig-21-4">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig21-4-title fig21-4-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig21-4-title">Incident 21.2: Flat Folder Permission Leakage vs. Segregated Lifecycle Hierarchy</title>
+      <desc id="fig21-4-desc">Incident flow illustrating how a flat folder containing both production and development projects leaked editor permissions into production, leading to an accidental database drop, and how environment-first folder segregation corrected the defect.</desc>
+      <defs>
+        <linearGradient id="p21-f4-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p21-f4-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p21-f4-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p21-f4-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 21.4: Incident Flow · Flat Folder Permission Leakage vs. Environment Segregation</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Additive IAM Union Trap · Flat Folder Over-Privilege · Environment Sibling Separation</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: Onboarding</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">Junior dev granted:</text>
+      <text x="42" y="146" fill="#f59e0b" font-family="monospace" font-size="9">roles/editor on folder</text>
+      <text x="42" y="164" fill="#f59e0b" font-family="monospace" font-size="9">/Order-Fulfillment</text>
+      <text x="42" y="186" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Folder holds both</text>
+      <text x="42" y="204" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">dev and prod projects!</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Additive IAM Grants Accidental Prod Write]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Dev group assigned roles/editor on /Order-Fulfillment</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Additive IAM propagates Editor role to ALL child projects</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. Dev executes local staging test script: DROP TABLE</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: Script connects to production DB; tables dropped!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. Morning bakery dispatch halted; loyalty data corrupted</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">DB row-lock stopped duplicate order re-execution.</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Environment Sibling Segregation]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Top-level folders segregated: /Production and /Non-Prod</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Devs granted Editor strictly on /Non-Prod folder branch</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Production folder locked to automated SRE service principals</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Test scripts targeting prod fail with 403 Forbidden</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. Zero chance of permission leakage across lifecycle boundaries</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Production integrity and single fulfillment invariant preserved.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p21-f4-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p21-f4-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed State Inspection:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">$ gcloud asset search-all-iam</text>
+        <text x="25" y="90" fill="#fca5a5" font-family="monospace" font-size="9">devs: roles/editor on prod!</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">Inherited from shared folder</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected State Inspection:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">$ gcloud projects get-iam-policy prod</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">devs: NONE (Zero access)</text>
+        <text x="25" y="206" fill="#86efac" font-family="monospace" font-size="9">$ test_dev_access.sh</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">HTTP 403: PERMISSION_DENIED</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">Production protected 100%</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">DB rollback restored data</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Single fulfillment invariant held</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p21-f3-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p21-f3-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Never mix development and production projects inside the same parent folder.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Always employ an Environment-First top-level folder hierarchy to prevent additive IAM permissions from compromising production.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 21.4: Incident Flow · Flat Folder Permission Leakage vs. Environment Segregation.</strong>
+    Traces how an unsegregated folder structure allowed developer editor permissions to inherit into production, causing a catastrophic database deletion, and how environment-first separation corrected the defect.
+    <br><strong>Supplied facts:</strong> IAM permissions are additive; assigning roles/editor at a parent folder grants write privileges across all child projects.
+    <br><strong>Architectural inference:</strong> Placing staging and production in a single folder makes accidental cross-environment destruction inevitable during routine testing.
+    <br><strong>Expected post-fix behavior:</strong> Folders are structured strictly by environment stage (/Production, /Non-Production), with developer write grants bounded exclusively to non-production leaf nodes.
+  </figcaption>
+</figure>
+
+
+      </article>
+
+      <article class="topic-card" id="topic-03-problem">
+        <h3>Incident exercise · Project name substitution breaks cross-project Pub/Sub service agent IAM grant</h3>
+        
+        <p><strong>Symptom:</strong> Following a landing zone Terraform deployment, Brightloaf's automated fulfillment event pipeline failed. Customer orders placed through the retail mobile app were acknowledged with HTTP 200, but regional bakeries received zero baking tickets. Cloud Monitoring alerted on thousands of messages accumulating in Pub/Sub dead-letter queues (DLQs) with error reason: <code>PERMISSION_DENIED: Cloud KMS key decryption rejected for service agent</code>.</p>
+
+        <p><strong>Operational and business constraints:</strong> During peak morning hours, Brightloaf dispatches 3,000 orders every 15 minutes. Dead-letter queue buildup delays delivery schedules, backing up supply chains. When draining and replaying the accumulated DLQ messages, the system must maintain the core business invariant that each order is physically fulfilled exactly once.</p>
+
+        <p><strong>Evidence:</strong> Inspecting the Terraform IAM policy binding in source control revealed an invalid service account email constructed using the mutable project name:</p>
+        <pre><code class="language-bash"># Terraform defect in main.tf
+resource "google_kms_crypto_key_iam_member" "pubsub_decrypter" {
+  crypto_key_id = google_kms_crypto_key.order_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:service-${var.project_name}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+# Where var.project_name = "Brightloaf Order Prod"</code></pre>
+        <pre><code class="language-bash">$ gcloud kms keys get-iam-policy order-key --location=us-central1 --keyring=order-ring
+bindings: []
+# IAM grant was rejected by the API because "service-Brightloaf Order Prod@..." contains spaces!</code></pre>
+
+        <p><strong>Root cause:</strong> The Terraform module author conflated the <strong>Project Name</strong> with the <strong>Project Number</strong>. Google-managed service agents follow an immutable naming format derived strictly from the 12-digit integer Project Number (<code>service-&lt;PROJECT_NUMBER&gt;@gcp-sa-pubsub.iam.gserviceaccount.com</code>). Substituting the user-friendly project name produced an invalid email string with spaces, causing Terraform IAM deployment failures that left the Pub/Sub service agent unauthorized to decrypt Cloud KMS keys.</p>
+
+        <p><strong>Diagnostic sequence (5 steps):</strong></p>
+        <ol>
+          <li><strong>Inspect dead-letter queue rejection attributes:</strong> Query Cloud Monitoring and dead-letter message metadata to confirm the exact KMS decryption failure code.</li>
+          <li><strong>Audit KMS key IAM policy bindings:</strong> Interrogate the target encryption key to verify whether the Google-managed Pub/Sub service agent holds the <code>roles/cloudkms.cryptoKeyEncrypterDecrypter</code> role.</li>
+          <li><strong>Resolve true immutable Project Number:</strong> Execute project inspection commands to query the 12-digit <code>projectNumber</code> attribute.</li>
+          <li><strong>Correct Terraform service agent derivation:</strong> Refactor Terraform configurations to read <code>data.google_project.project.number</code> dynamically instead of using string project names.</li>
+          <li><strong>Drain dead-letter queue and verify fulfillment invariant:</strong> Replay dead-lettered messages through the order processor, verifying that the database fulfillment table with unique constraints prevents any double fulfillment.</li>
+        </ol>
+
+        <p><strong>Defensible solution:</strong> Update the Terraform infrastructure configuration to reference <code>data.google_project.current.number</code>, dynamically generating the correct service agent email: <code>service-892019481029@gcp-sa-pubsub.iam.gserviceaccount.com</code>. Apply the IAM role grant to the Cloud KMS key. Trigger the Pub/Sub dead-letter redelivery workflow to drain buffered orders into the processing pipeline.</p>
+
+        <p><strong>Verification:</strong> Confirm that the KMS key IAM policy contains the valid service agent and verify that DLQ redeliveries drain cleanly with single fulfillment:</p>
+        <pre><code class="language-bash">$ gcloud kms keys get-iam-policy order-key --location=us-central1 --keyring=order-ring --format="yaml(bindings)"
+bindings:
+- members:
+  - serviceAccount:service-892019481029@gcp-sa-pubsub.iam.gserviceaccount.com
+  role: roles/cloudkms.cryptoKeyEncrypterDecrypter
+
+$ python3 scripts/drain_dlq.py --subscription orders-sub
+[DRAIN] Processing 3,000 dead-lettered order events...
+[KMS] Decryption successful with key order-key.
+[DISPATCH] 3,000 orders dispatched to bakery queues.
+[REPLAY TEST] Replayed test message ORD-30192; caught duplicate key in DB.
+[ASSERTION] Invariant Verified: All 3,000 orders fulfilled exactly once. Status: PASS.</code></pre>
+
+        <p><strong>Residual risk:</strong> Key decryption grants take up to 60 seconds to propagate across regional KMS HSM clusters. Allow a brief propagation buffer before resuming high-throughput order publishing.</p>
+
+
+<figure class="diagram-figure" id="fig-21-5">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig21-5-title fig21-5-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig21-5-title">Incident 21.3: Project Identifier Conflation &amp; Service Agent Resolution Failure</title>
+      <desc id="fig21-5-desc">Incident flow depicting how using a mutable project name instead of an immutable project number in cross-project IAM grants broke Google-managed Pub/Sub service agent authentication, dead-lettering bakery orders.</desc>
+      <defs>
+        <linearGradient id="p21-f5-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p21-f5-arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+        </marker>
+        <marker id="p21-f5-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p21-f5-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 21.5: Incident Flow · Project Name Conflation &amp; Service Agent Failure</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Project Name vs. Project Number · Service Agent Identity Derivation · Dead-Letter Queue Recovery</text>
+
+      <!-- Event Trigger (Left) -->
+      <rect x="30" y="80" width="210" height="160" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="42" y="104" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Trigger: Cross-Project IAM</text>
+      <text x="42" y="128" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">Terraform configures:</text>
+      <text x="42" y="146" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="10">Pub/Sub KMS Decryption</text>
+      <text x="42" y="164" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">Script uses project_name:</text>
+      <text x="42" y="182" fill="#f59e0b" font-family="monospace" font-size="9">"Brightloaf Order Prod"</text>
+      <text x="42" y="204" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Instead of project_number</text>
+
+      <!-- FAILED PATH (Top Branch) -->
+      <g transform="translate(270, 80)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#1a0f12" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="15" y="24" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[FAILED PATH: Invalid Service Agent Name Breaks KMS Access]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Constructed identity: service-Brightloaf Order Prod@...</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. IAM API rejects email address with spaces and uppercase</text>
+        <text x="15" y="84" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. Pub/Sub cannot acquire Cloud KMS decryption key</text>
+        <text x="15" y="102" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">FAIL POINT: Messages fail decryption; routed to Dead-Letter Queue!</text>
+        <text x="15" y="122" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">4. 3,000 bakery delivery orders halted on Friday morning</text>
+        <text x="15" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10">Recovery replay preserved single fulfillment invariant via DB constraint.</text>
+      </g>
+
+      <!-- CORRECTED PATH (Bottom Branch) -->
+      <g transform="translate(270, 270)">
+        <rect x="0" y="0" width="380" height="160" rx="8" fill="#09261a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">[CORRECTED PATH: Dynamic Project Number Resolution]</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">1. Terraform queries: data.google_project.project.number</text>
+        <text x="15" y="64" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">2. Resolves immutable number: 892019481029</text>
+        <text x="15" y="84" fill="#86efac" font-family="system-ui, sans-serif" font-size="10">3. Constructs: service-892019481029@gcp-sa-pubsub.iam...</text>
+        <text x="15" y="102" fill="#22c55e" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">CONTROL: Valid service agent granted roles/cloudkms.cryptoKeyEncrypterDecrypter</text>
+        <text x="15" y="122" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="10">4. DLQ messages replayed cleanly; orders dispatched smoothly</text>
+        <text x="15" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Database unique constraint guarantees zero double fulfillments.</text>
+      </g>
+
+      <!-- Arrows from Trigger to Paths -->
+      <path d="M 240 140 L 268 140" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p21-f5-arrow-err)"/>
+      <path d="M 135 240 L 135 350 L 268 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p21-f5-arrow-ok)"/>
+
+      <!-- Verification Boundary on Right -->
+      <g transform="translate(690, 80)">
+        <rect x="0" y="0" width="240" height="350" rx="8" fill="#0d1527" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Verification Boundary</text>
+        
+        <rect x="15" y="40" width="210" height="85" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="25" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Failed IAM State:</text>
+        <text x="25" y="75" fill="#fca5a5" font-family="monospace" font-size="9">Error: Invalid member email</text>
+        <text x="25" y="90" fill="#fca5a5" font-family="monospace" font-size="9">service-Brightloaf Order...</text>
+        <text x="25" y="106" fill="#ef4444" font-family="system-ui, sans-serif" font-size="9">KMS decryption blocked!</text>
+
+        <rect x="15" y="140" width="210" height="120" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="25" y="158" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Corrected IAM State:</text>
+        <text x="25" y="175" fill="#86efac" font-family="monospace" font-size="9">$ gcloud projects describe</text>
+        <text x="25" y="190" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">projectNumber: 892019481029</text>
+        <text x="25" y="206" fill="#86efac" font-family="monospace" font-size="9">$ gcloud kms check-iam</text>
+        <text x="25" y="222" fill="#bbf7d0" font-family="system-ui, sans-serif" font-size="9">service-892019... has Decrypter</text>
+        <text x="25" y="238" fill="#4ade80" font-family="system-ui, sans-serif" font-size="9">DLQ queue drained to 0</text>
+
+        <rect x="15" y="275" width="210" height="60" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+        <text x="25" y="295" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">Invariant Preserved:</text>
+        <text x="25" y="312" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Replayed DLQ orders: 3,000</text>
+        <text x="25" y="326" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="9">Physical dispatches &le; 1 each</text>
+      </g>
+
+      <!-- Connectors to Verification -->
+      <path d="M 650 160 L 688 160" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#p21-f5-arrow-err)"/>
+      <path d="M 650 350 L 688 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#p21-f5-arrow-ok)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Google-managed service agents strictly derive from the Project Number, never the Project Name or Project ID.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Always resolve project numbers programmatically when configuring cross-project service-to-service IAM bindings.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 21.5: Incident Flow · Project Name Conflation &amp; Service Agent Failure.</strong>
+    Demonstrates how confusing the project display name with the immutable project number broke Google-managed Pub/Sub service agent KMS decryption grants, resulting in message dead-lettering.
+    <br><strong>Supplied facts:</strong> Project names are mutable strings allowing spaces and mixed case; Google-managed service agent identities strictly require the 12-digit Project Number.
+    <br><strong>Architectural inference:</strong> Using project names in automation variables generates invalid IAM member emails, breaking asynchronous service authorizations.
+    <br><strong>Expected post-fix behavior:</strong> Infrastructure scripts dynamically query the project number, establishing valid service agent bindings and allowing replayed dead-letter messages to fulfill cleanly with zero duplicate transactions.
+  </figcaption>
+</figure>
+
+
+      </article>
+    </section>

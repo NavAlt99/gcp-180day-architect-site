@@ -1,0 +1,458 @@
+    <section class="part" id="part-2" aria-labelledby="part-2-title">
+      <h2 id="part-2-title">2 · Architecture, control flow, boundaries, and limits</h2>
+
+      <article class="topic-card" id="topic-01-technical">
+        <h3>Organization node architecture, Cloud Identity domain binding, and root governance</h3>
+        <p>The Google Cloud resource hierarchy provides a logical container tree that establishes ownership, access control inheritance, billing associations, and organizational policy boundaries. At the apex of this hierarchy sits the <strong>Organization node</strong> (<code>organizations/&lt;org_id&gt;</code>).</p>
+
+        <h4>Domain Binding &amp; Super Admin Separation</h4>
+        <p>The Organization node is not an arbitrary cloud construct created ad-hoc; it is strictly anchored 1:1 to a verified primary domain in <strong>Cloud Identity</strong> or <strong>Google Workspace</strong>. Domain ownership is verified cryptographically via DNS TXT records. Once verified, Google Cloud automatically provisions the Organization resource.</p>
+        <p>A fundamental architectural separation exists between domain administration and cloud resource governance:</p>
+        <ul>
+          <li><strong>Super Administrator (Cloud Identity / Google Workspace):</strong> Owns user provisioning, group memberships, two-factor authentication enforcement, and initial cloud onboarding. Super Admins assign the initial Google Cloud organization roles.</li>
+          <li><strong>Organization Administrator (<code>roles/resourcemanager.organizationAdmin</code>):</strong> Operates strictly within Google Cloud. Owns the resource container tree, folder structuring, organizational policies, and billing account associations. The Organization Administrator cannot reset user passwords or manage email accounts in Google Workspace.</li>
+        </ul>
+
+        <h4>Root Governance Capabilities</h4>
+        <p>The Organization node enables three enterprise control capabilities that cannot exist on standalone, unmanaged projects:</p>
+        <ol>
+          <li><strong>Organization Policy Service:</strong> Applies centralized, programmatic guardrails (e.g. <code>constraints/compute.vmExternalIpAccess</code> or <code>constraints/gcp.resourceLocations</code>) that restrict what developers can do across all descendant folders and projects, regardless of their IAM roles.</li>
+          <li><strong>Aggregated Cloud Audit Log Sinks:</strong> Configures centralized log exports at the root node that automatically capture and route administrative write and data-access audit logs from all projects into a locked security information and event management (SIEM) project.</li>
+          <li><strong>Root Project Recovery &amp; Orphan Prevention:</strong> Eliminates orphaned projects. If a project creator leaves the enterprise, the Organization Administrator retains root ownership and can reassign project ownership or shut down rogue resources.</li>
+        </ol>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Organization Node Governance Boundaries and Identity Bindings</caption>
+            <thead>
+              <tr>
+                <th scope="col">Entity / Layer</th>
+                <th scope="col">Primary Identity Provider</th>
+                <th scope="col">Key Administrative Roles</th>
+                <th scope="col">Inheritance &amp; Policy Scope</th>
+                <th scope="col">Architectural Limit &amp; Failure Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Cloud Identity / Workspace</th>
+                <td>Corporate DNS Domain (e.g. <code>brightloaf.com</code>)</td>
+                <td>Super Administrator</td>
+                <td>Directory-wide user accounts and security groups</td>
+                <td>Domain expiration or DNS hijacking compromises cloud identity root.</td>
+              </tr>
+              <tr>
+                <th scope="row">Organization Node</th>
+                <td>1:1 Cloud Identity Domain Binding</td>
+                <td><code>roles/resourcemanager.organizationAdmin</code></td>
+                <td>Root of all folders, projects, and billing linkages</td>
+                <td>Assigning broad primitive roles (e.g. Owner) at root creates universal blast radius.</td>
+              </tr>
+              <tr>
+                <th scope="row">Aggregated Audit Sink</th>
+                <td>Organization Logging Service Agent</td>
+                <td><code>roles/logging.configWriter</code></td>
+                <td>Captures audit events from all child containers</td>
+                <td>Storage sink misconfiguration can cause compliance audit data loss.</td>
+              </tr>
+              <tr>
+                <th scope="row">Org Policy Service</th>
+                <td>Resource Manager Constraints Engine</td>
+                <td><code>roles/orgpolicy.policyAdmin</code></td>
+                <td>Enforces boolean and list constraints downward</td>
+                <td>Overly restrictive root policies can break legitimate regional deployments.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+
+<figure class="diagram-figure" id="fig-21-1">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig21-1-title fig21-1-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig21-1-title">Google Cloud Enterprise Resource Hierarchy &amp; Domain Binding Architecture</title>
+      <desc id="fig21-1-desc">Architectural diagram of the Google Cloud four-tier resource hierarchy rooted in Cloud Identity domain verification, showing Organization, Folders, Projects, and Resources.</desc>
+      <defs>
+        <linearGradient id="p21-f1-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <linearGradient id="p21-f1-panel" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#1e293b" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9"/>
+        </linearGradient>
+        <marker id="p21-f1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/>
+        </marker>
+        <marker id="p21-f1-arrow-down" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#818cf8"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p21-f1-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 21.1: Google Cloud Enterprise Resource Hierarchy &amp; Domain Anchor</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Cloud Identity Domain Binding · Organization Node Root · Folder Trees · Projects &amp; Leaf Resources</text>
+
+      <!-- Cloud Identity Anchor (Top Left) -->
+      <g transform="translate(30, 75)">
+        <rect x="0" y="0" width="250" height="120" rx="8" fill="#0d1626" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="15" y="24" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Cloud Identity / Workspace</text>
+        <text x="15" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">Domain: brightloaf.com</text>
+        <text x="15" y="64" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">DNS TXT Record Verified</text>
+        <text x="15" y="84" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Identity Source (Users &amp; Groups)</text>
+        <text x="15" y="102" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10">Super Admin: admin@brightloaf.com</text>
+      </g>
+
+      <!-- Organization Node (Top Center-Right) -->
+      <g transform="translate(320, 75)">
+        <rect x="0" y="0" width="610" height="120" rx="8" fill="url(#p21-f1-panel)" stroke="#6366f1" stroke-width="1.5"/>
+        <text x="20" y="24" fill="#818cf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Organization Node (organizations/892019481029)</text>
+        <text x="20" y="46" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="11">• Root of Trust for all IAM permissions and Org Policies</text>
+        <text x="20" y="66" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="11">• Role: roles/resourcemanager.organizationAdmin</text>
+        <text x="20" y="86" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="11">• Global Org Policies (e.g. constraints/compute.vmExternalIpAccess)</text>
+        <text x="20" y="104" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="11">• Aggregated Cloud Audit Log Sink &rarr; Central Security Project</text>
+      </g>
+
+      <!-- Link from Domain to Org Node -->
+      <path d="M 280 135 L 318 135" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#p21-f1-arrow)"/>
+
+      <!-- Folder Layer (Middle) -->
+      <g transform="translate(30, 220)">
+        <rect x="0" y="0" width="900" height="110" rx="8" fill="#0b1120" stroke="#818cf8" stroke-width="1.5"/>
+        <text x="20" y="24" fill="#818cf8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Folder Layer (Structural Administrative Boundaries)</text>
+        
+        <!-- Folder 1: Production -->
+        <rect x="30" y="38" width="260" height="60" rx="6" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="42" y="58" fill="#f87171" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">Folder: /Production</text>
+        <text x="42" y="74" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">Restricted IAM: SRE &amp; CI/CD Only</text>
+        <text x="42" y="88" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Org Policy: No External IPs Enforced</text>
+
+        <!-- Folder 2: Non-Production -->
+        <rect x="320" y="38" width="260" height="60" rx="6" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="332" y="58" fill="#4ade80" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">Folder: /Non-Production</text>
+        <text x="332" y="74" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">Delegated: Dev &amp; Staging Teams</text>
+        <text x="332" y="88" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Sandbox spend caps &amp; auto-shutdown</text>
+
+        <!-- Folder 3: Shared-Services -->
+        <rect x="610" y="38" width="260" height="60" rx="6" fill="#1e1b2e" stroke="#a855f7" stroke-width="1"/>
+        <text x="622" y="58" fill="#c084fc" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">Folder: /Shared-Services</text>
+        <text x="622" y="74" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">Hub VPC, CI Runners, Artifacts</text>
+        <text x="622" y="88" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="9">Network &amp; Security Team Owners</text>
+      </g>
+
+      <!-- Connecting Downward Arrows Org to Folders -->
+      <path d="M 625 195 L 625 218" fill="none" stroke="#818cf8" stroke-width="2" marker-end="url(#p21-f1-arrow-down)"/>
+
+      <!-- Projects & Resources Layer (Bottom) -->
+      <g transform="translate(30, 350)">
+        <rect x="0" y="0" width="900" height="100" rx="8" fill="#090d16" stroke="#334155" stroke-width="1.5"/>
+        <text x="20" y="22" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Projects Layer (Billing &amp; Resource Containers)</text>
+
+        <!-- Prod Project -->
+        <rect x="30" y="32" width="260" height="55" rx="6" fill="#111827" stroke="#475569" stroke-width="1"/>
+        <text x="42" y="48" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">brightloaf-fulfillment-prod</text>
+        <text x="42" y="62" fill="#38bdf8" font-family="monospace" font-size="9">Num: 109283719283 · Cloud SQL &amp; GKE</text>
+        <text x="42" y="76" fill="#22c55e" font-family="system-ui, sans-serif" font-size="8">UNIQUE(order_id) Invariant Active</text>
+
+        <!-- Staging Project -->
+        <rect x="320" y="32" width="260" height="55" rx="6" fill="#111827" stroke="#475569" stroke-width="1"/>
+        <text x="332" y="48" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">brightloaf-fulfillment-stage</text>
+        <text x="332" y="62" fill="#38bdf8" font-family="monospace" font-size="9">Num: 849102948192 · Staging Pods</text>
+        <text x="332" y="76" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="8">Automated Integration Replays</text>
+
+        <!-- Hub Project -->
+        <rect x="610" y="32" width="260" height="55" rx="6" fill="#111827" stroke="#475569" stroke-width="1"/>
+        <text x="622" y="48" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">brightloaf-network-hub</text>
+        <text x="622" y="62" fill="#38bdf8" font-family="monospace" font-size="9">Num: 391827401928 · Shared VPC</text>
+        <text x="622" y="76" fill="#a855f7" font-family="system-ui, sans-serif" font-size="8">Cross-Project Peering Subnets</text>
+      </g>
+
+      <!-- Connecting Downward Arrows Folders to Projects -->
+      <path d="M 160 330 L 160 348" fill="none" stroke="#818cf8" stroke-width="1.5" marker-end="url(#p21-f1-arrow-down)"/>
+      <path d="M 450 330 L 450 348" fill="none" stroke="#818cf8" stroke-width="1.5" marker-end="url(#p21-f1-arrow-down)"/>
+      <path d="M 740 330 L 740 348" fill="none" stroke="#818cf8" stroke-width="1.5" marker-end="url(#p21-f1-arrow-down)"/>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="465" width="900" height="42" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="485" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: IAM permissions are strictly additive down the hierarchy. An allowance at a parent folder cannot be revoked by a child project.</text>
+      <text x="45" y="498" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Always isolate production and development environments into dedicated, sibling folder branches.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 21.1: Google Cloud Enterprise Resource Hierarchy &amp; Domain Anchor.</strong>
+    Illustrates the four-tier resource hierarchy model starting from DNS-verified Cloud Identity domain binding, descending through Organization, Folder groupings, Projects, and leaf resources.
+    <br><strong>Supplied facts:</strong> The Organization node is bound 1:1 to a verified Cloud Identity domain; IAM roles and Org Policy constraints inherit downward.
+    <br><strong>Architectural inference:</strong> Placing production and staging workloads in sibling folders prevents privilege leakage and enforces separate organizational policy constraints.
+    <br><strong>Expected post-fix behavior:</strong> Enterprise landing zones isolate environments into structured folder hierarchies, guaranteeing that non-production developer credentials cannot modify production assets.
+  </figcaption>
+</figure>
+
+
+        <div class="further-study">
+          <h4>Further Study · Primary Documentation</h4>
+          <ul>
+            <li><a href="https://cloud.google.com/resource-manager/docs/creating-managing-organization" target="_blank" rel="noopener noreferrer">Google Cloud Documentation: Creating and Managing Organizations</a></li>
+            <li><a href="https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy" target="_blank" rel="noopener noreferrer">Google Cloud Documentation: Resource Hierarchy Overview</a></li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-technical">
+        <h3>Folders and multi-environment hierarchy segregation</h3>
+        <p>Folders (<code>folders/&lt;folder_id&gt;</code>) are organizational containers nested beneath the Organization node. They enable architects to group related projects together to establish unified security baselines, delegate administration, and control cost aggregation.</p>
+
+        <h4>Hierarchy Architecture Patterns: Environment-First vs. Business-Unit</h4>
+        <p>When designing an enterprise landing zone, architects generally select between two foundational structural patterns:</p>
+        <ul>
+          <li><strong>Pattern A: Environment-First (Industry Best Practice):</strong> The top-level folders beneath the Organization node reflect lifecycle environments: <code>/Production</code>, <code>/Non-Production</code>, and <code>/Shared-Services</code>. Business units (e.g. <code>/Retail</code>, <code>/Bakery-Dispatch</code>) sit as child folders underneath each environment.
+            <br><em>Advantage:</em> Guarantees absolute isolation between production and non-production. Developer credentials, test service accounts, and experimental policies applied in <code>/Non-Production</code> can never leak into production.</li>
+          <li><strong>Pattern B: Business-Unit First:</strong> Top-level folders reflect company divisions (e.g. <code>/Retail-Franchise</code>, <code>/Supply-Chain</code>), with <code>/Prod</code> and <code>/Dev</code> nested inside each unit.
+            <br><em>Trade-off:</em> Aligns with departmental cost centers, but increases the risk that an administrator accidentally grants broad permissions at the department folder, inadvertently compromising the nested production projects.</li>
+        </ul>
+
+        <h4>The Additive IAM Inheritance Evaluation Ladder</h4>
+        <p>The defining rule of Google Cloud access control is that <strong>IAM permissions are strictly additive down the hierarchy</strong>. Effective permissions on any resource represent the mathematical union of all IAM policy bindings defined on that resource and all of its ancestor containers (Project, Folders, and Organization).</p>
+        <p><strong>The Negative Permission Trap:</strong> <em>There is no concept of a "deny" in standard IAM role bindings.</em> If a developer group is granted <code>roles/editor</code> on a parent folder, granting that group <code>roles/viewer</code> on a child project does NOT restrict their access. The user retains full Editor rights on the child project because the folder-level grant remains active in the policy union.</p>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Folder Hierarchy Structuring Strategies &amp; Inheritance Patterns</caption>
+            <thead>
+              <tr>
+                <th scope="col">Design Dimension</th>
+                <th scope="col">Environment-First Model</th>
+                <th scope="col">Business-Unit First Model</th>
+                <th scope="col">Inheritance Behavior</th>
+                <th scope="col">Architectural Recommendation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Top-Level Grouping</th>
+                <td><code>/Production</code>, <code>/Non-Prod</code></td>
+                <td><code>/Retail</code>, <code>/Logistics</code></td>
+                <td>Policies inherit to all child branches</td>
+                <td>Adopt Environment-First to guarantee production blast radius containment.</td>
+              </tr>
+              <tr>
+                <th scope="row">IAM Role Scope</th>
+                <td>Strict SRE roles on Prod; Dev roles on Non-Prod</td>
+                <td>Departmental leads hold folder roles</td>
+                <td>Union evaluation (Role on Parent + Role on Child)</td>
+                <td>Never grant mutating roles (Editor/Owner) at folder level; assign at project level.</td>
+              </tr>
+              <tr>
+                <th scope="row">Org Policy Scope</th>
+                <td>Uniform security posture per stage</td>
+                <td>Policies customized per department</td>
+                <td>Inherited by default; can override or merge</td>
+                <td>Enforce restrictive policies on <code>/Production</code>; permit sandboxing in <code>/Non-Prod</code>.</td>
+              </tr>
+              <tr>
+                <th scope="row">Nesting Limits</th>
+                <td>2 to 4 levels recommended</td>
+                <td>3 to 5 levels common</td>
+                <td>Maximum 300 levels supported by API</td>
+                <td>Limit hierarchy depth to 3 levels to maintain cognitive clarity and auditability.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+
+<figure class="diagram-figure" id="fig-21-2">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig21-2-title fig21-2-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig21-2-title">Folder Hierarchy Patterns &amp; Policy Inheritance Evaluation Tree</title>
+      <desc id="fig21-2-desc">Comparison of environment-first versus business-unit-first folder structuring models and the additive IAM evaluation ladder down the resource tree.</desc>
+      <defs>
+        <linearGradient id="p21-f2-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p21-f2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/>
+        </marker>
+        <marker id="p21-f2-arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <rect width="960" height="520" rx="12" fill="url(#p21-f2-bg)" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Title Header -->
+      <text x="480" y="32" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Figure 21.2: Folder Hierarchy Structuring &amp; Additive IAM Inheritance</text>
+      <text x="480" y="50" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Environment-First vs Business-Unit Models · Union Evaluation of IAM Policies · Org Policy Override Rules</text>
+
+      <!-- Left Model: Environment-First (Recommended) -->
+      <g transform="translate(30, 75)">
+        <rect x="0" y="0" width="430" height="360" rx="8" fill="#0d1626" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="20" y="25" fill="#4ade80" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Pattern A: Environment-First (Recommended)</text>
+        <text x="20" y="45" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Strict security isolation; policies applied uniformly per lifecycle stage.</text>
+
+        <!-- Org Root -->
+        <rect x="135" y="60" width="160" height="35" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+        <text x="215" y="82" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Organization: Root</text>
+
+        <!-- Tier 1 Folders -->
+        <rect x="20" y="120" width="120" height="45" rx="4" fill="#1e1418" stroke="#ef4444" stroke-width="1"/>
+        <text x="80" y="140" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">/Production</text>
+        <text x="80" y="155" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="8" text-anchor="middle">Strict SRE IAM</text>
+
+        <rect x="155" y="120" width="120" height="45" rx="4" fill="#09261a" stroke="#22c55e" stroke-width="1"/>
+        <text x="215" y="140" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">/Non-Prod</text>
+        <text x="215" y="155" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="8" text-anchor="middle">Developer IAM</text>
+
+        <rect x="290" y="120" width="120" height="45" rx="4" fill="#1e1b2e" stroke="#a855f7" stroke-width="1"/>
+        <text x="350" y="140" fill="#c084fc" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">/Core-Shared</text>
+        <text x="350" y="155" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="8" text-anchor="middle">Net &amp; Sec IAM</text>
+
+        <!-- Child Projects under Non-Prod -->
+        <rect x="80" y="195" width="130" height="40" rx="4" fill="#111827" stroke="#475569" stroke-width="1"/>
+        <text x="145" y="214" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" text-anchor="middle">proj-order-dev</text>
+        <text x="145" y="228" fill="#22c55e" font-family="system-ui, sans-serif" font-size="8" text-anchor="middle">Inherits Dev Editor</text>
+
+        <rect x="220" y="195" width="130" height="40" rx="4" fill="#111827" stroke="#475569" stroke-width="1"/>
+        <text x="285" y="214" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" text-anchor="middle">proj-order-stage</text>
+        <text x="285" y="228" fill="#22c55e" font-family="system-ui, sans-serif" font-size="8" text-anchor="middle">Inherits Dev Viewer</text>
+
+        <!-- Summary of Pattern A -->
+        <rect x="20" y="260" width="390" height="85" rx="4" fill="#052e16" stroke="#15803d" stroke-width="1"/>
+        <text x="30" y="280" fill="#86efac" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">ADVANTAGES OF ENVIRONMENT-FIRST:</text>
+        <text x="30" y="298" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">• Zero risk of developer permissions leaking into production</text>
+        <text x="30" y="314" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">• Organizational security constraints applied uniformly per stage</text>
+        <text x="30" y="330" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">• Easy mapping to compliance boundaries (e.g. PCI-DSS, SOC2)</text>
+      </g>
+
+      <!-- Right Model: Additive Policy Evaluation Engine -->
+      <g transform="translate(500, 75)">
+        <rect x="0" y="0" width="430" height="360" rx="8" fill="#1e1518" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="20" y="25" fill="#fbbf24" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">IAM Policy Inheritance Mechanics</text>
+        <text x="20" y="45" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Effective permissions = UNION of all policy bindings down the path.</text>
+
+        <rect x="20" y="65" width="390" height="55" rx="4" fill="#111827" stroke="#6366f1" stroke-width="1"/>
+        <text x="30" y="84" fill="#818cf8" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">1. Organization Policy Binding:</text>
+        <text x="30" y="102" fill="#cbd5e1" font-family="monospace" font-size="9">alice@brightloaf.com &rarr; roles/resourcemanager.organizationViewer</text>
+
+        <rect x="20" y="130" width="390" height="55" rx="4" fill="#111827" stroke="#22c55e" stroke-width="1"/>
+        <text x="30" y="149" fill="#4ade80" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">2. Folder Policy Binding (/Non-Prod):</text>
+        <text x="30" y="167" fill="#cbd5e1" font-family="monospace" font-size="9">alice@brightloaf.com &rarr; roles/editor</text>
+
+        <rect x="20" y="195" width="390" height="55" rx="4" fill="#111827" stroke="#38bdf8" stroke-width="1"/>
+        <text x="30" y="214" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">3. Project Policy Binding (proj-order-dev):</text>
+        <text x="30" y="232" fill="#cbd5e1" font-family="monospace" font-size="9">alice@brightloaf.com &rarr; roles/viewer</text>
+
+        <!-- Evaluation Output -->
+        <rect x="20" y="260" width="390" height="85" rx="4" fill="#261208" stroke="#b45309" stroke-width="1"/>
+        <text x="30" y="280" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">EFFECTIVE PERMISSION EVALUATION:</text>
+        <text x="30" y="298" fill="#f87171" font-family="system-ui, sans-serif" font-size="9">• Project Viewer DOES NOT restrict Folder Editor role!</text>
+        <text x="30" y="314" fill="#fde68a" font-family="system-ui, sans-serif" font-size="9">• Effective access on proj-order-dev = roles/editor (Full Write!)</text>
+        <text x="30" y="330" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="9">• Rule: IAM cannot restrict access granted higher in the tree.</text>
+      </g>
+
+      <!-- Bottom Banner -->
+      <rect x="30" y="460" width="900" height="45" rx="6" fill="#111827" stroke="#334155" stroke-width="1"/>
+      <text x="45" y="480" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11">Architectural Rule: Never assign permissive broad roles (e.g. Editor) at the Folder or Organization level.</text>
+      <text x="45" y="495" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Keep folder-level grants restricted to administrative oversight roles (Viewer, Security Reviewer); assign mutating roles strictly at leaf Projects.</text>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 21.2: Folder Hierarchy Structuring &amp; Additive IAM Inheritance.</strong>
+    Compares the environment-first folder architecture with business-unit models and visualizes the additive nature of IAM role inheritance down the resource tree.
+    <br><strong>Supplied facts:</strong> IAM policies are evaluated as a union: granting a role on a parent folder grants that role on all descendant projects; child projects cannot deny or restrict parent grants.
+    <br><strong>Architectural inference:</strong> Granting developer write roles at a parent folder containing both staging and production projects inevitably leads to accidental production mutations.
+    <br><strong>Expected post-fix behavior:</strong> Organizations structure folders by environment stage (/Production, /Non-Production), reserving parent folder grants for read-only telemetry and binding write access strictly at project boundaries.
+  </figcaption>
+</figure>
+
+
+        <div class="further-study">
+          <h4>Further Study · Primary Documentation</h4>
+          <ul>
+            <li><a href="https://cloud.google.com/resource-manager/docs/creating-managing-folders" target="_blank" rel="noopener noreferrer">Google Cloud Documentation: Creating and Managing Folders</a></li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-03-technical">
+        <h3>Projects: Project ID vs. project name vs. project number</h3>
+        <p>A Project is the foundational container for all cloud infrastructure. A virtual machine, Cloud SQL instance, or GKE cluster cannot exist outside a project. Enterprise architects must rigorously distinguish between the three distinct identifiers associated with every Google Cloud project.</p>
+
+        <h4>The Project Identifiers Triad</h4>
+        <ol>
+          <li><strong>Project ID (Immutable &amp; Globally Unique):</strong>
+            <ul>
+              <li><em>Format:</em> 6 to 30 characters consisting of lowercase letters, digits, and hyphens. Must begin with a letter.</li>
+              <li><em>Characteristics:</em> Chosen by the administrator at creation. It is <strong>globally unique</strong> across all Google Cloud customers worldwide. Once created, a Project ID can never be modified.</li>
+              <li><em>Use Cases:</em> Specified in all <code>gcloud</code> commands (<code>--project=&lt;id&gt;</code>), REST API URLs, Terraform configurations, and billing export queries.</li>
+            </ul>
+          </li>
+          <li><strong>Project Name (Mutable &amp; User-Friendly):</strong>
+            <ul>
+              <li><em>Format:</em> 1 to 63 characters (can include spaces, mixed casing, and special characters).</li>
+              <li><em>Characteristics:</em> A descriptive label chosen for display purposes. It is <strong>not globally unique</strong>; multiple projects can share the exact same name. It can be changed at any time by project editors.</li>
+              <li><em>Use Cases:</em> Console navigation, billing reports, and human-readable dashboards. Never use Project Name in automation scripts or API calls.</li>
+            </ul>
+          </li>
+          <li><strong>Project Number (Immutable &amp; Globally Unique Integer):</strong>
+            <ul>
+              <li><em>Format:</em> A 12-digit integer (e.g. <code>892019481029</code>).</li>
+              <li><em>Characteristics:</em> Assigned automatically by Google Cloud during project provisioning. It is globally unique, permanent, and immutable.</li>
+              <li><em>Use Cases:</em> Essential for internal Google Cloud operations, audit log routing, cross-project service linking, and <strong>Google-managed service agents</strong>.</li>
+            </ul>
+          </li>
+        </ol>
+
+        <h4>Google-Managed Service Agent Conventions</h4>
+        <p>When Google Cloud services perform background operations on a customer\'s behalf (e.g. Cloud Pub/Sub decrypting data with Cloud KMS, or Cloud Build pushing images to Artifact Registry), Google provisions a <strong>Google-managed service agent</strong> inside the project. These service accounts follow a strict naming convention derived directly from the <strong>Project Number</strong>:</p>
+        <p><code>service-&lt;PROJECT_NUMBER&gt;@gcp-sa-pubsub.iam.gserviceaccount.com</code></p>
+        <p>Attempting to construct service agent email addresses using the Project Name or Project ID results in invalid identities, failing cross-project IAM grants and breaking asynchronous event-driven pipelines.</p>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Project Identifiers Triad and Lifecycle Characteristics</caption>
+            <thead>
+              <tr>
+                <th scope="col">Identifier</th>
+                <th scope="col">Global Uniqueness</th>
+                <th scope="col">Mutability</th>
+                <th scope="col">Character Constraints</th>
+                <th scope="col">Primary Operational Use Case</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Project ID</th>
+                <td>Globally unique across all GCP tenants</td>
+                <td><strong>Immutable</strong> (permanent once created)</td>
+                <td>6–30 chars; lowercase, digits, hyphens; starts with letter</td>
+                <td>CLI commands (<code>--project</code>), Terraform provider, REST API endpoints.</td>
+              </tr>
+              <tr>
+                <th scope="row">Project Name</th>
+                <td>Non-unique (can be duplicated)</td>
+                <td><strong>Mutable</strong> (can be changed anytime)</td>
+                <td>1–63 chars; mixed casing, spaces allowed</td>
+                <td>Console UI display, human-readable billing views. Never in scripts.</td>
+              </tr>
+              <tr>
+                <th scope="row">Project Number</th>
+                <td>Globally unique across all GCP tenants</td>
+                <td><strong>Immutable</strong> (assigned by Google)</td>
+                <td>12-digit integer (system assigned)</td>
+                <td>Google service agent identities (<code>service-NUM@...</code>), audit logs.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="further-study">
+          <h4>Further Study · Primary Documentation</h4>
+          <ul>
+            <li><a href="https://cloud.google.com/resource-manager/docs/creating-managing-projects" target="_blank" rel="noopener noreferrer">Google Cloud Documentation: Creating and Managing Projects</a></li>
+          </ul>
+        </div>
+      </article>
+    </section>

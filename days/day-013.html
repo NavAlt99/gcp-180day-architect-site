@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Day 13: state ownership, high availability, fault tolerance, disaster recovery, RTO and RPO.">
+  <title>Day 13 — State, availability and recovery vocabulary · GCP Architect</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <script defer src="../assets/site.js"></script>
+  <style>
+    .day-badge{display:inline-block;border:1px solid #f43f5e;border-radius:999px;color:#f43f5e;padding:4px 10px;font-size:12px;font-weight:800;white-space:nowrap}
+    .day13-table{width:100%;border-collapse:collapse;display:block;overflow-x:auto;margin:17px 0}.day13-table th,.day13-table td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top;min-width:150px}.day13-table th{background:var(--bg);color:var(--cyan)}
+    .further{border-left:3px solid var(--cyan);background:rgba(56,189,248,.06);border-radius:0 8px 8px 0;padding:13px 17px;margin-top:20px}.further h4,.step h4{margin:0 0 8px}.further ul{margin-bottom:0}
+    .step{border-left:2px solid var(--line);padding-left:17px;margin:20px 0}.step p,.topic-card p{max-width:85ch}.meta{font-size:13px;color:var(--muted)}.topic-card{scroll-margin-top:125px}
+    .diagram-figure{margin:20px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-x:auto}
+    .diagram-figure svg{display:block;width:100%;min-width:760px;height:auto}
+    .diagram-figure figcaption{color:var(--muted);font-size:12px;margin-top:10px}
+    .diagram-scroll-hint{display:none;color:var(--muted);font-size:11px}
+    .nav-parts{display:flex;gap:9px;align-items:center}.nav-parts a{font-size:12px}.topic-card code{overflow-wrap:anywhere}.topic-card pre code{overflow-wrap:normal}
+    @media(max-width:720px){.nav-parts{display:none}.part{padding:17px}.topic-card{padding:16px}.diagram-scroll-hint{display:block}.diagram-figure{padding:10px}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-nav"><nav class="nav-inner" aria-label="Day navigation">
+    <a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+    <span class="day-badge" aria-current="page">Day 13</span>
+    <label class="jump-label" for="day-jump">Choose a day</label>
+    <select id="day-jump" aria-label="Choose a day">
+        <optgroup label="Foundations">
+          <option value="day-001.html">Day 1 — Local workspace and learning baseline</option>
+          <option value="day-002.html">Day 2 — IP addressing and packet paths</option>
+          <option value="day-003.html">Day 3 — DNS, sockets and transport</option>
+          <option value="day-004.html">Day 4 — TLS, HTTP, MTU and routing vocabulary</option>
+          <option value="day-005.html">Day 5 — VPN, load balancers and firewalls</option>
+          <option value="day-006.html">Day 6 — Shell, processes and services</option>
+          <option value="day-007.html">Day 7 — SSH, scripts and process inspection</option>
+          <option value="day-008.html">Day 8 — CPU, memory and diagnostic signals</option>
+          <option value="day-009.html">Day 9 — VM and container isolation</option>
+          <option value="day-010.html">Day 10 — Images, filesystems and orchestration</option>
+          <option value="day-011.html">Day 11 — Cloud service models and responsibility</option>
+          <option value="day-012.html">Day 12 — Regions, scaling and economics</option>
+          <option value="day-013.html" selected>Day 13 — State, availability and recovery vocabulary</option>
+          <option value="day-014.html">Day 14 — Git, APIs and JSON</option>
+          <option value="day-015.html">Day 15 — Small application and architecture styles</option>
+          <option value="day-016.html">Day 16 — SQL foundations and business outcomes</option>
+          <option value="day-017.html">Day 17 — Gate 1 — Foundation recall and repair</option>
+        </optgroup>
+        <optgroup label="Cloud environment and identity">
+          <option value="day-018.html">Day 18 — Cloud sandbox and cost controls</option>
+          <option value="day-019.html">Day 19 — CLI configuration and identity checks</option>
+          <option value="day-020.html">Day 20 — APIs, client libraries and emulators</option>
+          <option value="day-021.html">Day 21 — Resource hierarchy and ownership</option>
+          <option value="day-022.html">Day 22 — Inheritance, labels and tags</option>
+          <option value="day-023.html">Day 23 — Organization policies and lifecycle</option>
+          <option value="day-024.html">Day 24 — Principals and workforce identity</option>
+          <option value="day-025.html">Day 25 — Roles and authorization decisions</option>
+          <option value="day-026.html">Day 26 — Credentials, tokens and impersonation</option>
+          <option value="day-027.html">Day 27 — Billing roles and budget ownership</option>
+          <option value="day-028.html">Day 28 — Cost attribution and notifications</option>
+          <option value="day-029.html">Day 29 — Cost exports, quota and capacity</option>
+          <option value="day-030.html">Day 30 — Region and resource-scope decisions</option>
+          <option value="day-031.html">Day 31 — Network tiers and delivery paths</option>
+          <option value="day-032.html">Day 32 — Support, inventory and learning tracker</option>
+          <option value="day-033.html">Day 33 — Lifecycle policies and operating assumptions</option>
+          <option value="day-034.html">Day 34 — First controlled cloud resource operation</option>
+          <option value="day-035.html">Day 35 — Gate 2 — Sandbox and identity readiness</option>
+        </optgroup>
+        <optgroup label="Core services and integrated practice">
+          <option value="day-036.html">Day 36 — VM sizing and image choices</option>
+          <option value="day-037.html">Day 37 — Disks, metadata and persistence</option>
+          <option value="day-038.html">Day 38 — Templates, MIGs and scaling</option>
+          <option value="day-039.html">Day 39 — Autohealing and deployment changes</option>
+          <option value="day-040.html">Day 40 — Spot, tenancy and secure VM access</option>
+          <option value="day-041.html">Day 41 — VM operations and resource diagnosis</option>
+          <option value="day-042.html">Day 42 — Kubernetes architecture and cluster choices</option>
+          <option value="day-043.html">Day 43 — Scheduling, scaling and Kubernetes access</option>
+          <option value="day-044.html">Day 44 — Service networking and persistent volumes</option>
+          <option value="day-045.html">Day 45 — Probes, secrets and workload failures</option>
+          <option value="day-046.html">Day 46 — Fleet, supply chain and mesh trade-offs</option>
+          <option value="day-047.html">Day 47 — Cloud Run and event-driven functions</option>
+          <option value="day-048.html">Day 48 — Workflows and runtime selection</option>
+          <option value="day-049.html">Day 49 — VPC address and route design</option>
+          <option value="day-050.html">Day 50 — Firewall policy and private API access</option>
+          <option value="day-051.html">Day 51 — Peering, Shared VPC, PSC and NAT</option>
+          <option value="day-052.html">Day 52 — DNS, hybrid transit and network diagnosis</option>
+          <option value="day-053.html">Day 53 — Load-balancer architecture</option>
+          <option value="day-054.html">Day 54 — Health checks, certificates and draining</option>
+          <option value="day-055.html">Day 55 — CDN, WAF and traffic management</option>
+          <option value="day-056.html">Day 56 — Hybrid topology and failure domains</option>
+          <option value="day-057.html">Day 57 — BGP, MTU and NAT diagnosis</option>
+          <option value="day-058.html">Day 58 — Object storage and local durability</option>
+          <option value="day-059.html">Day 59 — Transfers, block storage and restore</option>
+          <option value="day-060.html">Day 60 — File systems and backup design</option>
+          <option value="day-061.html">Day 61 — Relational databases and transactions</option>
+          <option value="day-062.html">Day 62 — Distributed and nonrelational database choices</option>
+          <option value="day-063.html">Day 63 — Caching, CDC and database selection</option>
+          <option value="day-064.html">Day 64 — Messaging, outbox and duplicate handling</option>
+          <option value="day-065.html">Day 65 — Integrate one order-service path</option>
+          <option value="day-066.html">Day 66 — Reproduce and recover the integrated baseline</option>
+          <option value="day-067.html">Day 67 — Gate 3 — Operate the core application</option>
+        </optgroup>
+        <optgroup label="Requirements, migration and architecture">
+          <option value="day-068.html">Day 68 — Requirements from observed behavior</option>
+          <option value="day-069.html">Day 69 — Stakeholders and priority trade-offs</option>
+          <option value="day-070.html">Day 70 — Well-Architected review lenses</option>
+          <option value="day-071.html">Day 71 — Performance, sustainability and trade-offs</option>
+          <option value="day-072.html">Day 72 — Application architecture patterns</option>
+          <option value="day-073.html">Day 73 — Data and hybrid architecture vocabulary</option>
+          <option value="day-074.html">Day 74 — Regional and tenant boundaries</option>
+          <option value="day-075.html">Day 75 — Migration assessment and VMware fit</option>
+          <option value="day-076.html">Day 76 — Migration rehearsal and reconciliation</option>
+          <option value="day-077.html">Day 77 — Migration waves and acceptance</option>
+          <option value="day-078.html">Day 78 — Decision matrices grounded in experiments</option>
+          <option value="day-079.html">Day 79 — ADRs, TCO and risk registers</option>
+          <option value="day-080.html">Day 80 — Architecture diagrams and failure sequences</option>
+          <option value="day-081.html">Day 81 — First architecture defense</option>
+          <option value="day-082.html">Day 82 — Gate 4 — Design from operational evidence</option>
+        </optgroup>
+        <optgroup label="Reliability and security">
+          <option value="day-083.html">Day 83 — Availability math and dependency risk</option>
+          <option value="day-084.html">Day 84 — Failure domains and graceful degradation</option>
+          <option value="day-085.html">Day 85 — Retries, timeouts and overload vocabulary</option>
+          <option value="day-086.html">Day 86 — SLIs, SLOs and error budgets</option>
+          <option value="day-087.html">Day 87 — Incidents, toil and capacity</option>
+          <option value="day-088.html">Day 88 — Availability across infrastructure layers</option>
+          <option value="day-089.html">Day 89 — Messaging, DNS and application health</option>
+          <option value="day-090.html">Day 90 — Recovery targets and patterns</option>
+          <option value="day-091.html">Day 91 — Backups and replication correctness</option>
+          <option value="day-092.html">Day 92 — Failover and failback planning</option>
+          <option value="day-093.html">Day 93 — Metrics, alerting and burn rates</option>
+          <option value="day-094.html">Day 94 — Logs, traces and profiling</option>
+          <option value="day-095.html">Day 95 — Central observability and audit evidence</option>
+          <option value="day-096.html">Day 96 — Bounded failure experiment design</option>
+          <option value="day-097.html">Day 97 — Run a recovery and overload experiment</option>
+          <option value="day-098.html">Day 98 — Restore and failover acceptance</option>
+          <option value="day-099.html">Day 99 — Advanced IAM and policy evaluation</option>
+          <option value="day-100.html">Day 100 — Workload federation and short-lived access</option>
+          <option value="day-101.html">Day 101 — Workforce federation and remote access</option>
+          <option value="day-102.html">Day 102 — Privileged access and break-glass</option>
+          <option value="day-103.html">Day 103 — Defense in depth and network policy</option>
+          <option value="day-104.html">Day 104 — Data perimeters and egress controls</option>
+          <option value="day-105.html">Day 105 — Certificates, mTLS and hybrid encryption</option>
+          <option value="day-106.html">Day 106 — Data classification and key lifecycle</option>
+          <option value="day-107.html">Day 107 — Secrets and de-identification</option>
+          <option value="day-108.html">Day 108 — Residency, confidentiality and data access</option>
+          <option value="day-109.html">Day 109 — Compliance evidence and responsibility</option>
+          <option value="day-110.html">Day 110 — Policy as code and audit retention</option>
+          <option value="day-111.html">Day 111 — Regulated workload design</option>
+          <option value="day-112.html">Day 112 — Threat detection and triage</option>
+          <option value="day-113.html">Day 113 — Incident response and threat modelling</option>
+          <option value="day-114.html">Day 114 — Artifact integrity and admission</option>
+          <option value="day-115.html">Day 115 — Container and pipeline hardening</option>
+          <option value="day-116.html">Day 116 — Integrate private access and key controls</option>
+          <option value="day-117.html">Day 117 — Security handover and evidence repair</option>
+          <option value="day-118.html">Day 118 — Gate 5 — Reliability and security acceptance</option>
+        </optgroup>
+        <optgroup label="Performance, delivery and operations">
+          <option value="day-119.html">Day 119 — Cost baseline and commitments</option>
+          <option value="day-120.html">Day 120 — Storage, network and database costs</option>
+          <option value="day-121.html">Day 121 — Runtime, analytics and carbon cost drivers</option>
+          <option value="day-122.html">Day 122 — Unit economics and sensitivity</option>
+          <option value="day-123.html">Day 123 — Caching correctness under load</option>
+          <option value="day-124.html">Day 124 — Database, network and I/O bottlenecks</option>
+          <option value="day-125.html">Day 125 — Profiling and capacity evidence</option>
+          <option value="day-126.html">Day 126 — Terraform baseline and state boundaries</option>
+          <option value="day-127.html">Day 127 — Terraform testing, drift and recovery</option>
+          <option value="day-128.html">Day 128 — Build and deployment pipeline</option>
+          <option value="day-129.html">Day 129 — Release rollback and delivery measures</option>
+          <option value="day-130.html">Day 130 — Service catalog and ownership</option>
+          <option value="day-131.html">Day 131 — Lifecycle, exceptions and adoption</option>
+          <option value="day-132.html">Day 132 — Customer success and platform outcomes</option>
+          <option value="day-133.html">Day 133 — Operations integration and remediation</option>
+        </optgroup>
+        <optgroup label="Data, AI and distributed correctness">
+          <option value="day-134.html">Day 134 — Warehouse foundations and query costs</option>
+          <option value="day-135.html">Day 135 — Warehouse security and reporting</option>
+          <option value="day-136.html">Day 136 — Batch and streaming processing choices</option>
+          <option value="day-137.html">Day 137 — Streaming correctness and CDC</option>
+          <option value="day-138.html">Day 138 — Lakehouse and open table design</option>
+          <option value="day-139.html">Day 139 — Catalogs, lineage and data contracts</option>
+          <option value="day-140.html">Day 140 — ML lifecycle and model selection</option>
+          <option value="day-141.html">Day 141 — Build a small grounded-answer flow</option>
+          <option value="day-142.html">Day 142 — Bounded tools and enterprise assistants</option>
+          <option value="day-143.html">Day 143 — AI security and evaluation</option>
+          <option value="day-144.html">Day 144 — AI serving and infrastructure choices</option>
+          <option value="day-145.html">Day 145 — Distributed state and regional correctness</option>
+        </optgroup>
+        <optgroup label="Discovery, cases and exam preparation">
+          <option value="day-146.html">Day 146 — Case analysis and discovery method</option>
+          <option value="day-147.html">Day 147 — Extract facts and numeric requirements</option>
+          <option value="day-148.html">Day 148 — Map requirements and conflicts</option>
+          <option value="day-149.html">Day 149 — Discovery: business, load and recovery</option>
+          <option value="day-150.html">Day 150 — Discovery: data, regulation and skills</option>
+          <option value="day-151.html">Day 151 — Discovery: budget, risks and success</option>
+          <option value="day-152.html">Day 152 — EHR Healthcare — facts and migration constraints</option>
+          <option value="day-153.html">Day 153 — EHR Healthcare — defend the design</option>
+          <option value="day-154.html">Day 154 — Altostrat Media — content and AI requirements</option>
+          <option value="day-155.html">Day 155 — Altostrat Media — architecture defense</option>
+          <option value="day-156.html">Day 156 — Cymbal Retail — catalog and commerce requirements</option>
+          <option value="day-157.html">Day 157 — Cymbal Retail — architecture defense</option>
+          <option value="day-158.html">Day 158 — KnightMotives — modernization requirements</option>
+          <option value="day-159.html">Day 159 — KnightMotives — architecture defense</option>
+          <option value="day-160.html">Day 160 — Case synthesis and feedback</option>
+          <option value="day-161.html">Day 161 — Changed-constraint design exercise</option>
+          <option value="day-162.html">Day 162 — Exam domain mapping and sample questions</option>
+          <option value="day-163.html">Day 163 — Timed reasoning and source-backed limits</option>
+          <option value="day-164.html">Day 164 — Readiness plan and remaining repairs</option>
+        </optgroup>
+        <optgroup label="Multi-team architecture and synthesis">
+          <option value="day-165.html">Day 165 — Landing zones and multi-team platform boundaries</option>
+          <option value="day-166.html">Day 166 — Production identity across teams</option>
+          <option value="day-167.html">Day 167 — API contracts and compatibility</option>
+          <option value="day-168.html">Day 168 — Sustainability and assisted operations</option>
+          <option value="day-169.html">Day 169 — Capacity allocation and overload governance</option>
+          <option value="day-170.html">Day 170 — Compute and database decision synthesis</option>
+          <option value="day-171.html">Day 171 — Network decision synthesis</option>
+          <option value="day-172.html">Day 172 — Storage, messaging and limits synthesis</option>
+          <option value="day-173.html">Day 173 — Consulting, portfolio and customer handover</option>
+        </optgroup>
+        <optgroup label="Final gate and capstone defenses">
+          <option value="day-174.html">Day 174 — Gate 6 — Integrated readiness and remediation</option>
+          <option value="day-175.html">Day 175 — Capstone 1 — Landing-zone defense</option>
+          <option value="day-176.html">Day 176 — Capstone 2 — Regulated-workload defense</option>
+          <option value="day-177.html">Day 177 — Capstone 3 — Global-application defense</option>
+          <option value="day-178.html">Day 178 — Capstone 4 — Migration defense</option>
+          <option value="day-179.html">Day 179 — Capstone 5 — Cost and reliability rescue</option>
+        </optgroup>
+        <optgroup label="Final review and rest">
+          <option value="day-180.html">Day 180 — Final review, logistics and rest</option>
+        </optgroup>
+      </select>
+    <span class="nav-parts"><a href="#part-1">Topics</a><a href="#part-2">Discussion</a><a href="#part-3">Problems</a><a href="#part-4">Lab</a></span>
+    <button id="theme-toggle" type="button" aria-label="Change color theme">☀ Light mode</button>
+  </nav></header>
+
+  <main id="main" class="container day" data-day="13" data-prev="day-012.html" data-next="day-014.html" data-index="../index.html">
+    <div class="crumb"><a href="../index.html">Roadmap Index</a> / <a href="../index.html#block-foundations">Days 1–17: Foundations</a> / <span aria-current="page">Day 13 of 180</span></div>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="pills"><span class="pill">DAY 13</span><span class="pill">Foundations</span><span class="pill">2–3 hours</span><span class="pill">Local lab</span><span class="pill">Prerequisite: Day 12</span></div>
+      <h1 id="page-title">Day 13 — State, availability and recovery vocabulary</h1>
+      <p class="lead">Learn why a running second copy, a fault-tolerant operation, and a recoverable backup answer different failure questions. Then find which Brightloaf data survives when an Order API process stops.</p>
+      <p><strong>Outcome:</strong> By the end, draw a state-ownership path, explain high availability (HA), fault tolerance, disaster recovery (DR), recovery time objective (RTO), and recovery point objective (RPO), and show a local restart and restore experiment.</p>
+      <p class="meta"><strong>Entry prerequisites:</strong> Bring the Day 12 location and failure-domain assumptions. Cloud sandbox setup starts on Day 18; this exercise needs no cloud account.</p>
+      <p><a class="button secondary" href="day-012.html">← Day 12</a><a class="button" href="#part-4">Start the lab</a><a class="button secondary" href="day-014.html">Day 14 →</a></p>
+    <p><strong>Exit artifact:</strong> a state-ownership diagram and definitions of HA, fault tolerance, RTO and RPO, supported by local restart and restore evidence.</p>
+    </section>
+
+    <nav class="toc" aria-label="On this page">
+      <strong>On this page</strong>
+      <a href="#part-1">Part 1 — Topics of the Day</a><a href="#part-2">Part 2 — Technical Discussion</a><a href="#part-3">Part 3 — Real-World Problems and Solutions</a><a href="#part-4">Part 4 — Step-by-Step Lab</a>
+      <div class="toc-topic"><span>Availability and recovery</span><a href="#availability-recovery-overview">Overview</a><a href="#availability-recovery-technical">Discussion</a><a href="#availability-recovery-problem">Problem</a><a href="#availability-recovery-lab">Lab</a></div>
+      <div class="toc-topic"><span>Stateless and stateful applications</span><a href="#state-ownership-overview">Overview</a><a href="#state-ownership-technical">Discussion</a><a href="#state-ownership-problem">Problem</a><a href="#state-ownership-lab">Lab</a></div>
+    </nav>
+
+    <section id="part-1" class="part" aria-labelledby="part-1-title"><h2 id="part-1-title">Part 1 — Topics of the Day</h2>
+      <article id="availability-recovery-overview" data-legacy-anchor="topic-01-overview" class="topic-card"><span id="topic-01-overview" aria-hidden="true"></span><h3>High availability, fault tolerance, and disaster recovery</h3>
+        <p><strong>What it is:</strong> High availability keeps a service usable through expected component failures, often by routing requests to a healthy copy. Fault tolerance is the ability to continue a required operation despite a specified fault, with little or no interruption; disaster recovery restores service and data after a larger loss. RTO is the maximum acceptable recovery duration, while RPO is the maximum acceptable age of recovered data.</p>
+        <p><strong>Why today:</strong> Day 12 introduced locations and failure domains. These terms let you state what a second zone, a standby service, or a backup actually protects.</p>
+        <p><strong>System location:</strong> They describe end-to-end behavior across the client route, application workers, database, storage, backups, monitoring, and operational response.</p>
+        <div class="callout caution"><strong>Problem preview</strong><p>Brightloaf's second Order API worker answers requests after the first fails, but an accidental database deletion appears to both workers. Checkout remains available while order history is missing, delaying fulfillment and customer support.</p></div>
+      </article>
+      <article id="state-ownership-overview" data-legacy-anchor="topic-02-overview" class="topic-card"><span id="topic-02-overview" aria-hidden="true"></span><h3>Stateless and stateful applications</h3>
+        <p><strong>What it is:</strong> A stateless application worker does not depend on local memory or local files from a previous request to process the next one. A stateful component owns information that must survive or coordinate across requests, such as accepted orders, inventory changes, or fulfillment records.</p>
+        <p><strong>Why today:</strong> Before planning more replicas or a faster restart, locate the authoritative copy of each business fact. Moving state out of an API process makes worker replacement simpler but does not remove the need to protect the state store.</p>
+        <p><strong>System location:</strong> State can live in worker memory, a local file, a database, a queue, a cache, or an external session store. Its owner and durability must be explicit.</p>
+        <div class="callout caution"><strong>Problem preview</strong><p>A restarted Order API worker forgets that it already accepted an order event and treats the replay as new. The same purchase can trigger a second fulfillment unless durable state enforces the business invariant.</p></div>
+      </article>
+    </section>
+
+    <section id="part-2" class="part" aria-labelledby="part-2-title"><h2 id="part-2-title">Part 2 — Technical Discussion</h2>
+      <article id="availability-recovery-technical" data-legacy-anchor="topic-01-technical" class="topic-card"><span id="topic-01-technical" aria-hidden="true"></span><h3>Availability and recovery are different guarantees</h3>
+        <p>Availability asks whether a user can complete a useful request now. Another healthy API worker can improve availability when one process or host stops. It does not prove that the database is correct, a regional outage is survivable, or deleted data can be recovered. End-to-end availability is limited by dependencies on the request path: a healthy frontend cannot complete an order if its only writable database is unavailable.</p>
+        <p>Fault tolerance needs a named fault and an acceptable outcome. “An Order API worker can stop while a second worker continues accepting orders” is testable. “The system is fault tolerant” hides whether it tolerates a process crash, zone outage, corrupt data, or operator mistake. Redundant components may also share one database or one bad deployment.</p>
+        <p>Disaster recovery starts with a loss scenario and a recovery plan. A backup is a separately retained recovery point; it must be restorable and its age must fit the business requirement. A live second worker gives a route around worker failure, while a verified backup gives a route back to earlier data after deletion or corruption. Neither substitutes for the other.</p>
+        <table class="day13-table"><thead><tr><th>Term</th><th>Question</th><th>Brightloaf example</th><th>Evidence</th></tr></thead><tbody>
+          <tr><td>High availability</td><td>Can orders be accepted when a component fails?</td><td>Another healthy API worker handles requests.</td><td>A request succeeds during the specified failure.</td></tr>
+          <tr><td>Fault tolerance</td><td>Can the operation continue through a named fault?</td><td>A worker crash does not lose a committed order.</td><td>The fault and allowed interruption are stated and tested.</td></tr>
+          <tr><td>Disaster recovery</td><td>How are service and data restored after a larger loss?</td><td>Restore the order store from a separate backup.</td><td>Restore time, recovered records, remaining data gap.</td></tr>
+          <tr><td>RTO</td><td>How long may the service be unavailable?</td><td>Hypothetical 30-minute objective.</td><td>Incident start to useful service restoration.</td></tr>
+          <tr><td>RPO</td><td>How far back may recovered data be?</td><td>Hypothetical 5-minute objective.</td><td>Age of the newest usable recovery point.</td></tr>
+        </tbody></table>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day13-spectrum-title day13-spectrum-desc" viewBox="0 0 940 330">
+<title id="day13-spectrum-title">High Availability, Fault Tolerance, and Disaster Recovery Architectures with RTO and RPO Objectives</title>
+<desc id="day13-spectrum-desc">Architectural comparison illustrating High Availability across dual zones, Fault Tolerance with continuous consensus, and Disaster Recovery point-in-time restoration, mapped against Recovery Time Objective (RTO) and Recovery Point Objective (RPO) timelines.</desc>
+<defs>
+<marker id="day13-spec-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day13-time-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<!-- Top 3 Architecture Columns -->
+<!-- Col 1: High Availability -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="280" height="155" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="160" y="48">HIGH AVAILABILITY (HA)</text>
+<text x="160" y="63" fill="#38bdf8" font-size="10" font-weight="400">Multi-Zone Routing &amp; Redundancy</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="35" y="74" width="250" height="24" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="160" y="90" fill="#fce7f3">Active/Standby or Active/Active Replicas</text>
+<rect x="35" y="104" width="250" height="24" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="160" y="120" fill="#a9b7cb">Automated Health Check Failover (&lt; 15s)</text>
+<rect x="35" y="134" width="250" height="40" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="160" y="149" fill="#f43f5e" font-weight="700">Tolerates: Single VM or Host Crash</text>
+<text x="160" y="163" fill="#a9b7cb">Limit: Shared data deletion breaks both!</text>
+</g>
+
+<!-- Col 2: Fault Tolerance -->
+<g fill="#121526" stroke-width="2">
+<rect x="330" y="30" width="280" height="155" rx="8" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="470" y="48">FAULT TOLERANCE (FT)</text>
+<text x="470" y="63" fill="#34d399" font-size="10" font-weight="400">Continuous Zero-Interruption Execution</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="345" y="74" width="250" height="24" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="470" y="90" fill="#fce7f3">Distributed Consensus (Paxos / TrueTime)</text>
+<rect x="345" y="104" width="250" height="24" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="470" y="120" fill="#a9b7cb">Hitless Live Migration (Zero Dropped Packets)</text>
+<rect x="345" y="134" width="250" height="40" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="470" y="149" fill="#34d399" font-weight="700">Tolerates: Underlying Hardware Fault</text>
+<text x="470" y="163" fill="#a9b7cb">Limit: Extremely high infrastructure cost</text>
+</g>
+
+<!-- Col 3: Disaster Recovery -->
+<g fill="#121526" stroke-width="2">
+<rect x="640" y="30" width="280" height="155" rx="8" stroke="#f43f5e"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="780" y="48">DISASTER RECOVERY (DR)</text>
+<text x="780" y="63" fill="#f43f5e" font-size="10" font-weight="400">Out-of-Region Reconstruction &amp; Backups</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="655" y="74" width="250" height="24" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="780" y="90" fill="#fce7f3">Point-in-Time Recovery &amp; Cold Snapshots</text>
+<rect x="655" y="104" width="250" height="24" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="780" y="120" fill="#a9b7cb">Re-creation of Destroyed Infrastructure</text>
+<rect x="655" y="134" width="250" height="40" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="780" y="149" fill="#eab308" font-weight="700">Tolerates: Regional Loss &amp; Corrupt Data</text>
+<text x="780" y="163" fill="#a9b7cb">Limit: Requires nonzero recovery time (RTO)</text>
+</g>
+
+<!-- Bottom: RTO & RPO Operational Timeline -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="200" width="900" height="115" rx="8" stroke="#475569"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="470" y="218">OPERATIONAL RECOVERY METRIC TIMELINE: RPO vs RTO</text>
+</g>
+<!-- Timeline Axis -->
+<g fill="none" stroke="#475569" stroke-width="2">
+<path d="M50 260 L890 260" marker-end="url(#day13-spec-arrow)"/>
+</g>
+<!-- Time Points -->
+<!-- T_backup -->
+<circle cx="200" cy="260" r="5" fill="#38bdf8"/>
+<text x="200" y="280" fill="#38bdf8" font-size="9" font-weight="700" text-anchor="middle">Latest Valid Backup</text>
+<text x="200" y="292" fill="#a9b7cb" font-size="9" text-anchor="middle">(T - 5m)</text>
+<!-- T_disaster -->
+<circle cx="450" cy="260" r="6" fill="#f43f5e"/>
+<text x="450" y="280" fill="#f43f5e" font-size="10" font-weight="700" text-anchor="middle">DISRUPTION EVENT (T0)</text>
+<text x="450" y="292" fill="#a9b7cb" font-size="9" text-anchor="middle">Database deletion / Host crash</text>
+<!-- T_restored -->
+<circle cx="750" cy="260" r="5" fill="#34d399"/>
+<text x="750" y="280" fill="#34d399" font-size="9" font-weight="700" text-anchor="middle">Useful Service Restored</text>
+<text x="750" y="292" fill="#a9b7cb" font-size="9" text-anchor="middle">(T0 + 30m)</text>
+
+<!-- RPO Bracket -->
+<g fill="none" stroke="#eab308" stroke-width="2">
+<path d="M200 248 L200 236 L450 236 L450 248"/>
+</g>
+<text x="325" y="232" fill="#eab308" font-size="10" font-weight="700" text-anchor="middle">RPO Window (5 min max data age lost)</text>
+
+<!-- RTO Bracket -->
+<g fill="none" stroke="#34d399" stroke-width="2">
+<path d="M450 248 L450 236 L750 236 L750 248"/>
+</g>
+<text x="600" y="232" fill="#34d399" font-size="10" font-weight="700" text-anchor="middle">RTO Window (30 min max downtime duration)</text>
+</svg>
+<figcaption>Figure 13.1: Architectural comparison of High Availability, Fault Tolerance, and Disaster Recovery failure boundaries, accompanied by the operational RTO (downtime duration) and RPO (data currency loss) metric timelines.</figcaption>
+</figure>
+        <p>The 30-minute RTO and 5-minute RPO are illustrative business requirements, not measured results or Google Cloud guarantees. State the failure scope—process, zone, region, or corrupt data—before evaluating a design. Fast worker failover cannot meet a data-recovery objective if every worker reads the same damaged store. Shorter recovery objectives generally require more capacity, preparation, automation, and testing.</p>
+        <div class="further"><h4>Further Study</h4><ul>
+          <li><a href="https://docs.cloud.google.com/architecture/dr-scenarios-planning-guide#basics_of_dr_planning">Google Cloud: Basics of DR planning</a> — the RTO and RPO definitions and their relationship to HA.</li>
+          <li><a href="https://www.youtube.com/watch?v=AxGTdOpdBx4&amp;t=25s">Google Cloud Tech, 0:25–1:06: backup and recovery challenges</a> — why running a service and recovering its data are distinct tasks.</li>
+        </ul><p class="meta">Documentation heading and video chapter checked 27 September 2026.</p></div>
+      </article>
+      <article id="state-ownership-technical" data-legacy-anchor="topic-02-technical" class="topic-card"><span id="topic-02-technical" aria-hidden="true"></span><h3>Follow the state, not just the process</h3>
+        <p>An Order API request has temporary state, such as parsed JSON and a request ID, and durable business state, such as the accepted order and whether fulfillment has occurred. Temporary state may disappear after the response or process restart. Durable state needs an explicit owner, write rule, read path, and recovery method. “Stateless API” describes the worker; the whole order system still has state.</p>
+        <p>A worker that stores accepted orders only in a Python set can respond “accepted,” yet the set vanishes when its process exits. Starting a second worker creates another empty set. Workers that read and write one transactional database can be replaced without losing committed rows. The database then becomes a critical dependency requiring access control, backups, consistency rules, and its own failure plan.</p>
+        <p>Brightloaf's fulfillment invariant is stronger than retaining an order. A replayed event must not create another fulfillment. In the local exercise, a unique order ID in a durable table rejects a second insert. Production must additionally define transaction boundaries among order acceptance, event publication, and fulfillment, and decide how conflicting event payloads are handled.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
+<svg role="img" aria-labelledby="day13-state-arch-title day13-state-arch-desc" viewBox="0 0 940 320">
+<title id="day13-state-arch-title">Stateless Worker Tier versus Durable State Store and Recovery Lifecycle</title>
+<desc id="day13-state-arch-desc">Architecture diagram illustrating the separation between ephemeral stateless Order API workers, a centralized transactional database enforcing uniqueness, downstream fulfillment idempotency, and an independent cold backup recovery point.</desc>
+<defs>
+<marker id="day13-state-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker>
+<marker id="day13-db-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+</defs>
+<!-- Box 1: Client & Ingress Tier -->
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="30" width="160" height="260" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="100" y="52">CLIENT INGRESS</text>
+<text x="100" y="68" fill="#38bdf8" font-size="9" font-weight="400">Order Event Ingress</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="35" y="85" width="130" height="42" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="100" y="103" fill="#fce7f3">Shopper Mobile / Web</text>
+<text x="100" y="117" fill="#a9b7cb">Checkout Payload</text>
+<rect x="35" y="140" width="130" height="42" rx="4" fill="#1e293b" stroke="#475569"/>
+<text x="100" y="158" fill="#fce7f3">Global ALB Anycast</text>
+<text x="100" y="172" fill="#a9b7cb">TLS Termination</text>
+<rect x="35" y="195" width="130" height="75" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="100" y="212" fill="#eab308" font-weight="700">Ephemeral Context</text>
+<text x="100" y="226" fill="#fce7f3">Trace ID &amp; Headers</text>
+<text x="100" y="240" fill="#a9b7cb">No business state</text>
+<text x="100" y="254" fill="#a9b7cb">Discarded after reply</text>
+</g>
+
+<!-- Box 2: Stateless Worker Tier -->
+<g fill="#121526" stroke-width="2">
+<rect x="205" y="30" width="225" height="260" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="317" y="52">STATELESS WORKER TIER</text>
+<text x="317" y="68" fill="#38bdf8" font-size="9" font-weight="400">Replaceable API Processes</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="220" y="85" width="195" height="65" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="317" y="103" fill="#fce7f3" font-weight="700">Order API Worker A</text>
+<text x="317" y="117" fill="#a9b7cb">Process Memory (JSON parse)</text>
+<text x="317" y="131" fill="#34d399">Replaceable at any instant</text>
+<text x="317" y="143" fill="#a9b7cb">Zero local disk state</text>
+<rect x="220" y="165" width="195" height="65" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="317" y="183" fill="#fce7f3" font-weight="700">Order API Worker B</text>
+<text x="317" y="197" fill="#a9b7cb">Process Memory (JSON parse)</text>
+<text x="317" y="211" fill="#34d399">Replaceable at any instant</text>
+<text x="317" y="223" fill="#a9b7cb">Zero local disk state</text>
+<rect x="220" y="240" width="195" height="35" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="317" y="254" fill="#f43f5e" font-weight="700">Worker Crash = Zero Data Loss</text>
+<text x="317" y="266" fill="#a9b7cb">Because state is in database</text>
+</g>
+
+<!-- Box 3: Durable State Store Tier -->
+<g fill="#121526" stroke-width="2">
+<rect x="455" y="30" width="235" height="260" rx="8" stroke="#34d399"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="572" y="52">DURABLE STATE STORE</text>
+<text x="572" y="68" fill="#34d399" font-size="9" font-weight="400">Authoritative Business State</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="470" y="85" width="205" height="75" rx="4" fill="#1e293b" stroke="#34d399"/>
+<text x="572" y="103" fill="#34d399" font-weight="700">Cloud SQL (Transactional Store)</text>
+<text x="572" y="117" fill="#fce7f3">Primary Key: order_id (UNIQUE)</text>
+<text x="572" y="131" fill="#a9b7cb">Enforces atomic INSERT OR IGNORE</text>
+<text x="572" y="145" fill="#34d399">Committed Row = Source of Truth</text>
+<rect x="470" y="175" width="205" height="100" rx="4" fill="#1e293b" stroke="#eab308"/>
+<text x="572" y="193" fill="#eab308" font-weight="700">State Protection Obligations</text>
+<text x="572" y="209" fill="#a9b7cb">1. Synchronous replication (HA)</text>
+<text x="572" y="223" fill="#a9b7cb">2. Automated Point-in-Time recovery</text>
+<text x="572" y="237" fill="#a9b7cb">3. Strict RBAC / IAM write permissions</text>
+<text x="572" y="251" fill="#f43f5e">4. Guard against accidental DROP</text>
+</g>
+
+<!-- Box 4: Downstream & Backup Tier -->
+<g fill="#121526" stroke-width="2">
+<rect x="715" y="30" width="205" height="260" rx="8" stroke="#f43f5e"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="700" text-anchor="middle">
+<text x="817" y="52">FULFILLMENT &amp; BACKUP</text>
+<text x="817" y="68" fill="#f43f5e" font-size="9" font-weight="400">Invariant &amp; Recovery Point</text>
+</g>
+<g font-size="9" text-anchor="middle">
+<rect x="730" y="85" width="175" height="80" rx="4" fill="#1e293b" stroke="#f43f5e"/>
+<text x="817" y="103" fill="#f43f5e" font-weight="700">Fulfillment Engine</text>
+<text x="817" y="119" fill="#fce7f3">Consumes order event</text>
+<text x="817" y="133" fill="#34d399" font-weight="700">DUPLICATE INVARIANT</text>
+<text x="817" y="147" fill="#fce7f3">&lt;= 1 Fulfillment / Order</text>
+<text x="817" y="159" fill="#a9b7cb">Replay rejects duplicate</text>
+
+<rect x="730" y="180" width="175" height="95" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+<text x="817" y="198" fill="#38bdf8" font-weight="700">Separate Recovery Point</text>
+<text x="817" y="214" fill="#a9b7cb">Cloud Storage Cold Backup</text>
+<text x="817" y="228" fill="#a9b7cb">Independent failure domain</text>
+<text x="817" y="242" fill="#34d399">Survives database deletion</text>
+<text x="817" y="256" fill="#a9b7cb">Tested restoration workflow</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 115 L220 115" stroke="#38bdf8" marker-end="url(#day13-state-arrow)"/>
+<path d="M180 160 L220 190" stroke="#38bdf8" marker-end="url(#day13-state-arrow)"/>
+<path d="M415 115 L470 115" stroke="#34d399" marker-end="url(#day13-db-arrow)"/>
+<path d="M415 190 L470 135" stroke="#34d399" marker-end="url(#day13-db-arrow)"/>
+<path d="M675 115 L730 115" stroke="#f43f5e" marker-end="url(#day13-state-arrow)"/>
+<path d="M675 225 L730 225" stroke="#38bdf8" stroke-dasharray="4 3" marker-end="url(#day13-state-arrow)"/>
+</g>
+</svg>
+<figcaption>Figure 13.2: Architecture diagram separating the ephemeral stateless worker tier from the authoritative durable database, illustrating the fulfillment deduplication boundary and an independent recovery copy.</figcaption>
+</figure>
+        <table class="day13-table"><thead><tr><th>State</th><th>Owner</th><th>After worker restart</th><th>Still needs protection</th></tr></thead><tbody>
+          <tr><td>Request variables</td><td>Current API process</td><td>Discard and start a new request.</td><td>In-flight retry behavior.</td></tr>
+          <tr><td>Accepted order and fulfillment identity</td><td>Durable store</td><td>Read the committed record again.</td><td>Uniqueness, transactions, access, restore.</td></tr>
+          <tr><td>Recovery copy</td><td>Separately retained backup</td><td>Remain unchanged by ordinary restart.</td><td>Age, integrity, permissions, tested restoration.</td></tr>
+        </tbody></table>
+        <div class="further"><h4>Further Study</h4><ul>
+          <li><a href="https://docs.cloud.google.com/architecture/scalable-and-resilient-apps#aim_for_statelessness">Google Cloud: Aim for statelessness</a> — why replaceable workers simplify scaling and recovery while persistent state still needs protection.</li>
+          <li><a href="https://www.youtube.com/watch?v=AxGTdOpdBx4&amp;t=99s">Google Cloud Tech, 1:39–2:19: application-native backup storage</a> — how a separately managed recovery copy protects state.</li>
+        </ul><p class="meta">Documentation heading and video chapter checked 27 September 2026.</p></div>
+      </article>
+    </section>
+
+    <section id="part-3" class="part" aria-labelledby="part-3-title"><h2 id="part-3-title">Part 3 — Real-World Problems and Solutions</h2>
+      <article id="availability-recovery-problem" data-legacy-anchor="topic-01-problem" class="topic-card">
+        <span id="topic-01-problem" aria-hidden="true"></span><h3>Incident exercise · A healthy API pair cannot undo a deleted order</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf operates its online Order API using two redundant virtual machine instances (Worker A and Worker B) in region <code>asia-south1</code> behind a regional load balancer. Both workers connect to a shared Cloud SQL relational database instance. During a period of elevated afternoon traffic, Worker A suffered a localized guest OS kernel panic and halted. The load balancer detected the failed health check within 10 seconds and seamlessly routed 100% of incoming checkout traffic to Worker B. The operations dashboard remained green, displaying 99.99% frontend availability. However, twelve minutes later, an administrator executing a database cleanup script in the production environment accidentally ran an unqualified <code>DELETE</code> command that purged the active orders table. Although both workers continued answering HTTP health check probes, subsequent shopper queries returned HTTP 404 "Order not found" errors, and the warehouse fulfillment pipeline stalled completely.</p>
+        <p><strong>Constraints and operational invariants:</strong> Order records and delivery coordinates must be restored without corrupting new orders submitted post-incident; customer retries and event replays must preserve Brightloaf's fundamental duplicate fulfillment invariant: a replayed event must never trigger duplicate physical warehouse fulfillment (&lt;= 1 fulfillment per unique order ID). Recovery must adhere to the hypothetical business targets of an RTO of 30 minutes and an RPO of 5 minutes.</p>
+        <p><strong>Evidence and root cause:</strong> Cloud Logging and Cloud Monitoring telemetry showed that frontend route availability remained at 100% and Worker B was fully operational, yet application logs recorded hundreds of database query errors and empty result sets. The root cause was an architectural conflation of high availability and disaster recovery: redundant API workers provide routing fault tolerance against worker failure, but they provide zero protection against corrupted or deleted state in a shared data tier. High availability replicated the destructive delete synchronously, rendering both workers incapable of serving legitimate business data.</p>
+        <p><strong>Diagnostic sequence:</strong></p>
+        <ol>
+          <li>Query the Cloud SQL instance state and audit logs in Cloud Logging to identify the exact timestamp and identity of the destructive administrative operation.</li>
+          <li>Isolate the database by immediately revoking write permissions or placing the Order API into read-only maintenance mode to prevent incoming writes from overwriting damaged tables.</li>
+          <li>Identify the latest available automated backup and verify the availability of transaction logs (write-ahead logs or binlogs) for point-in-time recovery (PITR).</li>
+          <li>Provision a separate, isolated scratch database instance and execute a point-in-time restore to a timestamp exactly one second prior to the accidental deletion.</li>
+          <li>Reconcile the recovered order rows against external payment gateway settlement logs and message broker event logs to identify any transactional gap between the backup point and the incident cutoff.</li>
+        </ol>
+        <p><strong>Defensible solution:</strong> Execute a point-in-time restore from the Cloud SQL automated backup into a staging database instance. Validate the integrity and row counts of the restored orders table. Replay missed transactions verified by payment gateway transaction tokens, ensuring that all inserts use idempotent primary key constraints. Redirect the Order API connection pool to the restored database and resume normal traffic. Implement architectural guardrails to prevent recurrence: apply IAM least privilege by removing direct DDL/DML delete privileges from administrative personal accounts, enforce Cloud SQL instance deletion protection, and establish mandatory Point-in-Time Recovery testing during quarterly disaster recovery drills.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day13-ha-incident-title day13-ha-incident-desc" viewBox="0 0 940 320">
+<title id="day13-ha-incident-title">Shared Database Deletion Incident and Point-in-Time Recovery Remediation</title>
+<desc id="day13-ha-incident-desc">Incident diagram showing how an accidental administrative database deletion broke both healthy Order API workers, and the corrected point-in-time recovery workflow restoring orders without duplicate fulfillment.</desc>
+<defs>
+<marker id="day13-ok-arrow-1" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day13-fail-arrow-1" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="160" height="90" rx="8" stroke="#38bdf8"/>
+<rect x="210" y="25" width="470" height="115" rx="8" stroke="#f43f5e" stroke-dasharray="7 5"/>
+<rect x="210" y="175" width="470" height="115" rx="8" stroke="#34d399"/>
+<rect x="710" y="110" width="210" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="600" text-anchor="middle">
+<text x="100" y="140">Shoppers &amp; Admin</text>
+<text x="100" y="156" fill="#a9b7cb">Order Queries</text>
+<text x="100" y="172" fill="#38bdf8">Workers A &amp; B Green</text>
+
+<!-- Failed Path -->
+<text x="445" y="44" fill="#f43f5e" font-weight="700">[FAILED PATH: Available Workers Read Damaged Shared Database]</text>
+<text x="445" y="60" fill="#fce7f3">Worker A and Worker B both report green on ALB health checks</text>
+<text x="445" y="76" fill="#f43f5e">EXACT FAILURE POINT: Erroneous administrative script drops order table</text>
+<text x="445" y="92" fill="#f43f5e">Root Cause: HA replication instantly replicates deletion to standby database</text>
+<text x="445" y="108" fill="#f43f5e">Both workers return "Order Not Found" / 404 → Fulfillment halted</text>
+<text x="445" y="124" fill="#a9b7cb">High availability masked data loss; team had no tested recovery plan</text>
+
+<!-- Corrected Path -->
+<text x="445" y="194" fill="#34d399" font-weight="700">[CORRECTED PATH: Point-in-Time Recovery &amp; Reconciled Replay]</text>
+<text x="445" y="210" fill="#fce7f3">Freeze writes immediately; restore latest clean snapshot into isolated staging DB</text>
+<text x="445" y="226" fill="#34d399">CORRECTED CONTROL: Replay write-ahead logs to T_drop - 1s (RPO &lt; 5m)</text>
+<text x="445" y="242" fill="#34d399">Cross-reference order records with payment gateway tokens and shipping logs</text>
+<text x="445" y="258" fill="#34d399">Re-enable traffic only after state validated; RTO &lt; 30m objective met</text>
+<text x="445" y="274" fill="#a9b7cb">Order Invariant: Database unique constraint prevents duplicate fulfillment</text>
+
+<!-- Verification Boundary -->
+<text x="815" y="136">VERIFICATION BOUNDARY</text>
+<text x="815" y="154" fill="#34d399" font-weight="700">100% Orders Restored</text>
+<text x="815" y="170" fill="#34d399">RTO &lt; 30m · RPO &lt; 5m</text>
+<text x="815" y="186" fill="#a9b7cb">Fulfillment count &lt;= 1</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 135 L210 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day13-fail-arrow-1)"/>
+<path d="M680 85 L710 135" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day13-fail-arrow-1)"/>
+<path d="M180 175 L210 230" stroke="#34d399" marker-end="url(#day13-ok-arrow-1)"/>
+<path d="M680 230 L710 175" stroke="#34d399" marker-end="url(#day13-ok-arrow-1)"/>
+</g>
+<text x="460" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed red line (--&gt;) = Shared data deletion failure · Solid green line (—&gt;) = Point-in-time backup recovery</text>
+</svg>
+<figcaption>Figure 13.3: Supplied facts: An accidental database deletion caused checkout data loss even though two Order API workers remained healthy. Architectural inference: High availability preserves compute routes but does not protect against data deletion. Expected post-fix behavior: Point-in-time backup restoration combined with transaction log replay restores committed order state within RTO and RPO limits while enforcing fulfillment deduplication.</figcaption>
+</figure>
+        <p><strong>Verification and residual risk:</strong> Query the restored database to confirm that 100% of pre-incident committed orders are present; verify that newly submitted test orders persist correctly; simulate replaying an order event from the incident window and confirm that the fulfillment system rejects duplicate processing with HTTP 200 and <code>new_fulfillment: false</code>. Residual risk: In a high-throughput relational database, point-in-time recovery may miss in-flight transactions committed during the minute immediately preceding the disaster if transaction logs were buffering; reconciling against payment provider webhooks mitigates this RPO gap but requires manual administrative sign-off.</p>
+      </article>
+      <article id="state-ownership-problem" data-legacy-anchor="topic-02-problem" class="topic-card">
+        <span id="topic-02-problem" aria-hidden="true"></span><h3>Incident exercise · Process memory causes a duplicate fulfillment attempt</h3>
+        <p><strong>Illustrative scenario—not an observed production incident.</strong> Brightloaf deployed a revised microservice worker to handle asynchronous order events published by the checkout frontend. To achieve high throughput, the development team implemented event deduplication using an in-memory Python <code>set</code>: when an event arrived, the worker checked whether the <code>order_id</code> existed in its internal set. If absent, the worker added the ID and immediately dispatched a fulfillment message to the automated packaging line. At 11:30 IST, the worker received order event <code>EV-13-001</code> for customer purchase <code>BL-13-001</code>. Before the worker could transmit an HTTP 200 acknowledgment back to the upstream message broker, the underlying Compute Engine VM experienced an abrupt preemption restart. The message broker, having timed out waiting for the acknowledgment, re-delivered event <code>EV-13-001</code> to a newly spawned worker instance. Because the new process initialized with a fresh, empty in-memory set, it treated the replayed event as an original order, dispatching a second physical fulfillment command to the warehouse.</p>
+        <p><strong>Constraints and operational invariants:</strong> Worker instances must remain disposable and stateless to enable autoscaling and automatic repair; network and broker delivery is at-least-once, meaning duplicate event delivery is inevitable; under all retry and replay conditions, Brightloaf must strictly maintain the duplicate fulfillment invariant: each unique order must produce at most one physical warehouse shipment.</p>
+        <p><strong>Evidence and root cause:</strong> Warehouse management logs revealed two distinct packing slips generated for order <code>BL-13-001</code> within 90 seconds of each other. Worker process logs confirmed that two separate PID instances handled the same event ID. The root cause was locating state ownership inside an ephemeral process memory space instead of a durable transactional store. When the process terminated, its deduplication cache evaporated, turning a routine network retry into an unauthorized duplicate shipment.</p>
+        <p><strong>Diagnostic sequence:</strong></p>
+        <ol>
+          <li>Inspect warehouse fulfillment logs to correlate order identifiers, packing slip timestamps, and handling worker process IDs.</li>
+          <li>Review Order API and worker source code to identify where event deduplication state and fulfillment tracking are stored and maintained.</li>
+          <li>Query Compute Engine lifecycle logs to confirm whether worker preemption, autoscaling, or health-check restarts occurred during the duplicate incident window.</li>
+          <li>Inspect message broker delivery metrics to verify message retry counts and consumer acknowledgment timeouts.</li>
+          <li>Analyze the database schema to check whether the fulfillment table enforces uniqueness on the business order identifier.</li>
+        </ol>
+        <p><strong>Defensible solution:</strong> Strip all state ownership from worker memory and anchor deduplication within a durable transactional database. Alter the <code>fulfillments</code> table to designate <code>order_id</code> as the primary key. When handling an order event, the worker must execute an atomic insert operation (e.g., <code>INSERT OR IGNORE INTO fulfillments (order_id, event_id) VALUES (?, ?)</code>). The worker inspects the database cursor's affected row count: if <code>rowcount == 1</code>, the insert succeeded and the worker dispatches the fulfillment message; if <code>rowcount == 0</code>, the order was previously processed, and the worker safely acknowledges the event while suppressing any secondary fulfillment dispatch. The business invariant is thereby enforced by the database engine regardless of process restarts or concurrent worker threads.</p>
+        <figure class="diagram-figure">
+<p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p>
+<svg role="img" aria-labelledby="day13-state-incident-title day13-state-incident-desc" viewBox="0 0 940 320">
+<title id="day13-state-incident-title">Process-Memory State Deduplication Incident and Durable Invariant Remediation</title>
+<desc id="day13-state-incident-desc">Incident diagram contrasting a duplicate warehouse fulfillment caused by relying on in-memory deduplication across worker crashes, with the corrected durable primary key constraint enforcing at most one fulfillment per order.</desc>
+<defs>
+<marker id="day13-ok-arrow-2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"/></marker>
+<marker id="day13-fail-arrow-2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#f43f5e"/></marker>
+</defs>
+<g fill="#121526" stroke-width="2">
+<rect x="20" y="110" width="160" height="90" rx="8" stroke="#38bdf8"/>
+<rect x="210" y="25" width="470" height="115" rx="8" stroke="#f43f5e" stroke-dasharray="7 5"/>
+<rect x="210" y="175" width="470" height="115" rx="8" stroke="#34d399"/>
+<rect x="710" y="110" width="210" height="90" rx="8" stroke="#38bdf8"/>
+</g>
+<g fill="#fce7f3" font-size="11" font-weight="600" text-anchor="middle">
+<text x="100" y="136">Event Ingress</text>
+<text x="100" y="152" fill="#eab308">Order EV-13-001</text>
+<text x="100" y="168" fill="#a9b7cb">Network Retry / Replay</text>
+<text x="100" y="184" fill="#38bdf8">BL-13-001 Purchase</text>
+
+<!-- Failed Path -->
+<text x="445" y="44" fill="#f43f5e" font-weight="700">[FAILED PATH: Ephemeral In-Memory Deduplication Set]</text>
+<text x="445" y="60" fill="#fce7f3">Worker A records order in volatile Python set() → Crashes before ACK</text>
+<text x="445" y="76" fill="#f43f5e">EXACT FAILURE POINT: Worker B spawns with empty set() on restart</text>
+<text x="445" y="92" fill="#f43f5e">Root Cause: Sender retries event; Worker B treats EV-13-001 as brand new</text>
+<text x="445" y="108" fill="#f43f5e">Worker B emits second fulfillment event → Warehouse ships order twice!</text>
+<text x="445" y="124" fill="#a9b7cb">Fulfillment invariant breached: duplicate physical goods shipped</text>
+
+<!-- Corrected Path -->
+<text x="445" y="194" fill="#34d399" font-weight="700">[CORRECTED PATH: Durable Database Primary Key Constraint]</text>
+<text x="445" y="210" fill="#fce7f3">Worker executes INSERT OR IGNORE INTO fulfillments (order_id, event_id)</text>
+<text x="445" y="226" fill="#34d399">CORRECTED CONTROL: Database primary key rejects duplicate insertion atomically</text>
+<text x="445" y="242" fill="#34d399">cursor.rowcount == 0 signals existing fulfillment; returns HTTP 200 idempotent</text>
+<text x="445" y="258" fill="#34d399">Zero secondary fulfillment messages published to warehouse queues</text>
+<text x="445" y="274" fill="#a9b7cb">Order Invariant: Strict guarantee of &lt;= 1 fulfillment per unique order ID</text>
+
+<!-- Verification Boundary -->
+<text x="815" y="136">VERIFICATION BOUNDARY</text>
+<text x="815" y="154" fill="#34d399" font-weight="700">Duplicate Rejected</text>
+<text x="815" y="170" fill="#34d399">new_fulfillment: false</text>
+<text x="815" y="186" fill="#a9b7cb">Fulfillments count: 1</text>
+</g>
+
+<!-- Connectors -->
+<g fill="none" stroke-width="2">
+<path d="M180 135 L210 85" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day13-fail-arrow-2)"/>
+<path d="M680 85 L710 135" stroke="#f43f5e" stroke-dasharray="7 5" marker-end="url(#day13-fail-arrow-2)"/>
+<path d="M180 175 L210 230" stroke="#34d399" marker-end="url(#day13-ok-arrow-2)"/>
+<path d="M680 230 L710 175" stroke="#34d399" marker-end="url(#day13-ok-arrow-2)"/>
+</g>
+<text x="460" y="305" fill="#a9b7cb" font-size="11" text-anchor="middle">Dashed red line (--&gt;) = In-memory duplicate fulfillment · Solid green line (—&gt;) = Durable primary key constraint</text>
+</svg>
+<figcaption>Figure 13.4: Supplied facts: An API worker crash caused an in-memory deduplication set to be lost, triggering a duplicate fulfillment upon event replay. Architectural inference: Replaceable stateless workers must never store authoritative business state in process memory. Expected post-fix behavior: Enforcing primary key uniqueness in a durable database guarantees idempotent replay handling and prevents duplicate fulfillment.</figcaption>
+</figure>
+        <p><strong>Verification and residual risk:</strong> Execute a simulated duplicate submission test where identical order payloads are submitted concurrently to Worker A and Worker B; verify that exactly one database record is created and exactly one fulfillment event is emitted; confirm that replaying the event returns <code>new_fulfillment: false</code>. Residual risk: While database uniqueness prevents duplicate fulfillment records within a single database, distributed transactions across external payment processors and third-party logistics partners still require end-to-end idempotency keys to ensure partner APIs reject duplicate external calls.</p>
+      </article>
+    </section>
+
+    <section id="part-4" class="part" aria-labelledby="part-4-title"><h2 id="part-4-title">Part 4 — Step-by-Step Lab</h2>
+      <h3>Lab 13: Restart, share, and restore Brightloaf order state</h3>
+      <div class="callout success"><strong>Goal and expected result</strong><p>Show that process-owned state disappears when a process exits, while database-owned state is visible to another worker process. Delete the working record, restore a separate backup, and verify that replaying the event does not create a second fulfillment record.</p></div>
+      <p><strong>Mode:</strong> local Linux terminal with Python 3 and its standard-library SQLite module. No Docker image, emulator, cloud resource, billing account, or network listener is created. Each command starts a fresh process, making the restart boundary explicit. Named workers model replaceable API processes; this lab does not prove live failover, cloud HA, or production RTO/RPO.</p>
+      <div class="step"><h4>1. Open a Linux terminal and check the environment</h4><p>Run these commands in one terminal. The Google Cloud check is read-only and optional because Day 13 precedes cloud setup. No later step uses a project.</p>
+        <pre><code>python3 --version
+python3 -c 'import sqlite3; print("SQLite available:", sqlite3.sqlite_version)'
+if command -v gcloud &gt;/dev/null 2&gt;&amp;1; then
+  gcloud config list --format=json
+else
+  printf '%s\n' 'gcloud is not installed; this local lab does not require it.'
+fi
+LAB_DIR="$(mktemp -d -t gcp-day13.XXXXXX)"
+export LAB_DIR
+cd "$LAB_DIR"
+printf 'Lab directory: %s\n' "$LAB_DIR"
+pwd</code></pre>
+        <p><strong>Expected:</strong> Python and SQLite versions print; the final two lines show the same temporary directory. Versions and directory suffix vary. If gcloud exists, inspect its active account and project in the JSON; no cloud operation follows.</p>
+      </div>
+      <div class="step"><h4>2. Create the complete local state model</h4><p>Copy the entire block. Volatile mode keeps data for one process only. Durable mode uses a SQLite table whose <code>order_id</code> primary key allows one fulfillment record per order.</p>
+        <pre><code>cat &gt; day13_lab.py &lt;&lt;'PY'
+import argparse
+import json
+import sqlite3
+from pathlib import Path
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--mode', choices=('volatile', 'durable'), required=True)
+parser.add_argument('--action', choices=('submit', 'status', 'backup', 'erase', 'restore'), required=True)
+parser.add_argument('--worker', choices=('a', 'b'), default='a')
+parser.add_argument('--database', type=Path, default=Path('orders.db'))
+parser.add_argument('--snapshot', type=Path, default=Path('orders.backup.db'))
+parser.add_argument('--order-id', default='BL-13-001')
+parser.add_argument('--event-id', default='EV-13-001')
+args = parser.parse_args()
+
+if args.mode == 'volatile':
+    if args.action not in ('submit', 'status'):
+        parser.error('volatile mode supports only submit and status')
+    orders = set()
+    if args.action == 'submit':
+        orders.add(args.order_id)
+        result = {
+            'fulfillments': len(orders),
+            'new_fulfillment': True,
+            'order_id': args.order_id,
+            'worker': args.worker
+        }
+    else:
+        result = {
+            'fulfillments': len(orders),
+            'orders': sorted(orders),
+            'worker': args.worker
+        }
+else:
+    if args.action == 'restore':
+        if not args.snapshot.is_file():
+            parser.error('backup file does not exist')
+        with sqlite3.connect(args.snapshot) as source, sqlite3.connect(args.database) as target:
+            source.backup(target)
+        result = {'restored': True, 'worker': args.worker}
+    elif args.action == 'backup':
+        if not args.database.is_file():
+            parser.error('database does not exist')
+        with sqlite3.connect(args.database) as source, sqlite3.connect(args.snapshot) as target:
+            source.backup(target)
+        result = {'backup_created': True, 'worker': args.worker}
+    else:
+        with sqlite3.connect(args.database, timeout=5) as database:
+            database.execute(
+                'CREATE TABLE IF NOT EXISTS fulfillments '
+                '(order_id TEXT PRIMARY KEY, event_id TEXT NOT NULL)'
+            )
+            if args.action == 'submit':
+                cursor = database.execute(
+                    'INSERT OR IGNORE INTO fulfillments (order_id, event_id) VALUES (?, ?)',
+                    (args.order_id, args.event_id)
+                )
+                count = database.execute(
+                    'SELECT COUNT(*) FROM fulfillments'
+                ).fetchone()[0]
+                result = {
+                    'fulfillments': count,
+                    'new_fulfillment': cursor.rowcount == 1,
+                    'order_id': args.order_id,
+                    'worker': args.worker
+                }
+            elif args.action == 'erase':
+                database.execute(
+                    'DELETE FROM fulfillments WHERE order_id = ?',
+                    (args.order_id,)
+                )
+                result = {'erased_order': args.order_id, 'worker': args.worker}
+            else:
+                orders = [
+                    row[0] for row in database.execute(
+                        'SELECT order_id FROM fulfillments ORDER BY order_id'
+                    )
+                ]
+                result = {
+                    'fulfillments': len(orders),
+                    'orders': orders,
+                    'worker': args.worker
+                }
+
+print(json.dumps(result, sort_keys=True))
+PY
+python3 -m py_compile day13_lab.py
+printf '%s\n' 'Python syntax check passed.'</code></pre>
+        <p><strong>Expected:</strong> <code>Python syntax check passed.</code> The check creates only a local <code>__pycache__</code> directory.</p>
+      </div>
+      <article id="state-ownership-lab" data-legacy-anchor="topic-02-lab" class="topic-card lab"><span id="topic-02-lab" aria-hidden="true"></span><h3>Checkpoint A — Find the state owner</h3>
+        <div class="step"><h4>3. Submit to process memory, then start a fresh process</h4>
+          <pre><code>python3 day13_lab.py --mode volatile --action submit --worker a
+python3 day13_lab.py --mode volatile --action status --worker a</code></pre>
+          <p><strong>Expected output:</strong> the first process sees one fulfillment, but the second starts with an empty set. Its worker name is unchanged; its memory is new.</p>
+          <pre><code>{"fulfillments": 1, "new_fulfillment": true, "order_id": "BL-13-001", "worker": "a"}
+{"fulfillments": 0, "orders": [], "worker": "a"}</code></pre>
+          <p>If memory were the only deduplication record, a replay after restart could be mistaken for a new order.</p>
+        </div>
+        <div class="step"><h4>4. Put fulfillment identity in a durable store</h4>
+          <pre><code>python3 day13_lab.py --mode durable --action submit --worker a --database "$LAB_DIR/orders.db"
+python3 day13_lab.py --mode durable --action status --worker b --database "$LAB_DIR/orders.db"
+python3 day13_lab.py --mode durable --action submit --worker b --database "$LAB_DIR/orders.db"</code></pre>
+          <p><strong>Expected output:</strong> worker B is a fresh process, yet sees the row committed by A. Replaying the same order adds no second fulfillment.</p>
+          <pre><code>{"fulfillments": 1, "new_fulfillment": true, "order_id": "BL-13-001", "worker": "a"}
+{"fulfillments": 1, "orders": ["BL-13-001"], "worker": "b"}
+{"fulfillments": 1, "new_fulfillment": false, "order_id": "BL-13-001", "worker": "b"}</code></pre>
+          <p>The order-ID primary key is the local invariant guard. The model does not resolve conflicting payloads or coordinate an external shipping system.</p>
+        </div>
+      </article>
+      <article id="availability-recovery-lab" data-legacy-anchor="topic-01-lab" class="topic-card lab"><span id="topic-01-lab" aria-hidden="true"></span><h3>Checkpoint B — Separate availability from recovery</h3>
+        <div class="step"><h4>5. Capture a separate recovery point</h4><p>The timestamp identifies this exercise's backup request; by itself it is not an RPO measurement.</p>
+          <pre><code>date -u '+Backup requested at %Y-%m-%dT%H:%M:%SZ'
+python3 day13_lab.py --mode durable --action backup --worker a --database "$LAB_DIR/orders.db" --snapshot "$LAB_DIR/orders.backup.db"
+ls -l "$LAB_DIR/orders.db" "$LAB_DIR/orders.backup.db"</code></pre>
+          <p><strong>Expected:</strong> the JSON line below and two distinct nonempty files. File sizes and timestamps vary.</p><pre><code>{"backup_created": true, "worker": "a"}</code></pre>
+        </div>
+        <div class="step"><h4>6. Simulate an erroneous deletion</h4><p>This deletion affects only the disposable database. Worker B reads the damaged working state; another worker does not replace a recovery copy.</p>
+          <pre><code>python3 day13_lab.py --mode durable --action erase --worker a --database "$LAB_DIR/orders.db"
+python3 day13_lab.py --mode durable --action status --worker b --database "$LAB_DIR/orders.db"</code></pre>
+          <p><strong>Expected output:</strong></p><pre><code>{"erased_order": "BL-13-001", "worker": "a"}
+{"fulfillments": 0, "orders": [], "worker": "b"}</code></pre>
+        </div>
+        <div class="step"><h4>7. Restore and verify the invariant</h4><p>In production, restore into isolation and reconcile newer orders before changing the live store. This disposable example has one known row and no concurrent writers.</p>
+          <pre><code>python3 day13_lab.py --mode durable --action restore --worker a --database "$LAB_DIR/orders.db" --snapshot "$LAB_DIR/orders.backup.db"
+python3 day13_lab.py --mode durable --action status --worker b --database "$LAB_DIR/orders.db"
+python3 day13_lab.py --mode durable --action submit --worker b --database "$LAB_DIR/orders.db"
+date -u '+Recovery verified at %Y-%m-%dT%H:%M:%SZ'</code></pre>
+          <p><strong>Expected JSON lines:</strong></p><pre><code>{"restored": true, "worker": "a"}
+{"fulfillments": 1, "orders": ["BL-13-001"], "worker": "b"}
+{"fulfillments": 1, "new_fulfillment": false, "order_id": "BL-13-001", "worker": "b"}</code></pre>
+          <p>For a real recovery drill, record incident start, first useful response, backup creation time, and latest recovered write. Compare measured values with RTO and RPO. This lab's quick local commands establish no production recovery guarantee.</p>
+        </div>
+      </article>
+      <div class="callout success"><strong>Verification</strong><p>Pass when volatile state disappears on a new process, worker B sees durable state, replay leaves one fulfillment row, deletion affects the working database, and restoration recovers the row. Final replay must report <code>"new_fulfillment": false</code>.</p></div>
+      <div class="callout caution"><strong>Troubleshooting</strong><ul>
+        <li><code>python3: command not found</code>: install Python 3 using your Linux distribution's package manager and repeat preflight.</li>
+        <li><code>can't open file 'day13_lab.py'</code>: check your working directory and return to the temporary directory printed in step 1.</li>
+        <li><code>backup file does not exist</code>: inspect the backup file and complete step 5 before restore.</li>
+        <li>Durable status is zero before deletion: check that every command uses the same <code>--database "$LAB_DIR/orders.db"</code> path.</li>
+        <li>First durable submit reports <code>"new_fulfillment": false</code>: inspect status; an earlier run may have left the row in the same directory.</li>
+      </ul></div>
+      <div class="step"><h4>8. Save evidence and clean up</h4><p>Save this state diagram and definitions in a Markdown artifact. Copy it to your learner repository before cleanup if you want to keep it for Day 17.</p>
+        <pre><code>cat &gt; "$LAB_DIR/day-013-evidence.md" &lt;&lt;'MD'
+# Day 13 evidence — State, availability and recovery
+
+Brightloaf path: client → replaceable Order API worker → durable order store → fulfillment.
+A separate backup is a recovery point, not another live API worker.
+
+State owner: request-local variables belong to one process; committed order and
+fulfillment identity belong to the database; the backup holds an earlier copy.
+
+HA: keep the service usable through a specified failure.
+Fault tolerance: continue the required operation despite a named fault.
+DR: restore service and data after a larger loss.
+RTO: maximum acceptable time until useful service returns.
+RPO: maximum acceptable age of recovered data.
+
+Observed locally: process memory disappeared on a fresh invocation; a second
+worker read the shared SQLite row; replay did not insert a second fulfillment;
+deletion affected the working store; the separate backup restored the row.
+
+Limit: this exercise did not test cloud failover, a live database replica,
+an external fulfillment system, or production RTO/RPO.
+MD
+cat "$LAB_DIR/day-013-evidence.md"
+find "$LAB_DIR" -maxdepth 1 -type f -printf '%f\n' | sort
+case "$LAB_DIR" in
+  /tmp/gcp-day13.*)
+    cd /tmp
+    rm -rf -- "$LAB_DIR"
+    printf '%s\n' 'Temporary Day 13 lab directory removed.'
+    ;;
+  *)
+    printf '%s\n' 'Cleanup stopped: LAB_DIR is outside the expected temporary path.'
+    ;;
+esac</code></pre>
+        <p><strong>Expected:</strong> the evidence prints, the inventory includes the script and two SQLite files, and the final message confirms removal. No chargeable resources were created.</p>
+      </div>
+      <div class="callout success"><strong>Artifact acceptance checklist</strong><ul>
+        <li>State-ownership diagram labels process memory, durable store, fulfillment, and backup.</li>
+        <li>HA, fault tolerance, DR, RTO, and RPO have distinct definitions and examples.</li>
+        <li>Recorded output shows volatile state disappearing and worker B reading durable state.</li>
+        <li>Restored row is present and replay reports no new fulfillment.</li>
+        <li>The write-up distinguishes an availability path from a recovery point and states local simulation limits.</li>
+        <li>Cleanup result is recorded.</li>
+      </ul></div>
+    </section>
+
+    <section class="completion" aria-label="Day 13 progress"><h2>Daily evidence and progress</h2>
+      <label class="check"><input type="checkbox" data-progress="read-13"> I can explain today's two topics without the walkthrough.</label>
+      <label class="check"><input type="checkbox" data-progress="lab-13"> I completed and checked the local restart and restore lab.</label>
+      <label class="check"><input type="checkbox" data-progress="artifact-13"> I saved the state-ownership diagram and recovery definitions.</label>
+    </section>
+    <nav class="pager" aria-label="Previous and next days"><a href="day-012.html">← Day 12<small>Regions, scaling and economics</small></a><a href="../index.html">Roadmap Index<small>All 180 days</small></a><a href="day-014.html">Day 14 →<small>Git, APIs and JSON</small></a></nav>
+    <p class="shortcut">Keyboard: P or [ for previous · N or ] for next · I for index</p>
+  </main>
+  <footer class="site-footer">Day 13 · State, availability and recovery vocabulary · <a href="../index.html">180-day GCP Architect roadmap</a></footer>
+</body>
+</html>

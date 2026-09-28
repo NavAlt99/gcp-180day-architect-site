@@ -1,0 +1,268 @@
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d65-arch-title d65-arch-desc" viewBox="0 0 1120 880" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d65-arch-title">End-to-End Integrated Retail Order Path, Distributed Identity Verification &amp; Tracing Fabric</title>
+<desc id="d65-arch-desc">Comprehensive architectural diagram detailing Client HTTPS ingress via Global External Application Load Balancer with Cloud Armor, Cloud Run order-service with Direct VPC Egress, Cloud SQL for PostgreSQL over Private Service Connect (PSC), Cloud Pub/Sub with ordering key and dead-letter queue, asynchronous fulfillment worker pull consumer, W3C traceparent propagation, and IAM security perimeter.</desc>
+<defs>
+<marker id="d65-m-ingress" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d65-m-runtime" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d65-m-psc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+<marker id="d65-m-db" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#10b981"/>
+</marker>
+<marker id="d65-m-pubsub" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#a855f7"/>
+</marker>
+<marker id="d65-m-worker" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#60a5fa"/>
+</marker>
+<marker id="d65-m-trace" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f472b6"/>
+</marker>
+<marker id="d65-m-auth" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d65-m-ok" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#14b8a6"/>
+</marker>
+</defs>
+
+<!-- SECTION 1: INGRESS & EDGE SECURITY PERIMETER -->
+<rect x="20" y="20" width="1080" height="150" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="42" fill="#38bdf8" font-size="13" font-weight="700">1. CLIENT INGRESS &amp; EDGE SECURITY: Global External ALB &amp; Cloud Armor</text>
+
+<!-- Client Box -->
+<rect x="35" y="55" width="200" height="100" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="45" y="75" fill="#38bdf8" font-size="11" font-weight="700">Retail Client / POS Terminal</text>
+<text x="45" y="92" fill="#cbd5e1" font-size="9.5">POST /v1/orders (JSON payload)</text>
+<text x="45" y="108" fill="#cbd5e1" font-size="9">Headers:</text>
+<text x="45" y="122" fill="#7dd3fc" font-family="monospace" font-size="8.5">Authorization: Bearer &lt;id_token&gt;</text>
+<text x="45" y="136" fill="#f472b6" font-family="monospace" font-size="8.5">traceparent: 00-4bf92f...-01</text>
+<text x="45" y="148" fill="#94a3b8" font-family="monospace" font-size="8.5">X-Request-Id: req-8942-ord</text>
+
+<!-- Arrow Client -> ALB -->
+<path d="M 235 105 L 295 105" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d65-m-ingress)"/>
+
+<!-- ALB Box -->
+<rect x="295" y="55" width="450" height="100" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+<text x="305" y="75" fill="#7dd3fc" font-size="11" font-weight="700">Global External Application Load Balancer (ALB) - Google Front End (GFE)</text>
+<rect x="305" y="83" width="135" height="62" rx="3" fill="#1e293b" stroke="#0284c7" stroke-width="1"/>
+<text x="312" y="99" fill="#38bdf8" font-size="9.5" font-weight="700">Cloud Armor WAF</text>
+<text x="312" y="113" fill="#cbd5e1" font-size="8.5">&bull; Rate Limit: 2000 QPS/IP</text>
+<text x="312" y="126" fill="#cbd5e1" font-size="8.5">&bull; SQLi / XSS Filter Rules</text>
+<text x="312" y="139" fill="#cbd5e1" font-size="8.5">&bull; IP Allow/Deny Lists</text>
+
+<rect x="450" y="83" width="140" height="62" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="457" y="99" fill="#38bdf8" font-size="9.5" font-weight="700">SSL &amp; URL Map</text>
+<text x="457" y="113" fill="#cbd5e1" font-size="8.5">&bull; Google-Managed TLS 1.3</text>
+<text x="457" y="126" fill="#cbd5e1" font-size="8.5">&bull; SNI: orders.brightloaf.com</text>
+<text x="457" y="139" fill="#cbd5e1" font-size="8.5">&bull; Path: /v1/orders &rarr; NEG</text>
+
+<rect x="600" y="83" width="135" height="62" rx="3" fill="#1e293b" stroke="#f472b6" stroke-width="1"/>
+<text x="607" y="99" fill="#f472b6" font-size="9.5" font-weight="700">Trace Injection</text>
+<text x="607" y="113" fill="#cbd5e1" font-size="8.5">&bull; Preserves incoming trace</text>
+<text x="607" y="126" fill="#cbd5e1" font-size="8.5">&bull; Generates span_id</text>
+<text x="607" y="139" fill="#cbd5e1" font-size="8.5">&bull; Injects X-Request-Id</text>
+
+<!-- Arrow ALB -> Serverless NEG -->
+<path d="M 745 105 L 805 105" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d65-m-ingress)"/>
+
+<!-- Serverless NEG Box -->
+<rect x="805" y="55" width="275" height="100" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="815" y="75" fill="#38bdf8" font-size="11" font-weight="700">Regional Serverless NEG</text>
+<text x="815" y="92" fill="#cbd5e1" font-size="9.5">Target: Cloud Run Service in us-central1</text>
+<text x="815" y="108" fill="#cbd5e1" font-size="9">&bull; Fully Managed Backend Service Target</text>
+<text x="815" y="123" fill="#cbd5e1" font-size="9">&bull; Regional Failover &amp; Capacity Spilling</text>
+<text x="815" y="139" fill="#22c55e" font-size="9">&#10003; Direct VPC Egress Enabled Target</text>
+
+<!-- SECTION 2: RUNTIME TIER (CLOUD RUN ORDER-SERVICE) -->
+<rect x="20" y="185" width="1080" height="240" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="207" fill="#22c55e" font-size="13" font-weight="700">2. RUNTIME TIER: Cloud Run (order-service) &amp; Security / Health Perimeter</text>
+
+<!-- Cloud Run Box -->
+<rect x="35" y="220" width="460" height="190" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+<text x="45" y="240" fill="#86efac" font-size="11.5" font-weight="700">Cloud Run Service: order-service (Regional: us-central1)</text>
+<text x="45" y="256" fill="#cbd5e1" font-size="9.5">Identity: sa-order-service@brightloaf-prod.iam.gserviceaccount.com</text>
+
+<rect x="45" y="265" width="210" height="68" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="52" y="280" fill="#38bdf8" font-size="9.5" font-weight="700">Health Probes (Port 8080)</text>
+<text x="52" y="295" fill="#22c55e" font-size="9">&bull; /healthz (Liveness: container alive)</text>
+<text x="52" y="309" fill="#f59e0b" font-size="9">&bull; /readyz (Readiness: pool acquired)</text>
+<text x="52" y="323" fill="#cbd5e1" font-size="8.5">Failure &rarr; ALB drops traffic immediately</text>
+
+<rect x="265" y="265" width="220" height="68" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="272" y="280" fill="#f59e0b" font-size="9.5" font-weight="700">Connection Pool (HikariCP / SQLAlchemy)</text>
+<text x="272" y="295" fill="#cbd5e1" font-size="9">&bull; Min: 5 idle, Max: 25 active conns</text>
+<text x="272" y="309" fill="#cbd5e1" font-size="9">&bull; acquireTimeout: 3000ms, idleTimeout: 10m</text>
+<text x="272" y="323" fill="#22c55e" font-size="8.5">&#10003; Direct socket to PSC 10.128.0.50:5432</text>
+
+<rect x="45" y="340" width="440" height="60" rx="3" fill="#1e293b" stroke="#22c55e" stroke-width="1"/>
+<text x="52" y="356" fill="#86efac" font-size="9.5" font-weight="700">Direct VPC Egress Network Configuration</text>
+<text x="52" y="371" fill="#cbd5e1" font-size="9">&bull; Direct VPC Egress: Attached to subnet 10.128.10.0/24 in brightloaf-vpc</text>
+<text x="52" y="386" fill="#cbd5e1" font-size="9">&bull; Egress: Private ranges only (RFC 1918) &rarr; Zero NAT gateway hops to internal PSC</text>
+
+<!-- IAM Security Filter Box -->
+<rect x="520" y="220" width="310" height="190" rx="4" fill="#0f172a" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="530" y="240" fill="#fca5a5" font-size="11.5" font-weight="700">IAM &amp; OIDC Token Verification Boundary</text>
+<text x="530" y="256" fill="#cbd5e1" font-size="9.5">Enforcement: roles/run.invoker &amp; JWT Middleware</text>
+
+<rect x="530" y="265" width="290" height="42" rx="3" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="538" y="280" fill="#f87171" font-size="9" font-weight="700">&#10007; Missing / Expired Bearer Token &rarr; HTTP 401</text>
+<text x="538" y="295" fill="#fca5a5" font-size="8.5">Payload rejected at Cloud Run GFE proxy boundary</text>
+
+<rect x="530" y="313" width="290" height="42" rx="3" fill="#2a1215" stroke="#f59e0b" stroke-width="1"/>
+<text x="538" y="328" fill="#fbbf24" font-size="9" font-weight="700">&#10007; Valid Token, Missing Invoker Role &rarr; HTTP 403</text>
+<text x="538" y="343" fill="#fde68a" font-size="8.5">Principal lacks roles/run.invoker authorization claim</text>
+
+<rect x="530" y="361" width="290" height="40" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="538" y="376" fill="#4ade80" font-size="9" font-weight="700">&#10003; Valid Google OIDC Token &rarr; Admitted</text>
+<text x="538" y="391" fill="#86efac" font-size="8.5">Signature validated via Google public JWKS keys</text>
+
+<!-- Ingress connection arrow -->
+<path d="M 850 155 L 850 185 L 265 185 L 265 220" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d65-m-runtime)"/>
+
+<!-- Cloud Run Egress to PSC Box -->
+<rect x="850" y="220" width="230" height="190" rx="4" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5"/>
+<text x="860" y="240" fill="#fbbf24" font-size="11.5" font-weight="700">Private Service Connect (PSC)</text>
+<text x="860" y="256" fill="#cbd5e1" font-size="9.5">VPC Subnet: 10.128.0.0/16</text>
+
+<rect x="860" y="265" width="210" height="65" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="868" y="280" fill="#f59e0b" font-size="9" font-weight="700">Forwarding Rule Endpoint</text>
+<text x="868" y="295" fill="#cbd5e1" font-size="8.5">IP: 10.128.0.50/32 : 5432</text>
+<text x="868" y="309" fill="#cbd5e1" font-size="8.5">Private DNS: pg.orders.internal</text>
+<text x="868" y="323" fill="#22c55e" font-size="8.5">&#10003; Zero internet traversal</text>
+
+<rect x="860" y="338" width="210" height="62" rx="3" fill="#1e293b" stroke="#0284c7" stroke-width="1"/>
+<text x="868" y="353" fill="#38bdf8" font-size="9" font-weight="700">Security &amp; Isolation</text>
+<text x="868" y="367" fill="#cbd5e1" font-size="8.5">&bull; No external public IP</text>
+<text x="868" y="380" fill="#cbd5e1" font-size="8.5">&bull; VPC firewall egress rules</text>
+<text x="868" y="393" fill="#cbd5e1" font-size="8.5">&bull; Producer service attachment</text>
+
+<!-- SECTION 3: DATASTORE TIER & TRANSACTIONAL OUTBOX -->
+<rect x="20" y="440" width="530" height="235" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="462" fill="#10b981" font-size="13" font-weight="700">3. DATASTORE TIER: Cloud SQL PostgreSQL (Regional HA) &amp; Outbox</text>
+
+<rect x="35" y="475" width="500" height="190" rx="4" fill="#0f172a" stroke="#10b981" stroke-width="1.5"/>
+<text x="45" y="495" fill="#6ee7b7" font-size="11" font-weight="700">Cloud SQL PostgreSQL 16 (Regional HA: us-central1-a / us-central1-b)</text>
+<text x="45" y="510" fill="#cbd5e1" font-size="9">Authentication: Native IAM Database Authentication (Token) / Auth Proxy</text>
+
+<!-- Invariant 1 Box -->
+<rect x="45" y="520" width="240" height="65" rx="3" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+<text x="52" y="535" fill="#34d399" font-size="9.5" font-weight="700">Invariant 1: Order &amp; Outbox Atomicity</text>
+<text x="52" y="549" fill="#cbd5e1" font-size="8.5">BEGIN TRANSACTION;</text>
+<text x="52" y="561" fill="#cbd5e1" font-size="8.5">INSERT INTO orders (id, status...) VALUES (...);</text>
+<text x="52" y="574" fill="#cbd5e1" font-size="8.5">INSERT INTO outbox_events (event_id...) VALUES (...);</text>
+<text x="52" y="583" fill="#10b981" font-size="8.5" font-weight="700">COMMIT; -- Dual-write eliminated!</text>
+
+<!-- Invariant 2 Box -->
+<rect x="295" y="520" width="230" height="65" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="302" y="535" fill="#fbbf24" font-size="9.5" font-weight="700">Invariant 2: Inventory Integrity</text>
+<text x="302" y="549" fill="#cbd5e1" font-size="8.5">SELECT stock FROM inventory</text>
+<text x="302" y="561" fill="#cbd5e1" font-size="8.5">WHERE item_id = :id FOR UPDATE;</text>
+<text x="302" y="574" fill="#22c55e" font-size="8.5">CHECK (inventory_count &gt;= 0);</text>
+<text x="302" y="583" fill="#fbbf24" font-size="8.5" font-weight="700">&#10003; Zero overselling guaranteed</text>
+
+<!-- Database HA replication -->
+<rect x="45" y="595" width="480" height="60" rx="3" fill="#1e293b" stroke="#0284c7" stroke-width="1"/>
+<text x="52" y="612" fill="#38bdf8" font-size="9" font-weight="700">High Availability Replication &amp; Storage</text>
+<text x="52" y="626" fill="#cbd5e1" font-size="8.5">&bull; Primary in us-central1-a synchronously replicates WAL to Standby in us-central1-b</text>
+<text x="52" y="640" fill="#cbd5e1" font-size="8.5">&bull; Automatic DNS failover (&lt;60s RTO); Zero data loss (RPO = 0)</text>
+
+<!-- Egress Arrow to Datastore -->
+<path d="M 495 380 L 850 380" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#d65-m-psc)"/>
+<path d="M 965 410 L 965 425 L 300 425 L 300 440" fill="none" stroke="#10b981" stroke-width="2" marker-end="url(#d65-m-db)"/>
+
+<!-- SECTION 4: ASYNCHRONOUS MESSAGING & FULFILLMENT -->
+<rect x="570" y="440" width="530" height="235" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="585" y="462" fill="#a855f7" font-size="13" font-weight="700">4. ASYNC PIPELINE: Cloud Pub/Sub &amp; Fulfillment Worker</text>
+
+<!-- Pub/Sub Topic Box -->
+<rect x="585" y="475" width="220" height="190" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1.5"/>
+<text x="595" y="495" fill="#d8b4fe" font-size="11" font-weight="700">Cloud Pub/Sub: orders.v1</text>
+<text x="595" y="510" fill="#cbd5e1" font-size="9">Global Broker with Ordered Delivery</text>
+
+<rect x="595" y="520" width="200" height="65" rx="3" fill="#1e293b" stroke="#a855f7" stroke-width="1"/>
+<text x="602" y="535" fill="#c084fc" font-size="9 font-weight="700">Ordering Key: order_id</text>
+<text x="602" y="549" fill="#cbd5e1" font-size="8.5">&bull; Serial execution per order</text>
+<text x="602" y="561" fill="#cbd5e1" font-size="8.5">&bull; Attributes: traceparent, req_id</text>
+<text x="602" y="574" fill="#22c55e" font-size="8.5">&#10003; Causal event sequence</text>
+
+<rect x="595" y="595" width="200" height="60" rx="3" fill="#1e293b" stroke="#f43f5e" stroke-width="1"/>
+<text x="602" y="612" fill="#f87171" font-size="9" font-weight="700">Dead Letter Topic (DLT)</text>
+<text x="602" y="626" fill="#cbd5e1" font-size="8.5">&bull; orders.v1.deadletter</text>
+<text x="602" y="639" fill="#cbd5e1" font-size="8.5">&bull; maxDeliveryAttempts: 5</text>
+<text x="602" y="650" fill="#fca5a5" font-size="8.5">&#10003; Prevents poison-pill stall</text>
+
+<!-- Arrow Outbox Relay -> Pub/Sub -->
+<path d="M 535 550 L 585 550" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#d65-m-pubsub)"/>
+
+<!-- Fulfillment Worker Box -->
+<rect x="825" y="475" width="260" height="190" rx="4" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5"/>
+<text x="835" y="495" fill="#93c5fd" font-size="11" font-weight="700">Fulfillment Worker (Cloud Run / GKE)</text>
+<text x="835" y="510" fill="#cbd5e1" font-size="9">Identity: sa-fulfillment@brightloaf-prod...</text>
+
+<rect x="835" y="520" width="240" height="65" rx="3" fill="#1e293b" stroke="#60a5fa" stroke-width="1"/>
+<text x="842" y="535" fill="#60a5fa" font-size="9.5" font-weight="700">Invariant 3: Exactly-One Fulfillment</text>
+<text x="842" y="549" fill="#cbd5e1" font-size="8.5">processed_events (order_id UNIQUE)</text>
+<text x="842" y="561" fill="#cbd5e1" font-size="8.5">ON CONFLICT (order_id) DO NOTHING;</text>
+<text x="842" y="574" fill="#22c55e" font-size="8.5">&#10003; Replayed Pub/Sub events discarded</text>
+
+<rect x="835" y="595" width="240" height="60" rx="3" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+<text x="842" y="612" fill="#34d399" font-size="9.5" font-weight="700">Invariant 4: Monotonic State Machine</text>
+<text x="842" y="626" fill="#cbd5e1" font-size="8.5">CREATED &rarr; PAID &rarr; PROCESSING &rarr; FULFILLED</text>
+<text x="842" y="639" fill="#cbd5e1" font-size="8.5">Crash-before-ack: DB Commit BEFORE Ack</text>
+
+<!-- Arrow Pub/Sub -> Worker -->
+<path d="M 805 550 L 825 550" fill="none" stroke="#60a5fa" stroke-width="2" marker-end="url(#d65-m-worker)"/>
+
+<!-- SECTION 5: DISTRIBUTED TRACING & SECURITY FABRIC -->
+<rect x="20" y="690" width="1080" height="175" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="712" fill="#f472b6" font-size="13" font-weight="700">5. OBSERVABILITY &amp; TRACING FABRIC: W3C Trace Context &amp; Correlation Propagation</text>
+
+<!-- Span Timeline Flow -->
+<rect x="35" y="725" width="250" height="125" rx="4" fill="#0f172a" stroke="#f472b6" stroke-width="1"/>
+<text x="45" y="743" fill="#f472b6" font-size="10.5" font-weight="700">Span 1: Ingress Edge (ALB / GFE)</text>
+<text x="45" y="760" fill="#cbd5e1" font-size="8.5">traceparent: 00-4bf92f3577b3...-01</text>
+<text x="45" y="774" fill="#cbd5e1" font-size="8.5">trace_id: 4bf92f3577b34da6a3ce929d0e0e4736</text>
+<text x="45" y="788" fill="#cbd5e1" font-size="8.5">span_id: 00f067aa0ba902b7</text>
+<text x="45" y="802" fill="#94a3b8" font-size="8.5">X-Request-Id: req-8942-ord</text>
+<text x="45" y="820" fill="#22c55e" font-size="8.5" font-weight="700">&#10003; Injected into Cloud Trace</text>
+
+<path d="M 285 785 L 305 785" fill="none" stroke="#f472b6" stroke-width="2" marker-end="url(#d65-m-trace)"/>
+
+<rect x="305" y="725" width="250" height="125" rx="4" fill="#0f172a" stroke="#f472b6" stroke-width="1"/>
+<text x="315" y="743" fill="#f472b6" font-size="10.5" font-weight="700">Span 2: API Runtime (Cloud Run)</text>
+<text x="315" y="760" fill="#cbd5e1" font-size="8.5">parent_span: 00f067aa0ba902b7</text>
+<text x="315" y="774" fill="#cbd5e1" font-size="8.5">current_span: 1a2b3c4d5e6f7081</text>
+<text x="315" y="788" fill="#cbd5e1" font-size="8.5">Cloud Logging: jsonPayload.traceId</text>
+<text x="315" y="802" fill="#cbd5e1" font-size="8.5">SQLCommenter: /*traceparent='...'*/</text>
+<text x="315" y="820" fill="#22c55e" font-size="8.5" font-weight="700">&#10003; Correlated DB Audit Logs</text>
+
+<path d="M 555 785 L 575 785" fill="none" stroke="#f472b6" stroke-width="2" marker-end="url(#d65-m-trace)"/>
+
+<rect x="575" y="725" width="245" height="125" rx="4" fill="#0f172a" stroke="#f472b6" stroke-width="1"/>
+<text x="585" y="743" fill="#f472b6" font-size="10.5" font-weight="700">Span 3: Broker Envelope (Pub/Sub)</text>
+<text x="585" y="760" fill="#cbd5e1" font-size="8.5">Message Attributes Map:</text>
+<text x="585" y="774" fill="#cbd5e1" font-size="8.5">&bull; "googclient_OpenTelemetryTraceId"</text>
+<text x="585" y="788" fill="#cbd5e1" font-size="8.5">&bull; "traceparent": "00-4bf92f...-01"</text>
+<text x="585" y="802" fill="#cbd5e1" font-size="8.5">&bull; "x-request-id": "req-8942-ord"</text>
+<text x="585" y="820" fill="#22c55e" font-size="8.5" font-weight="700">&#10003; Preserved across broker hop</text>
+
+<path d="M 820 785 L 840 785" fill="none" stroke="#f472b6" stroke-width="2" marker-end="url(#d65-m-trace)"/>
+
+<rect x="840" y="725" width="250" height="125" rx="4" fill="#0f172a" stroke="#f472b6" stroke-width="1"/>
+<text x="850" y="743" fill="#f472b6" font-size="10.5" font-weight="700">Span 4: Fulfillment Worker</text>
+<text x="850" y="760" fill="#cbd5e1" font-size="8.5">parent_span: 1a2b3c4d5e6f7081</text>
+<text x="850" y="774" fill="#cbd5e1" font-size="8.5">worker_span: a9b8c7d6e5f43210</text>
+<text x="850" y="788" fill="#cbd5e1" font-size="8.5">Extracted from Pub/Sub attribute</text>
+<text x="850" y="802" fill="#cbd5e1" font-size="8.5">Emitted in Structured Worker Logs</text>
+<text x="850" y="820" fill="#22c55e" font-size="8.5" font-weight="700">&#10003; 100% End-to-End Trace Graph</text>
+
+</svg>
+<figcaption>Figure 65.1: End-to-End Integrated Retail Order Path, Distributed Identity Verification &amp; Tracing Fabric. Architectural flow depicting Client HTTPS ingress through Global External ALB with Cloud Armor, Cloud Run order-service with Direct VPC Egress, Cloud SQL PostgreSQL Regional HA over Private Service Connect (PSC), Cloud Pub/Sub with ordering key and dead-letter routing, asynchronous fulfillment worker pull consumer, W3C traceparent propagation, and IAM security perimeter. Scope: The diagram models the nominal request, data, and asynchronous event progression for a single regional order processing baseline; it does not demonstrate cross-region failover latency, database disaster recovery restore times, or external third-party payment gateway outages without live benchmarking.</figcaption>
+</figure>

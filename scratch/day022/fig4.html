@@ -1,0 +1,120 @@
+<figure class="diagram-figure" id="fig-22-4">
+  <div class="diagram-scroll">
+    <svg role="img" aria-labelledby="fig22-4-title fig22-4-desc" viewBox="0 0 960 520" width="960" height="520" xmlns="http://www.w3.org/2000/svg">
+      <title id="fig22-4-title">Incident 22.2 Flow: Resource Label vs. Network Tag Conflation in VPC Firewall Packet Filtering</title>
+      <desc id="fig22-4-desc">Incident diagram showing how confusing Resource Labels with Compute Engine Network Tags left a production database instance without tag-based firewall filtering, falling through to a permissive fallback rule, and how adding explicit network tags and secure tags restored network isolation.</desc>
+      <defs>
+        <linearGradient id="p22-f4-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0c101d"/>
+          <stop offset="100%" stop-color="#121526"/>
+        </linearGradient>
+        <marker id="p22-f4-fail-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e"/>
+        </marker>
+        <marker id="p22-f4-ok-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="#22c55e"/>
+        </marker>
+      </defs>
+
+      <!-- Background -->
+      <rect width="960" height="520" rx="12" fill="url(#p22-f4-bg)" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Header -->
+      <text x="32" y="34" fill="#f8fafc" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INCIDENT 22.2: METADATA CONFLATION &amp; VPC PACKET FILTERING DEFECT</text>
+      <text x="32" y="54" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">VPC Firewalls evaluate Network Tags, not Resource Labels. Untagged instances fall through to default fallback rules.</text>
+
+      <!-- Top Container: Staging Traffic Source -->
+      <g transform="translate(40, 75)">
+        <rect width="880" height="55" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#f8fafc" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">INCOMING PACKET: Staging Bastion (10.240.10.15) &rarr; Target: bl-order-db-prod-vm (10.128.0.45:5432)</text>
+        <text x="20" y="42" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Security goal: Drop all non-production traffic to port 5432; permit only bl-order-api instances.</text>
+      </g>
+
+      <!-- LEFT SIDE: FAILED PATH -->
+      <g transform="translate(40, 145)">
+        <rect width="420" height="285" rx="8" fill="#2d1219" stroke="#f43f5e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#881337"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">FAILED PATH: LABEL ASSIGNMENT ONLY</text>
+
+        <!-- Box 1: Configuration Defect -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Terraform Configures Resource Labels Only</text>
+          <text x="12" y="38" fill="#fecaca" font-size="10" font-family="ui-monospace, monospace">labels = { tier = "order-db" } ; tags = [] (EMPTY)</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p22-f4-fail-arrow)"/>
+
+        <!-- Box 2: Firewall Evaluation Miss -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#1f1118" stroke="#f43f5e" stroke-width="1"/>
+          <text x="12" y="20" fill="#fca5a5" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. VPC Firewall Checks targetTags: ["order-db"]</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Tags do not match! Firewall ignores resource labels entirely.</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#f43f5e" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#p22-f4-fail-arrow)"/>
+
+        <!-- Box 3: Exposure Fallthrough -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[FAILED PATH: FALLTHROUGH TO PERMISSIVE RULE]</text>
+          <text x="12" y="40" fill="#fca5a5" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; Packet matches allow-default-internal (10.128.0.0/9)</text>
+          <text x="12" y="58" fill="#fecaca" font-size="10" font-family="system-ui, -apple-system, sans-serif">&cross; TCP handshake succeeds from staging bastion to port 5432</text>
+          <text x="12" y="74" fill="#fca5a5" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Result: Production database exposed to non-prod network</text>
+        </g>
+      </g>
+
+      <!-- RIGHT SIDE: CORRECTED PATH -->
+      <g transform="translate(500, 145)">
+        <rect width="420" height="285" rx="8" fill="#0c2317" stroke="#22c55e" stroke-width="1.5"/>
+        <rect x="0" y="0" width="420" height="34" rx="8" fill="#14532d"/>
+        <text x="16" y="22" fill="#ffffff" font-size="12" font-weight="700" font-family="system-ui, -apple-system, sans-serif">CORRECTED PATH: NETWORK TAGS &amp; SECURE TAGS</text>
+
+        <!-- Box 1: Correct Configuration -->
+        <g transform="translate(16, 46)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">1. Explicit Network Tag &amp; Secure Tag Applied</text>
+          <text x="12" y="38" fill="#bbf7d0" font-size="10" font-family="ui-monospace, monospace">tags = ["order-db"] + TagBinding (env: prod)</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="98" x2="210" y2="112" stroke="#22c55e" stroke-width="2" marker-end="url(#p22-f4-ok-arrow)"/>
+
+        <!-- Box 2: Target Match -->
+        <g transform="translate(16, 115)">
+          <rect width="388" height="52" rx="6" fill="#061c12" stroke="#22c55e" stroke-width="1"/>
+          <text x="12" y="20" fill="#86efac" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2. Firewall Matches targetTags: ["order-db"]</text>
+          <text x="12" y="38" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Enforces sourceTags: ["order-api-tier"]. Staging tag is absent!</text>
+        </g>
+
+        <!-- Downward arrow -->
+        <line x1="210" y1="167" x2="210" y2="181" stroke="#22c55e" stroke-width="2" marker-end="url(#p22-f4-ok-arrow)"/>
+
+        <!-- Box 3: Dropped & Secured -->
+        <g transform="translate(16, 184)">
+          <rect width="388" height="88" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="12" y="22" fill="#ffffff" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">[CORRECTED PATH: PACKET DROPPED &amp; ISOLATED]</text>
+          <text x="12" y="40" fill="#86efac" font-size="10" font-family="system-ui, -apple-system, sans-serif">&check; Staging TCP SYN dropped by distributed VPC firewall</text>
+          <text x="12" y="58" fill="#bbf7d0" font-size="10" font-family="system-ui, -apple-system, sans-serif">&check; bl-order-api allowed via mutual TLS on port 5432</text>
+          <text x="12" y="74" fill="#86efac" font-size="10" font-weight="600" font-family="system-ui, -apple-system, sans-serif">Invariant Preserved: &le; 1 physical fulfillment per unique order ID</text>
+        </g>
+      </g>
+
+      <!-- Bottom Invariant Defense Summary -->
+      <g transform="translate(40, 442)">
+        <rect width="880" height="60" rx="8" fill="#111827" stroke="#334155" stroke-width="1.2"/>
+        <text x="20" y="22" fill="#38bdf8" font-size="11" font-weight="700" font-family="system-ui, -apple-system, sans-serif">SECURITY BOUNDARY &amp; FULFILLMENT INVARIANT VERIFICATION:</text>
+        <text x="20" y="42" fill="#cbd5e1" font-size="10" font-family="system-ui, -apple-system, sans-serif">Strict network isolation guarantees that only verified API instances can commit order transactions. Deduplication tokens in the database verify zero phantom rows or duplicated physical fulfillments occurred during the exposure window.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>
+    <strong>Figure 22.4: Incident Flow · Resource Label vs. Network Tag Conflation in VPC Firewall Filtering.</strong>
+    Visualizes how misconfiguring Terraform with Resource Labels instead of Network Tags left a production database instance without targeted packet filtering, causing traffic to fall through to an open internal subnet rule, and how explicit network and secure tagging corrected the vulnerability.
+    <br><strong>Supplied facts:</strong> A Terraform deployment populated instance labels with <code>tier = "order-db"</code> but omitted the instance <code>tags</code> block, allowing non-production hosts to connect to port 5432.
+    <br><strong>Architectural inference:</strong> VPC firewalls evaluate Compute Engine Network Tags and Resource Manager Secure Tags; they completely ignore resource labels, which exist strictly for billing and metadata query planes.
+    <br><strong>Expected post-fix behavior:</strong> Explicit network tags bind the instance to targeted firewall rules, staging traffic is dropped at the VPC boundary, and deduplication tokens ensure &le; 1 physical fulfillment per unique order ID.
+  </figcaption>
+</figure>

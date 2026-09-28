@@ -1,0 +1,1113 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 43: Scheduling, scaling and Kubernetes access · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+</style>
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-042.html" aria-label="Previous day">← Day 42</a>
+<a href="day-044.html" aria-label="Next day">Day 44 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html" selected>Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="43" data-prev="day-042.html" data-next="day-044.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 43 of 180</div>
+
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 43</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">tabletop / GKE scheduling</span>
+<span class="pill">Topic 014</span>
+</div>
+<h1>Day 43 — Scheduling, scaling and Kubernetes access</h1>
+<p class="lead"><strong>Outcome:</strong> Calibrate container resource requests and limits to enable seamless HPA and Cluster Autoscaler coordination, differentiate Kubernetes RBAC from Google Cloud IAM authorization, and match workloads to the appropriate Kubernetes controller.</p>
+<div>
+<strong>Entry prerequisites:</strong>
+<p><a href="day-042.html">Day 42</a> (Kubernetes architecture and cluster choices), <a href="day-025.html">Day 25</a> (roles and authorization decisions); bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A pod scheduling diagnostic log, corrected resource manifest, and authorization boundary decision sheet (<code>day-043-scheduling.md</code>) demonstrating HPA and Cluster Autoscaler interaction alongside RBAC-versus-IAM separation.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-27; Kubernetes scheduling parameters, GKE Cluster Autoscaler, and RBAC authorization models sourced from official Kubernetes and GCP documentation. Operational models represent design architectures rather than production benchmarks.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Node pools, requests/limits, scheduling, taints/tolerations, HPA/VPA and node autoscaling</span>
+<a href="#topic-01-overview">overview</a> ·
+<a href="#topic-01-technical">discussion</a> ·
+<a href="#topic-01-problem">problem</a> ·
+<a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Kubernetes RBAC versus IAM</span>
+<a href="#topic-02-overview">overview</a> ·
+<a href="#topic-02-technical">discussion</a> ·
+<a href="#topic-02-problem">problem</a> ·
+<a href="#topic-02-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>Workload controller selection and routing abstractions</span>
+<a href="#topic-03-overview">overview</a> ·
+<a href="#topic-03-technical">discussion</a> ·
+<a href="#topic-03-problem">problem</a> ·
+<a href="#topic-03-lab">lab</a>
+</div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════ PART 1 ══ -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Node pools, requests/limits, scheduling, taints/tolerations, HPA/VPA and node autoscaling</h3>
+<p>
+  In Kubernetes, scheduling and elasticity depend directly on container resource governance. <strong>Requests</strong> represent the guaranteed allocation evaluated by <code>kube-scheduler</code> to place a pod onto a node with sufficient allocatable capacity; <strong>limits</strong> enforce hard operating ceilings executed by the Linux kernel via cgroups (CPU bandwidth throttling via CFS quota, and out-of-memory termination via the OOM killer).
+</p>
+<p>
+  Autoscaling operates across two synchronized layers: the <strong>Horizontal Pod Autoscaler (HPA)</strong> scales pod replicas based on measured resource utilization relative to requests, while the <strong>Cluster Autoscaler (CA)</strong> detects unschedulable <code>Pending</code> pods and provisions new Compute Engine node VMs. When requests and limits are misaligned, pods can be prematurely killed during traffic spikes, or cluster autoscaling can stall because requested capacities exceed physical node sizes.
+</p>
+<p class="small"><em>Problem preview:</em> A developer configures memory limits identical to requests at 512Mi on a JVM-based Order API container without accounting for heap overhead. During a lunch peak, memory spikes trigger kernel OOM kills across active pods; as HPA attempts to scale out to 20 replicas, every new pod is immediately killed during initialization, plunging the service into a catastrophic crash loop.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Kubernetes RBAC versus IAM</h3>
+<p>
+  Securing a GKE cluster requires navigating two distinct authorization planes: <strong>Google Cloud IAM</strong> and <strong>Kubernetes RBAC</strong>. Google Cloud IAM governs access to the GKE control plane API (e.g. creating clusters, resizing node pools, obtaining cluster credentials), whereas Kubernetes RBAC governs granular actions on resources <em>inside</em> the cluster (e.g. reading Secrets, creating Deployments, viewing Pod logs within a specific namespace).
+</p>
+<p>
+  When a developer receives a <code>403 Forbidden</code> from <code>kubectl</code>, teams frequently misdiagnose the failure as a GCP IAM issue and grant dangerous project-level IAM roles (such as <code>roles/editor</code> or <code>roles/owner</code>) instead of creating a scoped Kubernetes <code>RoleBinding</code> inside the target namespace.
+</p>
+<p class="small"><em>Problem preview:</em> An operator attempts to read a production database Secret via <kbd>kubectl get secret db-credentials</kbd> and receives an RBAC authorization denial. In response, a platform administrator grants the operator <code>roles/owner</code> in Google Cloud IAM, inadvertently giving full project administrative control across all cloud resources while still failing to grant internal cluster RBAC permissions.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Workload controller selection and routing abstractions</h3>
+<p>
+  Kubernetes provides specialized workload controllers tailored to specific execution semantics: <strong>Deployments</strong> (stateless, interchangeable replicas with rolling updates), <strong>StatefulSets</strong> (ordered, deterministic network ordinals and dedicated persistent disk bindings), <strong>DaemonSets</strong> (guaranteeing exactly one pod per eligible node for logging or host agents), and <strong>Jobs/CronJobs</strong> (finite batch processing run-to-completion).
+</p>
+<p>
+  Networking abstractions similarly decouple endpoints: <strong>ClusterIP Services</strong> provide internal layer-4 virtual IPs, while the modern <strong>Gateway API</strong> (replacing legacy Ingress) provides expressive, role-oriented HTTP routing across hostnames and paths. Applying an incorrect controller—such as using a stateless Deployment for a stateful sequencer—violates operational invariants and causes data corruption.
+</p>
+<p class="small"><em>Problem preview:</em> An engineer deploys an in-memory order numbering sequence generator as a stateless Deployment with 3 replicas behind a ClusterIP Service. Inbound order creation calls round-robin across all three pods, producing non-sequential and duplicate order IDs that violate database unique constraints and disrupt warehouse logistics.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 2 ══ -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Node pools, requests/limits, scheduling, taints/tolerations, HPA/VPA and node autoscaling</h3>
+
+<h4>Requests vs limits: scheduling vs kernel enforcement</h4>
+<p>
+  Resource allocation in Kubernetes is governed by two independent metrics per container:
+</p>
+<ul>
+  <li><strong>Requests:</strong> Used exclusively by <code>kube-scheduler</code> during the scheduling phase. A node can accept a pod only if:
+    <p><code>node_allocatable - sum(existing_pod_requests) &gt;= new_pod_request</code></p>
+    If no node has sufficient allocatable capacity, the pod remains in a <code>Pending</code> state.
+  </li>
+  <li><strong>Limits:</strong> Enforced by the Linux kernel on the worker node.
+    <ul>
+      <li><strong>CPU limits:</strong> Enforced by the Completely Fair Scheduler (CFS) quota. If a container exceeds its CPU limit, the kernel throttles CPU cycles. The process slows down but is not killed.</li>
+      <li><strong>Memory limits:</strong> Enforced by Linux memory cgroups. If a container exceeds its memory limit, the kernel Out-Of-Memory (OOM) killer immediately terminates the process (exit code <code>137</code>, <code>OOMKilled</code>).</li>
+    </ul>
+  </li>
+</ul>
+
+<h4>HPA and Cluster Autoscaler interaction loop</h4>
+<p>
+  The Horizontal Pod Autoscaler and Cluster Autoscaler operate in an orchestrated feedback loop:
+</p>
+<ol>
+  <li>HPA queries the Kubernetes Metrics Server every 15 seconds. If average pod CPU utilization exceeds the target percentage (e.g. 60% of CPU request), HPA increases the Deployment's replica count.</li>
+  <li>The Deployment controller creates new Pods. <code>kube-scheduler</code> attempts to place them onto existing worker nodes.</li>
+  <li>If existing nodes lack available allocatable capacity to satisfy the new pods' requests, the pods transition to <code>Pending</code> with a <code>FailedScheduling</code> event.</li>
+  <li>The <strong>Cluster Autoscaler</strong> observes the <code>Pending</code> pods, identifies which node pool can satisfy their resource requests and node selectors, and triggers an API call to Compute Engine to expand the node pool instance group.</li>
+  <li>Once new node VMs boot and join the cluster as <code>Ready</code>, the scheduler places the pending pods.</li>
+</ol>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Target Layer</th>
+<th>Triggering Metric</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HPA</strong></td>
+<td>Pod Replicas</td>
+<td>CPU/Memory utilization vs request, custom metrics</td>
+<td>Increases/decreases <code>spec.replicas</code></td>
+</tr>
+<tr>
+<td><strong>Cluster Autoscaler</strong></td>
+<td>Node VMs</td>
+<td>Pods in <code>Pending</code> state due to capacity</td>
+<td>Adds/removes Compute Engine VMs from node pool</td>
+</tr>
+<tr>
+<td><strong>VPA</strong></td>
+<td>Pod Sizing</td>
+<td>Historical CPU/memory consumption over time</td>
+<td>Recommends or updates <code>requests/limits</code></td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-autoscaler" rel="noopener noreferrer">GKE Cluster Autoscaler</a> — Official reference on autoscaling profiles, scale-down unneeded duration, and resource request evaluation. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Kubernetes RBAC versus IAM</h3>
+
+<h4>Dual-gate authentication and authorization</h4>
+<p>
+  Every request sent via <code>kubectl</code> traverses two distinct security gates:
+</p>
+<ol>
+  <li><strong>Gate 1: Cloud IAM (Google Cloud Plane):</strong> Authenticates the user's Google Identity (OAuth2 token) and verifies cluster management permissions (e.g. <code>container.clusters.get</code>). This grants access to download the kubeconfig and reach the cluster endpoint.</li>
+  <li><strong>Gate 2: Kubernetes RBAC (Cluster Plane):</strong> Evaluated inside <code>kube-apiserver</code>. RBAC maps the authenticated email (e.g. <code>alice@brightloaf.com</code>) to cluster-internal <code>Roles</code> or <code>ClusterRoles</code> via <code>RoleBindings</code>. RBAC enforces least privilege on API groups, resources, and verbs (e.g. <code>get</code>, <code>list</code>, <code>create</code>).</li>
+</ol>
+
+<table class="comparison">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Google Cloud IAM</th>
+<th>Kubernetes RBAC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Authority</strong></td>
+<td>Google Cloud IAM Service</td>
+<td>In-cluster <code>kube-apiserver</code></td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>GCP Project, Folder, Organization</td>
+<td>Cluster-wide or specific Namespace</td>
+</tr>
+<tr>
+<td><strong>Typical Permissions</strong></td>
+<td><code>container.clusters.create</code>, <code>container.nodes.list</code></td>
+<td><code>get pods</code>, <code>create deployments</code>, <code>read secrets</code></td>
+</tr>
+<tr>
+<td><strong>Role Examples</strong></td>
+<td><code>roles/container.viewer</code>, <code>roles/container.admin</code></td>
+<td><code>Role</code>, <code>ClusterRole</code>, <code>RoleBinding</code></td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control" rel="noopener noreferrer">GKE Role-Based Access Control</a> — Guide on defining Roles, ClusterRoles, and integrating with Google Groups for RBAC. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Workload controller selection and routing abstractions</h3>
+
+<h4>Matching workloads to controllers</h4>
+<table class="comparison">
+<thead>
+<tr>
+<th>Controller</th>
+<th>Identity &amp; Storage Semantics</th>
+<th>Typical Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Stateless; random pod hashes; shared or ephemeral storage</td>
+<td>Stateless web APIs, microservices, frontends (Order API)</td>
+</tr>
+<tr>
+<td><strong>StatefulSet</strong></td>
+<td>Ordered, persistent ordinals (<code>pod-0</code>); dedicated PVC per pod</td>
+<td>Distributed databases, Kafka, Redis clusters, unique sequencers</td>
+</tr>
+<tr>
+<td><strong>DaemonSet</strong></td>
+<td>Runs exactly one pod on every matching node</td>
+<td>Host monitoring agents, log forwarders (Fluentbit), network plugins</td>
+</tr>
+<tr>
+<td><strong>Job / CronJob</strong></td>
+<td>Executes batch pods until successful completion; optional schedule</td>
+<td>Database schema migrations, nightly report generation, data imports</td>
+</tr>
+</tbody>
+</table>
+
+<!-- Part 2 Architecture SVG -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d43-arch-title d43-arch-desc">
+<title id="d43-arch-title">Kubernetes scheduling, autoscaling synergy, and dual-plane authorization</title>
+<desc id="d43-arch-desc">An architectural flow illustrating the two-tier autoscaling synergy between HPA and Cluster Autoscaler alongside the dual-plane authorization model. On the left, HPA measures pod CPU relative to requests and adds replicas; when nodes saturate, Cluster Autoscaler provisions Compute Engine node VMs. In the center, incoming requests traverse Google Cloud IAM authentication before passing to Kubernetes RBAC namespace authorization. On the right, workload controller taxonomy maps stateless Deployments and StatefulSets to Service routing.</desc>
+<defs>
+<marker id="d43-a-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#38bdf8"/>
+</marker>
+<marker id="d43-g-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#4ade80"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Section 1: HPA + Cluster Autoscaler Loop -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="20" y="30" width="310" height="380" rx="8"/>
+<text fill="#38bdf8" font-size="12" font-weight="700" x="175" y="56" text-anchor="middle">TWO-TIER AUTOSCALING</text>
+
+<rect class="box" x="36" y="80" width="278" height="80" rx="6"/>
+<text font-size="11" font-weight="700" x="175" y="104" text-anchor="middle">Horizontal Pod Autoscaler (HPA)</text>
+<text class="small-label" x="175" y="124" text-anchor="middle">Metrics Server: CPU &gt; 60% of Request</text>
+<text class="small-label" x="175" y="142" text-anchor="middle">Scales Pod Replicas: 4 → 12 Pods</text>
+
+<path class="path" marker-end="url(#d43-a-arr)" d="M175 160 V180"/>
+
+<rect fill="#161b30" stroke="#facc15" stroke-width="1.5" x="36" y="180" width="278" height="80" rx="6"/>
+<text fill="#facc15" font-size="11" font-weight="700" x="175" y="204" text-anchor="middle">Kube-Scheduler Evaluation</text>
+<text class="small-label" x="175" y="224" text-anchor="middle">Existing Nodes Saturated (0 allocatable)</text>
+<text class="small-label" x="175" y="242" text-anchor="middle">Pod status: PENDING (FailedScheduling)</text>
+
+<path class="path" marker-end="url(#d43-a-arr)" d="M175 260 V280"/>
+
+<rect fill="#161b30" stroke="#4ade80" stroke-width="1.5" x="36" y="280" width="278" height="110" rx="6"/>
+<text fill="#4ade80" font-size="11" font-weight="700" x="175" y="304" text-anchor="middle">Cluster Autoscaler (CA)</text>
+<text class="small-label" x="175" y="324" text-anchor="middle">Detects unschedulable Pending pods</text>
+<text class="small-label" x="175" y="342" text-anchor="middle">Expands GKE Node Pool (+2 Compute VMs)</text>
+<text fill="#4ade80" font-size="10" x="175" y="370" text-anchor="middle">New nodes join → Pods Scheduled</text>
+
+<!-- Section 2: Dual-Plane Access Control -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="350" y="30" width="310" height="380" rx="8"/>
+<text fill="#4ade80" font-size="12" font-weight="700" x="505" y="56" text-anchor="middle">DUAL-PLANE AUTHORIZATION</text>
+
+<rect class="box" x="366" y="80" width="278" height="120" rx="6"/>
+<text font-size="11" font-weight="700" x="505" y="104" text-anchor="middle">Gate 1: Google Cloud IAM</text>
+<text class="small-label" x="505" y="126" text-anchor="middle">User: engineer@brightloaf.com</text>
+<text class="small-label" x="505" y="146" text-anchor="middle">Validates OAuth2 Token / Google Identity</text>
+<text class="small-label" x="505" y="166" text-anchor="middle">IAM Role: roles/container.developer</text>
+<text fill="#4ade80" font-size="10" x="505" y="188" text-anchor="middle">Grants access to cluster endpoint</text>
+
+<path class="path" marker-end="url(#d43-a-arr)" d="M505 200 V230"/>
+
+<rect fill="#161b30" stroke="#38bdf8" stroke-width="1.5" x="366" y="230" width="278" height="160" rx="6"/>
+<text fill="#38bdf8" font-size="11" font-weight="700" x="505" y="254" text-anchor="middle">Gate 2: Kubernetes RBAC</text>
+<text class="small-label" x="505" y="276" text-anchor="middle">Evaluated inside kube-apiserver</text>
+<text class="small-label" x="505" y="296" text-anchor="middle">Namespace: production</text>
+<text class="small-label" x="505" y="316" text-anchor="middle">RoleBinding: order-dev-binding</text>
+<text class="small-label" x="505" y="336" text-anchor="middle">Rules: get, list on Pods, Services</text>
+<text fill="#f43f5e" font-size="10" x="505" y="366" text-anchor="middle">Denies access to Secrets (HTTP 403)</text>
+
+<!-- Section 3: Workload Controller Taxonomy -->
+<rect fill="#0f172a" stroke="#1e293b" stroke-width="1.5" x="680" y="30" width="280" height="380" rx="8"/>
+<text fill="#facc15" font-size="12" font-weight="700" x="820" y="56" text-anchor="middle">WORKLOAD CONTROLLERS</text>
+
+<rect class="box" x="696" y="80" width="248" height="80" rx="6"/>
+<text font-size="11" font-weight="700" x="820" y="104" text-anchor="middle">Deployment</text>
+<text class="small-label" x="820" y="124" text-anchor="middle">Stateless, interchangeable pods</text>
+<text class="small-label" x="820" y="142" text-anchor="middle">Example: Order API Web Backend</text>
+
+<rect class="box" x="696" y="170" width="248" height="80" rx="6"/>
+<text font-size="11" font-weight="700" x="820" y="194" text-anchor="middle">StatefulSet</text>
+<text class="small-label" x="820" y="214" text-anchor="middle">Ordered ordinals, dedicated PVCs</text>
+<text class="small-label" x="820" y="232" text-anchor="middle">Example: Order Sequencer, DB</text>
+
+<rect class="box" x="696" y="260" width="248" height="65" rx="6"/>
+<text font-size="11" font-weight="700" x="820" y="284" text-anchor="middle">DaemonSet</text>
+<text class="small-label" x="820" y="304" text-anchor="middle">1 pod per node (Log forwarder)</text>
+
+<rect class="box" x="696" y="335" width="248" height="65" rx="6"/>
+<text font-size="11" font-weight="700" x="820" y="358" text-anchor="middle">Job / CronJob</text>
+<text class="small-label" x="820" y="378" text-anchor="middle">Run-to-completion batch tasks</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> Two-tier autoscaling feedback loop between HPA and Cluster Autoscaler (left); dual-plane authentication traversing Cloud IAM then Kubernetes RBAC (center); and workload controller selection mapping execution requirements (right). <strong>What it does not prove:</strong> Instantaneous Compute Engine VM spin-up latency during regional hardware stockouts, sub-second HPA scaling reactions to microsecond burst traffic, or custom admission webhook interception latency.
+</figcaption>
+</figure>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="https://cloud.google.com/kubernetes-engine/docs/concepts/horizontalpodautoscaler" rel="noopener noreferrer">GKE Horizontal Pod Autoscaler</a> — Documentation on HPA behavior, scaling policies, and stabilization windows. (Publisher documentation; 2026-09-27.)</p>
+</div>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 3 ══ -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problems and solutions</h2>
+<p class="small"><em>The scenarios below represent realistic production engineering failure modes involving Kubernetes resource sizing, dual-plane access governance, and controller selection.</em></p>
+
+<!-- ── Problem 1 ── -->
+<article id="topic-01-problem" class="topic-card">
+<h3>Topic 1 field case — Strict memory limits trigger cascading OOMKilled crash loop during HPA scale-out</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  The Brightloaf Order API service is deployed to GKE with Horizontal Pod Autoscaler enabled (target 60% CPU). The container resource configuration specifies <code>requests.memory: 512Mi</code> and <code>limits.memory: 512Mi</code>. The application is a Java Spring Boot microservice that requires 400MB under steady state, but during heap initialization and garbage collection pauses under load, its resident set size (RSS) briefly surges to 580MB.
+</p>
+<p>
+  During an 11:30 AM lunch promotional event, incoming traffic triples. As memory consumption crosses 512MB, the Linux kernel cgroup OOM killer immediately terminates the active pods with exit code <code>137</code> (<code>OOMKilled</code>). HPA detects increased CPU and queues, creating 12 additional pod replicas. As each new pod launches and executes JVM warm-up, it hits the 512MB ceiling and is killed within 10 seconds. The entire API fleet enters <code>CrashLoopBackOff</code>, causing total checkout failure for 25 minutes.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Container memory limits must accommodate temporary JVM garbage collection and classloader spikes.</li>
+  <li>Resource requests must accurately guide the scheduler without stranding unused node memory.</li>
+  <li>Workloads must preserve the invariant that replaying an order event never triggers duplicate fulfillment.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Setting a hard memory limit equal to the baseline memory request on a memory-bursty Java workload. Memory limits are enforced with immediate process termination by the Linux kernel; unlike CPU throttling, there is zero grace period for memory overages.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>Inspect pod state: <kbd>kubectl describe pod POD_NAME</kbd> reveals <code>Last State: Terminated</code> with <code>Reason: OOMKilled</code> and <code>Exit Code: 137</code>.</li>
+  <li>Correlate kernel metrics: Cloud Monitoring displays <code>container/memory/used_bytes</code> reaching exactly <code>container/memory/limit_bytes</code> before instant drops to zero.</li>
+  <li>Inspect HPA events: Confirm HPA scaled replica count up, but all new pods failed to transition to <code>Ready</code>.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Decouple memory requests from limits: set <code>requests.memory: 512Mi</code> (allowing dense node scheduling) and increase <code>limits.memory: 1024Mi</code> (providing a 100% buffer for JVM warm-up and GC spikes). Tune JVM flags to limit max heap: <code>-XX:MaxRAMPercentage=70.0</code>.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Execute a synthetic load test step-jump in staging: verify that under load, container memory climbs to 620MB, JVM garbage collection reclaims memory, and pods remain 100% <code>Running</code> with zero <code>OOMKilled</code> terminations.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  If memory limits are set too high (or omitted entirely), an actual memory leak inside the container can consume all available node memory, forcing the kernel to terminate critical neighboring pods on the same node.
+</p>
+
+<!-- Incident SVG 1 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d43-i1-title d43-i1-desc">
+<title id="d43-i1-title">Memory limit equal to request causing cascading OOMKilled crash loop vs Decoupled headroom</title>
+<desc id="d43-i1-desc">A comparative diagram showing the failed path where a tight 512Mi memory limit triggers kernel OOM kills during JVM warm-up, causing cascading crash loops across all HPA replicas. The corrected path decouples requests (512Mi) from limits (1024Mi) and sets JVM MaxRAMPercentage, ensuring pods absorb memory spikes without crashing.</desc>
+<defs>
+<marker id="d43-i1-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d43-i1-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · LIMIT=REQUEST (512Mi) TRIGGERS KERNEL OOM KILL ON WARM-UP → HPA CASCADING CRASH</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Traffic Triples</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">JVM memory spikes</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">to 580MB</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Kernel OOM Killer (cgroups)</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: memory limit = 512Mi (no buffer)</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">OOMKilled (Exit 137)</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">HPA spawns 12 new pods</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">All pods die on warm-up</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">CrashLoopBackOff</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">25m checkout failure</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d43-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d43-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d43-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · REQUEST 512Mi / LIMIT 1024Mi + JVM MaxRAMPercentage ENABLES SAFE BURST</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Traffic Triples</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">JVM memory spikes</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">to 580MB</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">requests: 512Mi, limits: 1024Mi</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">580MB safely within 1GB limit</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">GC Reclaims Memory</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">HPA adds healthy replicas</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Pods transition to Ready</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Zero OOM Kills</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">100% orders processed</text>
+
+<path class="corrected" marker-end="url(#d43-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d43-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d43-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> The Order API container configured memory request and limit at 512Mi; traffic surged during peak lunch hours; JVM memory briefly spiked to 580MB; kernel OOM killer terminated pods; HPA created 12 new replicas which all died on warm-up; checkout was down for 25 minutes. <strong>Architectural inference:</strong> Memory limits enforce hard cgroup cutoffs resulting in immediate termination; memory requests must guide scheduling while limits must provide sufficient headroom for runtime initialization and GC pauses. <strong>Expected post-fix behavior:</strong> Decoupling requests (512Mi) from limits (1024Mi) and configuring JVM MaxRAMPercentage allows containers to absorb memory spikes without being killed, stabilizing HPA scale-out.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 2 ── -->
+<article id="topic-02-problem" class="topic-card">
+<h3>Topic 2 field case — Kubernetes RBAC secret denial misdiagnosed with dangerous IAM Owner grant</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  During a weekend incident investigation, an application support engineer attempts to inspect database connection parameters by running <kbd>kubectl get secret db-credentials -n production</kbd>. The command fails with an error: <code>Error from server (Forbidden): secrets "db-credentials" is forbidden: User "support@brightloaf.com" cannot get resource "secrets" in API group "" in the namespace "production"</code>.
+</p>
+<p>
+  The platform administrator misdiagnoses the error as a Google Cloud IAM failure. To expedite troubleshooting, the administrator grants the user <code>roles/owner</code> at the GCP project level. However, rerunning the <code>kubectl</code> command still results in the exact same 403 Forbidden error because in-cluster RBAC is evaluated independently by <code>kube-apiserver</code>. Meanwhile, the support engineer now possesses un-audited project-wide permissions to delete databases, modify VPC firewalls, and alter IAM policies, creating an immediate critical security compliance breach.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Administrative access must strictly adhere to the principle of least privilege.</li>
+  <li>Must clearly separate Google Cloud infrastructure IAM governance from Kubernetes cluster-internal RBAC.</li>
+  <li>Production database secrets must only be visible to authorized principals within designated namespaces.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Conflating Cloud IAM with Kubernetes RBAC. The API server denied the operation because of missing in-cluster RBAC permissions. Granting GCP IAM Owner has zero effect on Kubernetes RBAC rules inside the cluster.
+</p>
+
+<h4>Defensible solution</h4>
+<ol>
+  <li>Immediately revoke the project-level <code>roles/owner</code> IAM grant from the support user.</li>
+  <li>Ensure the user retains appropriate baseline GCP IAM access (<code>roles/container.viewer</code>) to reach the cluster.</li>
+  <li>Create a targeted Kubernetes <code>Role</code> in namespace <code>production</code> granting read access to specific secrets, and bind it to the user's email via a <code>RoleBinding</code>.</li>
+</ol>
+
+<h4>Verification</h4>
+<p>
+  Authenticate as the support user: run <kbd>kubectl auth can-i get secrets -n production</kbd>. Verify the command outputs <code>yes</code>. Run <kbd>kubectl auth can-i delete secrets -n production</kbd> and verify it outputs <code>no</code>. Verify GCP IAM reflects zero elevated project-level permissions.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  If GKE legacy Cloud IAM mapping is enabled, certain administrative IAM roles (such as <code>roles/container.admin</code>) automatically grant cluster-admin RBAC rights; organizations should enforce Google Groups for GKE to manage RBAC declaratively.
+</p>
+
+<!-- Incident SVG 2 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d43-i2-title d43-i2-desc">
+<title id="d43-i2-title">Kubernetes RBAC Secret denial misdiagnosed with IAM Owner grant vs Scoped RoleBinding</title>
+<desc id="d43-i2-desc">A comparative diagram showing the failed path where an in-cluster RBAC Secret denial leads to granting dangerous project-level IAM Owner privileges, which fails to fix the error. The corrected path revokes IAM Owner and applies a scoped Kubernetes RoleBinding inside the target namespace.</desc>
+<defs>
+<marker id="d43-i2-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d43-i2-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · RBAC 403 DENIAL MISDIAGNOSED → GRANTING DANGEROUS PROJECT IAM OWNER</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">kubectl get secret</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">Operator queries secret</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">in prod namespace</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Kubernetes RBAC 403</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: no RoleBinding for secrets</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Misguided IAM Grant</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">Admin grants roles/owner</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">at GCP Project level</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">Still Fails + Breach</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">RBAC still denies</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d43-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d43-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d43-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · LEAVE BASELINE IAM → APPLY SCOPED NAMESPACE ROLEBINDING FOR SECRETS</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">kubectl get secret</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Operator queries secret</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">in prod namespace</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">Namespace RoleBinding</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Role: secret-reader (get, list)</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">API Server Authorizes</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">RBAC rule matches user</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Secret retrieved successfully</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">Least Privilege</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Zero project IAM bloat</text>
+
+<path class="corrected" marker-end="url(#d43-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d43-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d43-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> A support engineer received an RBAC 403 Forbidden reading a Secret; an administrator granted <code>roles/owner</code> in Google Cloud IAM; the kubectl command still failed with 403 Forbidden; excessive project-wide privileges were compromised. <strong>Architectural inference:</strong> Cloud IAM controls the GCP management plane, but the in-cluster API server enforces Kubernetes RBAC; granting project IAM Owner does not override namespace RBAC restrictions. <strong>Expected post-fix behavior:</strong> Applying a scoped Kubernetes RoleBinding inside the target namespace grants access to the Secret while preserving least privilege in Google Cloud IAM.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 3 ── -->
+<article id="topic-03-problem" class="topic-card">
+<h3>Topic 3 field case — Stateless Deployment applied to stateful sequencer causes duplicate order IDs</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  To assign guaranteed monotonic sequential transaction IDs to incoming orders, Brightloaf engineers deploy a lightweight sequence generator service (<code>order-sequencer</code>). The engineer packages the application as a standard Kubernetes <strong>Deployment</strong> with <code>replicas: 3</code> behind a ClusterIP Service.
+</p>
+<p>
+  Because Deployments treat pods as interchangeable, stateless workers, each of the three pods boots independently with an internal local counter starting at the last database checkpoint. As checkout requests arrive, the ClusterIP service round-robins requests across the three pods. The pods concurrently issue identical order numbers (e.g. Order #10042 is issued by Pod A, Pod B, and Pod C to three different customers). When the orders are committed to Cloud SQL, database unique constraint violations trigger unhandled transaction rollbacks, corrupting order status and causing customer credit cards to be charged without creating confirmed orders.
+</p>
+
+<h4>Constraints</h4>
+<ul>
+  <li>Order numbering must be strictly unique and sequential across all order events.</li>
+  <li>Replaying an order event must preserve the invariant that replaying an event never triggers duplicate fulfillment.</li>
+  <li>Workloads requiring stateful identity and dedicated storage must use the appropriate Kubernetes controller.</li>
+</ul>
+
+<h4>Root cause</h4>
+<p>
+  Misapplying a stateless <code>Deployment</code> controller to a stateful sequencing application. Deployments provide no ordered execution, no persistent pod identity, and no exclusive state locking.
+</p>
+
+<h4>Defensible solution</h4>
+<p>
+  Migrate the sequencer workload from a Deployment to a <strong>StatefulSet</strong> with <code>replicas: 1</code> (or an active-passive leader-elected StatefulSet) with a dedicated <code>volumeClaimTemplate</code>. A StatefulSet guarantees a deterministic identity (<code>order-sequencer-0</code>) and ensures that even during pod recreation or node rescheduling, the replacement pod mounts the exact same persistent sequence ledger before accepting traffic.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Execute a concurrent load test generating 1,000 rapid order number requests: verify that all 1,000 generated order IDs are strictly unique, monotonic, and error-free, with zero database unique constraint collisions.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  A single-replica StatefulSet represents a single point of failure during pod restarts; for high-availability sequencing, the application must implement distributed consensus (e.g. Raft or Redis atomic increments).
+</p>
+
+<!-- Incident SVG 3 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 440" role="img" aria-labelledby="d43-i3-title d43-i3-desc">
+<title id="d43-i3-title">Stateless Deployment applied to stateful sequencer vs StatefulSet single identity</title>
+<desc id="d43-i3-desc">A comparative diagram showing the failed path where a stateless Deployment runs 3 sequencer pods, issuing duplicate order IDs and corrupting database transactions. The corrected path uses a StatefulSet with deterministic identity order-sequencer-0 and dedicated storage, ensuring strictly monotonic and unique sequence generation.</desc>
+<defs>
+<marker id="d43-i3-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d43-i3-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="440" rx="8"/>
+
+<!-- Failed Lane -->
+<rect class="lane-failed" x="20" y="20" width="940" height="180" rx="8"/>
+<text class="lane-label" x="36" y="44" fill="#fda4af">FAILED PATH · STATELESS DEPLOYMENT (3 PODS) ROUND-ROBINS SEQUENCER → DUPLICATE ORDER IDS</text>
+
+<rect class="box" x="36" y="66" width="150" height="90" rx="6"/>
+<text x="111" y="96" text-anchor="middle">Orders Inbound</text>
+<text class="small-label" x="111" y="118" text-anchor="middle">Checkout requests</text>
+<text class="small-label" x="111" y="136" text-anchor="middle">hit ClusterIP Service</text>
+
+<rect class="failbox" x="246" y="66" width="220" height="90" rx="6"/>
+<text x="356" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="356" y="112" text-anchor="middle">Stateless Deployment (x3)</text>
+<text class="small-label" x="356" y="134" text-anchor="middle">root cause: 3 pods run local counters</text>
+
+<rect class="failbox" x="526" y="66" width="200" height="90" rx="6"/>
+<text x="626" y="94" text-anchor="middle">Duplicate Order #10042</text>
+<text class="small-label" x="626" y="116" text-anchor="middle">Issued to 3 customers</text>
+<text class="small-label" x="626" y="134" text-anchor="middle">DB unique violation</text>
+
+<rect class="failbox" x="786" y="66" width="154" height="90" rx="6"/>
+<text x="863" y="96" text-anchor="middle">DB Corruption</text>
+<text class="small-label" x="863" y="118" text-anchor="middle">Transactions rolled back</text>
+<text class="small-label" x="863" y="136" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d43-i1-f)" d="M186 111 H246"/>
+<path class="failed" marker-end="url(#d43-i1-f)" d="M466 111 H526"/>
+<path class="failed" marker-end="url(#d43-i1-f)" d="M726 111 H786"/>
+
+<!-- Corrected Lane -->
+<rect class="lane-corrected" x="20" y="230" width="940" height="190" rx="8"/>
+<text class="lane-label" x="36" y="254" fill="#4ade80">CORRECTED PATH · STATEFULSET (REPLICAS: 1) WITH DEDICATED PVC GUARANTEES STRICT MONOTONIC IDS</text>
+
+<rect class="box" x="36" y="280" width="150" height="90" rx="6"/>
+<text x="111" y="310" text-anchor="middle">Orders Inbound</text>
+<text class="small-label" x="111" y="332" text-anchor="middle">Checkout requests</text>
+<text class="small-label" x="111" y="350" text-anchor="middle">hit ClusterIP Service</text>
+
+<rect class="box" x="246" y="280" width="220" height="90" rx="6"/>
+<text x="356" y="306" text-anchor="middle">Corrected Control</text>
+<text x="356" y="326" text-anchor="middle">StatefulSet: order-sequencer</text>
+<text class="small-label" x="356" y="348" text-anchor="middle">Deterministic ordinal: pod-0</text>
+
+<rect class="box" x="526" y="280" width="200" height="90" rx="6"/>
+<text x="626" y="306" text-anchor="middle">Persistent State Lock</text>
+<text class="small-label" x="626" y="326" text-anchor="middle">Single source of truth</text>
+<text class="small-label" x="626" y="344" text-anchor="middle">Strict monotonic numbering</text>
+
+<rect class="verifybox" x="786" y="280" width="154" height="90" rx="6"/>
+<text x="863" y="306" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="863" y="326" text-anchor="middle">100% Unique IDs</text>
+<text class="small-label" x="863" y="348" text-anchor="middle">Zero DB collisions</text>
+
+<path class="corrected" marker-end="url(#d43-i1-c)" d="M186 325 H246"/>
+<path class="corrected" marker-end="url(#d43-i1-c)" d="M466 325 H526"/>
+<path class="corrected" marker-end="url(#d43-i1-c)" d="M726 325 H786"/>
+<rect class="boundary" x="774" y="268" width="176" height="114" rx="10"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> An order numbering sequencer was deployed as a stateless Deployment with 3 replicas; requests round-robined across pods; pods issued identical order numbers; database unique constraints triggered rollbacks; orders were corrupted. <strong>Architectural inference:</strong> Stateless Deployments cannot guarantee unique single-writer semantics; stateful sequencing requires StatefulSets with deterministic identity and exclusive storage bindings. <strong>Expected post-fix behavior:</strong> Migrating to a StatefulSet with a single deterministic pod identity (<code>order-sequencer-0</code>) ensures strictly monotonic, non-duplicate order ID generation.
+</figcaption>
+</figure>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 4 ══ -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1 — Deliberately creating a Pending pod and diagnosing scheduler events</h3>
+<p><strong>Goal:</strong> Submit a pod manifest with excessive resource requests, observe the scheduler failure, and diagnose using events.</p>
+<p><strong>Mode:</strong> local cluster (kind/minikube) or GKE sandbox · <strong>Prerequisites:</strong> Day 42 exit artifact.</p>
+
+<div class="callout">
+<strong>Preflight</strong>
+<p>Open <code>day-043-scheduling.md</code>. Confirm local cluster access (<kbd>kubectl get nodes</kbd>). Note the total allocatable CPU of worker nodes.</p>
+</div>
+
+<ol>
+<li><strong>Apply an oversized pod manifest.</strong> Create a pod requesting 64 vCPUs (exceeding node capacity):
+<pre><code>kubectl apply -f - &lt;&lt;EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oversized-test-pod
+spec:
+  containers:
+  - name: pause
+    image: registry.k8s.io/pause:3.9
+    resources:
+      requests:
+        cpu: "64"
+EOF</code></pre>
+</li>
+<li><strong>Observe Pending state.</strong> Run <kbd>kubectl get pod oversized-test-pod</kbd>. Verify the status displays <code>Pending</code>.</li>
+<li><strong>Diagnose scheduling failure.</strong> Run <kbd>kubectl describe pod oversized-test-pod</kbd>. Locate the <code>Events:</code> section:
+  <p>Expected output: <code>Warning FailedScheduling default-scheduler 0/3 nodes are available: 3 Insufficient cpu.</code></p>
+  Record this event trace in <code>day-043-scheduling.md</code>.
+</li>
+<li><strong>Remediate the manifest.</strong> Edit the request to fit node capacity (e.g. <code>cpu: 100m</code>):
+<pre><code>kubectl delete pod oversized-test-pod
+kubectl apply -f - &lt;&lt;EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oversized-test-pod
+spec:
+  containers:
+  - name: pause
+    image: registry.k8s.io/pause:3.9
+    resources:
+      requests:
+        cpu: "100m"
+EOF</code></pre>
+Verify the pod transitions to <code>Running</code> immediately.
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>A captured <code>FailedScheduling</code> event trace and corrected manifest recorded in <code>day-043-scheduling.md</code>.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-43-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2 — Diagnosing Kubernetes RBAC 403 denial versus IAM authorization</h3>
+<p><strong>Goal:</strong> Differentiate an in-cluster RBAC denial from Google Cloud IAM permissions and configure a scoped RoleBinding.</p>
+<p><strong>Mode:</strong> tabletop / sandbox · <strong>Prerequisites:</strong> Exercise 1.</p>
+
+<ol>
+<li><strong>Simulate an RBAC permission check.</strong> Test if a developer can read secrets in the <code>production</code> namespace:
+<pre><code>kubectl auth can-i get secrets --namespace=production --as=developer@brightloaf.com</code></pre>
+Expected output: <code>no</code>.
+</li>
+<li><strong>Author a scoped Kubernetes Role.</strong>
+<pre><code>kubectl apply -f - &lt;&lt;EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: production
+  name: secret-reader-role
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: production
+  name: secret-reader-binding
+subjects:
+- kind: User
+  name: developer@brightloaf.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: secret-reader-role
+  apiGroup: rbac.authorization.k8s.io
+EOF</code></pre>
+</li>
+<li><strong>Re-test authorization.</strong>
+<pre><code>kubectl auth can-i get secrets --namespace=production --as=developer@brightloaf.com</code></pre>
+Expected output: <code>yes</code>.
+Document in <code>day-043-scheduling.md</code> why modifying GCP project IAM would not have satisfied this check.
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result</strong>
+<p>An RBAC authorization verification log proving internal namespace role binding without GCP IAM escalation.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-43-topic-02"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3 — Workload controller selection and HPA/Cluster Autoscaler scaling model</h3>
+<p><strong>Goal:</strong> Formulate an HPA and Cluster Autoscaler capacity model for the Brightloaf Order API and document controller mappings.</p>
+<p><strong>Mode:</strong> architectural analysis · <strong>Prerequisites:</strong> Exercises 1 and 2.</p>
+
+<ol>
+<li><strong>Map the workload matrix.</strong> In <code>day-043-scheduling.md</code>, assign each Brightloaf component to its proper controller:
+  <ul>
+    <li>Order API → Deployment (stateless, horizontal scaling).</li>
+    <li>Fulfillment Worker → Deployment or Job (idempotent Pub/Sub consumer).</li>
+    <li>Order Sequencer &amp; Database → StatefulSet (monotonic identity, dedicated storage).</li>
+    <li>Node Log Collector → DaemonSet (host log ingestion).</li>
+  </ul>
+</li>
+<li><strong>Model the two-tier autoscaling curve.</strong> Calculate:
+  <ul>
+    <li>Pod request: <code>cpu: 500m</code>. Node allocatable capacity: <code>cpu: 3800m</code> per <code>e2-standard-4</code> node (max 7 pods/node).</li>
+    <li>Traffic surge scales pods from 4 to 28 pods.</li>
+    <li>Calculate required nodes: <code>28 pods / 7 pods/node = 4 nodes</code>. Cluster Autoscaler expands node pool from 1 to 4 nodes.</li>
+  </ul>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A completed <code>day-043-scheduling.md</code> exit artifact containing the Pending pod diagnostic trace, corrected manifest, RBAC authorization verification, and two-tier scaling calculations.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>Delete all test pods and RBAC objects created during the lab:</p>
+<pre><code>kubectl delete pod oversized-test-pod --ignore-not-found
+kubectl delete role secret-reader-role -n production --ignore-not-found
+kubectl delete rolebinding secret-reader-binding -n production --ignore-not-found</code></pre>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-43-topic-03"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-043-scheduling.md</code> containing: (1) Pending pod event trace and corrected resource requests manifest, (2) Kubernetes RBAC vs IAM authorization distinction and RoleBinding definition, (3) two-tier HPA and Cluster Autoscaler capacity calculation, (4) workload controller decision sheet. Label tabletop models clearly.</p>
+<label class="check"><input type="checkbox" data-progress="read-43"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-43"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-042.html">← Day 42<small>Kubernetes architecture and cluster choices</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-044.html">Day 44 →<small>Service networking and persistent volumes</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

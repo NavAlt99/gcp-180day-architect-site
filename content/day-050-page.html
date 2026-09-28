@@ -1,0 +1,1633 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 50: Firewall policy and private API access · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-049.html" aria-label="Previous day">← Day 49</a>
+<a href="day-051.html" aria-label="Next day">Day 51 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and shared responsibility</option>
+<option value="day-012.html">Day 12: Resource hierarchy and inheritance</option>
+<option value="day-013.html">Day 13: Cloud Identity, accounts and directory sync</option>
+<option value="day-014.html">Day 14: IAM principals, roles and bindings</option>
+<option value="day-015.html">Day 15: Service accounts, keys and delegation</option>
+<option value="day-016.html">Day 16: Billing accounts, budgets and cost attribution</option>
+<option value="day-017.html">Day 17: Gate 1 review: Foundations and identity</option>
+</optgroup>
+<optgroup label="Governance, network and security">
+<option value="day-018.html">Day 18: Organization policies and constraints</option>
+<option value="day-019.html">Day 19: Custom roles and least-privilege analysis</option>
+<option value="day-020.html">Day 20: Audit logs, Access Transparency and admin tracking</option>
+<option value="day-021.html">Day 21: VPC design, subnets and private IP spaces</option>
+<option value="day-022.html">Day 22: Hierarchical and VPC firewall policy rules</option>
+<option value="day-023.html">Day 23: Cloud NAT, Cloud Router and dynamic routing</option>
+<option value="day-024.html">Day 24: Private Google Access and PSC fundamentals</option>
+<option value="day-025.html">Day 25: Cloud DNS zones, routing and DNSSEC</option>
+<option value="day-026.html">Day 26: Cloud Armor policies and DDoS mitigation</option>
+<option value="day-027.html">Day 27: Cloud KMS, CMEK and envelope encryption</option>
+<option value="day-028.html">Day 28: Secret Manager and runtime injection</option>
+<option value="day-029.html">Day 29: Workload Identity Federation</option>
+<option value="day-030.html">Day 30: VPC Service Controls perimeter design</option>
+<option value="day-031.html">Day 31: VPC SC troubleshooting and ingress/egress rules</option>
+<option value="day-032.html">Day 32: Security Command Center and threat posture</option>
+<option value="day-033.html">Day 33: Cloud Monitoring workspace and alert policies</option>
+<option value="day-034.html">Day 34: Cloud Logging sinks, storage and exports</option>
+<option value="day-035.html">Day 35: Gate 2 review: Governance and security</option>
+</optgroup>
+<optgroup label="Compute, storage and databases">
+<option value="day-036.html">Day 36: Compute Engine sizing, vCPU and memory models</option>
+<option value="day-037.html">Day 37: Persistent disks, Hyperdisk, snapshots and IOPS</option>
+<option value="day-038.html">Day 38: Managed instance groups and autoscaling algorithms</option>
+<option value="day-039.html">Day 39: VM rolling updates, instance templates and health checks</option>
+<option value="day-040.html">Day 40: Spot VMs, sole-tenant nodes and reservations</option>
+<option value="day-041.html">Day 41: VM Manager, OS login and patch governance</option>
+<option value="day-042.html">Day 42: GKE cluster architecture and Autopilot vs Standard</option>
+<option value="day-043.html">Day 43: GKE workload primitives, Pods, Deployments and Jobs</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html" selected>Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: Dedicated Interconnect, Partner and MACsec</option>
+<option value="day-058.html">Day 58: Cloud Storage classes, lifecycle and autotiering</option>
+<option value="day-059.html">Day 59: Storage security, signed URLs and object retention</option>
+<option value="day-060.html">Day 60: Cloud SQL high availability, replicas and scaling</option>
+<option value="day-061.html">Day 61: Cloud SQL maintenance, backups and recovery</option>
+<option value="day-062.html">Day 62: AlloyDB architecture and columnar accelerator</option>
+<option value="day-063.html">Day 63: Spanner architecture, TrueTime and schema design</option>
+<option value="day-064.html">Day 64: Bigtable rowkey design and replication topology</option>
+<option value="day-065.html">Day 65: Firestore data modeling and security rules</option>
+<option value="day-066.html">Day 66: Memorystore Redis/Memcached caching strategies</option>
+<option value="day-067.html">Day 67: Gate 3 review: Core infrastructure</option>
+</optgroup>
+<optgroup label="Integration, analytics and automation">
+<option value="day-068.html">Day 68: Pub/Sub architecture, schemas and ordering</option>
+<option value="day-069.html">Day 69: Pub/Sub dead-letter topics and push/pull modes</option>
+<option value="day-070.html">Day 70: Cloud Tasks and Cloud Scheduler orchestration</option>
+<option value="day-071.html">Day 71: Eventarc trigger topologies and audit routing</option>
+<option value="day-072.html">Day 72: BigQuery storage, partition and cluster layout</option>
+<option value="day-073.html">Day 73: BigQuery SQL, views and materialized view design</option>
+<option value="day-074.html">Day 74: BigQuery reservations, BI Engine and slot pricing</option>
+<option value="day-075.html">Day 75: Dataproc clusters, autoscaling and serverless</option>
+<option value="day-076.html">Day 76: Cloud Dataflow pipeline design and windowing</option>
+<option value="day-077.html">Day 77: Dataflow streaming, watermarks and checkpoints</option>
+<option value="day-078.html">Day 78: Dataplex governance, lakes and data discovery</option>
+<option value="day-079.html">Day 79: Cloud Composer orchestration and DAG lifecycle</option>
+<option value="day-080.html">Day 80: Data Fusion and visual pipeline integration</option>
+<option value="day-081.html">Day 81: Looker studio, Looker platform and semantic layers</option>
+<option value="day-082.html">Day 82: Gate 4 review: Data and analytics</option>
+</optgroup>
+<optgroup label="DevOps, SRE and multi-cloud">
+<option value="day-083.html">Day 83: Cloud Build triggers, pools and pipeline security</option>
+<option value="day-084.html">Day 84: Artifact Registry layout, cleanup and remote repos</option>
+<option value="day-085.html">Day 85: Cloud Deploy delivery pipelines and canaries</option>
+<option value="day-086.html">Day 86: Terraform GCP provider, state and remote backend</option>
+<option value="day-087.html">Day 87: Terraform module patterns and refactoring</option>
+<option value="day-088.html">Day 88: Cloud Monitoring SLI, SLO and error budget design</option>
+<option value="day-089.html">Day 89: Cloud Trace, Profiler and distributed diagnostics</option>
+<option value="day-090.html">Day 90: Incident management, alerting and runbook hygiene</option>
+<option value="day-091.html">Day 91: Disaster recovery strategies: cold, warm and hot</option>
+<option value="day-092.html">Day 92: Cross-region replication and failover validation</option>
+<option value="day-093.html">Day 93: Backup and recovery testing regimens</option>
+<option value="day-094.html">Day 94: Hybrid identity, ADFS, Okta and directory sync</option>
+<option value="day-095.html">Day 95: Anthos/GKE Enterprise multi-cloud architecture</option>
+<option value="day-096.html">Day 96: Migration center, assessment and cost models</option>
+<option value="day-097.html">Day 97: Database Migration Service and schema conversion</option>
+<option value="day-098.html">Day 98: Transfer Appliance, Storage Transfer Service</option>
+<option value="day-099.html">Day 99: FinOps foundation, labels and commit discounts</option>
+<option value="day-100.html">Day 100: CUD optimization, flexible vs standard</option>
+<option value="day-101.html">Day 101: Re-architecting legacy monoliths for cloud</option>
+<option value="day-102.html">Day 102: Strangler fig pattern and API facade design</option>
+<option value="day-103.html">Day 103: Container migration with Migrate for Anthos</option>
+<option value="day-104.html">Day 104: Zero-trust architecture with BeyondCorp</option>
+<option value="day-105.html">Day 105: Regulatory compliance: HIPAA, PCI and GDPR</option>
+<option value="day-106.html">Day 106: Data residency, sovereign controls and Assured Workloads</option>
+<option value="day-107.html">Day 107: Cloud Armor advanced WAF rules and ML defense</option>
+<option value="day-108.html">Day 108: Network security: Cloud IDS, IPS and inspection</option>
+<option value="day-109.html">Day 109: Secret lifecycle and hardware security modules</option>
+<option value="day-110.html">Day 110: Threat detection, Event Threat Detection</option>
+<option value="day-111.html">Day 111: Chaos engineering and resilience testing</option>
+<option value="day-112.html">Day 112: Canary, blue-green and A/B release mechanics</option>
+<option value="day-113.html">Day 113: Observability at scale: multi-project metrics</option>
+<option value="day-114.html">Day 114: Secure software supply chain with SLSA</option>
+<option value="day-115.html">Day 115: Binary Authorization in enterprise delivery</option>
+<option value="day-116.html">Day 116: Infrastructure as code governance and Sentinel</option>
+<option value="day-117.html">Day 117: Operational runbooks, game days and blameless postmortems</option>
+<option value="day-118.html">Day 118: Gate 5 review: Delivery, SRE and operations</option>
+</optgroup>
+<optgroup label="Architecture defense and case studies">
+<option value="day-119.html">Day 119: Enterprise multi-tenant SaaS architecture</option>
+<option value="day-120.html">Day 120: Global real-time gaming platform design</option>
+<option value="day-121.html">Day 121: Healthcare data platform with FHIR/HIPAA</option>
+<option value="day-122.html">Day 122: Global financial clearing and settlement</option>
+<option value="day-123.html">Day 123: IoT telemetry ingest and stream analytics</option>
+<option value="day-124.html">Day 124: Media streaming and transcoding at scale</option>
+<option value="day-125.html">Day 125: Retail e-commerce flash sale architecture</option>
+<option value="day-126.html">Day 126: Modernizing mainframe workloads on GCP</option>
+<option value="day-127.html">Day 127: Autonomous vehicle sensor data platform</option>
+<option value="day-128.html">Day 128: Disaster recovery design across three clouds</option>
+<option value="day-129.html">Day 129: Multi-region active-active database patterns</option>
+<option value="day-130.html">Day 130: Zero-trust enterprise workforce architecture</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="50" data-prev="day-049.html" data-next="day-051.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 50 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 50</span>
+<span class="pill">3–4 hours</span>
+<span class="pill">security / lab</span>
+<span class="pill">Topics 016</span>
+</div>
+<h1>Day 50 — Firewall policy and private API access</h1>
+<p class="lead"><strong>Outcome:</strong> Test or simulate one permitted and one blocked connection; compare Private Google Access with Private Service Connect.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-049.html">Day 49</a>, <a href="day-025.html">Day 25</a>; bring their exit artifacts.</p></div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A firewall decision trace and identity/network boundary diagram (day-050-firewall-trace.md) documenting hierarchical firewall policy precedence, service account target authorization, static IP lifecycle rules, and an architectural trade-off analysis between Private Google Access and Private Service Connect.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-27; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>Firewall rules</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>Hierarchical &amp; network firewall policies</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+<div class="toc-topic"><span>External vs internal IP addresses</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+<div class="toc-topic"><span>Ephemeral vs static</span><a href="#topic-04-overview">overview</a> · <a href="#topic-04-technical">discussion</a> · <a href="#topic-04-problem">problem</a> · <a href="#topic-04-lab">lab</a></div>
+<div class="toc-topic"><span>Reserved addresses</span><a href="#topic-05-overview">overview</a> · <a href="#topic-05-technical">discussion</a> · <a href="#topic-05-problem">problem</a> · <a href="#topic-05-lab">lab</a></div>
+<div class="toc-topic"><span>Private Google Access and PSC</span><a href="#topic-06-overview">overview</a> · <a href="#topic-06-technical">discussion</a> · <a href="#topic-06-problem">problem</a> · <a href="#topic-06-lab">lab</a></div>
+</aside>
+
+<!-- ================= PART 1 ================= -->
+<section id="part-1" class="part">
+<h2>Part 1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Firewall rules: direction, priority, targets, implied rules, and audit logging</h3>
+<p>Google Cloud firewall rules are stateful, distributed packet filters enforced directly at the virtual NIC of every Compute Engine virtual machine and GKE worker node by the Andromeda software-defined network (SDN). Because filtering occurs at the host hypervisor boundary rather than centralized network appliances, rules scale linearly with instance count without introducing architectural bottlenecks. Each rule defines an explicit direction (ingress inspecting inbound traffic or egress inspecting outbound traffic), a numerical priority from 0 (highest precedence) to 65535 (lowest precedence), an action (ALLOW or DENY), protocols and ports, and source/destination filters. Crucially, target instances can be filtered via arbitrary string network tags or cryptographic service accounts. While network tags can be attached by any user holding <code>compute.instances.setTags</code>, service accounts establish cryptographic identity boundaries governed by <code>iam.serviceAccounts.actAs</code>. Every VPC network instantiates two non-deletable implied rules at priority 65535: an implied ALLOW egress rule permitting all outbound IPv4 traffic (<code>0.0.0.0/0</code>) and an implied DENY ingress rule dropping all unsolicited inbound traffic. Firewall Rules Logging captures 5-tuple connection metadata and matched rule IDs with configurable sample rates for compliance auditing.</p>
+<p>This capability belongs on Day 50 because Day 49 established VPC IP subnets and routing topology; cloud architects must now secure host boundaries using identity-driven isolation. In production systems, firewall rules form the primary Layer 3/Layer 4 defensive perimeter protecting sensitive database clusters and application tiers.</p>
+<p>When an engineer relies on user-mutable network tags instead of cryptographic service accounts to authorize internal database access, a compromised staging VM adopts the privileged tag and establishes unauthorized connections to the production PostgreSQL cluster. Data exfiltration scripts siphon 40,000 customer payment tokens before the breach is detected in quarterly audit logs.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Hierarchical firewall policies and network firewall policies: organizational governance</h3>
+<p>Modern Google Cloud security replaces unmanaged, sprawling legacy VPC firewall rules with a structured policy hierarchy: Hierarchical Firewall Policies and Network Firewall Policies. Hierarchical policies attach directly to Organization or Folder resource nodes, enforcing non-negotiable enterprise guardrails (such as globally denying unencrypted ingress on ports 22 and 3389 or mandating inspection) that project-level administrators cannot modify or override. Unlike project rules that terminate evaluation upon an allow or deny match, hierarchical policies introduce the <code>goto_next</code> action, which explicitly matches traffic conditions but delegates the final accept/deny decision down to child folder or project VPC policies. Within individual VPCs, Global and Regional Network Firewall Policies group rules into reusable policy containers, supporting advanced enterprise features including Layer 7 Fully Qualified Domain Name (FQDN) filtering, geolocation matching, and Cloud Threat Intelligence integration.</p>
+<p>This topic belongs on Day 50 because enterprise landing zones mandate centralized security governance across hundreds of decentralized developer projects. In enterprise architectures, hierarchical policies ensure regulatory compliance (PCI-DSS, HIPAA) remains immutable across all current and future cloud environments.</p>
+<p>When a security administrator configures an organization-level deny rule for egress without applying the <code>goto_next</code> delegation action on internal RFC 1918 traffic, all lower-level project firewall rules are bypassed. Developer subnets lose internal connectivity to shared VPC databases across the entire organization, halting all production software delivery pipelines for four hours.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>External vs. internal IP addresses: public boundaries and network service tiers</h3>
+<p>Every Compute Engine virtual machine is provisioned with a primary internal IPv4 address drawn from its regional subnet range, enabling private communication within the VPC and across peered or hybrid networks. Instances can optionally be assigned an external public IPv4 address to communicate directly with the internet. However, an external IP address is never configured directly on the guest operating system's virtual network interface; instead, the Andromeda SDN performs one-to-one Source and Destination Network Address Translation (1:1 SNAT/DNAT) at the host hypervisor layer. Furthermore, Google Cloud differentiates external traffic routing via Network Service Tiers: <strong>Premium Tier</strong> (default) leverages Google's global private fiber backbone, routing packets onto Google's network at the Point of Presence (PoP) nearest the client ("cold-potato" routing) for minimal latency and maximum SLA reliability, whereas <strong>Standard Tier</strong> routes traffic over public internet transit providers, entering Google's network at the PoP nearest the destination data center ("hot-potato" routing). In production landing zones, eliminating unnecessary public external IPs on backend workloads drastically shrinks the attack surface.</p>
+<p>This topic belongs on Day 50 because securing cloud workloads requires strictly segregating public internet-facing entry points from isolated internal application backends. In cloud landing zones, eliminating unnecessary public IP addresses is the primary mechanism for reducing the attack surface.</p>
+<p>When an automated infrastructure script provisions backend analytics instances with default external IP addresses, attackers discover an exposed administrative Redis port listening on 0.0.0.0. A ransomware payload encrypts cached order logs, demanding $50,000 in cryptocurrency and disrupting daily bakery fulfillment operations.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-04-overview" class="topic-card">
+<h3>Ephemeral vs. static IP addresses: lifecycle mechanics and cost governance</h3>
+<p>Google Cloud differentiates between ephemeral and static IP addresses across internal and external address pools. An ephemeral IP address is dynamically assigned when an instance boots and is automatically released back into Google's shared pool when the instance is stopped, terminated, or deleted; upon restarting, the instance acquires a completely different IP address. Conversely, a static IP address is explicitly reserved at either a regional or global scope, persisting indefinitely regardless of the operational state of attached compute instances or load balancers. Administrators can promote an existing ephemeral IP address to a static reserved address in-place with zero downtime. From a FinOps governance perspective, Google Cloud imposes hourly billing charges for unattached static external IPv4 addresses to prevent address hoarding and incentivize releasing idle public IPv4 blocks back to the pool.</p>
+<p>This capability belongs on Day 50 because network stability and third-party partner integration depend on immutable IP endpoints. In enterprise operations, failing to distinguish ephemeral from static lifecycles causes silent network partition failures during standard maintenance events.</p>
+<p>When a cloud engineer connects an external payment gateway to an ephemeral public IP address on an egress proxy, an automated overnight OS patch reboot releases the IP address. The payment gateway's IP whitelist rejects subsequent checkout transactions from the proxy's new IP, locking 12,000 retail customers out of mobile checkout.</p>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-05-overview" class="topic-card">
+<h3>Reserved addresses: internal reservations, Anycast VIPs, and subnet reserved ranges</h3>
+<p>Google Cloud provides multiple address reservation constructs for internal and external network topologies. Static internal IP reservations lock deterministic addresses within subnet primary ranges for Internal Load Balancers (ILB VIPs), virtual appliances, and critical databases, ensuring dynamic DHCP allocations never cause duplicate IP conflicts. At the global edge, Global External Anycast IP reservations advertise a single IP address from over 100 Google edge PoPs via BGP Anycast, routing global traffic to Global External Application Load Balancers. Crucially, within every Google Cloud VPC subnet, Google automatically reserves exactly 4 IP addresses that cannot be assigned to VMs: the network address (first IP, <code>.0</code> in <code>/24</code>), the subnet default gateway (second IP, <code>.1</code> in <code>/24</code>), the second-to-last address (reserved by Google for future capabilities, <code>.254</code> in <code>/24</code>), and the broadcast address (last IP, <code>.255</code> in <code>/24</code>). For Google-managed services such as Cloud SQL and Memorystore, enterprises configure Private Services Access (PSA) by reserving dedicated RFC 1918 CIDR blocks.</p>
+<p>This topic belongs on Day 50 because managed databases require deterministic IP reservations to prevent address overlap with corporate networks. In architecture design, internal address reservations ensure that database endpoints remain fixed throughout multi-year application lifecycles.</p>
+<p>When a team fails to formally reserve a static internal IP for an on-premises database forwarder, dynamic DHCP assigns the IP to a newly spun-up temporary VM. Two distinct servers respond to database queries on the same IP, corrupting transactional state and causing 1,400 duplicate order submissions in the ERP.</p>
+<p><a href="#topic-05-technical">Technical discussion →</a> <a href="#topic-05-problem">Real-world problem →</a> <a href="#topic-05-lab">Topic lab →</a></p>
+</article>
+
+<article id="topic-06-overview" class="topic-card">
+<h3>Private Google Access and Private Service Connect: secure private API consumption</h3>
+<p>Cloud workloads frequently require private, high-bandwidth access to Google APIs (Cloud Storage, BigQuery, Secret Manager) and third-party SaaS without traversing the public internet or provisioning expensive NAT gateways. Google Cloud provides two primary architectural solutions: Private Google Access (PGA) and Private Service Connect (PSC). Private Google Access is a subnet-level boolean toggle that enables instances with only private internal IPs to reach Google APIs using special VIP ranges (<code>restricted.googleapis.com</code> at <code>199.36.153.4/30</code>, which enforces VPC Service Controls perimeter compliance, or <code>private.googleapis.com</code> at <code>199.36.153.8/30</code>) via a next-hop route to the default internet gateway. Private Service Connect (PSC) provides an endpoint-centric model: consumers allocate a dedicated private internal IP address in their own local subnet and attach a PSC forwarding rule targeting either Google APIs or a producer Service Attachment. PSC eliminates VPC peering limits, prevents RFC 1918 CIDR overlaps via producer NAT subnets, and enforces standard consumer-side VPC firewall rules.</p>
+<p>This topic belongs on Day 50 because zero-trust enterprise security requires eliminating all outbound internet pathways while retaining high-bandwidth access to Google Cloud managed services. In production systems, PGA and PSC form the private transit bridge between internal microservices and cloud platform APIs.</p>
+<p>When an internal batch processing service lacks Private Google Access configuration, instances attempting to export order archives to Cloud Storage fail with connection timeout errors because the subnet lacks internet egress. Daily financial reconciliation batches stall, delaying end-of-day sales reporting to corporate leadership.</p>
+<p><a href="#topic-06-technical">Technical discussion →</a> <a href="#topic-06-problem">Real-world problem →</a> <a href="#topic-06-lab">Topic lab →</a></p>
+</article>
+
+</section>
+
+<!-- ================= PART 2 ================= -->
+<section id="part-2" class="part">
+<h2>Part 2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Firewall Rules Architecture: Evaluation Order, Service Account Targeting, and Logging</h3>
+<p>Google Cloud firewall rules operate as a fully distributed, stateful packet filter implemented directly in the Andromeda hypervisor layer. Filtering occurs at the virtual network interface card (vNIC) of each Compute Engine instance and GKE node before packets touch guest OS networking. Because rules are stateful, when an ingress connection is permitted, return egress traffic for that session is automatically allowed regardless of egress firewall rules; conversely, when an outbound connection is permitted, return ingress packets are automatically accepted:</p>
+
+<ul>
+<li><strong>Rule Attributes and Direction:</strong>
+  <ul>
+  <li><em>Direction:</em> Ingress rules inspect incoming packets, filtering on source IP/tags/service accounts and destination ports/protocols. Egress rules inspect outbound packets, filtering on destination CIDRs/ports and source tags/service accounts.</li>
+  <li><em>Priority:</em> Integer between 0 (highest precedence) and 65535 (lowest precedence). Andromeda evaluates rules in ascending numerical order; the first matching rule terminates evaluation and determines packet disposition.</li>
+  <li><em>Action:</em> Explicit <code>ALLOW</code> or <code>DENY</code>.</li>
+  <li><em>Protocols &amp; Ports:</em> Layer 4 protocols (TCP, UDP, ICMP, ESP, AH, SCTP) and port ranges.</li>
+  </ul>
+</li>
+<li><strong>Target Identity: Network Tags vs. Service Accounts:</strong>
+  <ul>
+  <li><em>Network Tags (Permissive String Labels):</em> Network tags are arbitrary user-defined strings (e.g. <code>frontend-web</code>, <code>db-client</code>) attached to instance metadata. Any user granted <code>compute.instances.setTags</code> or Compute Instance Admin can edit tags on a VM, effectively altering its firewall exposure and enabling privilege escalation. Furthermore, network tags do not cross project boundaries in Shared VPC deployments.</li>
+  <li><em>Service Accounts (Cryptographic IAM Identity):</em> Target service accounts (e.g. <code>sa-payment-processor@project.iam.gserviceaccount.com</code>) bind firewall rules to cryptographically authenticated Google Cloud IAM identities. Because attaching a service account requires strict <code>iam.serviceAccounts.actAs</code> permission, developers cannot arbitrarily escalate network privileges without security authorization. Service account rules evaluate seamlessly across host and service projects in Shared VPC landing zones.</li>
+  </ul>
+</li>
+<li><strong>Implied VPC Rules:</strong> Every VPC network automatically instantiates two non-deletable implied rules at priority 65535:
+  <ul>
+  <li><em>Implied Allow Egress (Priority 65535):</em> Permits all outbound IPv4 traffic from all instances to all destinations (<code>0.0.0.0/0</code>) unless blocked by a higher-priority custom deny rule.</li>
+  <li><em>Implied Deny Ingress (Priority 65535):</em> Drops all unsolicited inbound IPv4 traffic from all sources (<code>0.0.0.0/0</code>) unless explicitly permitted by a higher-priority custom allow rule.</li>
+  </ul>
+</li>
+<li><strong>Firewall Rules Logging:</strong> Captures 5-tuple connection metadata (source IP, source port, destination IP, destination port, protocol), byte/packet counts, matched rule IDs, and instance details directly into Cloud Logging. Architects configure sample rates (from 0.0 to 1.0) and metadata inclusion to audit compliance and detect malicious lateral scanning without impacting data-plane throughput.</li>
+</ul>
+
+<div class="table-wrap">
+<table>
+<caption>Table 50.1: Google Cloud Firewall Architecture Comparison: Hierarchical Policies vs. Network Policies vs. Legacy VPC Rules</caption>
+<thead>
+<tr>
+<th scope="col">Dimension</th>
+<th scope="col">Hierarchical Firewall Policies</th>
+<th scope="col">Network Firewall Policies (Global/Regional)</th>
+<th scope="col">Legacy VPC Firewall Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Resource Attachment</strong></td>
+<td>Organization or Folder nodes in resource hierarchy.</td>
+<td>One or more VPC networks across projects.</td>
+<td>Single VPC network only (uncontained).</td>
+</tr>
+<tr>
+<td><strong>Precedence &amp; Hierarchy</strong></td>
+<td>Evaluated 1st: Enforces mandatory enterprise guardrails.</td>
+<td>Evaluated 2nd: Project VPC level rules.</td>
+<td>Evaluated 3rd: Legacy flat evaluation.</td>
+</tr>
+<tr>
+<td><strong>Delegation (<code>goto_next</code>)</strong></td>
+<td>Supported: Delegates evaluation down to child policies.</td>
+<td>Not supported: Terminal <code>ALLOW</code> or <code>DENY</code> action.</td>
+<td>Not supported: Terminal <code>ALLOW</code> or <code>DENY</code> action.</td>
+</tr>
+<tr>
+<td><strong>Target Filtering Options</strong></td>
+<td>Secure Tags, Service Accounts, CIDRs.</td>
+<td>Secure Tags, Service Accounts, FQDNs, Geolocation.</td>
+<td>Network Tags, Service Accounts, CIDRs.</td>
+</tr>
+<tr>
+<td><strong>Rule Reusability</strong></td>
+<td>Inherited automatically by all child projects.</td>
+<td>Reusable policy container attached to multiple VPCs.</td>
+<td>None: Sprawling rules duplicated per VPC.</td>
+</tr>
+<tr>
+<td><strong>Threat Intelligence &amp; FQDN</strong></td>
+<td>Supports Google Cloud Threat Intelligence lists.</td>
+<td>Supports Threat Intelligence lists, FQDN egress, and GeoIP.</td>
+<td>L3/L4 CIDRs, protocols, and ports only.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="table-wrap">
+<table>
+<caption>Table 50.2: Firewall Target Security Comparison: Network Tags vs. Service Accounts</caption>
+<thead>
+<tr>
+<th scope="col">Dimension</th>
+<th scope="col">Network Tags (Legacy / Insecure)</th>
+<th scope="col">Service Accounts (Enterprise Standard)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Security Boundary</strong></td>
+<td>Arbitrary string metadata label.</td>
+<td>Cryptographically verified Google Cloud IAM identity.</td>
+</tr>
+<tr>
+<td><strong>Modification Permission</strong></td>
+<td><code>compute.instances.setTags</code> (granted to VM editors).</td>
+<td><code>iam.serviceAccounts.actAs</code> (strictly restricted to IAM admins).</td>
+</tr>
+<tr>
+<td><strong>Privilege Escalation Risk</strong></td>
+<td>High: Developers can attach tags to bypass database perimeters.</td>
+<td>Low: Unauthorized developers cannot adopt privileged identities.</td>
+</tr>
+<tr>
+<td><strong>Shared VPC Scope</strong></td>
+<td>Tags cannot cross project boundaries in Shared VPC.</td>
+<td>Service accounts evaluate seamlessly across host and service projects.</td>
+</tr>
+<tr>
+<td><strong>Stateful Tracking</strong></td>
+<td>Enforced at vNIC based on instance tag presence.</td>
+<td>Enforced at vNIC based on authenticated service account identity.</td>
+</tr>
+<tr>
+<td><strong>Compliance Standard</strong></td>
+<td>Disallowed for production data tiers in PCI-DSS / HIPAA.</td>
+<td>Mandatory architectural baseline for all sensitive data tiers.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<!-- Part 2 Architecture SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d50-arch-title d50-arch-desc" viewBox="0 0 1000 520" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d50-arch-title">Google Cloud Multi-Tier Firewall Hierarchy and Private API Access Architecture</title>
+<desc id="d50-arch-desc">Comprehensive architecture diagram illustrating hierarchical firewall policy evaluation from Organization and Folder policies down to VPC network policies and implied rules, alongside identity boundary enforcement (Tags vs SAs) and private transit options (Private Google Access VIP routing and Private Service Connect zero-peering endpoints).</desc>
+<defs>
+<marker id="d50-a-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d50-g-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d50-r-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d50-y-arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+</defs>
+
+<!-- Left Panel: Firewall Hierarchy & Identity -->
+<rect x="20" y="20" width="470" height="480" rx="6" fill="#0d111f" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="44" fill="#38bdf8" font-size="12" font-weight="700">HIERARCHICAL POLICY &amp; IDENTITY EVALUATION</text>
+
+<!-- Org Policy -->
+<rect x="35" y="58" width="440" height="66" rx="4" fill="#161b33" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="48" y="76" fill="#fce7f3" font-size="11" font-weight="700">1. Organization Firewall Policy (Root Level)</text>
+<text x="48" y="93" fill="#f43f5e" font-size="10">Prio 500: DENY Ingress 0.0.0.0/0 on TCP 22 &amp; 3389 (Global Perimeter)</text>
+<text x="48" y="109" fill="#22c55e" font-size="10">Prio 600: goto_next RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)</text>
+
+<!-- Folder Policy -->
+<rect x="35" y="132" width="440" height="54" rx="4" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="48" y="150" fill="#fce7f3" font-size="11" font-weight="700">2. Folder Firewall Policy (Environment Level)</text>
+<text x="48" y="167" fill="#38bdf8" font-size="10">Prio 1000: goto_next Ingress from Interconnect WAN (192.168.0.0/16)</text>
+<text x="48" y="180" fill="#a9b7cb" font-size="9">Action goto_next delegates evaluation downward to project VPC</text>
+
+<!-- VPC Network Firewall Policy -->
+<rect x="35" y="194" width="440" height="152" rx="4" fill="#161b33" stroke="#22c55e" stroke-width="1.2"/>
+<text x="48" y="212" fill="#22c55e" font-size="11" font-weight="700">3. Network Firewall Policy (Project VPC Layer)</text>
+<text x="48" y="228" fill="#fce7f3" font-size="10">Prio 100: ALLOW Ingress TCP 5432 target-sa: sa-db-backend</text>
+
+<!-- Identity Evaluation Box -->
+<rect x="48" y="238" width="414" height="98" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="58" y="254" fill="#22c55e" font-size="10" font-weight="700">Identity Boundary Enforcement at vNIC:</text>
+<text x="58" y="271" fill="#fce7f3" font-size="9">• VM-A (SA: sa-order-backend) -&gt; PostgreSQL [sa-db-backend]: MATCH 100 -&gt; ALLOW</text>
+<text x="58" y="288" fill="#f43f5e" font-size="9">• VM-B (Tag: db-client, SA: sa-dev) -&gt; PostgreSQL: Tag Ignored! No ActAs permission</text>
+<text x="58" y="304" fill="#f43f5e" font-size="9">  Fall-through to Implied Deny Ingress -&gt; PACKET DROPPED</text>
+<text x="58" y="322" fill="#a9b7cb" font-size="8">Firewall rule logging records 5-tuple connection metadata with sample-rate=1.0</text>
+
+<!-- Implied VPC Rules -->
+<rect x="35" y="354" width="440" height="66" rx="4" fill="#161b33" stroke="#1e293b" stroke-width="1.2"/>
+<text x="48" y="372" fill="#a9b7cb" font-size="11" font-weight="700">4. Implied VPC Rules (Priority 65535, Lowest)</text>
+<text x="48" y="389" fill="#f43f5e" font-size="10">• Implied DENY Ingress (0.0.0.0/0): Drops all unpermitted inbound packets</text>
+<text x="48" y="405" fill="#22c55e" font-size="10">• Implied ALLOW Egress (0.0.0.0/0): Permits all outbound connections</text>
+
+<!-- Summary Callout -->
+<rect x="35" y="428" width="440" height="62" rx="4" fill="#1b1d2e" stroke="#38bdf8" stroke-width="1"/>
+<text x="48" y="445" fill="#38bdf8" font-size="10" font-weight="700">Security Architecture Key Principle:</text>
+<text x="48" y="461" fill="#fce7f3" font-size="9">Service Accounts are cryptographic identity credentials governed by IAM actAs.</text>
+<text x="48" y="476" fill="#fce7f3" font-size="9">Network Tags are mutable text strings editable by Compute Instance Admins.</text>
+
+<!-- Right Panel: Private API Access (PGA vs PSC) -->
+<rect x="510" y="20" width="470" height="480" rx="6" fill="#0d111f" stroke="#1e293b" stroke-width="1.5"/>
+<text x="525" y="44" fill="#38bdf8" font-size="12" font-weight="700">PRIVATE GOOGLE API &amp; PRODUCER ACCESS (PGA vs PSC)</text>
+
+<!-- Subnet A: Private Google Access -->
+<rect x="525" y="58" width="440" height="198" rx="4" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="538" y="76" fill="#38bdf8" font-size="11" font-weight="700">Channel A: Private Google Access (PGA) — Subnet Level</text>
+<text x="538" y="93" fill="#fce7f3" font-size="10">Subnet: prod-app-subnet (10.10.1.0/24) | enable-private-ip-google-access=true</text>
+
+<!-- PGA Inner details -->
+<rect x="538" y="103" width="414" height="142" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+<text x="548" y="120" fill="#fce7f3" font-size="9">VM 10.10.1.5 (Internal IP only; No public IP, No Cloud NAT required)</text>
+<line x1="548" y1="128" x2="940" y2="128" stroke="#1e293b" stroke-width="1"/>
+<text x="548" y="142" fill="#a9b7cb" font-size="9">1. DNS Request: storage.googleapis.com -&gt; Cloud DNS Private Response Policy</text>
+<text x="548" y="157" fill="#22c55e" font-size="9">2. Resolves CNAME: restricted.googleapis.com -&gt; 199.36.153.4/30 (.4, .5, .6, .7)</text>
+<text x="548" y="172" fill="#a9b7cb" font-size="9">3. Route next-hop: default-internet-gateway (Intercepted by Andromeda SDN)</text>
+<text x="548" y="187" fill="#38bdf8" font-size="9">4. Transit: 100% Google Private Backbone (Zero public internet exposure)</text>
+<text x="548" y="202" fill="#f59e0b" font-size="9">5. Perimeter: VPC Service Controls enforced; exfiltration blocked</text>
+<text x="548" y="217" fill="#a9b7cb" font-size="8">Note: private.googleapis.com (199.36.153.8/30) supports non-VPC-SC Google APIs</text>
+
+<!-- Subnet B: Private Service Connect -->
+<rect x="525" y="264" width="440" height="226" rx="4" fill="#161b33" stroke="#22c55e" stroke-width="1.2"/>
+<text x="538" y="282" fill="#22c55e" font-size="11" font-weight="700">Channel B: Private Service Connect (PSC) — Endpoint Level</text>
+<text x="538" y="299" fill="#fce7f3" font-size="10">Consumer Subnet: analytics-subnet (10.10.2.0/24)</text>
+
+<!-- PSC Inner details -->
+<rect x="538" y="309" width="414" height="170" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1"/>
+<text x="548" y="325" fill="#fce7f3" font-size="9">Local Consumer Endpoint: 10.10.2.100 (Forwarding Rule: psc-endpoint)</text>
+<line x1="548" y1="333" x2="940" y2="333" stroke="#1e293b" stroke-width="1"/>
+<text x="548" y="347" fill="#22c55e" font-size="9">1. Zero VPC Peering: Independent administrative &amp; quota domains</text>
+<text x="548" y="362" fill="#22c55e" font-size="9">2. Zero CIDR Overlap Risk: Producer &amp; consumer can both use 10.10.0.0/16</text>
+<text x="548" y="377" fill="#38bdf8" font-size="9">3. Producer Service Attachment translates via PSC NAT Subnet (100.100.0.0/24)</text>
+<text x="548" y="392" fill="#a9b7cb" font-size="9">4. Target: Google APIs (all-apis / vpc-sc) OR third-party managed SaaS</text>
+<text x="548" y="407" fill="#fce7f3" font-size="9">5. Consumer Firewall: Standard local VPC rules inspect/allow traffic to 10.10.2.100</text>
+<text x="548" y="422" fill="#a9b7cb" font-size="9">6. Telemetry: Granular VPC Flow Logs and metrics on consumer endpoint</text>
+<text x="548" y="437" fill="#a9b7cb" font-size="8">Destination hypervisor routes direct to producer Internal Load Balancer</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> Multi-tier Google Cloud Firewall Hierarchy and Private API Access architecture. The left panel shows the evaluation progression from Organization and Folder policies (utilizing <code>goto_next</code> delegation) down to VPC network policies enforcing cryptographic Service Account identity boundaries and implied VPC rules; the right panel contrasts Private Google Access (subnet-level VIP routing to <code>199.36.153.4/30</code>) with Private Service Connect (dedicated consumer-side internal IP endpoints with zero VPC peering and zero CIDR overlap risk).<br>
+<strong>Scope:</strong> Hierarchical security policy evaluation, service account identity boundaries, private Google API egress, and PSC consumer endpoint forwarding.<br>
+<strong>What it does not prove:</strong> It does not prove that VPC Service Controls ingress/egress perimeter rules permit cross-organization data exchange, nor does it benchmark throughput performance between PGA and PSC endpoints under line-rate load.
+</figcaption>
+</figure>
+
+<p><strong>Further study:</strong> <a href="https://cloud.google.com/firewall/docs/firewalls">Google Cloud Firewalls Overview</a> and <a href="https://cloud.google.com/vpc/docs/private-access-options">Private Access Options for Services</a> provide authoritative guidance; cross-reference <a href="../sources.html#topic-016">Topic 016 references</a> for enterprise firewall governance.</p>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Hierarchical and Network Firewall Policies: Rules and Actions</h3>
+<p>Hierarchical firewall policies allow organization security administrators to program global defensive perimeters that cannot be modified or deleted by project-level developers:</p>
+
+<ul>
+<li><strong>Evaluation Order and Hierarchy:</strong> Organization policies evaluate first, followed by Folder policies (from root folder to leaf folder), followed by Global Network Firewall policies, Regional Network Firewall policies, and finally implied VPC rules.</li>
+<li><strong>Policy Actions:</strong>
+  <ul>
+  <li><code>ALLOW</code>: Explicitly permits the packet; rule evaluation terminates immediately.</li>
+  <li><code>DENY</code>: Explicitly drops the packet; rule evaluation terminates immediately.</li>
+  <li><code>goto_next</code>: Explicitly matches a condition (e.g. internal RFC 1918 traffic) but delegates the final accept/deny decision down to the next hierarchical policy or project VPC policy in the chain. Without <code>goto_next</code>, broad organization allow or deny rules prematurely terminate evaluation, preventing lower-tier project teams from enforcing granular subnet controls.</li>
+  </ul>
+</li>
+<li><strong>Advanced Capabilities of Network Firewall Policies:</strong>
+  <ul>
+  <li><em>Secure Tags:</em> Cryptographically verifiable tags managed by Resource Manager IAM, preventing instance admins from altering tag assignments without explicit organization authorization.</li>
+  <li><em>FQDN Domain Objects:</em> Layer 7 egress domain filtering allowing administrators to permit outbound HTTPS strictly to approved domains (e.g. <code>*.brightloaf.com</code>, <code>api.github.com</code>) without maintaining dedicated third-party proxy appliances.</li>
+  <li><em>Cloud Threat Intelligence Integration:</em> Pre-curated, continuously updated IP reputation lists identifying Tor exit nodes, known cryptominers, and malicious botnet command-and-control servers.</li>
+  <li><em>Geolocation Matching:</em> Filtering traffic based on ISO two-letter country codes to enforce sovereign data residency and regional compliance boundaries.</li>
+  </ul>
+</li>
+</ul>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>IP Address Architecture: External vs. Internal and Network Service Tiers</h3>
+<p>When an instance in Google Cloud is assigned an external IP address, the IP is not bound directly to the operating system's virtual network interface (vNIC). Running <code>/sbin/ip addr show</code> inside a Linux guest VM displays only the internal RFC 1918 address (e.g. <code>10.10.0.5</code>). The Andromeda hypervisor maintains a 1:1 NAT mapping table in host memory:</p>
+<ul>
+<li><strong>Inbound Packets (DNAT):</strong> Inbound packets addressed to the external IP (e.g. <code>34.120.50.12</code>) are intercepted by the physical host hypervisor, rewritten via Destination NAT (DNAT) to <code>10.10.0.5</code>, and forwarded to the virtual NIC.</li>
+<li><strong>Outbound Packets (SNAT):</strong> Outbound packets originating from <code>10.10.0.5</code> destined for the internet are rewritten via Source NAT (SNAT) to <code>34.120.50.12</code> at the host egress boundary.</li>
+</ul>
+
+<p>Google Cloud routes external traffic across two distinct Network Service Tiers:</p>
+<ul>
+<li><strong>Premium Tier (Default):</strong> Leverages Google's global private fiber backbone. Inbound traffic enters Google's network at the edge Point of Presence (PoP) nearest to the client ("cold-potato" routing). Outbound traffic traverses Google's private backbone until exiting at the PoP closest to the client. Guarantees lowest latency, highest availability, and supports Global External Application Load Balancers and Cloud CDN.</li>
+<li><strong>Standard Tier:</strong> Delivers outbound traffic to the public internet transit provider at the PoP closest to the GCP data center hosting the VM ("hot-potato" routing). Packets traverse third-party transit ISPs, resulting in variable latency and no global load balancing capabilities, but at a reduced bandwidth price point.</li>
+</ul>
+<p>Because external IPs incur continuous billing charges and expose compute instances to brute-force attacks, production architectures isolate all VMs to internal-only IPs, relying on Cloud NAT for outbound package updates and Cloud Armor Application Load Balancers for inbound web traffic.</p>
+</article>
+
+<article id="topic-04-technical" class="topic-card">
+<h3>Ephemeral vs. Static IP Lifecycles, Scope, and Cost Governance</h3>
+<p>Google Cloud differentiates between ephemeral and static IP addresses across internal and external address pools:</p>
+
+<ul>
+<li><strong>Ephemeral IP Lifecycle:</strong> Allocated dynamically from Google's shared pool upon resource launch. If a VM is stopped, terminated, or deleted, its ephemeral IP address is permanently released back to Google's shared pool; upon restarting, the VM receives an entirely different IP address. Ephemeral IPs are suitable only for stateless batch workers and autoscaled Managed Instance Groups.</li>
+<li><strong>Static IP Reservation:</strong> Explicitly reserved in an enterprise GCP project. The IP address remains permanently bound to the project until explicitly deleted, surviving VM reboots, instance recreation, and maintenance events.</li>
+<li><strong>In-Place IP Promotion:</strong> Administrators can promote an active ephemeral IP address to a static reserved IP with zero downtime via the command-line interface or console, preserving external partner whitelists.</li>
+<li><strong>FinOps and Cost Governance of Unattached Static IPs:</strong> To prevent IPv4 address hoarding and incentivize public IPv4 stewardship, Google Cloud charges an hourly fee for static external IP addresses that are reserved but not attached to an active running compute instance or forwarding rule. Unattached internal IP reservations incur no fee within subnet quotas.</li>
+</ul>
+
+<div class="table-wrap">
+<table>
+<caption>Table 50.3: Architectural Comparison: Private Google Access (PGA) vs. Private Service Connect (PSC)</caption>
+<thead>
+<tr>
+<th scope="col">Dimension</th>
+<th scope="col">Private Google Access (PGA)</th>
+<th scope="col">Private Service Connect (PSC) Endpoints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Configuration Scope</strong></td>
+<td>Subnet-level attribute (enabled via checkbox or CLI flag).</td>
+<td>Explicit forwarding rule with a reserved local subnet IP address.</td>
+</tr>
+<tr>
+<td><strong>Destination IP Address</strong></td>
+<td>Routes to shared Google VIPs: <code>restricted.googleapis.com</code> (<code>199.36.153.4/30</code>) or <code>private.googleapis.com</code> (<code>199.36.153.8/30</code>).</td>
+<td>Dedicated internal IP from consumer's own local subnet (e.g. <code>10.10.2.100</code>).</td>
+</tr>
+<tr>
+<td><strong>Route Requirement</strong></td>
+<td>Requires default route (<code>0.0.0.0/0</code>) pointing to <code>default-internet-gateway</code> (intercepted by Andromeda).</td>
+<td>Uses standard local subnet route (Priority 0); zero internet gateway route required.</td>
+</tr>
+<tr>
+<td><strong>DNS Resolution</strong></td>
+<td>Requires Cloud DNS response policy or private zone mapping <code>*.googleapis.com</code> to VIP.</td>
+<td>Custom private DNS name (e.g. <code>storage-psc.brightloaf.internal</code>) or standard DNS override.</td>
+</tr>
+<tr>
+<td><strong>Firewall Policy Control</strong></td>
+<td>Requires firewall rules permitting egress to destination <code>199.36.153.4/30</code> or <code>199.36.153.8/30</code>.</td>
+<td>Standard VPC firewall rules control access to the local internal IP endpoint.</td>
+</tr>
+<tr>
+<td><strong>Third-Party / Custom Services</strong></td>
+<td>Strictly limited to Google Cloud APIs.</td>
+<td>Supports Google APIs, external multi-tenant SaaS (Snowflake, Databricks), and internal producer services across different GCP organizations.</td>
+</tr>
+<tr>
+<td><strong>Overlapping CIDR Support</strong></td>
+<td>Not applicable (Google VIPs are public-range Anycast blocks).</td>
+<td>Fully supported: Producer and consumer can use identical CIDRs via producer PSC NAT subnet.</td>
+</tr>
+<tr>
+<td><strong>VPC Service Controls</strong></td>
+<td>Supported via <code>restricted.googleapis.com</code> VIP (<code>199.36.153.4/30</code>).</td>
+<td>Fully supported via <code>vpc-sc</code> target bundle or Service Attachment.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="table-wrap">
+<table>
+<caption>Table 50.4: Google Cloud IP Reservation Scopes and Allocation Lifecycle</caption>
+<thead>
+<tr>
+<th scope="col">Dimension</th>
+<th scope="col">Ephemeral IP</th>
+<th scope="col">Static Internal IP</th>
+<th scope="col">Static Regional External IP</th>
+<th scope="col">Static Global External IP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Regional subnet or dynamic external.</td>
+<td>Regional subnet primary range.</td>
+<td>Regional public pool.</td>
+<td>Global Anycast public pool.</td>
+</tr>
+<tr>
+<td><strong>Lifecycle Behavior</strong></td>
+<td>Released immediately on VM stop/terminate.</td>
+<td>Persists indefinitely until explicitly deleted.</td>
+<td>Persists indefinitely until explicitly deleted.</td>
+<td>Persists indefinitely until explicitly deleted.</td>
+</tr>
+<tr>
+<td><strong>Target Resources</strong></td>
+<td>Disposable VMs, MIG batch workers.</td>
+<td>Internal Load Balancers, database VMs, PSC endpoints.</td>
+<td>Cloud NAT gateways, Regional External ALBs.</td>
+<td>Global External ALBs, Cloud CDN edge frontends.</td>
+</tr>
+<tr>
+<td><strong>Promotion Mechanism</strong></td>
+<td>Promoted in-place to static via CLI.</td>
+<td>Not applicable (reserved in subnet).</td>
+<td>Promote ephemeral external IP.</td>
+<td>Must reserve new global Anycast IP.</td>
+</tr>
+<tr>
+<td><strong>Cost Implications</strong></td>
+<td>Standard egress rates only.</td>
+<td>Free within subnet allocation.</td>
+<td>Free when attached; hourly idle surcharge when unattached.</td>
+<td>Free when attached; hourly idle surcharge when unattached.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</article>
+
+<article id="topic-05-technical" class="topic-card">
+<h3>Reserved Addresses: Internal IP Reservations, Anycast VIPs, and Subnet Reserved IPs</h3>
+<p>Google Cloud manages deterministic address reservations to maintain infrastructure consistency across reboots and autoscaling events:</p>
+
+<ul>
+<li><strong>Static Internal IP Reservations:</strong> Administrators reserve explicit IP addresses within subnet primary ranges (e.g. <code>10.10.0.50</code>) for Internal Load Balancers (ILBs), database clusters, and virtual network appliances. Andromeda marks the address as reserved in its IPAM database, preventing dynamic Compute Engine or GKE DHCP allocations from ever assigning that IP to dynamic instances.</li>
+<li><strong>Global External Anycast IP Reservations:</strong> Global Anycast IPs are advertised worldwide via BGP from all Google edge Points of Presence. Packets destined for the Anycast VIP enter Google's network at the edge closest to the user and are routed over Google's private backbone to healthy backends distributed across multiple GCP regions.</li>
+<li><strong>VPC Subnet Reserved IP Addresses (Google 4-Address Rule):</strong> Within every Google Cloud VPC subnet, Google reserves exactly 4 IP addresses that are unavailable for VM allocation:
+  <ol>
+  <li><em>First Address (Network Address):</em> e.g. <code>10.10.0.0</code> in a <code>10.10.0.0/24</code> subnet.</li>
+  <li><em>Second Address (Subnet Default Gateway):</em> e.g. <code>10.10.0.1</code> in a <code>10.10.0.0/24</code> subnet.</li>
+  <li><em>Second-to-Last Address (Future Google Use):</em> e.g. <code>10.10.0.254</code> in a <code>10.10.0.0/24</code> subnet (reserved for internal infrastructure capabilities).</li>
+  <li><em>Last Address (Broadcast Address):</em> e.g. <code>10.10.0.255</code> in a <code>10.10.0.0/24</code> subnet.</li>
+  </ol>
+  <em>Calculation:</em> The usable host count for any subnet prefix length N is exactly 2^(32-N) - 4. For a <code>/24</code> subnet, usable hosts = 256 - 4 = 252.
+</li>
+<li><strong>Private Services Access (PSA) Reserved CIDR Blocks:</strong> Used for Google-managed tenant services (Cloud SQL, AlloyDB, Memorystore). Enterprises allocate a contiguous private CIDR block (e.g. <code>10.100.0.0/16</code>) with purpose <code>VPC_PEERING</code> and establish a private connection to <code>servicenetworking.googleapis.com</code>. Google creates a VPC peering connection to a tenant VPC managed by Google, isolating database clusters entirely from public internet transit.</li>
+</ul>
+</article>
+
+<article id="topic-06-technical" class="topic-card">
+<h3>Private Google Access (PGA) vs. Private Service Connect (PSC) Deep Dive</h3>
+<p>Workloads running on internal-only IP addresses require secure transit mechanisms to reach Google Cloud APIs and partner microservices without public internet exposure:</p>
+
+<ul>
+<li><strong>Private Google Access (PGA):</strong>
+  <ul>
+  <li><em>Mechanics:</em> Enabled via a subnet-level boolean attribute (<code>--enable-private-ip-google-access</code>). Instances must have a valid default route (<code>0.0.0.0/0</code>) with next-hop <code>default-internet-gateway</code>, even though the instances possess no public IP. Andromeda intercepts outbound packets matching Google API VIPs at the host hypervisor and directs them into Google's private network fabric.</li>
+  <li><em>VIP Domains &amp; IP Ranges:</em>
+    <ul>
+    <li><code>restricted.googleapis.com</code> (<code>199.36.153.4/30</code> — addresses <code>.4</code>, <code>.5</code>, <code>.6</code>, <code>.7</code>): Supports only VPC Service Controls (VPC-SC) compatible APIs. Inbound requests to services outside the service perimeter are rejected, mitigating data exfiltration risks.</li>
+    <li><code>private.googleapis.com</code> (<code>199.36.153.8/30</code> — addresses <code>.8</code>, <code>.9</code>, <code>.10</code>, <code>.11</code>): Supports all Google Cloud APIs and services, but does not enforce VPC-SC perimeter isolation.</li>
+    </ul>
+  </li>
+  <li><em>DNS Architecture:</em> Enterprises configure a Cloud DNS private zone for <code>googleapis.com</code> with CNAME records mapping <code>*.googleapis.com</code> to <code>restricted.googleapis.com</code>, backed by four A-records pointing to <code>199.36.153.4/30</code>.</li>
+  </ul>
+</li>
+<li><strong>Private Service Connect (PSC):</strong>
+  <ul>
+  <li><em>Consumer Endpoint Mechanics:</em> A consumer VPC provisions a forwarding rule associated with a reserved private IP address from its own local subnet (e.g. <code>10.10.2.100</code>). Packets sent to this internal IP are routed across Andromeda directly to the producer service.</li>
+  <li><em>Zero VPC Peering:</em> Eliminates VPC peering limits, transitive routing restrictions, and cross-organization administrative friction.</li>
+  <li><em>Zero CIDR Overlap Risk:</em> The producer VPC configures a dedicated PSC NAT subnet (<code>--purpose=PRIVATE_SERVICE_CONNECT</code>). Andromeda performs 1:1 NAT mapping at the Service Attachment boundary, allowing producer and consumer VPCs to utilize identical RFC 1918 CIDR blocks (e.g. both using <code>10.0.0.0/16</code>) without collision.</li>
+  <li><em>Consumer Firewall Governance:</em> Because the endpoint is an IP in the consumer subnet, standard local VPC firewall rules apply directly, enabling fine-grained L4 ingress/egress filtering, VPC Flow Logs, and Packet Mirroring.</li>
+  </ul>
+</li>
+</ul>
+</article>
+
+</section>
+
+<!-- ================= PART 3 ================= -->
+<section id="part-3" class="part">
+<h2>Part 3 · Real-world problem and solution for each topic</h2>
+
+<article id="topic-01-problem" class="topic-card">
+<h3>Network Tag Privilege Escalation and Database Perimeter Breach · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's primary PostgreSQL customer database in <code>us-central1</code> was protected by a VPC firewall rule: <code>ALLOW TCP 5432, target-tags: db-client</code>. A junior developer working on an internal reporting tool added the network tag <code>db-client</code> to an unhardened development VM to test database queries. Three weeks later, attackers compromised the development VM via an unpatched web shell, discovered direct network connectivity to the production PostgreSQL cluster, and dumped 40,000 customer payment tokens, triggering a catastrophic PCI-DSS compliance failure.</p>
+
+<p><strong>Constraints:</strong> Must restrict database access strictly to authorized microservices; must prevent compute instance editors from escalating network privileges; and must satisfy PCI-DSS audit logging requirements.</p>
+
+<p><strong>Diagnosis and solution:</strong> The incident root cause was using mutable network tags as a security perimeter. Network tags require only <code>compute.instances.setTags</code>, allowing developers to bypass firewall boundaries at will. The architectural solution was replacing network tag filters with <strong>Service Account targeting</strong>: <code>ALLOW TCP 5432, target-service-accounts: sa-order-backend@brightloaf.iam.gserviceaccount.com</code>. Attaching this service account requires strict <code>iam.serviceAccounts.actAs</code> permission, which is restricted to security administrators. Furthermore, Firewall Rules Logging was enabled on the rule, logging all connection attempts to Security Command Center.</p>
+
+<!-- Incident 1 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d50-i1-title d50-i1-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d50-i1-title">Incident 1: Network Tag Privilege Escalation vs Service Account Targeting</title>
+<desc id="d50-i1-desc">Incident diagram showing failed path where a mutable network tag allowed an unhardened VM to access production database, followed by corrected path enforcing cryptographic service account authorization.</desc>
+<defs>
+<marker id="d50-i1-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d50-i1-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Dev VM Compromise</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">Unhardened VM</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">Tag: db-client added</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Target: DB 10.10.0.50</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i1-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Tag Escalation</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">Mutable tag grants access</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">No IAM actAs gate enforced</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Attacker accesses port 5432</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i1-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Data Exfiltration</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">40k payment tokens stolen</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">PCI-DSS compliance breach</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: tag-based security</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i1-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">Data Breach</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">PCI Audit Fail</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i1-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Target Service Account only</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Requires iam.actAs permission</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Tags ignored by firewall</text>
+
+<line x1="480" y1="192" x2="550" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i1-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Access Denied (Dropped)</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Dev VM packet dropped at vNIC</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Firewall rule log alerted</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i1-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">Zero Breach</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> A compromised development VM accessed port 5432 on the production PostgreSQL cluster by adopting the mutable network tag db-client; 40,000 customer payment tokens were exfiltrated.<br>
+<strong>Architectural inference:</strong> Network tags provide zero cryptographic identity protection and can be attached by any user with instance update rights, bypassing intended network segmentation.<br>
+<strong>Expected post-fix behavior:</strong> Rebuilding the firewall rule with target service account authorization restricts access exclusively to authenticated workloads, dropping unauthorized packets at the hypervisor.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Service accounts apply to the entire virtual machine. If multiple applications run on the same VM, they all share that identity. Containerized workloads on GKE should enforce pod-level Dataplane V2 Network Policies to achieve process-level segmentation.</p>
+</article>
+
+<article id="topic-02-problem" class="topic-card">
+<h3>Hierarchical Policy Shadowing and Internal Network Partition · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's central cybersecurity team rolled out an organization-wide Hierarchical Firewall Policy intended to block all inbound and outbound internet traffic. The policy included a rule: <code>Priority 500: DENY Egress destination: 0.0.0.0/0</code>. Within 60 seconds of applying the policy, internal order processing across all GCP projects broke completely. Microservices in project <code>brightloaf-order</code> could no longer communicate with Cloud SQL databases in project <code>brightloaf-db</code>, halting all bakery checkout operations worldwide.</p>
+
+<p><strong>Constraints:</strong> Must block unauthorized public internet egress across the entire organization; must permit internal RFC 1918 traffic between projects; and cannot manage rules project-by-project.</p>
+
+<p><strong>Diagnosis and solution:</strong> The organization-level DENY egress rule matched destination <code>0.0.0.0/0</code>, which encompasses ALL IPv4 addresses—including internal private RFC 1918 ranges (<code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, <code>192.168.0.0/16</code>). Because hierarchical policies evaluate before project VPC rules and lack implied allow behaviors, all inter-project and intra-VPC packets were dropped. The solution required inserting an organization-level rule at <code>Priority 400: ALLOW/goto_next Egress destination: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16</code> with action <code>goto_next</code>. This exempted internal private traffic from the internet egress block and delegated project-specific filtering down to project network policies.</p>
+
+<!-- Incident 2 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d50-i2-title d50-i2-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d50-i2-title">Incident 2: Hierarchical Policy 0.0.0.0/0 Egress Block vs goto_next RFC 1918 Exemption</title>
+<desc id="d50-i2-desc">Incident diagram showing failed path where a broad 0.0.0.0/0 org egress rule severed internal RFC 1918 traffic, followed by corrected path inserting a priority 400 goto_next exemption for private networks.</desc>
+<defs>
+<marker id="d50-i2-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d50-i2-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Security Rollout</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">Org Policy Applied</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">Block internet egress</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Scope: Entire GCP Org</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i2-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: 0.0.0.0/0 Deny</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">Priority 500 DENY matches all</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">Catches RFC 1918 traffic</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Bypasses project allow rules</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i2-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Internal Partition</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">App cannot reach Cloud SQL</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">100% packet loss on 10.10.0.0</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: un-delegated rule</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i2-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">Global Outage</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">4hr Recovery</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i2-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Priority 400: goto_next</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Match: 10.0.0.0/8, 172.16.0.0/12</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Delegates RFC 1918 to VPC</text>
+
+<line x1="480" y1="192" x2="550" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i2-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">RFC 1918 Preserved</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Internal DB traffic passes</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Internet 0.0.0.0/0 still blocked</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i2-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">Secure &amp; Live</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Applying an organization-level DENY 0.0.0.0/0 egress rule severed internal communication between microservices and Cloud SQL, causing a 4-hour global checkout outage.<br>
+<strong>Architectural inference:</strong> Hierarchical firewall policies evaluate prior to local VPC rules; a blanket 0.0.0.0/0 deny drops internal private RFC 1918 packets unless explicitly delegated downward.<br>
+<strong>Expected post-fix behavior:</strong> Adding a higher-priority (400) rule matching RFC 1918 CIDRs with action goto_next preserves internal microservice traffic while continuing to block unapproved public internet egress.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Using <code>goto_next</code> delegates authority to project admins. To prevent project teams from opening unauthorized internal ports, folder-level policies should define strict baseline inspection rules before delegating.</p>
+</article>
+
+<article id="topic-03-problem" class="topic-card">
+<h3>Accidental Public IP Exposure on Backend Database Workers · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's data engineering team used an unverified Terraform module to provision an 8-node compute cluster processing confidential customer purchase trends. The Terraform module defaulted <code>access_config {}</code> to enabled, assigning public external IPv4 addresses to all eight worker nodes. Within 48 hours, security automated port scanning detected exposed PostgreSQL and JMX monitoring ports, triggering an emergency security freeze and an unbudgeted $1,100 public IPv4 address billing surcharge.</p>
+
+<p><strong>Constraints:</strong> Worker nodes require internet egress to download security definitions; nodes must never be directly accessible from the public internet; and deployment must comply with organizational policy constraints.</p>
+
+<p><strong>Diagnosis and solution:</strong> The root cause was omitting the organization policy constraint <code>constraints/compute.vmExternalIpAccess</code> and configuring public NAT interfaces on backend worker VMs. The resolution required removing the external IP blocks from the Terraform configuration, enforcing the organization policy <code>constraints/compute.vmExternalIpAccess</code> to deny external IPs on all production projects, and routing necessary outbound internet traffic securely through Cloud NAT.</p>
+
+<!-- Incident 3 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d50-i3-title d50-i3-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d50-i3-title">Incident 3: Accidental Public IP Assignment vs Cloud NAT Private Isolation</title>
+<desc id="d50-i3-desc">Incident diagram showing failed path where Terraform access_config assigned public IPs to database workers, followed by corrected path enforcing private IPs with Cloud NAT egress.</desc>
+<defs>
+<marker id="d50-i3-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d50-i3-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Terraform Deploy</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">8 Analytics Nodes</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">Confidential DB</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">access_config: {}</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i3-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Public IPs</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">8 external IPs assigned</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">Ports exposed to internet</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Internet port scan detected</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i3-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Security Emergency</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">Production freeze triggered</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">$1,100 IPv4 surcharge bill</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: unconstrained IPs</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i3-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">Audit Halt</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">Cost Waste</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i3-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Remove access_config block</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Enforce vmExternalIpAccess Org policy</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Route egress via Cloud NAT</text>
+
+<line x1="480" y1="192" x2="550" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i3-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Zero Public Exposure</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Internal RFC 1918 IPs only</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Outbound updates pass via NAT</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i3-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">Zero Vulnerability</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> 8 database worker nodes were provisioned with public external IPv4 addresses via default Terraform configuration, triggering security alerts and an unbudgeted $1,100 IPv4 surcharge.<br>
+<strong>Architectural inference:</strong> Unrestricted project permissions allowed developers to assign public external IP addresses to private backend database instances, violating defense-in-depth principles.<br>
+<strong>Expected post-fix behavior:</strong> Removing external IP assignments and enforcing the vmExternalIpAccess organization policy isolates instances to private IPs, routing outbound traffic through Cloud NAT.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Using Cloud NAT provides outbound internet connectivity but does not perform Layer 7 content filtering. Sensitive workloads should pair Cloud NAT with Secure Web Proxy (SWP) to restrict outbound destinations by domain name.</p>
+</article>
+
+<article id="topic-04-problem" class="topic-card">
+<h3>Ephemeral External IP Churn Severing Bank Whitelist Integration · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's payments service connects to a third-party commercial bank clearinghouse to process customer credit card settlements. The bank strictly whitelists incoming connections by IP address. The payments proxy was deployed on a Compute Engine instance with an ephemeral external IP address (<code>34.120.40.15</code>). During a scheduled system patch reboot on Sunday evening, the instance stopped and restarted, automatically acquiring a new ephemeral IP: <code>35.224.18.92</code>. On Monday morning, the bank's firewall rejected 100% of payment settlement requests, accumulating over $380,000 in unsubmitted transactions and incurring merchant late settlement penalties.</p>
+
+<p><strong>Constraints:</strong> Must guarantee an immutable egress IP address for bank communication; must support high-availability failover if the proxy instance terminates; and must eliminate manual whitelist updates.</p>
+
+<p><strong>Diagnosis and solution:</strong> The incident root cause was using an ephemeral IP address for an external whitelisted API boundary. Stopping a VM automatically returns its ephemeral IP to Google's public pool. The resolution required reserving a <strong>static regional external IP address</strong>, assigning it to a regional Cloud NAT gateway, and routing payments proxy egress traffic through Cloud NAT. The static external IP remains permanently reserved and resilient to proxy instance restarts.</p>
+
+<!-- Incident 4 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d50-i4-title d50-i4-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d50-i4-title">Incident 4: Ephemeral IP Churn vs Static Cloud NAT Egress Reservation</title>
+<desc id="d50-i4-desc">Incident diagram showing failed path where a VM reboot changed its ephemeral public IP and broke bank whitelist integration, followed by corrected path binding a static external IP to Cloud NAT.</desc>
+<defs>
+<marker id="d50-i4-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d50-i4-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">OS Patch Reboot</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">Payments Proxy VM</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">Restart on Sunday</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Bank Partner Whitelist</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i4-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: IP Churn</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">Old IP (34.120...) released</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">New ephemeral IP: 35.224...</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Bank firewall rejects packets</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i4-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Settlement Failure</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">100% of transactions blocked</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">$380k settlement stalled</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: unreserved IP</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i4-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">Settlement Lock</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">Bank Penalties</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i4-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Reserve static external IP</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Bind to Cloud NAT gateway</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Fixed egress across reboots</text>
+
+<line x1="480" y1="192" x2="550" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i4-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Immutable Egress IP</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">Bank whitelist permanently valid</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Seamless VM reboot recovery</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i4-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">Settlements Active</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Payment settlement proxy instance rebooted during maintenance; ephemeral public IP address changed from 34.120.40.15 to 35.224.18.92; bank partner firewall blocked $380,000 in credit card settlements.<br>
+<strong>Architectural inference:</strong> Ephemeral IP addresses are released upon instance shutdown, breaking partner integrations that rely on static IP whitelisting.<br>
+<strong>Expected post-fix behavior:</strong> Reserving a static external IP on a Cloud NAT gateway guarantees a permanent, unchanging egress IP address across all VM reboots and scaling operations.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> A single static IP represents a bandwidth choke point if Cloud NAT port allocation is exceeded. For high-volume egress, multiple static IPs should be pooled on the Cloud NAT gateway.</p>
+</article>
+
+<article id="topic-05-problem" class="topic-card">
+<h3>Unreserved Internal IP Collisions During GKE Dynamic Scaling · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf operated an on-premises ERP database sync daemon listening on an unreserved internal IP address (<code>10.10.0.12</code>) within the primary application subnet. During a flash sale event, a GKE cluster on the same subnet scaled up 30 additional worker nodes. GKE's dynamic IP allocator assigned <code>10.10.0.12</code> to a new worker node. Two servers began responding to the same internal IP, causing ARP cache flapping, corrupting daily inventory synchronization, and dropping 5,000 order stock records.</p>
+
+<p><strong>Constraints:</strong> Must ensure critical static infrastructure IPs cannot be assigned by dynamic DHCP; cannot separate services into different VPCs; and must eliminate duplicate IP conflicts.</p>
+
+<p><strong>Diagnosis and solution:</strong> The incident was caused by running a critical static service on an internal IP address without an explicit Google Cloud internal IP reservation. The solution was formally executing an internal IP reservation:</p>
+<pre><code>gcloud compute addresses create erp-sync-ip \
+  --region=us-central1 \
+  --subnet=prod-us-central1-app \
+  --addresses=10.10.0.12</code></pre>
+<p>This locks the IP address in Andromeda's reservation table, preventing GKE or Compute Engine DHCP from ever allocating it to dynamic instances.</p>
+
+<!-- Incident 5 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d50-i5-title d50-i5-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d50-i5-title">Incident 5: Unreserved Internal IP Collision vs Formal Subnet Reservation</title>
+<desc id="d50-i5-desc">Incident diagram showing failed path where GKE dynamic scaling allocated an unreserved internal IP used by an ERP sync daemon, followed by corrected path registering a static internal IP reservation.</desc>
+<defs>
+<marker id="d50-i5-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d50-i5-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">GKE Scale Burst</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">+30 Worker Nodes</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">Dynamic DHCP in subnet</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Target: 10.10.0.0/22</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i5-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: Duplicate IP</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">DHCP assigns 10.10.0.12</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">ERP daemon already using IP</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">ARP cache flapping</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i5-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Data Corruption</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">Sync packets misrouted</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">5,000 order stock records lost</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: unreserved internal IP</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i5-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">ERP Crash</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">Stock Drift</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i5-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Reserve static internal IP</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Lock 10.10.0.12 in GCP IPAM</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">Excluded from dynamic DHCP</text>
+
+<line x1="480" y1="192" x2="550" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i5-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Zero Collision</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">DHCP skips reserved address</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">ERP sync daemon 100% stable</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i5-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">Data Integrity</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> GKE scaled up 30 worker nodes; DHCP allocated 10.10.0.12 which was already in use by an unreserved ERP sync daemon; ARP flapping corrupted 5,000 order stock records.<br>
+<strong>Architectural inference:</strong> Compute Engine and GKE DHCP allocation pools include all unreserved host addresses in a subnet, creating collisions with unreserved static endpoints.<br>
+<strong>Expected post-fix behavior:</strong> Formally registering a static internal IP address in Google Cloud locks the address permanently, excluding it from dynamic DHCP assignments and preventing IP collisions.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Reserving internal IPs consumes address space. Unused internal IP reservations should be audited and deleted regularly to avoid exhausting subnet address pools.</p>
+</article>
+
+<article id="topic-06-problem" class="topic-card">
+<h3>Missing Private Google Access Blocking Secure Storage Archive · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's nightly billing settlement pipeline runs on internal-only Compute Engine instances in a dedicated secure banking subnet (<code>10.10.4.0/24</code>). The subnet was deployed without external internet access or Cloud NAT for security compliance. At midnight, the settlement script executed <code>gsutil cp</code> to upload daily credit card transaction summaries to Cloud Storage. All upload requests hung indefinitely and failed with <code>Connection timed out: Could not connect to storage.googleapis.com:443</code>. Daily bank reconciliations were delayed by 6 hours, triggering executive escalation.</p>
+
+<p><strong>Constraints:</strong> Subnet must remain strictly isolated from public internet transit; cannot deploy public NAT gateways; and instances must reach Cloud Storage over private Google network paths.</p>
+
+<p><strong>Diagnosis and solution:</strong> Because the instances had no external IPs, requests to public Google API domains (<code>storage.googleapis.com</code>) could not route without Private Google Access. The subnet had <code>privateIpGoogleAccess=false</code>. The resolution required enabling Private Google Access on the subnet:</p>
+<pre><code>gcloud compute networks subnets update secure-banking-subnet \
+  --region=us-central1 \
+  --enable-private-ip-google-access</code></pre>
+<p>and configuring Cloud DNS to map <code>*.googleapis.com</code> to <code>restricted.googleapis.com</code> (<code>199.36.153.4/30</code>). Uploads completed immediately across Google's private internal network at line rate.</p>
+
+<!-- Incident 6 SVG -->
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d50-i6-title d50-i6-desc" viewBox="0 0 980 280" width="100%" height="auto" style="background:#121526;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d50-i6-title">Incident 6: Private Google Access Timeout vs Restricted VIP Resolution</title>
+<desc id="d50-i6-desc">Incident diagram showing failed path where an internal-only subnet failed to reach Cloud Storage due to disabled PGA, followed by corrected path enabling Private Google Access and restricted VIP routing.</desc>
+<defs>
+<marker id="d50-i6-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d50-i6-c" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Initiating Event -->
+<rect x="20" y="90" width="160" height="90" rx="5" fill="#161b33" stroke="#38bdf8" stroke-width="1.2"/>
+<text x="35" y="115" fill="#fce7f3" font-size="11" font-weight="700">Nightly Settlement</text>
+<text x="35" y="135" fill="#a9b7cb" font-size="10">Internal-only VMs</text>
+<text x="35" y="152" fill="#a9b7cb" font-size="10">gsutil upload to GCS</text>
+<text x="35" y="168" fill="#38bdf8" font-size="9">Target: storage.googleapis</text>
+
+<!-- FAILED PATH -->
+<g>
+<line x1="180" y1="110" x2="260" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i6-f)"/>
+<rect x="260" y="30" width="220" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="275" y="52" fill="#f43f5e" font-size="11" font-weight="700">FAILED PATH: PGA Disabled</text>
+<text x="275" y="70" fill="#fce7f3" font-size="10">privateIpGoogleAccess=false</text>
+<text x="275" y="85" fill="#fce7f3" font-size="10">No public IP &amp; no NAT</text>
+<text x="275" y="100" fill="#f43f5e" font-size="9">Packets drop at hypervisor</text>
+
+<line x1="480" y1="70" x2="560" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i6-f)"/>
+<rect x="560" y="30" width="200" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="575" y="52" fill="#f43f5e" font-size="11" font-weight="700">Connection Timeout</text>
+<text x="575" y="70" fill="#fce7f3" font-size="10">Cannot reach storage:443</text>
+<text x="575" y="86" fill="#fce7f3" font-size="10">Bank settlement delayed 6hr</text>
+<text x="575" y="100" fill="#f43f5e" font-size="9">Root cause: missing PGA toggle</text>
+
+<line x1="760" y1="70" x2="840" y2="70" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d50-i6-f)"/>
+<rect x="840" y="30" width="120" height="80" rx="5" fill="#2d121c" stroke="#f43f5e" stroke-width="1.2"/>
+<text x="850" y="60" fill="#f43f5e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="78" fill="#fce7f3" font-size="10">Sync Fail</text>
+<text x="850" y="94" fill="#f43f5e" font-size="9">Audit Alert</text>
+</g>
+
+<!-- CORRECTED PATH -->
+<g>
+<line x1="180" y1="150" x2="260" y2="190" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i6-c)"/>
+<rect x="260" y="150" width="220" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="275" y="172" fill="#22c55e" font-size="11" font-weight="700">CORRECTED PATH</text>
+<text x="275" y="190" fill="#fce7f3" font-size="10">Enable Private Google Access</text>
+<text x="275" y="206" fill="#fce7f3" font-size="10">Route to restricted.googleapis</text>
+<text x="275" y="222" fill="#22c55e" font-size="9">VIP: 199.36.153.4/30</text>
+
+<line x1="480" y1="192" x2="550" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i6-c)"/>
+<!-- VERIFY BOUNDARY -->
+<rect x="550" y="140" width="220" height="105" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6,3"/>
+<text x="560" y="155" fill="#f59e0b" font-size="9" font-weight="700">VERIFY BOUNDARY</text>
+<rect x="560" y="165" width="200" height="70" rx="4" fill="#122822" stroke="#22c55e" stroke-width="1"/>
+<text x="575" y="185" fill="#22c55e" font-size="11" font-weight="700">Private API Egress Active</text>
+<text x="575" y="202" fill="#fce7f3" font-size="10">GCS upload passes in 1.4s</text>
+<text x="575" y="218" fill="#a9b7cb" font-size="9">Zero public internet exposure</text>
+
+<line x1="770" y1="192" x2="840" y2="192" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d50-i6-c)"/>
+<rect x="840" y="150" width="120" height="85" rx="5" fill="#122822" stroke="#22c55e" stroke-width="1.2"/>
+<text x="850" y="180" fill="#22c55e" font-size="11" font-weight="700">OUTCOME</text>
+<text x="850" y="198" fill="#fce7f3" font-size="10">200 OK</text>
+<text x="850" y="214" fill="#22c55e" font-size="9">Bank Archive Met</text>
+</g>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> Internal-only instances in secure-banking-subnet timed out uploading transaction records to storage.googleapis.com:443; nightly bank settlement was delayed by 6 hours.<br>
+<strong>Architectural inference:</strong> Instances lacking external IPs or Cloud NAT cannot communicate with Google public APIs unless Private Google Access is enabled on the subnet.<br>
+<strong>Expected post-fix behavior:</strong> Enabling Private Google Access routes API packets directly to Google's restricted VIP (199.36.153.4/30) over the internal Andromeda fabric, completing uploads in 1.4 seconds.
+</figcaption>
+</figure>
+
+<p><strong>Alternative and residual risk:</strong> Private Google Access routes to shared VIPs. If fine-grained network firewall filtering per specific Google API service is required, Private Service Connect (PSC) with dedicated local IP endpoints should be deployed instead.</p>
+</article>
+
+</section>
+
+<!-- ================= PART 4 ================= -->
+<section id="part-4" class="part">
+<h2>Part 4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Hierarchical Firewall Policy and Network Firewall Rule Configuration</h3>
+<p><strong>Goal:</strong> Formulate and deploy a Network Firewall Policy with strict priority rules and evaluate connection acceptance vs. rejection.</p>
+<p><strong>Expected Result:</strong> Verified network firewall policy with active rules allowing database access to specific service accounts and denying unapproved ingress.</p>
+<p><strong>Mode:</strong> Declarative CLI &amp; policy verification · <strong>Prerequisite:</strong> Day 49 exit artifact.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Set environment variables:
+<pre><code>export PROJECT_ID="brightloaf-prod"
+export REGION="us-central1"
+export POLICY_NAME="prod-app-firewall-policy"
+export VPC_NAME="brightloaf-enterprise-vpc"</code></pre>
+</li>
+
+<li><strong>Create Network Firewall Policy Container.</strong> Provision the policy container:
+<pre><code>gcloud compute network-firewall-policies create ${POLICY_NAME} \
+    --project=${PROJECT_ID} \
+    --description="Enterprise network firewall policy for production application tier"</code></pre>
+</li>
+
+<li><strong>Add Strict Service Account Authorized Ingress Rule.</strong> Create priority 100 rule targeting database service account:
+<pre><code>gcloud compute network-firewall-policies rules create 100 \
+    --firewall-policy=${POLICY_NAME} \
+    --action=allow \
+    --direction=INGRESS \
+    --target-service-accounts="sa-db-backend@${PROJECT_ID}.iam.gserviceaccount.com" \
+    --src-ip-ranges="10.10.0.0/22" \
+    --layer4-configs=tcp:5432 \
+    --description="Permit internal microservice access to PostgreSQL database" \
+    --enable-logging</code></pre>
+</li>
+
+<li><strong>Associate Firewall Policy with VPC Network.</strong> Attach policy to target network:
+<pre><code>gcloud compute network-firewall-policies associations create \
+    --firewall-policy=${POLICY_NAME} \
+    --network=${VPC_NAME} \
+    --name="assoc-${POLICY_NAME}-${VPC_NAME}"</code></pre>
+</li>
+
+<li><strong>Verify Active Association and Rules.</strong> Inspect policy rules:
+<pre><code>gcloud compute network-firewall-policies rules describe 100 \
+    --firewall-policy=${POLICY_NAME} \
+    --format="table(priority,action,direction,layer4Configs[].rule(),enableLogging)"</code></pre>
+<p>Expected output:</p>
+<pre><code>PRIORITY  ACTION  DIRECTION  LAYER4_CONFIGS  ENABLE_LOGGING
+100       allow   INGRESS    tcp:5432        True</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> Policy container is associated with the VPC network, rule 100 evaluates successfully for authorized service accounts, and logging is enabled.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Delete the association and policy:
+<pre><code>gcloud compute network-firewall-policies associations delete assoc-${POLICY_NAME}-${VPC_NAME} --firewall-policy=${POLICY_NAME} --quiet
+gcloud compute network-firewall-policies delete ${POLICY_NAME} --quiet</code></pre>
+</div>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Service Account Targeted Firewall Security Enforcement</h3>
+<p><strong>Goal:</strong> Validate that firewall rules targeting service accounts prevent unauthorized access even if network tags match.</p>
+<p><strong>Expected Result:</strong> Dry-run verification showing that instance with matching tag but missing service account is blocked by the implied deny rule.</p>
+<p><strong>Mode:</strong> Simulation &amp; IAM policy validation · <strong>Prerequisite:</strong> Exercise 1.</p>
+
+<ol>
+<li><strong>Author Verification Python Script.</strong> Create <code>firewall-evaluator.py</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; firewall-evaluator.py
+def evaluate_firewall(packet_src_ip, packet_dest_port, vm_service_account, vm_tags):
+    # Rule 1: Service Account Authorized Rule
+    if packet_dest_port == 5432 and vm_service_account == "sa-db-backend@brightloaf.iam.gserviceaccount.com":
+        return "ALLOWED by Rule 100 (Target SA: sa-db-backend)"
+    
+    # Rule 2: Legacy Tag Rule (Simulated Disabled)
+    if "db-client" in vm_tags:
+        # Tag exists, but rule now requires SA
+        pass
+        
+    # Implied Deny Ingress
+    return "BLOCKED by Implied Deny Ingress (Priority 65535)"
+
+test_cases = [
+    {"name": "Authorized Order Service", "port": 5432, "sa": "sa-db-backend@brightloaf.iam.gserviceaccount.com", "tags": []},
+    {"name": "Compromised Dev VM (Tag spoof)", "port": 5432, "sa": "sa-dev-general@brightloaf.iam.gserviceaccount.com", "tags": ["db-client"]},
+    {"name": "External Public Attacker", "port": 5432, "sa": "none", "tags": []}
+]
+
+print("=== FIREWALL SERVICE ACCOUNT EVALUATION SIMULATION ===")
+for tc in test_cases:
+    result = evaluate_firewall("10.10.1.5", tc["port"], tc["sa"], tc["tags"])
+    print(f"Test: {tc['name']:&lt;30} -&gt; Result: {result}")
+EOF
+python3 firewall-evaluator.py</code></pre>
+<p>Expected output:</p>
+<pre><code>=== FIREWALL SERVICE ACCOUNT EVALUATION SIMULATION ===
+Test: Authorized Order Service       -&gt; Result: ALLOWED by Rule 100 (Target SA: sa-db-backend)
+Test: Compromised Dev VM (Tag spoof) -&gt; Result: BLOCKED by Implied Deny Ingress (Priority 65535)
+Test: External Public Attacker       -&gt; Result: BLOCKED by Implied Deny Ingress (Priority 65535)</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> The simulation proves that an attacker attaching the <code>db-client</code> tag is successfully blocked because they lack the authorized service account identity.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Remove the script:
+<pre><code>rm -f firewall-evaluator.py</code></pre>
+</div>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Static External and Internal IP Reservation and Promotion</h3>
+<p><strong>Goal:</strong> Formulate commands to reserve regional static external and internal IP addresses, verifying reservation persistence.</p>
+<p><strong>Expected Result:</strong> An active static external IP and static internal subnet IP reserved in Google Cloud.</p>
+<p><strong>Mode:</strong> IP reservation CLI execution · <strong>Prerequisite:</strong> Exercise 2.</p>
+
+<ol>
+<li><strong>Reserve Static External IP.</strong> Reserve a public IPv4 address in <code>us-central1</code>:
+<pre><code>gcloud compute addresses create nat-gateway-ip \
+    --region=us-central1 \
+    --network-tier=PREMIUM</code></pre>
+</li>
+
+<li><strong>Reserve Static Internal IP.</strong> Reserve an internal IP in the primary application subnet:
+<pre><code>gcloud compute addresses create db-primary-ip \
+    --region=us-central1 \
+    --subnet=default \
+    --addresses=10.128.0.50</code></pre>
+</li>
+
+<li><strong>Verify Address Table.</strong> Inspect reserved addresses:
+<pre><code>gcloud compute addresses list --filter="name=(nat-gateway-ip OR db-primary-ip)" --format="table(name,address,type,status)"</code></pre>
+<p>Expected output:</p>
+<pre><code>NAME            ADDRESS        TYPE      STATUS
+db-primary-ip   10.128.0.50    INTERNAL  RESERVED
+nat-gateway-ip  34.120.45.10   EXTERNAL  RESERVED</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> Both addresses show status RESERVED, guaranteeing permanent assignment across VM lifecycles.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Delete the reserved addresses:
+<pre><code>gcloud compute addresses delete nat-gateway-ip --region=us-central1 --quiet
+gcloud compute addresses delete db-primary-ip --region=us-central1 --quiet</code></pre>
+</div>
+</article>
+
+<article id="topic-04-lab" class="topic-card lab">
+<h3>Exercise 4: Private Google Access (PGA) DNS Configuration and Verification</h3>
+<p><strong>Goal:</strong> Configure Cloud DNS private zone to route Google APIs to the restricted VIP range (<code>199.36.153.4/30</code>) for Private Google Access with VPC Service Controls.</p>
+<p><strong>Expected Result:</strong> Cloud DNS private response policy mapping <code>*.googleapis.com</code> to <code>restricted.googleapis.com</code>.</p>
+<p><strong>Mode:</strong> Cloud DNS CLI configuration · <strong>Prerequisite:</strong> Exercise 3.</p>
+
+<ol>
+<li><strong>Create Private DNS Zone for googleapis.com.</strong> Provision managed private zone:
+<pre><code>gcloud dns managed-zones create googleapis-private-zone \
+    --description="Private Google Access DNS mapping for restricted VIP" \
+    --dns-name="googleapis.com." \
+    --visibility=private \
+    --networks=default</code></pre>
+</li>
+
+<li><strong>Add Restricted VIP A-Records.</strong> Add the four Google restricted VIP IP addresses (<code>199.36.153.4/30</code>):
+<pre><code>gcloud dns record-sets transaction start --zone=googleapis-private-zone
+gcloud dns record-sets transaction add 199.36.153.4 199.36.153.5 199.36.153.6 199.36.153.7 \
+    --name="restricted.googleapis.com." \
+    --ttl=300 \
+    --type=A \
+    --zone=googleapis-private-zone
+gcloud dns record-sets transaction add "restricted.googleapis.com." \
+    --name="*.googleapis.com." \
+    --ttl=300 \
+    --type=CNAME \
+    --zone=googleapis-private-zone
+gcloud dns record-sets transaction execute --zone=googleapis-private-zone</code></pre>
+</li>
+
+<li><strong>Verify DNS Configuration.</strong> Query the created DNS records:
+<pre><code>gcloud dns record-sets list --zone=googleapis-private-zone --format="table(name,type,rrdatas)"</code></pre>
+<p>Expected output:</p>
+<pre><code>NAME                         TYPE   RRDATAS
+googleapis.com.              SOA    ns-gcp-private.googledomains.com. cloud-dns-hostmaster.google.com. 1 21600 3600 259200 300
+*.googleapis.com.            CNAME  restricted.googleapis.com.
+restricted.googleapis.com.   A      199.36.153.4,199.36.153.5,199.36.153.6,199.36.153.7</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> DNS records resolve wildcard Google API domains to the restricted VIP addresses (<code>199.36.153.4/30</code>), enabling secure PGA routing without public internet egress.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Delete the DNS zone:
+<pre><code>gcloud dns managed-zones delete googleapis-private-zone --quiet</code></pre>
+</div>
+</article>
+
+<article id="topic-05-lab" class="topic-card lab">
+<h3>Exercise 5: Private Service Connect (PSC) Endpoint Deployment</h3>
+<p><strong>Goal:</strong> Formulate and deploy a Private Service Connect forwarding rule creating a dedicated private endpoint for Google Cloud Storage.</p>
+<p><strong>Expected Result:</strong> An active PSC endpoint forwarding rule with an internal IP in the local VPC subnet.</p>
+<p><strong>Mode:</strong> PSC CLI configuration · <strong>Prerequisite:</strong> Exercise 4.</p>
+
+<ol>
+<li><strong>Reserve Local Internal IP for PSC.</strong> Allocate address in default subnet:
+<pre><code>gcloud compute addresses create psc-storage-ip \
+    --region=us-central1 \
+    --subnet=default \
+    --addresses=10.128.0.100</code></pre>
+</li>
+
+<li><strong>Create Private Service Connect Forwarding Rule.</strong> Target the Google APIs bundle:
+<pre><code>gcloud compute forwarding-rules create psc-endpoint-storage \
+    --region=us-central1 \
+    --network=default \
+    --address=psc-storage-ip \
+    --target-google-apis-bundle=all-apis</code></pre>
+</li>
+
+<li><strong>Verify PSC Forwarding Rule Status.</strong> Inspect created endpoint:
+<pre><code>gcloud compute forwarding-rules describe psc-endpoint-storage \
+    --region=us-central1 \
+    --format="table(name,IPAddress,target,network)"</code></pre>
+<p>Expected output:</p>
+<pre><code>NAME                  IP_ADDRESS    TARGET    NETWORK
+psc-endpoint-storage  10.128.0.100  all-apis  default</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Acceptance verification:</strong> The PSC endpoint is active, binding internal IP <code>10.128.0.100</code> to Google APIs within the consumer VPC with zero VPC peering overhead.
+</div>
+
+<div class="callout">
+<strong>Cleanup:</strong> Delete the forwarding rule and IP:
+<pre><code>gcloud compute forwarding-rules delete psc-endpoint-storage --region=us-central1 --quiet
+gcloud compute addresses delete psc-storage-ip --region=us-central1 --quiet</code></pre>
+</div>
+</article>
+
+<article id="topic-06-lab" class="topic-card lab">
+<h3>Exercise 6: Firewall Decision Trace and Identity Boundary Assembly</h3>
+<p><strong>Goal:</strong> Synthesize all firewall hierarchy, service account authorization, and private API access patterns into the Day 50 exit artifact.</p>
+<p><strong>Expected Result:</strong> A verified <code>day-050-firewall-trace.md</code> exit artifact documenting firewall evaluation logic and private API trade-offs.</p>
+<p><strong>Mode:</strong> Technical documentation &amp; architectural defense · <strong>Prerequisite:</strong> Exercises 1–5.</p>
+
+<ol>
+<li><strong>Assemble the Firewall Decision Trace Artifact.</strong> Generate <code>day-050-firewall-trace.md</code>:
+<pre><code>cat &lt;&lt;'EOF' &gt; day-050-firewall-trace.md
+# Firewall Policy &amp; Private API Access Decision Trace (Day 50)
+
+## 1. Hierarchical Firewall Policy Precedence
+1. **Organization Policy (Root):** Denies plain SSH (22) and RDP (3389) from internet (0.0.0.0/0). Uses `goto_next` for RFC 1918 traffic (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16).
+2. **Folder Policy (Environment):** Permits private on-premises WAN traffic (192.168.0.0/16) and delegates with `goto_next`.
+3. **Network Firewall Policy (VPC):** Enforces service-account-targeted access (e.g. `sa-db-backend`) on TCP port 5432. Network tags are strictly prohibited for production data tiers.
+4. **Implied VPC Rules:** Priority 65535 Implied Allow Egress / Implied Deny Ingress.
+
+## 2. Private Google API Access: PGA vs. PSC Trade-Off Matrix
+| Feature | Private Google Access (PGA) | Private Service Connect (PSC) |
+|---|---|---|
+| **Scope** | Subnet-wide toggle | Dedicated local IP forwarding rule |
+| **IP Mechanism** | Shared Google VIP (restricted: 199.36.153.4/30; private: 199.36.153.8/30) | Dedicated local subnet IP (e.g. 10.10.2.100) |
+| **Routing Requirement** | Default route 0.0.0.0/0 to default-internet-gateway | Local subnet route (Priority 0) |
+| **Firewall Control** | Coarse: egress filter on VIP CIDR | Fine-grained: local VPC firewall rules apply directly |
+| **Third-Party SaaS** | Not supported | Supported via Service Attachments |
+| **Selection Decision** | Default for general GCS/BigQuery egress | Required for PCI perimeter isolation and multi-tenant SaaS |
+
+## 3. Forward &amp; Return Packet Trace: Service Account Target Authorization
+```
+Client [sa-order-backend: 10.10.1.15] -&gt; SYN -&gt; PostgreSQL [sa-db-backend: 10.10.0.50:5432]
+  1. Hypervisor verifies Client Egress: ALLOW (Implied Egress)
+  2. Andromeda routes across private local subnet (Priority 0)
+  3. Destination Hypervisor evaluates Ingress Firewall:
+     - Match Rule 100: TCP 5432, Target SA == sa-db-backend, Source IP == 10.10.0.0/22
+     - Action: ALLOW -&gt; Injects packet to guest vNIC
+  4. Database replies with SYN-ACK -&gt; Andromeda stateful tracking automatically permits return
+```
+
+## 4. Cross-Links to Prior Infrastructure Evidence
+- Global VPC Architecture &amp; Subnetting: `days/day-049.html#topic-01-technical`
+- Cloud Run Direct VPC Egress &amp; IAM Authentication: `days/day-047.html#topic-01-technical`
+- GKE Fleet Policy Controller &amp; Network Policies: `days/day-046.html#topic-01-technical`
+EOF</code></pre>
+</li>
+
+<li><strong>Verify Artifact Structure.</strong> Verify markdown headers:
+<pre><code>grep -E "^## " day-050-firewall-trace.md</code></pre>
+<p>Expected output:</p>
+<pre><code>## 1. Hierarchical Firewall Policy Precedence
+## 2. Private Google API Access: PGA vs. PSC Trade-Off Matrix
+## 3. Forward &amp; Return Packet Trace: Service Account Target Authorization
+## 4. Cross-Links to Prior Infrastructure Evidence</code></pre>
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Artifact Acceptance:</strong> <code>day-050-firewall-trace.md</code> provides complete architectural proofs for hierarchical policy precedence, service account security bounds, and PGA vs. PSC trade-offs.
+</div>
+</article>
+
+</section>
+
+<!-- ================= COMPLETION ================= -->
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>File <code>day-050-firewall-trace.md</code> containing: (1) Hierarchical firewall policy evaluation pipeline and goto_next delegation proof, (2) service account target authorization security boundary, (3) static vs ephemeral IP reservation lifecycle rules, (4) architectural trade-off analysis between Private Google Access and Private Service Connect, (5) cross-links to Days 46, 47, and 49 networking and identity evidence. Label tabletop models clearly.</p>
+<label class="check"><input type="checkbox" data-progress="read-50"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-50"> I saved the exit artifact</label>
+</section>
+
+<!-- ================= PAGER ================= -->
+<nav class="pager" aria-label="Page navigation">
+<a href="day-049.html">← Day 49<small>VPC address and route design</small></a>
+<a href="../index.html">Index<small>180-day roadmap</small></a>
+<a href="day-051.html">Day 51 →<small>Peering, Shared VPC, PSC and NAT</small></a>
+</nav>
+
+<footer class="site-footer">
+<p>GCP Professional Cloud Architect 180-Day Comprehensive Roadmap · Tabletop architecture and production readiness curriculum.</p>
+</footer>
+</main>
+</body>
+</html>

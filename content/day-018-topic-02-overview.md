@@ -1,0 +1,1 @@
+The Free Tier is a set of product-specific no-charge usage allowances. Each product has its own eligible regions, resource types, monthly quantity limits and exclusions. Free Tier usage is distinct from the time-limited Free Trial credit.

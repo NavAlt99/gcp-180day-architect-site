@@ -1,0 +1,339 @@
+    <section class="part" id="part-2" aria-labelledby="part-2-heading">
+      <h2 id="part-2-heading">Part 2 · Technical discussion</h2>
+      <p class="section-lead">In-depth technical architecture of Google Cloud service account lifecycles, Application Default Credentials (ADC) resolution mechanics, and the cryptographic distinction between authorization access tokens and identity ID tokens.</p>
+
+      <!-- Topic 01 Technical -->
+      <article class="card" id="topic-01-technical" aria-labelledby="t1-tech-heading">
+        <h3 id="t1-tech-heading">Topic 01 · Service accounts, least privilege, attached identity, impersonation and key avoidance</h3>
+        <p>A service account is a specialized identity managed by Google Cloud IAM designed for automated workloads, microservices, and continuous integration pipelines rather than human end-users. In Google Cloud, service accounts occupy a unique architectural posture: they are both an <strong>identity</strong> (which can be granted IAM roles on resources such as Pub/Sub topics or Spanner databases) and a <strong>resource</strong> (which has its own IAM policy controlling which principals can act as or impersonate that service account).</p>
+
+        <h4>The Vulnerability of Static Service Account Keys</h4>
+        <p>Historically, workloads running outside Google Cloud or automated developer tooling authenticated by generating downloadable JSON private key pairs (containing an RSA private key). This pattern represents an extreme security liability:</p>
+        <ul>
+          <li><strong>Indefinite Lifespan:</strong> Static keys never expire by default. A key generated today remains valid for up to 10 years unless explicitly revoked in the Google Cloud Console or API.</li>
+          <li><strong>Zero Attribution:</strong> If an attacker obtains a downloaded private key, every API call issued with that key appears in Cloud Audit Logs as originating from the service account itself, completely obscuring the true physical identity or IP of the threat actor.</li>
+          <li><strong>Secret Sprawl:</strong> Keys inevitably end up stored in developer home directories, CI/CD configuration variables, Docker images, and public or private Git repositories.</li>
+        </ul>
+        <p>Because of these risks, modern enterprise security enforces <em>Key Avoidance</em>. Organizations apply the organization policy constraint <code>constraints/iam.disableServiceAccountKeyCreation</code> across all production folders to strictly block the creation of new static keys.</p>
+
+        <h4>Attached Workload Identity and Service Account Impersonation</h4>
+        <p>Modern Google Cloud architectures eliminate static keys using two primary paradigms:</p>
+        <ol>
+          <li><strong>Attached Workload Identity:</strong> When workloads execute on native Google Cloud compute platforms (Compute Engine VMs, Google Kubernetes Engine pods, Cloud Run containers, or Cloud Functions), the platform attaches the service account identity directly to the execution runtime. The workload requests short-lived (1-hour) OAuth2 access tokens directly from the local Compute Engine metadata server without any credentials stored on disk.</li>
+          <li><strong>Service Account Impersonation:</strong> Human developers, operational engineers, or external CI/CD runners authenticate using their own primary identity (e.g., corporate Google Workspace identity or federated workforce identity) and dynamically assume the identity of a target service account. The initiating principal must possess the <code>roles/iam.serviceAccountTokenCreator</code> role on the target service account resource. When requested, Google Cloud's IAM Credentials API verifies caller permissions and mints an ephemeral access token valid for a maximum of 60 minutes. Crucially, Cloud Audit Logs records both the impersonated service account and the human principal who requested the impersonation token (dual-principal audit logging).</li>
+        </ol>
+
+        <div class="table-container">
+          <table>
+            <caption>Table 26.1: Service Account Authentication Paradigms &amp; Operational Risk Profile</caption>
+            <thead>
+              <tr>
+                <th scope="col">Authentication Mechanism</th>
+                <th scope="col">Credential Storage</th>
+                <th scope="col">Token / Key Lifetime</th>
+                <th scope="col">Rotation Burden</th>
+                <th scope="col">Audit Trail Fidelity</th>
+                <th scope="col">Production Suitability</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Static Downloaded JSON Key</th>
+                <td>Plaintext file on disk / Git repo</td>
+                <td>Indefinite / Up to 10 years</td>
+                <td>Manual, complex, error-prone</td>
+                <td>Anonymous; cannot trace caller</td>
+                <td><span class="badge danger">Forbidden</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Attached Workload Identity</th>
+                <td>In-memory only via metadata server</td>
+                <td>1 Hour (auto-refreshed by SDK)</td>
+                <td>Fully automated by Google</td>
+                <td>Bound to VM, Pod, or Container ID</td>
+                <td><span class="badge success">Standard for Workloads</span></td>
+              </tr>
+              <tr>
+                <th scope="row">IAM Service Account Impersonation</th>
+                <td>Ephemeral in memory</td>
+                <td>Up to 1 Hour (configurable)</td>
+                <td>Zero (mints fresh tokens on demand)</td>
+                <td>Dual-principal logging (caller + SA)</td>
+                <td><span class="badge success">Standard for Humans &amp; CI/CD</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 480" width="100%" height="auto" role="img" aria-labelledby="fig26-1-title fig26-1-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig26-1-title">Figure 26.1: Service Account Key Avoidance, Attached Identity, and Impersonation Architecture</title>
+            <desc id="fig26-1-desc">Architectural comparison showing the vulnerabilities of static service account JSON keys contrasted with attached workload identities and audited ephemeral impersonation flows.</desc>
+            <defs>
+              <linearGradient id="gBadKey" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.2"/>
+                <stop offset="100%" stop-color="#121526" stop-opacity="0.8"/>
+              </linearGradient>
+              <linearGradient id="gAttached" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.2"/>
+                <stop offset="100%" stop-color="#121526" stop-opacity="0.8"/>
+              </linearGradient>
+              <linearGradient id="gImpersonate" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#22c55e" stop-opacity="0.2"/>
+                <stop offset="100%" stop-color="#121526" stop-opacity="0.8"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Grid Header -->
+            <text x="480" y="34" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" text-anchor="middle">Figure 26.1: Service Account Key Avoidance &amp; Credential Lifecycles</text>
+            <text x="480" y="56" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">Eliminating static private keys via attached workload identity and IAM impersonation</text>
+
+            <!-- Column 1: Static JSON Keys (Antipattern) -->
+            <g transform="translate(40, 80)">
+              <rect width="260" height="340" rx="8" fill="url(#gBadKey)" stroke="#f43f5e" stroke-width="1.5"/>
+              <rect x="0" y="0" width="260" height="42" rx="8" fill="#f43f5e" fill-opacity="0.25"/>
+              <text x="130" y="26" fill="#f43f5e" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">STATIC JSON KEYS (ANTIPATTERN)</text>
+
+              <text x="20" y="65" fill="#f8fafc" font-family="monospace" font-size="11" font-weight="700">key.json (RSA Private Key)</text>
+              <line x1="20" y1="75" x2="240" y2="75" stroke="#334155" stroke-width="1"/>
+
+              <text x="20" y="100" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Lifetime: 10 years / Indefinite</text>
+              <text x="20" y="125" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Storage: Plaintext on disk / repo</text>
+              <text x="20" y="150" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Rotation: Manual, risky, ignored</text>
+              <text x="20" y="175" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Audit Trail: Unattributable</text>
+              <text x="20" y="200" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">&bull; Exfiltration Risk: Severe</text>
+              <text x="20" y="225" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">&bull; Organization Policy: Block via</text>
+              <text x="30" y="242" fill="#fda4af" font-family="monospace" font-size="10">iam.disableServiceAccountKeyCreation</text>
+
+              <rect x="20" y="275" width="220" height="45" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+              <text x="130" y="295" fill="#fecdd3" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">STRICTLY PROHIBITED</text>
+              <text x="130" y="310" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">#1 vector of enterprise cloud compromise</text>
+            </g>
+
+            <!-- Column 2: Attached Workload Identity -->
+            <g transform="translate(350, 80)">
+              <rect width="260" height="340" rx="8" fill="url(#gAttached)" stroke="#38bdf8" stroke-width="1.5"/>
+              <rect x="0" y="0" width="260" height="42" rx="8" fill="#38bdf8" fill-opacity="0.25"/>
+              <text x="130" y="26" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">ATTACHED WORKLOAD IDENTITY</text>
+
+              <text x="20" y="65" fill="#f8fafc" font-family="monospace" font-size="11" font-weight="700">Compute Metadata Server</text>
+              <line x1="20" y1="75" x2="240" y2="75" stroke="#334155" stroke-width="1"/>
+
+              <text x="20" y="100" fill="#7dd3fc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Lifetime: 1 Hour (auto-refreshed)</text>
+              <text x="20" y="125" fill="#7dd3fc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Storage: Ephemeral in memory only</text>
+              <text x="20" y="150" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Rotation: Fully automated by Google</text>
+              <text x="20" y="175" fill="#7dd3fc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Audit Trail: Bound to VM / Pod / Run</text>
+              <text x="20" y="200" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">&bull; Mechanisms: GCE, Cloud Run, GKE</text>
+              <text x="20" y="225" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">&bull; Metadata Endpoint:</text>
+              <text x="30" y="242" fill="#38bdf8" font-family="monospace" font-size="10">169.254.169.254 (Metadata-Flavor: Google)</text>
+
+              <rect x="20" y="275" width="220" height="45" rx="6" fill="#0c4a6e" stroke="#38bdf8" stroke-width="1"/>
+              <text x="130" y="295" fill="#bae6fd" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">PRODUCTION WORKLOAD STANDARD</text>
+              <text x="130" y="310" fill="#7dd3fc" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Zero local files; hardware-isolated token minting</text>
+            </g>
+
+            <!-- Column 3: IAM Impersonation -->
+            <g transform="translate(660, 80)">
+              <rect width="260" height="340" rx="8" fill="url(#gImpersonate)" stroke="#22c55e" stroke-width="1.5"/>
+              <rect x="0" y="0" width="260" height="42" rx="8" fill="#22c55e" fill-opacity="0.25"/>
+              <text x="130" y="26" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">SERVICE ACCOUNT IMPERSONATION</text>
+
+              <text x="20" y="65" fill="#f8fafc" font-family="monospace" font-size="11" font-weight="700">generateAccessToken API</text>
+              <line x1="20" y1="75" x2="240" y2="75" stroke="#334155" stroke-width="1"/>
+
+              <text x="20" y="100" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Lifetime: Up to 1 Hour (configurable)</text>
+              <text x="20" y="125" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Storage: Memory cache during session</text>
+              <text x="20" y="150" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Required Role on Target SA:</text>
+              <text x="30" y="168" fill="#22c55e" font-family="monospace" font-size="10">roles/iam.serviceAccountTokenCreator</text>
+              <text x="20" y="192" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600">&bull; Audit Trail: Dual-Principal Logging</text>
+              <text x="30" y="210" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="10">(Logs who impersonated + actions taken)</text>
+              <text x="20" y="235" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">&bull; Use Case: CI/CD, local developers, SRE</text>
+
+              <rect x="20" y="275" width="220" height="45" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1"/>
+              <text x="130" y="295" fill="#bbf7d0" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">HUMAN &amp; CI/CD BEST PRACTICE</text>
+              <text x="130" y="310" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Auditable ephemeral delegation without keys</text>
+            </g>
+
+            <!-- Bottom Note -->
+            <text x="480" y="450" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="11" text-anchor="middle">Security Principle: Enforce organization policy constraints/iam.disableServiceAccountKeyCreation to prevent key generation across all projects.</text>
+          </svg>
+          <figcaption class="diagram-caption">Figure 26.1: Service account identity lifecycles and risk profiles. Static JSON keys present catastrophic blast radiuses due to unmanaged longevity; attached workload identities and IAM impersonation provide ephemeral, auditable, short-lived tokens without storing persistent credentials on disk.</figcaption>
+        </figure>
+      </article>
+
+      <!-- Topic 02 Technical -->
+      <article class="card" id="topic-02-technical" aria-labelledby="t2-tech-heading">
+        <h3 id="t2-tech-heading">Topic 02 · ADC resolution at introductory depth, metadata service, access versus ID tokens, audience and expiry</h3>
+        <p>Google Cloud client libraries implement a standardized, automated credential discovery workflow known as <strong>Application Default Credentials (ADC)</strong>. Rather than hardcoding credentials or loading files directly, client libraries instantiate authentication providers that search a predefined sequence of locations to discover credentials.</p>
+
+        <h4>ADC Resolution Precedence Order</h4>
+        <ol>
+          <li><strong>Environment Variable <code>GOOGLE_APPLICATION_CREDENTIALS</code>:</strong> If set, the client library reads the file pointed to by this variable. The file may contain a service account key, an external workforce identity configuration, or user credentials.</li>
+          <li><strong>User ADC (Local Development):</strong> If the environment variable is unset, the library searches for the well-known user credentials file generated by the Google Cloud CLI:
+            <br>Linux/macOS: <code>~/.config/gcloud/application_default_credentials.json</code>
+            <br>Windows: <code>%APPDATA%\gcloud\application_default_credentials.json</code>
+            <br><em>Note:</em> Running the standard CLI login flow authenticates the Google Cloud CLI itself, but client libraries specifically require the <code>auth application-default login</code> command to populate this local JSON file.</li>
+          <li><strong>Attached Compute Metadata Server:</strong> If no local files exist, the library queries the Compute Engine metadata server via the link-local IP <code>http://169.254.169.254/computeMetadata/v1/</code> (or hostname <code>http://metadata.google.internal/computeMetadata/v1/</code>) supplying the mandatory HTTP header <code>Metadata-Flavor: Google</code>. The metadata server dynamically returns an OAuth2 token minted for the VM's or container's attached service account.</li>
+          <li><strong>Terminal Error:</strong> If all three discovery steps fail, the library raises <code>DefaultCredentialsError: Could not automatically determine credentials</code>.</li>
+        </ol>
+
+        <h4>OAuth2 Access Tokens vs. OpenID Connect (OIDC) ID Tokens</h4>
+        <p>Understanding the fundamental distinction between <strong>Access Tokens</strong> and <strong>ID Tokens</strong> is essential for securing multi-tier cloud architectures:</p>
+        <ul>
+          <li><strong>OAuth2 Access Tokens (Authorization):</strong> Used exclusively to authorize calls to Google Cloud APIs (such as Cloud Storage, Pub/Sub, BigQuery, or Spanner). Access tokens are typically opaque bearer tokens (starting with <code>ya29.</code>) that represent authorization grants scoped to API URL sets (e.g., <code>https://www.googleapis.com/auth/cloud-platform</code>). The receiving Google API gateway parses and checks the token against IAM policies. Access tokens do not contain an audience claim targeting third-party or custom application endpoints.</li>
+          <li><strong>OpenID Connect ID Tokens (Authentication &amp; Identity):</strong> Used to authenticate a caller's identity to custom services, private Cloud Run microservices, Cloud Functions, and API Gateways. An ID token is a cryptographically signed JSON Web Token (JWT) conforming to the OIDC standard. It contains standard claims: <code>iss</code> (issuer: <code>https://accounts.google.com</code>), <code>sub</code> (subject: unique principal ID), <code>email</code> (service account email), <code>exp</code> (expiration timestamp), and most crucially, <strong><code>aud</code> (audience)</strong>. The destination service validates that the token was signed by Google's public certificates and verifies that the <code>aud</code> claim strictly matches its own URL (e.g., <code>https://order-dispatch-xyz.run.app</code>).</li>
+        </ul>
+
+        <div class="table-container">
+          <table>
+            <caption>Table 26.2: Structural Comparison: OAuth2 Access Tokens vs. OIDC ID Tokens</caption>
+            <thead>
+              <tr>
+                <th scope="col">Attribute</th>
+                <th scope="col">OAuth2 Access Token</th>
+                <th scope="col">OpenID Connect (OIDC) ID Token</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Primary Purpose</th>
+                <td><strong>Authorization:</strong> What API operations is the caller permitted to perform?</td>
+                <td><strong>Authentication:</strong> Who is the caller, and who was this token minted for?</td>
+              </tr>
+              <tr>
+                <th scope="row">Target Destination</th>
+                <td>Google Cloud REST/gRPC APIs (<code>*.googleapis.com</code>)</td>
+                <td>Cloud Run, Cloud Functions, Cloud Tasks, API Gateways</td>
+              </tr>
+              <tr>
+                <th scope="row">Token Format</th>
+                <td>Opaque bearer string (commonly begins with <code>ya29.</code>)</td>
+                <td>Signed RFC 7519 JSON Web Token (Header.Payload.Signature)</td>
+              </tr>
+              <tr>
+                <th scope="row">Key Attribute / Claim</th>
+                <td><code>scope</code> (e.g., <code>https://www.googleapis.com/auth/cloud-platform</code>)</td>
+                <td><code>aud</code> (must match target service URI), <code>email</code>, <code>exp</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Validation Node</th>
+                <td>Google Cloud API Gateway &amp; IAM Control Plane</td>
+                <td>Destination microservice or Cloud Run ingress proxy</td>
+              </tr>
+              <tr>
+                <th scope="row">Maximum Expiry</th>
+                <td>3,600 seconds (1 hour)</td>
+                <td>3,600 seconds (1 hour)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 520" width="100%" height="auto" role="img" aria-labelledby="fig26-2-title fig26-2-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig26-2-title">Figure 26.2: Application Default Credentials Resolution and Token Types</title>
+            <desc id="fig26-2-desc">Flow diagram showing the sequential Application Default Credentials (ADC) resolution chain and contrasting OAuth2 Access Tokens with OpenID Connect (OIDC) ID Tokens.</desc>
+            <defs>
+              <marker id="arrow26-2-b" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8"/>
+              </marker>
+            </defs>
+
+            <!-- Title -->
+            <text x="480" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" text-anchor="middle">Figure 26.2: ADC Resolution Chain &amp; Token Anatomy</text>
+            <text x="480" y="52" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">How client libraries discover credentials and select OAuth2 Access Tokens vs. OIDC ID Tokens</text>
+
+            <!-- Left Box: ADC Search Chain -->
+            <g transform="translate(30, 75)">
+              <rect width="360" height="420" rx="8" fill="#1e293b" fill-opacity="0.6" stroke="#38bdf8" stroke-width="1.5"/>
+              <rect x="0" y="0" width="360" height="36" rx="8" fill="#38bdf8" fill-opacity="0.2"/>
+              <text x="180" y="24" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">Application Default Credentials (ADC) Search Order</text>
+
+              <!-- Step 1 -->
+              <g transform="translate(20, 50)">
+                <rect width="320" height="70" rx="6" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+                <text x="15" y="22" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700">1. Environment Variable</text>
+                <text x="15" y="40" fill="#38bdf8" font-family="monospace" font-size="10">GOOGLE_APPLICATION_CREDENTIALS</text>
+                <text x="15" y="58" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="10">Explicit file path to credentials on disk</text>
+              </g>
+
+              <line x1="180" y1="120" x2="180" y2="140" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arrow26-2-b)"/>
+
+              <!-- Step 2 -->
+              <g transform="translate(20, 145)">
+                <rect width="320" height="75" rx="6" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+                <text x="15" y="22" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700">2. User ADC (Local Development)</text>
+                <text x="15" y="40" fill="#22c55e" font-family="monospace" font-size="10">gcloud auth application-default login</text>
+                <text x="15" y="58" fill="#94a3b8" font-family="monospace" font-size="9">~/.config/gcloud/application_default_credentials.json</text>
+              </g>
+
+              <line x1="180" y1="220" x2="180" y2="240" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arrow26-2-b)"/>
+
+              <!-- Step 3 -->
+              <g transform="translate(20, 245)">
+                <rect width="320" height="85" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+                <text x="15" y="22" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700">3. Attached Compute Metadata Server</text>
+                <text x="15" y="40" fill="#7dd3fc" font-family="monospace" font-size="9">http://metadata.google.internal/computeMetadata/v1/</text>
+                <text x="15" y="55" fill="#e2e8f0" font-family="monospace" font-size="9">Header: Metadata-Flavor: Google</text>
+                <text x="15" y="72" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600">Production Workload Standard (GCE/GKE/Cloud Run)</text>
+              </g>
+
+              <!-- Failure -->
+              <line x1="180" y1="330" x2="180" y2="350" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#arrow26-2-b)"/>
+              <rect x="20" y="355" width="320" height="45" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1"/>
+              <text x="180" y="375" fill="#fecdd3" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">RESOLUTION FAILURE: DefaultCredentialsError</text>
+              <text x="180" y="390" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Thrown if running outside GCP with no ADC file configured</text>
+            </g>
+
+            <!-- Right Box: Access Tokens vs ID Tokens -->
+            <g transform="translate(420, 75)">
+              <rect width="510" height="420" rx="8" fill="#182234" stroke="#94a3b8" stroke-width="1.5"/>
+              <rect x="0" y="0" width="510" height="36" rx="8" fill="#334155" fill-opacity="0.5"/>
+              <text x="255" y="24" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">Token Types: Authorization vs. Identity</text>
+
+              <!-- Panel 1: Access Token -->
+              <g transform="translate(20, 50)">
+                <rect width="470" height="165" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+                <rect x="0" y="0" width="470" height="28" rx="6" fill="#0c4a6e"/>
+                <text x="15" y="19" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700">OAUTH2 ACCESS TOKEN (AUTHORIZATION)</text>
+                <text x="455" y="19" fill="#7dd3fc" font-family="monospace" font-size="10" text-anchor="end">Max Lifetime: 3600s (1 hr)</text>
+
+                <text x="15" y="48" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11"><strong>Target Consumer:</strong> Google Cloud APIs (<code>*.googleapis.com</code>)</text>
+                <text x="15" y="68" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11"><strong>Evaluation:</strong> Decoded &amp; validated by Google Cloud API Gateway against IAM policies</text>
+                <text x="15" y="88" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11"><strong>Key Fields:</strong> Scopes (<code>https://www.googleapis.com/auth/cloud-platform</code>)</text>
+                <text x="15" y="108" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11"><strong>Format:</strong> Opaque bearer string (e.g., <code>ya29.c.b0...</code>)</text>
+                
+                <rect x="15" y="120" width="440" height="32" rx="4" fill="#1e293b"/>
+                <text x="25" y="140" fill="#94a3b8" font-family="monospace" font-size="10">Header: <tspan fill="#38bdf8">Authorization: Bearer ya29.c.b0AXv0zT123...</tspan></text>
+              </g>
+
+              <!-- Panel 2: ID Token -->
+              <g transform="translate(20, 235)">
+                <rect width="470" height="165" rx="6" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+                <rect x="0" y="0" width="470" height="28" rx="6" fill="#064e3b"/>
+                <text x="15" y="19" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700">OPENID CONNECT (OIDC) ID TOKEN (IDENTITY)</text>
+                <text x="455" y="19" fill="#86efac" font-family="monospace" font-size="10" text-anchor="end">Max Lifetime: 3600s (1 hr)</text>
+
+                <text x="15" y="48" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11"><strong>Target Consumer:</strong> Cloud Run, Cloud Functions, API Gateway, custom endpoints</text>
+                <text x="15" y="68" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11"><strong>Evaluation:</strong> Destination service validates cryptographic signature &amp; audience</text>
+                <text x="15" y="88" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11"><strong>Critical Claim:</strong> <code>aud</code> (must match target service URL: <code>https://service.run.app</code>)</text>
+                <text x="15" y="108" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11"><strong>Format:</strong> Signed JSON Web Token (Header.Payload.Signature)</text>
+
+                <rect x="15" y="120" width="440" height="32" rx="4" fill="#1e293b"/>
+                <text x="25" y="140" fill="#94a3b8" font-family="monospace" font-size="10">Claims: <tspan fill="#22c55e">{"iss":"accounts.google.com","aud":"https://run.app","email":"..."}</tspan></text>
+              </g>
+            </g>
+          </svg>
+          <figcaption class="diagram-caption">Figure 26.2: Application Default Credentials (ADC) resolution chain and token anatomy. ADC searches environment variables, local user configurations, and the Compute metadata server sequentially. Applications must supply OAuth2 Access Tokens when calling Google APIs and OpenID Connect (OIDC) ID Tokens with specific audience claims when invoking private Cloud Run microservices.</figcaption>
+        </figure>
+
+        <h4>Further Study</h4>
+        <ul>
+          <li><a href="https://cloud.google.com/iam/docs/service-accounts" target="_blank" rel="noopener noreferrer">Google Cloud IAM: Service Accounts Overview</a></li>
+          <li><a href="https://cloud.google.com/iam/docs/impersonating-service-accounts" target="_blank" rel="noopener noreferrer">Google Cloud IAM: Impersonating Service Accounts Documentation</a></li>
+          <li><a href="https://cloud.google.com/docs/authentication/application-default-credentials" target="_blank" rel="noopener noreferrer">Google Cloud Auth: How Application Default Credentials Works</a></li>
+          <li><a href="https://cloud.google.com/docs/authentication/token-types" target="_blank" rel="noopener noreferrer">Google Cloud Auth: Access Tokens, ID Tokens, and Federation</a></li>
+          <li><a href="https://cloud.google.com/compute/docs/metadata/overview" target="_blank" rel="noopener noreferrer">Compute Engine: Storing and Retrieving Instance Metadata</a></li>
+        </ul>
+      </article>
+    </section>

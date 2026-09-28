@@ -1,0 +1,423 @@
+    <section class="part" id="part-3" aria-labelledby="part-3-heading">
+      <h2 id="part-3-heading">Part 3 · Real-world problems</h2>
+      <p class="section-lead">Production postmortems from Brightloaf: dissecting authorization failures, blast radius blowups, and ancestral inheritance leaks while strictly preserving the duplicate fulfillment invariant.</p>
+
+      <!-- Problem 01 -->
+      <article class="card" id="topic-01-problem" aria-labelledby="p1-heading">
+        <span class="badge danger">Incident 25.1</span>
+        <h3 id="p1-heading">Primitive Role Blast Radius: roles/editor Grants Cloud SQL Destruction</h3>
+
+        <div class="grid-2">
+          <div>
+            <h4>Symptom</h4>
+            <p>At 14:22 UTC, Brightloaf's regional fulfillment microservices began logging database connection timeouts (<code>503 Service Unavailable: connection refused</code>). The primary transactional Cloud SQL PostgreSQL instance (<code>prod-orders-primary</code>) disappeared from the Google Cloud Console. Order ingestion halted across seven regional bakeries, and pending baking batches stalled mid-workflow.</p>
+          </div>
+          <div>
+            <h4>Constraints &amp; Invariant</h4>
+            <p><strong>Duplicate Fulfillment Invariant:</strong> Under no circumstances may database recovery or retry replays result in more than one physical fulfillment per unique order ID (&le; 1 physical fulfillment).
+            <br><strong>Operational Constraint:</strong> SREs must restore transactional state to the exact second prior to deletion without dropping idempotent commit logs.</p>
+          </div>
+        </div>
+
+        <h4>Incident Evidence</h4>
+        <pre><code class="language-json">{
+  "protoPayload": {
+    "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+    "status": { "code": 0 },
+    "authenticationInfo": { "principalEmail": "dev-ops@brightloaf.com" },
+    "serviceName": "cloudsql.googleapis.com",
+    "methodName": "cloudsql.instances.delete",
+    "resourceName": "projects/brightloaf-prod-orders/instances/prod-orders-primary"
+  },
+  "severity": "NOTICE",
+  "timestamp": "2026-09-27T14:22:04.112891Z"
+}</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>Three days prior to the incident, an engineer was investigating query latency on a read replica and requested elevated privileges. A junior system administrator granted the basic role <code>roles/editor</code> at the project level <code>brightloaf-prod-orders</code> as an expedient workaround. During a routine script execution intended to delete a decommissioned staging instance, the engineer's environment context was accidentally pointed at the production project. Because <code>roles/editor</code> bundles thousands of permissions across all GCP APIs—including destructive methods like <code>cloudsql.instances.delete</code>—the API executed the deletion immediately without validation.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Audit Log Extraction:</strong> Inspect Cloud Audit Logs for <code>cloudsql.instances.delete</code> to determine the initiating principal and exact millisecond of termination.</li>
+          <li><strong>Point-in-Time Recovery (PITR) Assessment:</strong> Query Cloud SQL automated backup logs to locate the most recent transaction log WAL segments and verify automated backup integrity.</li>
+          <li><strong>Policy Audit:</strong> Run an IAM policy inspection on <code>projects/brightloaf-prod-orders</code> to catalog all principals bound to basic roles (<code>roles/owner</code>, <code>roles/editor</code>, <code>roles/viewer</code>).</li>
+          <li><strong>Transaction Log Verification:</strong> Compare uncommitted Pub/Sub order offsets against the point-in-time recovery target to isolate orders that were in-flight during the instance deletion.</li>
+          <li><strong>Blast Radius Mapping:</strong> Execute an IAM permission difference analysis between <code>roles/editor</code> and least-privilege operations required for daily database maintenance.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Mitigation</h4>
+        <p>To eliminate basic role blast radius while maintaining operational continuity:</p>
+        <ol>
+          <li>Immediately perform Point-in-Time Recovery (PITR) of <code>prod-orders-primary</code> to <code>14:22:03Z</code>. Cross-reference completed bakery fulfillment receipts in Spanner to ensure no restored order is double-dispatched.</li>
+          <li>Enable <strong>Instance Deletion Protection</strong> on all production Cloud SQL instances to block API deletion calls until the protection flag is deliberately turned off.</li>
+          <li>Strip <code>roles/editor</code> from all human and automated principals across all production projects.</li>
+          <li>Deploy a custom organization role: <code>organizations/1029384756/roles/brightloafCloudSqlOperator</code> containing only non-destructive verbs (<code>cloudsql.instances.get</code>, <code>cloudsql.instances.list</code>, <code>cloudsql.instances.restart</code>, <code>cloudsql.instances.export</code>).</li>
+        </ol>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 420" width="100%" height="auto" role="img" aria-labelledby="fig25-3-title fig25-3-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig25-3-title">Figure 25.3: Incident 25.1 Architecture - Primitive Role Blast Radius vs Custom Role Defense</title>
+            <desc id="fig25-3-desc">Diagram showing how project-level basic role roles/editor permitted destructive database deletion, contrasted with a custom role lacking deletion verbs.</desc>
+            <defs>
+              <marker id="arrow25-3-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow25-3-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Title -->
+            <text x="480" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle">Figure 25.3: Primitive Role Editor Breach vs. Custom Role Least Privilege</text>
+            <text x="480" y="52" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">Incident 25.1 · Eliminating cloudsql.instances.delete from human operator roles</text>
+
+            <!-- Actor Box -->
+            <g transform="translate(40, 160)">
+              <rect width="180" height="110" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+              <text x="90" y="30" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">Engineer Principal</text>
+              <text x="90" y="52" fill="#94a3b8" font-family="monospace" font-size="11" text-anchor="middle">dev-ops@brightloaf.com</text>
+              <rect x="20" y="68" width="140" height="26" rx="4" fill="#0c4a6e"/>
+              <text x="90" y="85" fill="#bae6fd" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Operational Maintenance</text>
+            </g>
+
+            <!-- FAILED PATH (Top) -->
+            <g transform="translate(320, 80)">
+              <rect width="280" height="90" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="140" y="24" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">BASIC ROLE: roles/editor</text>
+              <text x="140" y="44" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">Grants cloudsql.instances.delete</text>
+              <text x="140" y="64" fill="#fecdd3" font-family="system-ui, -apple-system, sans-serif" font-size="10" text-anchor="middle">No separation between read &amp; destroy</text>
+              <text x="140" y="80" fill="#fda4af" font-family="monospace" font-size="9" text-anchor="middle">[FAILED PATH: Broad basic role]</text>
+            </g>
+
+            <!-- FAILED DESTINATION (Top Right) -->
+            <g transform="translate(700, 80)">
+              <rect width="220" height="90" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="110" y="26" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Cloud SQL Primary Instance</text>
+              <text x="110" y="46" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">prod-orders-primary</text>
+              <rect x="20" y="58" width="180" height="22" rx="4" fill="#991b1b"/>
+              <text x="110" y="73" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">DELETED (OUTAGE 42 MIN)</text>
+            </g>
+
+            <!-- Failed path arrows -->
+            <path d="M 220 190 L 270 190 L 270 125 L 315 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow25-3-red)"/>
+            <path d="M 600 125 L 695 125" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow25-3-red)"/>
+
+            <!-- CORRECTED PATH (Bottom) -->
+            <g transform="translate(320, 250)">
+              <rect width="280" height="110" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="140" y="24" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">CUSTOM ROLE: brightloafSqlOperator</text>
+              <text x="140" y="44" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">Allows: get, restart, export</text>
+              <text x="140" y="62" fill="#ef4444" font-family="monospace" font-size="10" font-weight="700" text-anchor="middle">DENIED: cloudsql.instances.delete</text>
+              <text x="140" y="80" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="10" text-anchor="middle">Tailored surgical permission set</text>
+              <text x="140" y="98" fill="#4ade80" font-family="monospace" font-size="9" text-anchor="middle">[CORRECTED PATH: Surgical custom role]</text>
+            </g>
+
+            <!-- CORRECTED DESTINATION (Bottom Right) -->
+            <g transform="translate(700, 250)">
+              <rect width="220" height="110" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="110" y="28" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Cloud SQL Primary Instance</text>
+              <text x="110" y="48" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">prod-orders-primary</text>
+              <rect x="20" y="62" width="180" height="34" rx="4" fill="#15803d"/>
+              <text x="110" y="77" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">PROTECTED: 403 FORBIDDEN</text>
+              <text x="110" y="90" fill="#bbf7d0" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Deletion blocked; Invariant safe</text>
+            </g>
+
+            <!-- Corrected path arrows -->
+            <path d="M 220 230 L 270 230 L 270 305 L 315 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow25-3-green)"/>
+            <path d="M 600 305 L 695 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow25-3-green)"/>
+          </svg>
+          <figcaption class="diagram-caption">Figure 25.3: Architecture comparison for Incident 25.1.
+            <br><strong>Supplied facts:</strong> Engineer with basic roles/editor role executed an instance deletion API call against the production Cloud SQL primary instance during routine replica pruning.
+            <br><strong>Architectural inference:</strong> Basic roles bundle administrative, destructive verbs across all Google Cloud services without restriction, exposing core database state to accidental deletion.
+            <br><strong>Expected post-fix behavior:</strong> Engineer identity is rebound to custom role brightloafSqlOperator lacking cloudsql.instances.delete; all destructive calls terminate with 403 Forbidden while non-destructive operations proceed normally.
+          </figcaption>
+        </figure>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Execute an instance deletion API call against a test sandbox instance using <code>brightloafCloudSqlOperator</code> credentials. Confirm the API returns <code>403 PERMISSION_DENIED</code> with message <code>The client is not authorized to make this request. Missing permission: cloudsql.instances.delete</code>.</p>
+        <p><strong>Residual Risk:</strong> Custom roles must be monitored for API changes. If Cloud SQL introduces new non-destructive management verbs in subsequent API revisions, platform engineers must manually update the custom role YAML definition.</p>
+      </article>
+
+      <!-- Problem 02 -->
+      <article class="card" id="topic-02-problem" aria-labelledby="p2-heading">
+        <span class="badge danger">Incident 25.2</span>
+        <h3 id="p2-heading">CEL Timezone Lockout: Erroneous Condition Blocks Emergency Hotfix Release</h3>
+
+        <div class="grid-2">
+          <div>
+            <h4>Symptom</h4>
+            <p>At 19:05 UTC, the automated continuous deployment pipeline triggering a critical hotfix release for the fulfillment order scheduler failed with <code>403 PERMISSION_DENIED</code> on <code>clouddeploy.releases.create</code>. On-call SREs attempting to run the rollout manually were similarly blocked. The hotfix was urgent: a race condition in the delivery router was causing duplicate dispatch messages to be emitted to bakery packaging lines.</p>
+          </div>
+          <div>
+            <h4>Constraints &amp; Invariant</h4>
+            <p><strong>Duplicate Fulfillment Invariant:</strong> The hotfix contained the idempotency deduplication patch; blocking its deployment allowed duplicate dispatch events to process, directly risking duplicate bread orders (&le; 1 physical fulfillment violated).
+            <br><strong>Security Constraint:</strong> Elevated deployment permissions must remain time-bounded and cannot be made permanently active.</p>
+          </div>
+        </div>
+
+        <h4>Incident Evidence</h4>
+        <pre><code class="language-json">{
+  "error": {
+    "code": 403,
+    "message": "Permission 'clouddeploy.releases.create' denied on resource 'projects/brightloaf-prod-fulfillment/locations/us-central1/deliveryPipelines/bakery-pipeline' (or it may not exist).",
+    "status": "PERMISSION_DENIED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "IAM_PERMISSION_DENIED",
+        "domain": "iam.googleapis.com",
+        "metadata": {
+          "conditionEvaluationResult": "EVALUATION_CONDITIONAL_DENY",
+          "conditionExpression": "request.time < timestamp('2026-09-27T18:30:00Z')"
+        }
+      }
+    ]
+  }
+}</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>The release engineer scheduled a temporary emergency change window for Sunday night. When authoring the IAM policy condition for the release pipeline service account, the engineer intended the window to close at 00:00 local time (IST, UTC+05:30). However, instead of specifying <code>timestamp("2026-09-27T23:59:59Z")</code> or applying proper UTC offset conversion, the engineer mistakenly calculated the expiration as <code>18:30:00Z</code>. When the deployment started at <code>19:05:00Z</code>, the CEL condition evaluated to <code>false</code>. Because no other unconditional binding granted release creation privileges, the IAM evaluation engine defaulted to a hard deny.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Audit Log Error Inspection:</strong> Examine Cloud Deploy API audit logs to pull the exact <code>IAM_PERMISSION_DENIED</code> payload and identify the failing condition title.</li>
+          <li><strong>Policy Schema Extraction:</strong> Retrieve the version 3 IAM policy for <code>projects/brightloaf-prod-fulfillment</code> using Cloud SDK formatted output.</li>
+          <li><strong>CEL Expression Evaluation:</strong> Compare <code>request.time</code> against the condition's RFC 3339 timestamp string to confirm the boolean evaluation outcome.</li>
+          <li><strong>Queue Drainage Safeguard:</strong> Temporarily pause downstream order dispatch workers in Pub/Sub to prevent the unpatched deduplication race condition from emitting duplicate tickets while authorization is resolved.</li>
+          <li><strong>Concurrency ETag Verification:</strong> Validate the current <code>etag</code> of the project's IAM policy prior to applying an updated condition expression.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Mitigation</h4>
+        <p>To safely restore deployment access and prevent temporal lockouts:</p>
+        <ol>
+          <li>Immediately patch the IAM policy condition expression with an explicit UTC window including a 4-hour post-maintenance buffer: <code>request.time &lt; timestamp("2026-09-28T04:00:00Z")</code>.</li>
+          <li>Re-trigger the deployment pipeline, successfully deploying the order idempotency deduplication release.</li>
+          <li>Unpause the Pub/Sub dispatch workers; verify with order event tracking that each unique order ID is processed exactly once.</li>
+          <li>Standardize all temporal IAM conditions to use an automated Terraform module that strictly formats timestamps in UTC and rejects conditions expiring within 60 minutes of commit.</li>
+        </ol>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 420" width="100%" height="auto" role="img" aria-labelledby="fig25-4-title fig25-4-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig25-4-title">Figure 25.4: Incident 25.2 Architecture - CEL Condition Timezone Mismatch vs Validated Window</title>
+            <desc id="fig25-4-desc">Diagram showing how a local timezone miscalculation in a CEL request.time condition caused premature authorization failure, contrasted with an explicit UTC-buffered condition window.</desc>
+            <defs>
+              <marker id="arrow25-4-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow25-4-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Header -->
+            <text x="480" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle">Figure 25.4: CEL Condition Timezone Lockout vs. Synchronized UTC Window</text>
+            <text x="480" y="52" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">Incident 25.2 · Evaluating request.time against RFC 3339 UTC timestamps</text>
+
+            <!-- Actor Box -->
+            <g transform="translate(40, 150)">
+              <rect width="180" height="120" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+              <text x="90" y="28" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">SRE Deployer SA</text>
+              <text x="90" y="48" fill="#94a3b8" font-family="monospace" font-size="10" text-anchor="middle">sa-deploy@brightloaf...</text>
+              <rect x="20" y="60" width="140" height="48" rx="4" fill="#0c4a6e"/>
+              <text x="90" y="78" fill="#bae6fd" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Emergency Hotfix</text>
+              <text x="90" y="96" fill="#7dd3fc" font-family="monospace" font-size="10" text-anchor="middle">Time: 19:00:00Z</text>
+            </g>
+
+            <!-- FAILED PATH (Top) -->
+            <g transform="translate(320, 80)">
+              <rect width="280" height="100" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="140" y="24" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">ERRONEOUS CEL CONDITION</text>
+              <text x="140" y="44" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">request.time &lt; 18:30:00Z</text>
+              <text x="140" y="62" fill="#ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Evaluates to FALSE at 19:00:00Z</text>
+              <text x="140" y="80" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">(Local midnight +05:30 confused with UTC)</text>
+              <text x="140" y="93" fill="#fda4af" font-family="monospace" font-size="9" text-anchor="middle">[FAILED PATH: Premature condition expiration]</text>
+            </g>
+
+            <!-- FAILED DESTINATION (Top Right) -->
+            <g transform="translate(700, 80)">
+              <rect width="220" height="100" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="110" y="26" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Cloud Deploy Release API</text>
+              <text x="110" y="46" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">release-v2.14.0</text>
+              <rect x="20" y="58" width="180" height="30" rx="4" fill="#991b1b"/>
+              <text x="110" y="74" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">403 PERMISSION_DENIED</text>
+              <text x="110" y="86" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="8" text-anchor="middle">Hotfix blocked; Deduplication delayed</text>
+            </g>
+
+            <!-- Failed path arrows -->
+            <path d="M 220 190 L 270 190 L 270 130 L 315 130" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow25-4-red)"/>
+            <path d="M 600 130 L 695 130" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow25-4-red)"/>
+
+            <!-- CORRECTED PATH (Bottom) -->
+            <g transform="translate(320, 240)">
+              <rect width="280" height="110" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="140" y="24" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">SYNCHRONIZED UTC CONDITION</text>
+              <text x="140" y="44" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">request.time &lt; 23:59:59Z</text>
+              <text x="140" y="62" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Evaluates to TRUE at 19:00:00Z</text>
+              <text x="140" y="80" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">RFC 3339 UTC with 4-hr buffer window</text>
+              <text x="140" y="98" fill="#4ade80" font-family="monospace" font-size="9" text-anchor="middle">[CORRECTED PATH: Synchronized UTC window]</text>
+            </g>
+
+            <!-- CORRECTED DESTINATION (Bottom Right) -->
+            <g transform="translate(700, 240)">
+              <rect width="220" height="110" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="110" y="26" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Cloud Deploy Release API</text>
+              <text x="110" y="46" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">release-v2.14.0</text>
+              <rect x="20" y="60" width="180" height="34" rx="4" fill="#15803d"/>
+              <text x="110" y="76" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">200 OK: DEPLOY SUCCESSFUL</text>
+              <text x="110" y="90" fill="#bbf7d0" font-family="system-ui, -apple-system, sans-serif" font-size="9" text-anchor="middle">Hotfix rolled out; Invariant enforced</text>
+            </g>
+
+            <!-- Corrected path arrows -->
+            <path d="M 220 230 L 270 230 L 270 295 L 315 295" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow25-4-green)"/>
+            <path d="M 600 295 L 695 295" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow25-4-green)"/>
+          </svg>
+          <figcaption class="diagram-caption">Figure 25.4: Architecture comparison for Incident 25.2.
+            <br><strong>Supplied facts:</strong> Automated release pipeline was denied access to create deployment releases because a CEL condition with local timestamp 18:30:00Z expired before the scheduled 19:00:00Z execution.
+            <br><strong>Architectural inference:</strong> IAM CEL conditions parse timestamps strictly in UTC; human conversion errors when authoring conditions cause premature expiration and authorization lockouts.
+            <br><strong>Expected post-fix behavior:</strong> Condition timestamp is updated to canonical UTC (23:59:59Z) providing an operational buffer; deployment pipeline successfully completes authentication and deploys the deduplication hotfix.
+          </figcaption>
+        </figure>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Run an automated policy simulation passing current system time in UTC and testing boolean return values against boundary conditions. Confirm the pipeline service account authenticates and initiates canary releases without permission warnings.</p>
+        <p><strong>Residual Risk:</strong> Once the temporal condition expires after the buffer window, subsequent release attempts will again fail unless refreshed by a pipeline change management hook.</p>
+      </article>
+
+      <!-- Problem 03 -->
+      <article class="card" id="topic-03-problem" aria-labelledby="p3-heading">
+        <span class="badge danger">Incident 25.3</span>
+        <h3 id="p3-heading">Additive Inheritance Leak: Ancestral Folder Binding Overrides Project Isolation</h3>
+
+        <div class="grid-2">
+          <div>
+            <h4>Symptom</h4>
+            <p>At 11:15 UTC, the primary message bus topic <code>projects/brightloaf-prod-fulfillment/topics/bakery-dispatch</code> was deleted. Over 4,200 pending baking delivery instructions were dropped. Ingestion microservices threw unhandled exceptions, and regional baking hubs were left without dispatched order tickets.</p>
+          </div>
+          <div>
+            <h4>Constraints &amp; Invariant</h4>
+            <p><strong>Duplicate Fulfillment Invariant:</strong> Upstream order ingestion systems resubmitted orders from transactional logs. Without the original message ordering and acknowledgment offsets, replayed messages risked creating multiple baking tasks for identical order IDs (&le; 1 physical fulfillment).
+            <br><strong>Security Constraint:</strong> Developers must maintain read and publish access in development projects without ever possessing deletion capability in production.</p>
+          </div>
+        </div>
+
+        <h4>Incident Evidence</h4>
+        <pre><code class="language-json">{
+  "protoPayload": {
+    "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+    "authenticationInfo": { "principalEmail": "dev-user@brightloaf.com" },
+    "serviceName": "pubsub.googleapis.com",
+    "methodName": "google.pubsub.v1.Publisher.DeleteTopic",
+    "resourceName": "projects/brightloaf-prod-fulfillment/topics/bakery-dispatch"
+  },
+  "severity": "NOTICE",
+  "timestamp": "2026-09-27T11:15:22.847102Z"
+}</code></pre>
+
+        <h4>Root Cause Analysis</h4>
+        <p>The project-level IAM policy for <code>brightloaf-prod-fulfillment</code> was thoroughly reviewed and showed no developer accounts with administrative rights—only <code>roles/pubsub.viewer</code> was present. However, because Google Cloud IAM policy inheritance is strictly additive, inspecting the project policy in isolation gave a false sense of security. At the parent folder level (<code>folders/bakery-operations</code>), an obsolete binding bound <code>group:all-devs@brightloaf.internal</code> to <code>roles/pubsub.admin</code>. When the developer executed a topic-clearing cleanup script locally, the IAM evaluation engine evaluated the effective policy: the ancestral folder grant satisfied <code>pubsub.topics.delete</code>, completely overriding the restrictive project policy.</p>
+
+        <h4>5-Step Diagnostic Sequence</h4>
+        <ol>
+          <li><strong>Hierarchical Policy Crawl:</strong> Execute an ancestral policy audit using Cloud Asset Inventory or Policy Troubleshooter tracing all parent folders up to the organization root.</li>
+          <li><strong>Effective Policy Generation:</strong> Compute the union of all role bindings applicable to <code>dev-user@brightloaf.com</code> across every node in the resource hierarchy.</li>
+          <li><strong>Topic Re-creation &amp; Subscription Recovery:</strong> Immediately re-create <code>bakery-dispatch</code> with identical schema definitions and dead-letter queues.</li>
+          <li><strong>Idempotency Deduplication Audit:</strong> Run an offline log reconciliation matching replay candidates against the Spanner physical fulfillment ledger, discarding any message whose <code>order_id</code> already possesses an acknowledged fulfillment record.</li>
+          <li><strong>Folder Policy Remediation:</strong> Remove broad service admin roles from all ancestral folders, re-scoping access strictly to development child projects.</li>
+        </ol>
+
+        <h4>Defensible Solution &amp; Mitigation</h4>
+        <p>To eliminate inheritance leaks and enforce absolute least privilege:</p>
+        <ol>
+          <li>Recreate the topic and attach an IAM Deny Policy or delete the unscrubbed binding at <code>folders/bakery-operations</code>.</li>
+          <li>Re-architect the folder hierarchy to isolate production projects under a dedicated <code>folders/prod</code> tree with zero human data-plane bindings.</li>
+          <li>Deploy continuous drift detection using Cloud Asset Inventory feeds to flag any folder-level role binding containing <code>admin</code> or <code>editor</code> roles.</li>
+          <li>Replay unacknowledged Pub/Sub messages through an idempotent consumer filter that verifies the duplicate fulfillment invariant against Spanner before issuing bakery dispatch commands.</li>
+        </ol>
+
+        <figure class="diagram-container">
+          <svg viewBox="0 0 960 440" width="100%" height="auto" role="img" aria-labelledby="fig25-5-title fig25-5-desc" style="background:#121526; border-radius:8px; border:1px solid #1e293b; display:block; margin:0 auto;">
+            <title id="fig25-5-title">Figure 25.5: Incident 25.3 Architecture - Additive Folder Inheritance vs Effective Least Privilege</title>
+            <desc id="fig25-5-desc">Diagram showing how an ancestral folder binding roles/pubsub.admin leaked downward and overrode project-level restrictions, contrasted with clean hierarchy isolation and effective policy enforcement.</desc>
+            <defs>
+              <marker id="arrow25-5-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+              </marker>
+              <marker id="arrow25-5-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Header -->
+            <text x="480" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle">Figure 25.5: Additive Hierarchy Inheritance vs. Clean Effective Policy</text>
+            <text x="480" y="52" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" text-anchor="middle">Incident 25.3 · Ancestral folder grants override local project least privilege settings</text>
+
+            <!-- Actor Box -->
+            <g transform="translate(40, 160)">
+              <rect width="180" height="120" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+              <text x="90" y="28" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle">Developer Principal</text>
+              <text x="90" y="48" fill="#94a3b8" font-family="monospace" font-size="10" text-anchor="middle">dev-user@brightloaf.com</text>
+              <rect x="20" y="60" width="140" height="48" rx="4" fill="#0c4a6e"/>
+              <text x="90" y="78" fill="#bae6fd" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" text-anchor="middle">Maintenance Script</text>
+              <text x="90" y="96" fill="#7dd3fc" font-family="monospace" font-size="9" text-anchor="middle">DELETE order-dispatch</text>
+            </g>
+
+            <!-- FAILED PATH (Top) -->
+            <g transform="translate(320, 75)">
+              <rect width="280" height="115" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="140" y="22" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">PARENT FOLDER BINDING</text>
+              <text x="140" y="40" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">folders/bakery-ops: roles/pubsub.admin</text>
+              <text x="140" y="58" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="10" text-anchor="middle">Project has NO local grant, BUT:</text>
+              <text x="140" y="76" fill="#ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">Effective Policy = Folder UNION Project</text>
+              <text x="140" y="94" fill="#fda4af" font-family="monospace" font-size="9" text-anchor="middle">[FAILED PATH: Inherited folder grant permits delete]</text>
+            </g>
+
+            <!-- FAILED DESTINATION (Top Right) -->
+            <g transform="translate(700, 75)">
+              <rect width="220" height="115" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="110" y="24" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Production Pub/Sub Topic</text>
+              <text x="110" y="44" fill="#fecdd3" font-family="monospace" font-size="10" text-anchor="middle">bakery-dispatch</text>
+              <rect x="15" y="58" width="190" height="42" rx="4" fill="#991b1b"/>
+              <text x="110" y="74" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">TOPIC DELETED</text>
+              <text x="110" y="88" fill="#fca5a5" font-family="system-ui, -apple-system, sans-serif" font-size="8" text-anchor="middle">Ack offsets lost; Duplicate risk high</text>
+            </g>
+
+            <!-- Failed path arrows -->
+            <path d="M 220 200 L 270 200 L 270 130 L 315 130" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow25-5-red)"/>
+            <path d="M 600 130 L 695 130" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrow25-5-red)"/>
+
+            <!-- CORRECTED PATH (Bottom) -->
+            <g transform="translate(320, 245)">
+              <rect width="280" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="140" y="22" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">CLEANED FOLDER &amp; SCOPED BINDING</text>
+              <text x="140" y="40" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">Folder binding purged of data admin</text>
+              <text x="140" y="58" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="10" text-anchor="middle">Project grant: roles/pubsub.viewer only</text>
+              <text x="140" y="78" fill="#22c55e" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">Effective Policy lacks pubsub.topics.delete</text>
+              <text x="140" y="98" fill="#4ade80" font-family="monospace" font-size="9" text-anchor="middle">[CORRECTED PATH: Additive union clean]</text>
+            </g>
+
+            <!-- CORRECTED DESTINATION (Bottom Right) -->
+            <g transform="translate(700, 245)">
+              <rect width="220" height="120" rx="6" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="110" y="26" fill="#86efac" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Production Pub/Sub Topic</text>
+              <text x="110" y="46" fill="#bbf7d0" font-family="monospace" font-size="10" text-anchor="middle">bakery-dispatch</text>
+              <rect x="15" y="60" width="190" height="42" rx="4" fill="#15803d"/>
+              <text x="110" y="76" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">403 FORBIDDEN: PROTECTED</text>
+              <text x="110" y="90" fill="#bbf7d0" font-family="system-ui, -apple-system, sans-serif" font-size="8" text-anchor="middle">Topic preserved; Offsets retained</text>
+            </g>
+
+            <!-- Corrected path arrows -->
+            <path d="M 220 240 L 270 240 L 270 305 L 315 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow25-5-green)"/>
+            <path d="M 600 305 L 695 305" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow25-5-green)"/>
+          </svg>
+          <figcaption class="diagram-caption">Figure 25.5: Architecture comparison for Incident 25.3.
+            <br><strong>Supplied facts:</strong> Developer inadvertently deleted the production bakery dispatch Pub/Sub topic during a maintenance run despite having no delete roles granted directly on the production project.
+            <br><strong>Architectural inference:</strong> Standard IAM policies are strictly additive; an unscrubbed roles/pubsub.admin grant at an ancestor folder level flowed downward and satisfied the authorization check regardless of project-level posture.
+            <br><strong>Expected post-fix behavior:</strong> Ancestral folder bindings are purged of data-plane administrative roles; Policy Troubleshooter and Cloud Asset Inventory confirm the effective policy at the topic node denies pubsub.topics.delete.
+          </figcaption>
+        </figure>
+
+        <h4>Verification &amp; Residual Risk</h4>
+        <p><strong>Verification:</strong> Query the Policy Troubleshooter API simulating <code>dev-user@brightloaf.com</code> requesting <code>pubsub.topics.delete</code> on <code>projects/brightloaf-prod-fulfillment/topics/bakery-dispatch</code>. Verify that the effective authorization decision is <code>ACCESS_DENIED</code> with all ancestor bindings reporting <code>NOT_GRANTED</code>.</p>
+        <p><strong>Residual Risk:</strong> If future folder administrators inadvertently bind groups at the folder level, new inheritance leaks may occur. Automated policy linting must run as a gate in CI/CD before any folder IAM modification is applied.</p>
+      </article>
+    </section>

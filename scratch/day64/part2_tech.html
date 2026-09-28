@@ -1,0 +1,283 @@
+<section id="part-2" class="part"><h2>2 · Technical discussion of each topic</h2>
+<!-- PART_2_SVG_PLACEHOLDER -->
+<article id="topic-01-technical" class="topic-card">
+<h3>Cloud Pub/Sub messaging architecture, delivery semantics, and GCP integration stack</h3>
+<p>Google Cloud Pub/Sub is an enterprise-grade, globally distributed asynchronous messaging system engineered to provide horizontal scalability, low-latency data ingestion, and decoupling between event producers and consumers. At its architectural foundation, Pub/Sub separates the publishing surface (Topics) from the consumption topology (Subscriptions). When a publisher sends a batch of messages to a topic, the Pub/Sub frontend routes the payload across Google's global network to regional forwarders that replicate the message across three availability zones within the target region before acknowledging receipt. Subscribers consume from independent subscriptions attached to the topic, allowing multiple disparate downstream systems (such as billing, inventory, and analytics) to process identical event streams at independent rates without coupling.</p>
+
+<p>Google Cloud Pub/Sub supports four foundational subscription consumption patterns, each aligned to distinct throughput, latency, and operational models:</p>
+<ul>
+<li><strong>StreamingPull (High-Throughput Daemon Workers):</strong> Uses a bidirectional gRPC streaming connection between subscriber client instances and Pub/Sub message dispatchers. StreamingPull provides the lowest delivery latency (sub-50ms) and highest per-core throughput by amortizing connection overhead and enabling automatic, client-side acknowledgment deadline leasing (leasing extension manager). It is the standard production pattern for GKE and Compute Engine microservices.</li>
+<li><strong>Standard Pull (Batch Polling):</strong> Uses unary RPC requests (<code>PullRequest</code>) to retrieve batches of up to a configured maximum number of messages. Well-suited for ephemeral batch workloads, scheduled cron workers, or serverless jobs that wake periodically, drain an accumulated queue, and terminate.</li>
+<li><strong>Push Subscriptions (Webhook Dispatch):</strong> Pub/Sub automatically dispatches messages as HTTPS POST requests containing base64-encoded payloads to an authenticated webhook endpoint (such as Cloud Run, App Engine, or an on-premises reverse proxy). Push subscriptions automatically handle backoff and throttling based on HTTP response status codes (HTTP 200/201/204 acknowledge the message, while HTTP 5xx or 429 trigger exponential backoff redelivery).</li>
+<li><strong>BigQuery and Cloud Storage Direct Export:</strong> Fully managed, serverless direct ingestion subscriptions that stream incoming Pub/Sub records directly into BigQuery tables (using the BigQuery Storage Write API) or Cloud Storage buckets without deploying or maintaining intermediary compute instances (such as Dataflow or GKE pods).</li>
+</ul>
+
+<h4>Message Ordering, Poison Pills, and Dead Letter Topics</h4>
+<p>By default, Cloud Pub/Sub delivers messages in non-deterministic order to maximize horizontal distribution across backend partitions. However, transactional systems—such as retail order lifecycles, ledger accounting, and inventory movements—require strict causal ordering per entity. Pub/Sub provides ordered delivery via the <code>ordering_key</code> attribute. When publishers assign an <code>ordering_key</code> (such as <code>customer_id</code> or <code>store_id</code>), Pub/Sub guarantees that messages sharing that exact key are delivered to subscribers in the strict sequence they were received by the broker. Delivery of subsequent messages for a given key is withheld until the current message is acknowledged or its acknowledgment deadline expires.</p>
+
+<p>While ordering keys guarantee serial execution per entity, they introduce an acute architectural hazard: <em>head-of-line blocking via poison-pill payloads</em>. If a publisher emits a malformed payload (e.g., corrupted JSON, schema mismatch, or unhandled null field) under an ordering key, the subscriber's deserializer will fail and negative-acknowledge (nack) the message. Because ordering is enforced, Pub/Sub repeatedly redelivers that exact toxic message, halting all subsequent valid messages for that ordering key indefinitely.</p>
+
+<p>To immunize the messaging tier against head-of-line paralysis, architects must enforce two configuration invariants:</p>
+<ol>
+<li><strong>Dead Letter Topics (DLT):</strong> Configure a DeadLetterPolicy on the subscription, setting <code>maxDeliveryAttempts</code> (between 5 and 100, typically 5) and routing permanently failing payloads to a dedicated dead-letter topic (e.g., <code>orders.v1.deadletter</code>). Once the threshold is reached, Pub/Sub forwards the poison-pill message to the dead-letter topic and automatically acknowledges it on the primary subscription, instantly unblocking downstream valid messages for that ordering key.</li>
+<li><strong>Exponential Retry Backoff:</strong> Configure minimum and maximum retry delays (e.g., minimum 10 seconds, maximum 600 seconds) to prevent tight retry loops that exhaust CPU resources on worker pods during transient downstream dependency failures.</li>
+</ol>
+
+<h4>Message Retention, Snapshots, and Replay Capabilities</h4>
+<p>Cloud Pub/Sub decouples storage durability from consumer acknowledgment state. Subscriptions can retain unacknowledged messages for up to 31 days. Additionally, subscriptions can enable <em>acknowledged message retention</em> for up to 7 days. This retention capability powers Pub/Sub's Seek feature, providing two enterprise disaster-recovery mechanisms:</p>
+<ul>
+<li><strong>Seek to Timestamp:</strong> Moves the subscription's acknowledgment cursor backward to an exact point in time within the retention window, resetting all messages published after that timestamp to unacknowledged state. This enables immediate replay of event streams following the deployment of a consumer bug fix or hotfix.</li>
+<li><strong>Seek to Snapshot:</strong> Captures a point-in-time snapshot of the exact acknowledgment state across a subscription. Before deploying high-risk consumer upgrades or database migrations, operators capture a snapshot. If the new release corrupts consumer state, operators can revert the subscription cursor to the snapshot in seconds, guaranteeing zero event loss.</li>
+</ul>
+
+<h4>The Anatomy of Exactly-Once Delivery: Transport Scope vs. End-to-End Reality</h4>
+<p>Google Cloud Pub/Sub offers an <em>Exactly-Once Delivery (EOD)</em> feature on subscriptions. However, confusing transport-level EOD with application-level exactly-once business processing is one of the most prevalent and costly anti-patterns in cloud architecture. To design defensible systems, architects must understand the precise boundary of Pub/Sub's EOD:</p>
+<div class="callout caution">
+<strong>The Critical Architectural Boundary:</strong> Pub/Sub Transport EOD guarantees only that <em>within a single subscription, while a message's acknowledgment deadline is active, the broker will not redeliver that message to another subscriber client, and once acknowledged successfully, the broker will never deliver that message again</em>. It eliminates transport redeliveries caused by network latency spikes or transient broker-to-client ack dropped packets.
+</div>
+
+<p>Transport EOD explicitly does <strong>NOT</strong> provide end-to-end business exactly-once processing due to three inescapable distributed systems realities:</p>
+<ol>
+<li><strong>Producer Publish Retries:</strong> If an upstream order service publishes an event to Pub/Sub and the network connection drops before the publisher receives the publish acknowledgment, the publisher client library will retry the publish RPC. Pub/Sub treats this retry as a brand-new message with a new <code>message_id</code>. The broker delivers both messages to subscribers. Transport EOD cannot detect producer-side duplication.</li>
+<li><strong>Consumer Crash-Before-Ack:</strong> A subscriber receives a message, processes the business logic, and commits the state mutation to Cloud SQL. Before the subscriber can transmit the <code>Acknowledge</code> RPC back to Pub/Sub, the worker process crashes (e.g., Kubernetes OOMKilled, node preemption, or hardware fault). Pub/Sub's ack deadline expires, and the broker redelivers the message to a surviving worker. Without consumer-side deduplication, the second worker executes the business logic a second time (e.g., double-charging the customer).</li>
+<li><strong>Processing Timeouts Beyond Maximum Extension:</strong> If downstream database lock contention delays worker execution beyond the maximum acknowledgment extension deadline (10 minutes), Pub/Sub marks the lease expired and dispatches the message to a concurrent worker while the first worker is still writing to disk.</li>
+</ol>
+
+<h4>Google Cloud Messaging and Integration Stack Comparison</h4>
+<p>Selecting the appropriate messaging, queuing, and workflow service requires matching workload communication characteristics against Google Cloud's specialized services:</p>
+
+<table class="comparison-table">
+<thead>
+<tr>
+<th>Service</th>
+<th>Messaging Paradigm</th>
+<th>Ingress &amp; Delivery Model</th>
+<th>Ordering &amp; Rate Limits</th>
+<th>Deduplication Window</th>
+<th>Primary Enterprise Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cloud Pub/Sub</strong></td>
+<td>Many-to-many event stream broadcasting</td>
+<td>Global HTTPS/gRPC ingress; Pull, StreamingPull, Push, BigQuery/GCS export</td>
+<td>Strict serial ordering per <code>ordering_key</code>; millions of QPS horizontal scale</td>
+<td>Transport-level EOD (within ack deadline); no native producer deduplication</td>
+<td>High-throughput microservice event choreography, real-time analytics ingestion, and CDC streaming</td>
+</tr>
+<tr>
+<td><strong>Cloud Tasks</strong></td>
+<td>Point-to-point asynchronous task execution</td>
+<td>REST/gRPC task creation; push dispatch to App Engine, Cloud Run, or HTTP endpoints</td>
+<td>No strict global ordering; precise token-bucket rate limiting and concurrency throttling</td>
+<td>Task deduplication window (up to several hours via unique task name)</td>
+<td>Targeted background job dispatch, rate-limiting outbound calls to third-party APIs, and delayed execution</td>
+</tr>
+<tr>
+<td><strong>Eventarc</strong></td>
+<td>Declarative CloudEvents v1.0 event routing</td>
+<td>Captures Google Cloud audit logs, Cloud Storage mutations, and custom Pub/Sub events</td>
+<td>Unordered event delivery; auto-scaled dispatch to Cloud Run, GKE, or Workflows</td>
+<td>At-least-once transport; requires consumer idempotency</td>
+<td>Serverless event-driven automation triggered by infrastructure state changes (e.g., GCS object creation)</td>
+</tr>
+<tr>
+<td><strong>Cloud Workflows</strong></td>
+<td>Low-latency serverless workflow orchestration</td>
+<td>HTTP/API execution trigger; step-by-step state machine execution via YAML/JSON</td>
+<td>Deterministic sequential step execution, branching, parallel loops, and retries</td>
+<td>Stateful workflow instance execution; state machine checkpointing</td>
+<td>Complex multi-step service orchestration, distributed sagas with compensation logic, and human approval steps</td>
+</tr>
+<tr>
+<td><strong>Application Integration</strong></td>
+<td>Enterprise iPaaS visual integration engine</td>
+<td>API triggers, Pub/Sub triggers, and scheduled cron triggers</td>
+<td>Visual flow-based execution with out-of-the-box data mapping and transformation</td>
+<td>Built-in connector session and transaction management</td>
+<td>Enterprise application connectivity (Salesforce, SAP, ServiceNow) without custom middleware code</td>
+</tr>
+<tr>
+<td><strong>API Gateway</strong></td>
+<td>Managed OpenAPI reverse proxy ingress</td>
+<td>Public HTTP/S client ingress; forwards to Cloud Run, Cloud Functions, or GKE</td>
+<td>Rate limiting per API key or client IP; stateless routing</td>
+<td>Request header forwarding; no message queuing or event deduplication</td>
+<td>Securing, managing, and authenticating external mobile and web client traffic via JWT, OAuth, and API keys</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Message Delivery Semantics &amp; Correctness Boundaries</h4>
+<table class="comparison-table">
+<thead>
+<tr>
+<th>Semantic Tier</th>
+<th>Broker Guarantee</th>
+<th>Producer Retry Handling</th>
+<th>Consumer Crash Behavior</th>
+<th>Latency &amp; Throughput Impact</th>
+<th>Production Invariant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Standard At-Least-Once</strong></td>
+<td>Message is delivered &ge; 1 time; transient duplicates expected</td>
+<td>Duplicates created on publish retry</td>
+<td>Redelivered upon worker timeout or crash</td>
+<td>Lowest latency (&lt;20ms p99), unlimited horizontal throughput</td>
+<td>Consumers MUST be fully idempotent; safe only for naturally commutative operations</td>
+</tr>
+<tr>
+<td><strong>Pub/Sub Transport Exactly-Once (EOD)</strong></td>
+<td>Eliminates redeliveries between broker and SDK while lease active</td>
+<td>Duplicates still created if publisher retries after dropped ack</td>
+<td>Redelivered if worker crashes after DB commit but before ack RPC</td>
+<td>Moderate latency impact (~5-10ms overhead for consensus lease tracking)</td>
+<td>Guarantees single worker delivery within lease; does NOT guarantee exactly-once business outcome</td>
+</tr>
+<tr>
+<td><strong>End-to-End Idempotency (Outbox + Dedup Table)</strong></td>
+<td>Broker delivers at-least-once; application processes exactly once</td>
+<td>Deduplication table catches identical business tokens from publisher retries</td>
+<td>Crash-before-ack replayed safely without mutating business state; crash-after-ack eliminated</td>
+<td>Requires database write for deduplication token; bounded by database IOPS</td>
+<td>Universal enterprise correctness standard; mandatory for financial, inventory, and order operations</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An e-commerce order service uses Cloud Pub/Sub with ordering keys set to <code>store_id</code> to process point-of-sale store syncs. A software deployment sends an unparseable malformed payload to <code>store_id = 'store-chi-042'</code> without a Dead Letter Topic configured. Expected: The consumer fails deserialization and nacks the payload; Pub/Sub immediately halts delivery of all subsequent valid orders for <code>store-chi-042</code>, causing an indefinite regional queue backlog. Resolution: Configure <code>dead-letter-topic</code> with <code>maxDeliveryAttempts: 5</code> and an exponential retry backoff policy to automatically isolate poison pills and preserve stream continuity.</p>
+</div>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-021">Topic 021 source section</a> in this site, with original publisher links and curriculum context.</p>
+<p>Official Google Cloud Documentation: <a href="https://docs.cloud.google.com/pubsub/docs/exactly-once-delivery" rel="noopener noreferrer">Cloud Pub/Sub Exactly-Once Delivery</a>, <a href="https://docs.cloud.google.com/pubsub/docs/ordering" rel="noopener noreferrer">Ordering Messages in Pub/Sub</a>, and <a href="https://docs.cloud.google.com/pubsub/docs/handling-failures" rel="noopener noreferrer">Handling Failures with Dead Letter Topics</a>.</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Transactional Outbox pattern, consumer deduplication, crash/ack boundaries, and schema compatibility</h3>
+<p>In distributed architectures, microservices must frequently record a state change in a persistent datastore (such as Cloud SQL, AlloyDB, or Spanner) and emit a corresponding domain event to an asynchronous message broker (such as Cloud Pub/Sub) to notify downstream consumers. Developers frequently implement this using direct procedural execution: inserting the database row, followed immediately by calling the messaging SDK's publish method.</p>
+
+<h4>The Dual-Write Trap</h4>
+<p>Direct dual-writing represents a critical architectural flaw known as the <em>dual-write trap</em>. Because relational database commits and network RPCs to an external message broker reside across distinct physical network and consensus boundaries, they cannot execute atomically without distributed transactions (such as two-phase commit / 2PC). However, distributed 2PC across heterogeneous cloud services is practically impossible, highly fragile, and fundamentally prohibited in scalable architectures due to severe lock contention, network latency amplification, and availability degradation dictated by the CAP theorem.</p>
+
+<p>Under direct dual-writing, two fatal failure modes inevitably occur:</p>
+<ol>
+<li><strong>Database Commit Succeeds, Publish Fails:</strong> The database transaction commits the order record, but the subsequent network call to Cloud Pub/Sub encounters a timeout, connection reset, or broker throttle. The application throws an exception or terminates. Business state exists in the database, but the event is permanently lost. Downstream billing, warehouse fulfillment, and analytics systems never learn of the order.</li>
+<li><strong>Publish Succeeds, Database Commit Fails:</strong> If the code publishes the message first and then attempts to commit the database transaction, a database constraint violation, connection exhaustion, or transaction rollback will abort the local write. However, the event has already been published to Pub/Sub and consumed by downstream systems. The warehouse fulfills an order that legally and financially does not exist in the source database.</li>
+</ol>
+
+<h4>The Transactional Outbox Pattern</h4>
+<p>The Transactional Outbox pattern mathematically eliminates the dual-write trap by replacing the external dual-write with a single, atomic local database transaction. In this pattern, the application service writes both its business entity (e.g., an order row in <code>orders</code>) and an event envelope (in an <code>outbox_events</code> table) within the exact same ACID database transaction boundary:</p>
+
+<pre><code>-- Atomic Transactional Outbox Insertion in Cloud SQL
+BEGIN TRANSACTION;
+
+-- 1. Mutate business state
+INSERT INTO orders (order_id, customer_id, total_amount, status, created_at)
+VALUES ('ord-98214', 'cust-502', 149.50, 'PENDING', NOW());
+
+-- 2. Insert event envelope into outbox table
+INSERT INTO outbox_events (event_id, aggregate_type, aggregate_id, event_type, payload, status, created_at)
+VALUES (
+    'evt-550e8400-e29b-41d4-a716-446655440000',
+    'Order',
+    'ord-98214',
+    'OrderCreated',
+    '{"order_id": "ord-98214", "customer_id": "cust-502", "amount": 149.50}',
+    'UNPUBLISHED',
+    NOW()
+);
+
+COMMIT;</code></pre>
+
+<p>Because relational database engines (PostgreSQL, MySQL) guarantee ACID atomicity, either both records are durably written to the write-ahead log (WAL) and disk, or neither is written. If the database crashes, rolls back, or loses power, zero inconsistent state is left behind.</p>
+
+<h4>Outbox Relay Mechanisms: Polling vs. Transaction Log CDC</h4>
+<p>Once the event record is safely stored in the outbox table, an independent asynchronous relay process extracts the record and publishes it to Google Cloud Pub/Sub. There are two primary architectural implementations for the Outbox Relay:</p>
+
+<table class="comparison-table">
+<thead>
+<tr>
+<th>Implementation Strategy</th>
+<th>Mechanism</th>
+<th>Database Engine Overhead</th>
+<th>Freshness / Latency</th>
+<th>Operational Complexity</th>
+<th>Recommended Google Cloud Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Polling Publisher</strong></td>
+<td>Background worker polls outbox table via <code>SELECT ... FOR UPDATE SKIP LOCKED</code>, publishes to Pub/Sub, and updates record status to <code>PUBLISHED</code> or deletes it.</td>
+<td>Moderate: Periodic index scans, row-level locks, and write overhead updating status or deleting processed rows.</td>
+<td>Sub-second to several seconds depending on polling interval.</td>
+<td>Low: Implemented entirely within standard application code without external infrastructure.</td>
+<td>Ideal for small to medium scale (&lt;2,000 events/sec) and simple deployments on Cloud Run or GKE.</td>
+</tr>
+<tr>
+<td><strong>Transaction Log CDC (Datastream / Debezium)</strong></td>
+<td>Serverless CDC service tails the database transaction write-ahead log (PostgreSQL WAL via pgoutput, MySQL binlog) and continuously streams new outbox rows directly into Cloud Pub/Sub.</td>
+<td>Zero query overhead: Reads sequential disk logs directly without database locks or table scans.</td>
+<td>Near-real-time: 100ms to 500ms end-to-end streaming latency.</td>
+<td>Medium to High: Requires managing Datastream connection profiles, stream lifecycle, and replication slot disk thresholds.</td>
+<td>Standard enterprise pattern for high-velocity architectures (&gt;5,000 events/sec) on Cloud SQL, AlloyDB, or Spanner.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Consumer Deduplication and the Idempotency Engine</h4>
+<p>Because Pub/Sub guarantees at-least-once transport delivery, network hiccups, worker restarts, and outbox relay retries mean duplicate messages will arrive at consumer subscribers. Downstream consumers must maintain an Idempotency Engine to ensure business correctness. The industry standard mechanism is a dedicated <code>processed_events</code> deduplication table containing a unique primary key constraint on <code>event_id</code> (or a compound unique key on <code>(event_id, consumer_name)</code> when multiple independent consumer services share a database).</p>
+
+<p>Every incoming message must be processed within a local database transaction following this strict workflow:</p>
+<ol>
+<li><strong>Atomic Token Insertion:</strong> The consumer executes <code>INSERT INTO processed_events (event_id, consumer_name) VALUES (:event_id, :consumer_name) ON CONFLICT (event_id, consumer_name) DO NOTHING;</code>.</li>
+<li><strong>Cardinality Inspection:</strong> If the database returns 1 row affected, this is the first time this event has been seen. The consumer executes the business logic (e.g., deducting inventory and updating order fulfillment status).</li>
+<li><strong>Transaction Commit:</strong> The consumer commits the transaction. The business mutation and the deduplication token are committed atomically.</li>
+<li><strong>Duplicate Replay Handling:</strong> If the database returns 0 rows affected, the event is a duplicate delivery. The consumer completely bypasses business logic, does not alter business tables, and proceeds directly to step 5.</li>
+<li><strong>Message Acknowledgment:</strong> The consumer calls <code>message.ack()</code> on the Pub/Sub client to release the message from the subscription.</li>
+</ol>
+
+<h4>Crash/Ack Boundaries &amp; The Fundamental Architectural Invariant</h4>
+<p>The sequence in which message acknowledgment and local database transactions occur defines the difference between a resilient enterprise platform and catastrophic silent data corruption. Architects must enforce this absolute invariant across all engineering teams:</p>
+
+<div class="callout caution">
+<strong>THE INVIOLABLE CRASH/ACK INVARIANT:</strong> A message consumer must <strong>NEVER</strong> acknowledge a message to the messaging broker until the local business state mutation and deduplication token have successfully committed to durable storage.
+</div>
+
+<p>To understand why, compare the failure dynamics of the two possible crash boundaries:</p>
+<ul>
+<li><strong>Safe Boundary: Crash-Before-Ack:</strong> The worker executes the database transaction, inserting the deduplication token and mutating business state. The database transaction commits durably to disk. At that exact millisecond, the worker pod experiences a kernel panic, out-of-memory kill, or network disconnection before transmitting the <code>Acknowledge</code> RPC to Pub/Sub. Because no acknowledgment was received, Pub/Sub's ack deadline expires, and the broker redelivers the message to another worker instance. The second worker attempts to insert the <code>event_id</code> into <code>processed_events</code>. The unique constraint prevents duplicate insertion; the worker identifies the message as already processed, skips the business logic, and immediately transmits <code>message.ack()</code>. <em>Result: Zero duplicate business mutations, zero data loss, system heals automatically.</em></li>
+<li><strong>Fatal Boundary: Crash-After-Ack:</strong> A naive developer places <code>message.ack()</code> at the start of the handler to "prevent Pub/Sub from timing out and resending." The worker receives the message and immediately transmits <code>message.ack()</code> to Pub/Sub. The broker receives the acknowledgment and permanently deletes the message from its partition. Next, the worker attempts to write the order to the database. Before the database commits, the worker pod crashes or the database connection drops. <em>Result: The message is gone from Pub/Sub forever. The database transaction never committed. The customer's order is permanently lost from the system without trace or alert.</em></li>
+</ul>
+
+<h4>Pub/Sub Schema Evolution &amp; Contract Governance</h4>
+<p>As microservices evolve independently, event schemas must adapt without breaking running consumers. Google Cloud Pub/Sub provides native Schema Registry support for Protocol Buffers (proto3) and Apache Avro schemas. Topics can be bound to a schema, causing the Pub/Sub broker to reject any publish payload that fails schema validation at ingress.</p>
+
+<p>When evolving schemas across independent deployment pipelines, architects enforce strict compatibility policies:</p>
+<ul>
+<li><strong>BACKWARD Compatibility:</strong> New schema versions can read events produced by older schema versions. This allows consumers to be upgraded before publishers. New fields must have default values, and deleted fields must not be mandatory.</li>
+<li><strong>FORWARD Compatibility:</strong> Older schema versions can read events produced by newer schema versions. This allows publishers to be upgraded before consumers. Newly added fields are safely ignored by older consumers.</li>
+<li><strong>FULL Compatibility:</strong> Schemas are simultaneously backward and forward compatible. Publishers and consumers can be upgraded in any order without synchronization or downtime.</li>
+</ul>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An order fulfillment service receives a Pub/Sub message with <code>event_id = 'evt-9901'</code>. The worker commits the fulfillment update to PostgreSQL along with <code>INSERT INTO processed_events VALUES ('evt-9901')</code>, but crashes due to a GKE node drain before sending <code>message.ack()</code>. Expected: Pub/Sub redelivers <code>evt-9901</code> after the 30-second ack deadline; the replacement worker encounters an <code>ON CONFLICT DO NOTHING</code> duplicate detection, skips warehouse dispatching, and transmits <code>message.ack()</code> immediately, preserving single-fulfillment correctness.</p>
+</div>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-021">Topic 021 source section</a> in this site, with original publisher links and curriculum context.</p>
+<p>Official Google Cloud Documentation: <a href="https://docs.cloud.google.com/pubsub/docs/schemas" rel="noopener noreferrer">Pub/Sub Schemas &amp; Validation</a>, <a href="https://docs.cloud.google.com/datastream/docs/overview" rel="noopener noreferrer">Datastream CDC Overview</a>, and <a href="https://docs.cloud.google.com/spanner/docs/true-time-external-consistency" rel="noopener noreferrer">Cloud Spanner External Consistency</a>.</p>
+</div>
+</article>
+</section>

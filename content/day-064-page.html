@@ -1,0 +1,1140 @@
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Day 64: Messaging, outbox and duplicate handling · GCP 180 days</title><link rel="stylesheet" href="../assets/site.css"><script defer src="../assets/site.js"></script></head><body><a class="skip" href="#main">Skip to content</a><header class="site-nav"><nav class="nav-inner" aria-label="Site navigation"><a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a><a href="../index.html">Day index</a><a href="../glossary.html">Glossary</a><a href="../sources.html">Sources</a><a href="../artifacts.html">Artifacts</a><a href="day-063.html" aria-label="Previous day">← Day 63</a><a href="day-065.html" aria-label="Next day">Day 65 →</a><label class="jump-label" for="day-jump">Jump to day</label><select id="day-jump" aria-label="Jump to day"><option value="">Choose a day…</option><optgroup label="Foundations"><option value="day-001.html">Day 1: Local workspace and learning baseline</option><option value="day-002.html">Day 2: IP addressing and packet paths</option><option value="day-003.html">Day 3: DNS, sockets and transport</option><option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option><option value="day-005.html">Day 5: VPN, load balancers and firewalls</option><option value="day-006.html">Day 6: Shell, processes and services</option><option value="day-007.html">Day 7: SSH, scripts and process inspection</option><option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option><option value="day-009.html">Day 9: VM and container isolation</option><option value="day-010.html">Day 10: Images, filesystems and orchestration</option><option value="day-011.html">Day 11: Cloud service models and responsibility</option><option value="day-012.html">Day 12: Regions, scaling and economics</option><option value="day-013.html">Day 13: State, availability and recovery vocabulary</option><option value="day-014.html">Day 14: Git, APIs and JSON</option><option value="day-015.html">Day 15: Small application and architecture styles</option><option value="day-016.html">Day 16: SQL foundations and business outcomes</option><option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option></optgroup><optgroup label="Cloud environment and identity"><option value="day-018.html">Day 18: Cloud sandbox and cost controls</option><option value="day-019.html">Day 19: CLI configuration and identity checks</option><option value="day-020.html">Day 20: APIs, client libraries and emulators</option><option value="day-021.html">Day 21: Resource hierarchy and ownership</option><option value="day-022.html">Day 22: Inheritance, labels and tags</option><option value="day-023.html">Day 23: Organization policies and lifecycle</option><option value="day-024.html">Day 24: Principals and workforce identity</option><option value="day-025.html">Day 25: Roles and authorization decisions</option><option value="day-026.html">Day 26: Credentials, tokens and impersonation</option><option value="day-027.html">Day 27: Billing roles and budget ownership</option><option value="day-028.html">Day 28: Cost attribution and notifications</option><option value="day-029.html">Day 29: Cost exports, quota and capacity</option><option value="day-030.html">Day 30: Region and resource-scope decisions</option><option value="day-031.html">Day 31: Network tiers and delivery paths</option><option value="day-032.html">Day 32: Support, inventory and learning tracker</option><option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option><option value="day-034.html">Day 34: First controlled cloud resource operation</option><option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option></optgroup><optgroup label="Core services and integrated practice"><option value="day-036.html">Day 36: VM sizing and image choices</option><option value="day-037.html">Day 37: Disks, metadata and persistence</option><option value="day-038.html">Day 38: Templates, MIGs and scaling</option><option value="day-039.html">Day 39: Autohealing and deployment changes</option><option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option><option value="day-041.html">Day 41: VM operations and resource diagnosis</option><option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option><option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option><option value="day-044.html">Day 44: Service networking and persistent volumes</option><option value="day-045.html">Day 45: Probes, secrets and workload failures</option><option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option><option value="day-047.html">Day 47: Cloud Run and event-driven functions</option><option value="day-048.html">Day 48: Workflows and runtime selection</option><option value="day-049.html">Day 49: VPC address and route design</option><option value="day-050.html">Day 50: Firewall policy and private API access</option><option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option><option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option><option value="day-053.html">Day 53: Load-balancer architecture</option><option value="day-054.html">Day 54: Health checks, certificates and draining</option><option value="day-055.html">Day 55: CDN, WAF and traffic management</option><option value="day-056.html">Day 56: Hybrid topology and failure domains</option><option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option><option value="day-058.html">Day 58: Object storage and local durability</option><option value="day-059.html">Day 59: Transfers, block storage and restore</option><option value="day-060.html">Day 60: File systems and backup design</option><option value="day-061.html">Day 61: Relational databases and transactions</option><option value="day-062.html">Day 62: Distributed and nonrelational database choices</option><option value="day-063.html">Day 63: Caching, CDC and database selection</option><option value="day-064.html" selected>Day 64: Messaging, outbox and duplicate handling</option><option value="day-065.html">Day 65: Integrate one order-service path</option><option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option><option value="day-067.html">Day 67: Gate 3 — Operate the core application</option></optgroup><optgroup label="Requirements, migration and architecture"><option value="day-068.html">Day 68: Requirements from observed behavior</option><option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option><option value="day-070.html">Day 70: Well-Architected review lenses</option><option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option><option value="day-072.html">Day 72: Application architecture patterns</option><option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option><option value="day-074.html">Day 74: Regional and tenant boundaries</option><option value="day-075.html">Day 75: Migration assessment and VMware fit</option><option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option><option value="day-077.html">Day 77: Migration waves and acceptance</option><option value="day-078.html">Day 78: Decision matrices grounded in experiments</option><option value="day-079.html">Day 79: ADRs, TCO and risk registers</option><option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option><option value="day-081.html">Day 81: First architecture defense</option><option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option></optgroup><optgroup label="Reliability and security"><option value="day-083.html">Day 83: Availability math and dependency risk</option><option value="day-084.html">Day 84: Failure domains and graceful degradation</option><option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option><option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option><option value="day-087.html">Day 87: Incidents, toil and capacity</option><option value="day-088.html">Day 88: Availability across infrastructure layers</option><option value="day-089.html">Day 89: Messaging, DNS and application health</option><option value="day-090.html">Day 90: Recovery targets and patterns</option><option value="day-091.html">Day 91: Backups and replication correctness</option><option value="day-092.html">Day 92: Failover and failback planning</option><option value="day-093.html">Day 93: Metrics, alerting and burn rates</option><option value="day-094.html">Day 94: Logs, traces and profiling</option><option value="day-095.html">Day 95: Central observability and audit evidence</option><option value="day-096.html">Day 96: Bounded failure experiment design</option><option value="day-097.html">Day 97: Run a recovery and overload experiment</option><option value="day-098.html">Day 98: Restore and failover acceptance</option><option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option><option value="day-100.html">Day 100: Workload federation and short-lived access</option><option value="day-101.html">Day 101: Workforce federation and remote access</option><option value="day-102.html">Day 102: Privileged access and break-glass</option><option value="day-103.html">Day 103: Defense in depth and network policy</option><option value="day-104.html">Day 104: Data perimeters and egress controls</option><option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option><option value="day-106.html">Day 106: Data classification and key lifecycle</option><option value="day-107.html">Day 107: Secrets and de-identification</option><option value="day-108.html">Day 108: Residency, confidentiality and data access</option><option value="day-109.html">Day 109: Compliance evidence and responsibility</option><option value="day-110.html">Day 110: Policy as code and audit retention</option><option value="day-111.html">Day 111: Regulated workload design</option><option value="day-112.html">Day 112: Threat detection and triage</option><option value="day-113.html">Day 113: Incident response and threat modelling</option><option value="day-114.html">Day 114: Artifact integrity and admission</option><option value="day-115.html">Day 115: Container and pipeline hardening</option><option value="day-116.html">Day 116: Integrate private access and key controls</option><option value="day-117.html">Day 117: Security handover and evidence repair</option><option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option></optgroup><optgroup label="Performance, delivery and operations"><option value="day-119.html">Day 119: Cost baseline and commitments</option><option value="day-120.html">Day 120: Storage, network and database costs</option><option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option><option value="day-122.html">Day 122: Unit economics and sensitivity</option><option value="day-123.html">Day 123: Caching correctness under load</option><option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option><option value="day-125.html">Day 125: Profiling and capacity evidence</option><option value="day-126.html">Day 126: Terraform baseline and state boundaries</option><option value="day-127.html">Day 127: Terraform testing, drift and recovery</option><option value="day-128.html">Day 128: Build and deployment pipeline</option><option value="day-129.html">Day 129: Release rollback and delivery measures</option><option value="day-130.html">Day 130: Service catalog and ownership</option><option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option><option value="day-132.html">Day 132: Customer success and platform outcomes</option><option value="day-133.html">Day 133: Operations integration and remediation</option></optgroup><optgroup label="Data, AI and distributed correctness"><option value="day-134.html">Day 134: Warehouse foundations and query costs</option><option value="day-135.html">Day 135: Warehouse security and reporting</option><option value="day-136.html">Day 136: Batch and streaming processing choices</option><option value="day-137.html">Day 137: Streaming correctness and CDC</option><option value="day-138.html">Day 138: Lakehouse and open table design</option><option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option><option value="day-140.html">Day 140: ML lifecycle and model selection</option><option value="day-141.html">Day 141: Build a small grounded-answer flow</option><option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option><option value="day-143.html">Day 143: AI security and evaluation</option><option value="day-144.html">Day 144: AI serving and infrastructure choices</option><option value="day-145.html">Day 145: Distributed state and regional correctness</option></optgroup><optgroup label="Discovery, cases and exam preparation"><option value="day-146.html">Day 146: Case analysis and discovery method</option><option value="day-147.html">Day 147: Extract facts and numeric requirements</option><option value="day-148.html">Day 148: Map requirements and conflicts</option><option value="day-149.html">Day 149: Discovery: business, load and recovery</option><option value="day-150.html">Day 150: Discovery: data, regulation and skills</option><option value="day-151.html">Day 151: Discovery: budget, risks and success</option><option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option><option value="day-153.html">Day 153: EHR Healthcare — defend the design</option><option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option><option value="day-155.html">Day 155: Altostrat Media — architecture defense</option><option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option><option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option><option value="day-158.html">Day 158: KnightMotives — modernization requirements</option><option value="day-159.html">Day 159: KnightMotives — architecture defense</option><option value="day-160.html">Day 160: Case synthesis and feedback</option><option value="day-161.html">Day 161: Changed-constraint design exercise</option><option value="day-162.html">Day 162: Exam domain mapping and sample questions</option><option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option><option value="day-164.html">Day 164: Readiness plan and remaining repairs</option></optgroup><optgroup label="Multi-team architecture and synthesis"><option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option><option value="day-166.html">Day 166: Production identity across teams</option><option value="day-167.html">Day 167: API contracts and compatibility</option><option value="day-168.html">Day 168: Sustainability and assisted operations</option><option value="day-169.html">Day 169: Capacity allocation and overload governance</option><option value="day-170.html">Day 170: Compute and database decision synthesis</option><option value="day-171.html">Day 171: Network decision synthesis</option><option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option><option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option></optgroup><optgroup label="Final gate and capstone defenses"><option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option><option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option><option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option><option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option><option value="day-178.html">Day 178: Capstone 4 — Migration defense</option><option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option></optgroup><optgroup label="Final review and rest"><option value="day-180.html">Day 180: Final review, logistics and rest</option></optgroup></select><button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button></nav></header><div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div><main id="main" class="container day" data-day="64" data-prev="day-063.html" data-next="day-065.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 64 of 180</div>
+<section class="hero">
+<div class="pills"><span class="pill">DAY</span><span class="pill">3–4 hours</span><span class="pill">local exercise</span><span class="pill">Topics 021, 078, 081</span></div>
+<h1>Day 64 — Messaging, outbox and duplicate handling</h1>
+<p class="lead"><strong>Outcome:</strong> Write one order plus an outbox record in a local transaction; deliver the event twice and verify the consumer changes business state once.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-063.html">Day 63</a>, <a href="day-020.html">Day 20</a>; bring their exit artifacts.</p></div>
+<div class="callout success"><strong>Exit artifact</strong><p>A repeatable invariant check and crash-before/after-ack timeline; explain why transport delivery is not end-to-end exactly-once behavior.</p></div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+<aside class="toc" aria-label="On this page"><strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>Cloud Pub/Sub messaging architecture, delivery semantics, and GCP integration stack</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>Transactional Outbox pattern, consumer deduplication, crash/ack boundaries, and schema compatibility</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+</aside>
+<section id="part-1" class="part"><h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>Cloud Pub/Sub messaging architecture, delivery semantics, and GCP integration stack</h3>
+<p>Asynchronous event ingestion and distributed decoupling form the nervous system of modern cloud architectures. Google Cloud Pub/Sub provides a globally distributed, multi-tenant message broker engineered for horizontal scale, sub-100-millisecond publish latencies, and persistent multi-zone data durability. Pub/Sub decouples publishers from consumers through Topics and Subscriptions, supporting multiple consumption topologies: StreamingPull for low-latency high-throughput daemon workers, standard Pull for batch polling, Push subscriptions delivering HTTP/S webhooks to serverless endpoints like Cloud Run, and BigQuery or Cloud Storage Direct Export for zero-compute telemetry ingestion. Ensuring correctness in high-velocity pipelines requires mastering message ordering via <code>ordering_key</code> hashing, which guarantees serial delivery of messages sharing the same key while preserving horizontal parallelism across distinct keys. However, ordered streams introduce severe head-of-line blocking vulnerability if an unparseable poison-pill payload is delivered; this necessitates configuring Dead Letter Topics (DLT) with strict <code>maxDeliveryAttempts</code> (typically 5 attempts) and exponential backoff retry policies to quarantine toxic messages without halting regional stream execution. Furthermore, Pub/Sub separates message retention (up to 31 days for unacknowledged messages and up to 7 days for acknowledged messages) from consumption state, allowing disaster recovery, bug remediation, and schema backfills through Seek to Timestamp and Seek to Snapshot operations. Crucially, enterprise architects must delineate Pub/Sub's Exactly-Once Delivery (EOD) transport guarantee from end-to-end business logic: while transport-level EOD eliminates duplicate deliveries between the broker and subscriber client library within the acknowledgment deadline, it provides zero protection against producer-side publish retries or consumer crashes occurring after database state commit but before message acknowledgment. Finally, architects must position Pub/Sub within Google Cloud's wider integration portfolio, choosing between Pub/Sub for high-throughput broadcast pub/sub, Cloud Tasks for point-to-point rate-limited task dispatch, Eventarc for standardized CloudEvents v1.0 audit and state triggers, Cloud Workflows for low-latency serverless state machines, Application Integration for enterprise SaaS connectors, and API Gateway for authenticated client ingress.</p>
+<p>An unhandled schema mutation on store POS terminals injects an unparseable poison-pill payload into an ordered partition while upstream API retries duplicate unacknowledged publish attempts. The resulting partition head-of-line blockage freezes downstream order processing for 14,000 regional customers for over 52 minutes while 820 duplicate orders trigger $61,500 in erroneous credit card charges and customer disputes.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Transactional Outbox pattern, consumer deduplication, crash/ack boundaries, and schema compatibility</h3>
+<p>Distributed microservice architectures frequently fall into the dual-write trap: attempting to update a relational database and publish an event to a message broker in separate programmatic steps. Because distributed two-phase commit (2PC) is absent and prohibited across decoupled cloud services due to catastrophic lock contention and CAP theorem availability loss, any crash, network timeout, or broker outage between the local database commit and the broker publish call leaves the platform in an irrecoverable state of dual-write inconsistency. The Transactional Outbox pattern resolves this fundamental challenge by enforcing atomicity at the local database engine: business mutations (such as creating an order in <code>orders</code>) and the corresponding event envelope (stored in an <code>outbox_events</code> table) are committed in a single local ACID transaction. An asynchronous Outbox Relay worker—utilizing polling via <code>SELECT ... FOR UPDATE SKIP LOCKED</code> or non-invasive Change Data Capture (CDC) via Datastream—reads unpublished outbox records, publishes them to Cloud Pub/Sub with ordering keys, and marks them published upon broker acknowledgment. On the consumption side, network partitions, worker restarts, and broker retries mean messages are delivered under at-least-once transport semantics. Consumers must therefore enforce strict idempotency by maintaining a dedicated <code>processed_events</code> deduplication table with a unique constraint on <code>(event_id, consumer_name)</code>. Every consumer mutation must execute within an ACID transaction that checks or inserts the event token before mutating business state. This architecture dictates the inviolable Crash/Ack boundary invariant: a subscriber must <em>never</em> acknowledge a message to Pub/Sub before the local business state mutation and deduplication record have durably committed to disk. If a worker crashes before sending an acknowledgment (Crash-Before-Ack), the broker redelivers the message; upon redelivery, the worker detects the existing token in <code>processed_events</code>, bypasses business processing, and immediately acknowledges the message, preserving exactly-once business effects. Conversely, acknowledging a message before database commit (Crash-After-Ack) guarantees permanent, silent data loss whenever a worker crashes mid-flight. Finally, long-lived messaging architectures require formal schema evolution governance using Protocol Buffers or Apache Avro schemas registered in Cloud Pub/Sub, enforcing backward, forward, or full compatibility policies to prevent breaking downstream consumers during rolling deployments.</p>
+<p>A direct dual-write failure during a transient network blip commits customer orders to Cloud SQL while dropping the corresponding fulfillment dispatch events, and an emergency consumer hotfix prematurely acknowledges Pub/Sub messages before database persistence. The resulting crash-after-ack worker failure permanently loses 185 customer fulfillment records without trace, triggering acute SLA breaches and requiring manual bank reconciliation across four retail distribution centers.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+<section id="part-2" class="part"><h2>2 · Technical discussion of each topic</h2>
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d64-arch-title d64-arch-desc" viewBox="0 0 1120 860" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d64-arch-title">Enterprise Event-Driven Messaging, Transactional Outbox &amp; Deduplication Pipeline</title>
+<desc id="d64-arch-desc">Comprehensive architectural topology detailing Order Ingestion with ACID Transactional Outbox in Cloud SQL, Outbox Relay Publisher with Ordering Keys, Cloud Pub/Sub Broker with Dead Letter Topic routing, Pull Subscriber with Idempotent Consumer filter, Deduplication Table, and Crash-Before-Ack vs Crash-After-Ack timeline.</desc>
+<defs>
+<marker id="d64-m-db" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+<marker id="d64-m-relay" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#38bdf8"/>
+</marker>
+<marker id="d64-m-pubsub" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#a855f7"/>
+</marker>
+<marker id="d64-m-dlt" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d64-m-consumer" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#06b6d4"/>
+</marker>
+<marker id="d64-m-ack" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f59e0b"/>
+</marker>
+<marker id="d64-m-fail" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#ef4444"/>
+</marker>
+</defs>
+
+<!-- SECTION 1: INGESTION & TRANSACTIONAL OUTBOX (CLOUD SQL) -->
+<rect x="20" y="20" width="1080" height="195" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="42" fill="#38bdf8" font-size="13" font-weight="700">1. INGESTION TIER: Order API &amp; Local ACID Transactional Outbox (Cloud SQL PostgreSQL / AlloyDB)</text>
+
+<!-- Client / API Gateway -->
+<rect x="35" y="55" width="180" height="145" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="45" y="75" fill="#38bdf8" font-size="11" font-weight="700">API Gateway / Ingress</text>
+<text x="45" y="93" fill="#94a3b8" font-size="10">HTTPS Client Requests</text>
+<rect x="45" y="102" width="160" height="34" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+<text x="52" y="117" fill="#7dd3fc" font-family="monospace" font-size="9">POST /v1/orders</text>
+<text x="52" y="130" fill="#cbd5e1" font-size="9">Header: Idempotency-Key</text>
+<text x="45" y="152" fill="#22c55e" font-size="9">&#10003; JWT &amp; OpenAPI Validated</text>
+<text x="45" y="167" fill="#cbd5e1" font-size="9">&bull; TLS 1.3 Termination</text>
+<text x="45" y="182" fill="#cbd5e1" font-size="9">&bull; Client Rate Limiting</text>
+
+<!-- Order Service Box -->
+<rect x="250" y="55" width="220" height="145" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+<text x="260" y="75" fill="#7dd3fc" font-size="11" font-weight="700">Order Service (Cloud Run / GKE)</text>
+<text x="260" y="93" fill="#cbd5e1" font-size="10">Single Database Connection Pool</text>
+<rect x="260" y="102" width="200" height="42" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="268" y="117" fill="#fde68a" font-family="monospace" font-size="9">BEGIN TRANSACTION;</text>
+<text x="268" y="130" fill="#cbd5e1" font-family="monospace" font-size="8.5">INSERT INTO orders ...;</text>
+<text x="268" y="140" fill="#cbd5e1" font-family="monospace" font-size="8.5">INSERT INTO outbox_events ...;</text>
+<text x="260" y="160" fill="#f43f5e" font-size="9.5" font-weight="700">&#9888; DUAL-WRITE TRAP ELIMINATED:</text>
+<text x="260" y="174" fill="#cbd5e1" font-size="8.5">Zero direct external network calls</text>
+<text x="260" y="187" fill="#22c55e" font-size="8.5">Guaranteed local ACID atomicity</text>
+
+<!-- Cloud SQL Box -->
+<rect x="505" y="55" width="575" height="145" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1"/>
+<text x="520" y="75" fill="#86efac" font-size="11" font-weight="700">Cloud SQL PostgreSQL Engine (Local ACID Commit Boundary)</text>
+
+<!-- Table 1: orders -->
+<rect x="520" y="85" width="265" height="105" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="530" y="102" fill="#4ade80" font-size="10" font-weight="700">TABLE: orders</text>
+<text x="530" y="118" fill="#cbd5e1" font-family="monospace" font-size="9">order_id VARCHAR PRIMARY KEY</text>
+<text x="530" y="132" fill="#cbd5e1" font-family="monospace" font-size="9">customer_id VARCHAR NOT NULL</text>
+<text x="530" y="146" fill="#cbd5e1" font-family="monospace" font-size="9">amount NUMERIC(10,2)</text>
+<text x="530" y="160" fill="#cbd5e1" font-family="monospace" font-size="9">status VARCHAR ('PENDING')</text>
+<text x="530" y="176" fill="#22c55e" font-size="8.5">&#10003; Business state persisted</text>
+
+<!-- Table 2: outbox_events -->
+<rect x="800" y="85" width="265" height="105" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="810" y="102" fill="#4ade80" font-size="10" font-weight="700">TABLE: outbox_events</text>
+<text x="810" y="118" fill="#cbd5e1" font-family="monospace" font-size="9">event_id UUID PRIMARY KEY</text>
+<text x="810" y="132" fill="#cbd5e1" font-family="monospace" font-size="9">aggregate_id VARCHAR NOT NULL</text>
+<text x="810" y="146" fill="#cbd5e1" font-family="monospace" font-size="9">payload JSONB NOT NULL</text>
+<text x="810" y="160" fill="#cbd5e1" font-family="monospace" font-size="9">status VARCHAR ('UNPUBLISHED')</text>
+<text x="810" y="176" fill="#22c55e" font-size="8.5">&#10003; Atomic with orders table</text>
+
+<!-- Path from Client to Order Service -->
+<path d="M 215 125 L 250 125" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d64-m-relay)"/>
+<!-- Path from Order Service to Cloud SQL -->
+<path d="M 470 125 L 505 125" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d64-m-db)"/>
+
+<!-- SECTION 2: OUTBOX RELAY & PUB/SUB MESSAGING BROKER -->
+<rect x="20" y="230" width="1080" height="205" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="252" fill="#a855f7" font-size="13" font-weight="700">2. RELAY &amp; BROKER TIER: Outbox Relay Publisher &amp; Google Cloud Pub/Sub Messaging Fabric</text>
+
+<!-- Outbox Relay Worker -->
+<rect x="35" y="265" width="275" height="155" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+<text x="45" y="285" fill="#c084fc" font-size="11" font-weight="700">Outbox Relay Worker (Daemon / CDC)</text>
+<rect x="45" y="295" width="255" height="42" rx="3" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="52" y="310" fill="#e0e7ff" font-family="monospace" font-size="8.5">SELECT * FROM outbox_events</text>
+<text x="52" y="322" fill="#e0e7ff" font-family="monospace" font-size="8.5">WHERE status='UNPUBLISHED'</text>
+<text x="52" y="333" fill="#a5b4fc" font-family="monospace" font-size="8">FOR UPDATE SKIP LOCKED LIMIT 100;</text>
+<text x="45" y="352" fill="#cbd5e1" font-size="9.5">&bull; Sets <code>ordering_key = aggregate_id</code></text>
+<text x="45" y="367" fill="#cbd5e1" font-size="9.5">&bull; Publishes batch to Cloud Pub/Sub</text>
+<text x="45" y="382" fill="#cbd5e1" font-size="9.5">&bull; On Publish ACK &rarr; <code>status = 'PUBLISHED'</code></text>
+<text x="45" y="405" fill="#38bdf8" font-size="9">Alternative: Datastream CDC from WAL</text>
+
+<!-- Cloud Pub/Sub Topic and Broker -->
+<rect x="345" y="265" width="410" height="155" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1.5"/>
+<text x="355" y="285" fill="#c084fc" font-size="11" font-weight="700">Cloud Pub/Sub Topic: projects/app/topics/orders.v1</text>
+
+<!-- Topic Partitioning -->
+<rect x="355" y="295" width="185" height="115" rx="3" fill="#1e1b4b" stroke="#a855f7" stroke-width="1"/>
+<text x="365" y="312" fill="#e0e7ff" font-size="9.5" font-weight="700">Ordered Message Stream</text>
+<text x="365" y="328" fill="#cbd5e1" font-family="monospace" font-size="8.5">ordering_key: cust_101</text>
+<text x="365" y="342" fill="#cbd5e1" font-size="8.5">&bull; Serial per-key delivery</text>
+<text x="365" y="356" fill="#cbd5e1" font-size="8.5">&bull; SHA-256 partition routing</text>
+<text x="365" y="370" fill="#22c55e" font-size="8.5">&bull; Horizontal scale across keys</text>
+<text x="365" y="386" fill="#7dd3fc" font-size="8.5">&bull; Schema: Avro / Protobuf</text>
+<text x="365" y="401" fill="#f59e0b" font-size="8">Retention: 31d unack, 7d ack</text>
+
+<!-- Dead Letter Queue Box -->
+<rect x="555" y="295" width="185" height="115" rx="3" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="565" y="312" fill="#fca5a5" font-size="9.5" font-weight="700">Dead Letter Topic (DLT)</text>
+<text x="565" y="328" fill="#fca5a5" font-size="8.5">Topic: orders.v1.deadletter</text>
+<text x="565" y="344" fill="#cbd5e1" font-size="8.5">&bull; <code>maxDeliveryAttempts: 5</code></text>
+<text x="565" y="358" fill="#cbd5e1" font-size="8.5">&bull; Isolates poison pill payloads</text>
+<text x="565" y="372" fill="#22c55e" font-size="8.5">&bull; Prevents partition stalls</text>
+<text x="565" y="386" fill="#cbd5e1" font-size="8.5">&bull; Backoff: 10s min &rarr; 600s max</text>
+<text x="565" y="401" fill="#f43f5e" font-size="8">Quarantine &amp; Replay Alert</text>
+
+<!-- GCP Integration Alternatives Box -->
+<rect x="785" y="265" width="295" height="155" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+<text x="795" y="285" fill="#38bdf8" font-size="11" font-weight="700">GCP Messaging Stack Alignment</text>
+<text x="795" y="303" fill="#cbd5e1" font-size="9">&bull; <strong>Cloud Tasks:</strong> Point-to-point dispatch &amp; rate limit</text>
+<text x="795" y="321" fill="#cbd5e1" font-size="9">&bull; <strong>Eventarc:</strong> CloudEvents v1.0 audit log triggers</text>
+<text x="795" y="339" fill="#cbd5e1" font-size="9">&bull; <strong>Cloud Workflows:</strong> Orchestrated state machine</text>
+<text x="795" y="357" fill="#cbd5e1" font-size="9">&bull; <strong>App Integration:</strong> Enterprise iPaaS connectors</text>
+<text x="795" y="375" fill="#cbd5e1" font-size="9">&bull; <strong>API Gateway:</strong> Managed OpenAPI ingress &amp; auth</text>
+<text x="795" y="401" fill="#f59e0b" font-size="9">Pub/Sub = High-Throughput Event Streaming</text>
+
+<!-- Path from Cloud SQL to Relay -->
+<path d="M 800 190 L 800 215 L 175 215 L 175 265" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#d64-m-relay)"/>
+<!-- Path from Relay to Pub/Sub -->
+<path d="M 310 340 L 345 340" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#d64-m-pubsub)"/>
+<!-- Path to DLT -->
+<path d="M 540 350 L 555 350" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#d64-m-dlt)"/>
+
+<!-- SECTION 3: CONSUMER DEDUPLICATION & IDEMPOTENT PROCESSING TIER -->
+<rect x="20" y="450" width="1080" height="205" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="472" fill="#06b6d4" font-size="13" font-weight="700">3. CONSUMPTION TIER: StreamingPull Consumer, Deduplication Table &amp; Atomic State Transition</text>
+
+<!-- Consumer Pod -->
+<rect x="35" y="485" width="295" height="155" rx="4" fill="#0f172a" stroke="#06b6d4" stroke-width="1"/>
+<text x="45" y="505" fill="#22d3ee" font-size="11" font-weight="700">Fulfillment Consumer (StreamingPull)</text>
+<text x="45" y="522" fill="#cbd5e1" font-size="9.5">Client Library: <code>google-cloud-pubsub</code></text>
+<text x="45" y="538" fill="#f59e0b" font-size="9.5">&#9733; Transport EOD Enabled (within deadline)</text>
+<rect x="45" y="548" width="275" height="42" rx="3" fill="#164e63" stroke="#06b6d4" stroke-width="1"/>
+<text x="52" y="563" fill="#cffafe" font-family="monospace" font-size="8.5">def callback(message):</text>
+<text x="52" y="575" fill="#cffafe" font-family="monospace" font-size="8.5">  event_id = message.attributes["event_id"]</text>
+<text x="52" y="586" fill="#cffafe" font-family="monospace" font-size="8.5">  process_idempotent(event_id, message.data)</text>
+<text x="45" y="605" fill="#f43f5e" font-size="9">&#9888; CRITICAL: Never ACK before DB commit</text>
+<text x="45" y="620" fill="#22c55e" font-size="9">&#10003; Auto Ack Deadline Extension active</text>
+
+<!-- Deduplication Engine Box -->
+<rect x="365" y="485" width="375" height="155" rx="4" fill="#0f172a" stroke="#06b6d4" stroke-width="1"/>
+<text x="375" y="505" fill="#22d3ee" font-size="11" font-weight="700">Idempotent Deduplication Engine (Cloud SQL / Spanner)</text>
+
+<!-- Dedup Table -->
+<rect x="375" y="515" width="355" height="115" rx="3" fill="#083344" stroke="#06b6d4" stroke-width="1"/>
+<text x="385" y="532" fill="#67e8f9" font-size="10" font-weight="700">TABLE: processed_events (Unique Idempotency Store)</text>
+<text x="385" y="548" fill="#cbd5e1" font-family="monospace" font-size="8.5">event_id VARCHAR(64) PRIMARY KEY</text>
+<text x="385" y="562" fill="#cbd5e1" font-family="monospace" font-size="8.5">consumer_name VARCHAR(64) NOT NULL</text>
+<text x="385" y="576" fill="#cbd5e1" font-family="monospace" font-size="8.5">processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP</text>
+<text x="385" y="594" fill="#fde68a" font-family="monospace" font-size="8">INSERT INTO processed_events VALUES (id, name)</text>
+<text x="385" y="606" fill="#fde68a" font-family="monospace" font-size="8">ON CONFLICT (event_id) DO NOTHING;</text>
+<text x="385" y="622" fill="#22c55e" font-size="8.5">&#10003; Rows affected: 1 = NEW &bull; 0 = DUPLICATE REPLAY</text>
+
+<!-- Fulfillment Execution Box -->
+<rect x="775" y="485" width="305" height="155" rx="4" fill="#0f172a" stroke="#22c55e" stroke-width="1"/>
+<text x="785" y="505" fill="#86efac" font-size="11" font-weight="700">Fulfillment Business Execution</text>
+<rect x="785" y="515" width="285" height="52" rx="3" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="795" y="532" fill="#cbd5e1" font-size="9">If NEW: Execute Warehouse Pick &amp; Pack</text>
+<text x="795" y="546" fill="#cbd5e1" font-size="9">Commit Order Status &rarr; 'FULFILLED'</text>
+<text x="795" y="560" fill="#4ade80" font-size="9.5" font-weight="700">COMMIT TRANSACTION;</text>
+<rect x="785" y="575" width="285" height="55" rx="3" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+<text x="795" y="593" fill="#fde68a" font-size="10" font-weight="700">Step Final: message.ack()</text>
+<text x="795" y="608" fill="#cbd5e1" font-size="8.5">Sent ONLY after DB transaction commits to disk</text>
+<text x="795" y="621" fill="#22c55e" font-size="8.5">If duplicate: Skip pick &amp; ack immediately</text>
+
+<!-- Path from Pub/Sub to Consumer -->
+<path d="M 450 420 L 450 455 L 180 455 L 180 485" fill="none" stroke="#06b6d4" stroke-width="2" marker-end="url(#d64-m-consumer)"/>
+<!-- Path from Consumer to Dedup Engine -->
+<path d="M 330 560 L 365 560" fill="none" stroke="#06b6d4" stroke-width="2" marker-end="url(#d64-m-consumer)"/>
+<!-- Path from Dedup Engine to Fulfillment -->
+<path d="M 740 560 L 775 560" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#d64-m-db)"/>
+
+<!-- SECTION 4: CRASH/ACK BOUNDARY LIFECYCLE -->
+<rect x="20" y="670" width="1080" height="175" rx="6" fill="#131b2e" stroke="#1e293b" stroke-width="1.5"/>
+<text x="35" y="692" fill="#f59e0b" font-size="13" font-weight="700">4. RECOVERY INVARIANTS: Crash/Ack Boundary Safety &amp; End-to-End Correctness Guarantee</text>
+
+<!-- Left Box: Crash-Before-Ack (Safe) -->
+<rect x="35" y="705" width="515" height="125" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="45" y="725" fill="#4ade80" font-size="11" font-weight="700">&#10003; CRASH-BEFORE-ACK: SAFE AT-LEAST-ONCE REPLAY</text>
+<text x="45" y="743" fill="#cbd5e1" font-size="9.5">1. Consumer commits business state + <code>processed_events</code> to Cloud SQL.</text>
+<text x="45" y="759" fill="#fca5a5" font-size="9.5">2. Worker crashes (OOM / pod preemption) BEFORE sending ACK to Pub/Sub.</text>
+<text x="45" y="775" fill="#cbd5e1" font-size="9.5">3. Ack deadline expires &rarr; Pub/Sub broker redelivers message to healthy worker.</text>
+<text x="45" y="791" fill="#86efac" font-size="9.5">4. Worker queries <code>processed_events</code> &rarr; finds token &rarr; skips fulfillment logic.</text>
+<text x="45" y="807" fill="#4ade80" font-size="9.5" font-weight="700">5. Worker immediately calls <code>message.ack()</code>. Result: ZERO duplicate effects!</text>
+
+<!-- Right Box: Crash-After-Ack (Catastrophic) -->
+<rect x="580" y="705" width="500" height="125" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="590" y="725" fill="#f87171" font-size="11" font-weight="700">&#9888; CRASH-AFTER-ACK: PERMANENT DATA LOSS (FORBIDDEN)</text>
+<text x="590" y="743" fill="#cbd5e1" font-size="9.5">1. Worker receives message from Pub/Sub and executes <code>message.ack()</code> FIRST.</text>
+<text x="590" y="759" fill="#fca5a5" font-size="9.5">2. Broker deletes message from topic partition, assuming successful processing.</text>
+<text x="590" y="775" fill="#fca5a5" font-size="9.5">3. Worker pod crashes (SIGKILL, segfault, node eviction) BEFORE DB commit.</text>
+<text x="590" y="791" fill="#f87171" font-size="9.5">4. Cloud SQL transaction is aborted / rolled back by the engine.</text>
+<text x="590" y="807" fill="#ef4444" font-size="9.5" font-weight="700">5. Catastrophic state: Order is lost forever. ZERO redelivery possible!</text>
+</svg>
+<figcaption>Figure 64.1: Enterprise Event-Driven Messaging and Transactional Outbox Pipeline. End-to-end data flow showing atomic ACID outbox persistence in Cloud SQL, guaranteed delivery via Outbox Relay to Cloud Pub/Sub with ordering keys and dead-letter routing, subscriber idempotency via a processed events deduplication table, and strict adherence to the crash-before-ack boundary invariant.</figcaption>
+</figure>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Cloud Pub/Sub messaging architecture, delivery semantics, and GCP integration stack</h3>
+<p>Google Cloud Pub/Sub is an enterprise-grade, globally distributed asynchronous messaging system engineered to provide horizontal scalability, low-latency data ingestion, and decoupling between event producers and consumers. At its architectural foundation, Pub/Sub separates the publishing surface (Topics) from the consumption topology (Subscriptions). When a publisher sends a batch of messages to a topic, the Pub/Sub frontend routes the payload across Google's global network to regional forwarders that replicate the message across three availability zones within the target region before acknowledging receipt. Subscribers consume from independent subscriptions attached to the topic, allowing multiple disparate downstream systems (such as billing, inventory, and analytics) to process identical event streams at independent rates without coupling.</p>
+
+<p>Google Cloud Pub/Sub supports four foundational subscription consumption patterns, each aligned to distinct throughput, latency, and operational models:</p>
+<ul>
+<li><strong>StreamingPull (High-Throughput Daemon Workers):</strong> Uses a bidirectional gRPC streaming connection between subscriber client instances and Pub/Sub message dispatchers. StreamingPull provides the lowest delivery latency (sub-50ms) and highest per-core throughput by amortizing connection overhead and enabling automatic, client-side acknowledgment deadline leasing (leasing extension manager). It is the standard production pattern for GKE and Compute Engine microservices.</li>
+<li><strong>Standard Pull (Batch Polling):</strong> Uses unary RPC requests (<code>PullRequest</code>) to retrieve batches of up to a configured maximum number of messages. Well-suited for ephemeral batch workloads, scheduled cron workers, or serverless jobs that wake periodically, drain an accumulated queue, and terminate.</li>
+<li><strong>Push Subscriptions (Webhook Dispatch):</strong> Pub/Sub automatically dispatches messages as HTTPS POST requests containing base64-encoded payloads to an authenticated webhook endpoint (such as Cloud Run, App Engine, or an on-premises reverse proxy). Push subscriptions automatically handle backoff and throttling based on HTTP response status codes (HTTP 200/201/204 acknowledge the message, while HTTP 5xx or 429 trigger exponential backoff redelivery).</li>
+<li><strong>BigQuery and Cloud Storage Direct Export:</strong> Fully managed, serverless direct ingestion subscriptions that stream incoming Pub/Sub records directly into BigQuery tables (using the BigQuery Storage Write API) or Cloud Storage buckets without deploying or maintaining intermediary compute instances (such as Dataflow or GKE pods).</li>
+</ul>
+
+<h4>Message Ordering, Poison Pills, and Dead Letter Topics</h4>
+<p>By default, Cloud Pub/Sub delivers messages in non-deterministic order to maximize horizontal distribution across backend partitions. However, transactional systems—such as retail order lifecycles, ledger accounting, and inventory movements—require strict causal ordering per entity. Pub/Sub provides ordered delivery via the <code>ordering_key</code> attribute. When publishers assign an <code>ordering_key</code> (such as <code>customer_id</code> or <code>store_id</code>), Pub/Sub guarantees that messages sharing that exact key are delivered to subscribers in the strict sequence they were received by the broker. Delivery of subsequent messages for a given key is withheld until the current message is acknowledged or its acknowledgment deadline expires.</p>
+
+<p>While ordering keys guarantee serial execution per entity, they introduce an acute architectural hazard: <em>head-of-line blocking via poison-pill payloads</em>. If a publisher emits a malformed payload (e.g., corrupted JSON, schema mismatch, or unhandled null field) under an ordering key, the subscriber's deserializer will fail and negative-acknowledge (nack) the message. Because ordering is enforced, Pub/Sub repeatedly redelivers that exact toxic message, halting all subsequent valid messages for that ordering key indefinitely.</p>
+
+<p>To immunize the messaging tier against head-of-line paralysis, architects must enforce two configuration invariants:</p>
+<ol>
+<li><strong>Dead Letter Topics (DLT):</strong> Configure a DeadLetterPolicy on the subscription, setting <code>maxDeliveryAttempts</code> (between 5 and 100, typically 5) and routing permanently failing payloads to a dedicated dead-letter topic (e.g., <code>orders.v1.deadletter</code>). Once the threshold is reached, Pub/Sub forwards the poison-pill message to the dead-letter topic and automatically acknowledges it on the primary subscription, instantly unblocking downstream valid messages for that ordering key.</li>
+<li><strong>Exponential Retry Backoff:</strong> Configure minimum and maximum retry delays (e.g., minimum 10 seconds, maximum 600 seconds) to prevent tight retry loops that exhaust CPU resources on worker pods during transient downstream dependency failures.</li>
+</ol>
+
+<h4>Message Retention, Snapshots, and Replay Capabilities</h4>
+<p>Cloud Pub/Sub decouples storage durability from consumer acknowledgment state. Subscriptions can retain unacknowledged messages for up to 31 days. Additionally, subscriptions can enable <em>acknowledged message retention</em> for up to 7 days. This retention capability powers Pub/Sub's Seek feature, providing two enterprise disaster-recovery mechanisms:</p>
+<ul>
+<li><strong>Seek to Timestamp:</strong> Moves the subscription's acknowledgment cursor backward to an exact point in time within the retention window, resetting all messages published after that timestamp to unacknowledged state. This enables immediate replay of event streams following the deployment of a consumer bug fix or hotfix.</li>
+<li><strong>Seek to Snapshot:</strong> Captures a point-in-time snapshot of the exact acknowledgment state across a subscription. Before deploying high-risk consumer upgrades or database migrations, operators capture a snapshot. If the new release corrupts consumer state, operators can revert the subscription cursor to the snapshot in seconds, guaranteeing zero event loss.</li>
+</ul>
+
+<h4>The Anatomy of Exactly-Once Delivery: Transport Scope vs. End-to-End Reality</h4>
+<p>Google Cloud Pub/Sub offers an <em>Exactly-Once Delivery (EOD)</em> feature on subscriptions. However, confusing transport-level EOD with application-level exactly-once business processing is one of the most prevalent and costly anti-patterns in cloud architecture. To design defensible systems, architects must understand the precise boundary of Pub/Sub's EOD:</p>
+<div class="callout caution">
+<strong>The Critical Architectural Boundary:</strong> Pub/Sub Transport EOD guarantees only that <em>within a single subscription, while a message's acknowledgment deadline is active, the broker will not redeliver that message to another subscriber client, and once acknowledged successfully, the broker will never deliver that message again</em>. It eliminates transport redeliveries caused by network latency spikes or transient broker-to-client ack dropped packets.
+</div>
+
+<p>Transport EOD explicitly does <strong>NOT</strong> provide end-to-end business exactly-once processing due to three inescapable distributed systems realities:</p>
+<ol>
+<li><strong>Producer Publish Retries:</strong> If an upstream order service publishes an event to Pub/Sub and the network connection drops before the publisher receives the publish acknowledgment, the publisher client library will retry the publish RPC. Pub/Sub treats this retry as a brand-new message with a new <code>message_id</code>. The broker delivers both messages to subscribers. Transport EOD cannot detect producer-side duplication.</li>
+<li><strong>Consumer Crash-Before-Ack:</strong> A subscriber receives a message, processes the business logic, and commits the state mutation to Cloud SQL. Before the subscriber can transmit the <code>Acknowledge</code> RPC back to Pub/Sub, the worker process crashes (e.g., Kubernetes OOMKilled, node preemption, or hardware fault). Pub/Sub's ack deadline expires, and the broker redelivers the message to a surviving worker. Without consumer-side deduplication, the second worker executes the business logic a second time (e.g., double-charging the customer).</li>
+<li><strong>Processing Timeouts Beyond Maximum Extension:</strong> If downstream database lock contention delays worker execution beyond the maximum acknowledgment extension deadline (10 minutes), Pub/Sub marks the lease expired and dispatches the message to a concurrent worker while the first worker is still writing to disk.</li>
+</ol>
+
+<h4>Google Cloud Messaging and Integration Stack Comparison</h4>
+<p>Selecting the appropriate messaging, queuing, and workflow service requires matching workload communication characteristics against Google Cloud's specialized services:</p>
+
+<table class="comparison-table">
+<thead>
+<tr>
+<th>Service</th>
+<th>Messaging Paradigm</th>
+<th>Ingress &amp; Delivery Model</th>
+<th>Ordering &amp; Rate Limits</th>
+<th>Deduplication Window</th>
+<th>Primary Enterprise Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cloud Pub/Sub</strong></td>
+<td>Many-to-many event stream broadcasting</td>
+<td>Global HTTPS/gRPC ingress; Pull, StreamingPull, Push, BigQuery/GCS export</td>
+<td>Strict serial ordering per <code>ordering_key</code>; millions of QPS horizontal scale</td>
+<td>Transport-level EOD (within ack deadline); no native producer deduplication</td>
+<td>High-throughput microservice event choreography, real-time analytics ingestion, and CDC streaming</td>
+</tr>
+<tr>
+<td><strong>Cloud Tasks</strong></td>
+<td>Point-to-point asynchronous task execution</td>
+<td>REST/gRPC task creation; push dispatch to App Engine, Cloud Run, or HTTP endpoints</td>
+<td>No strict global ordering; precise token-bucket rate limiting and concurrency throttling</td>
+<td>Task deduplication window (up to several hours via unique task name)</td>
+<td>Targeted background job dispatch, rate-limiting outbound calls to third-party APIs, and delayed execution</td>
+</tr>
+<tr>
+<td><strong>Eventarc</strong></td>
+<td>Declarative CloudEvents v1.0 event routing</td>
+<td>Captures Google Cloud audit logs, Cloud Storage mutations, and custom Pub/Sub events</td>
+<td>Unordered event delivery; auto-scaled dispatch to Cloud Run, GKE, or Workflows</td>
+<td>At-least-once transport; requires consumer idempotency</td>
+<td>Serverless event-driven automation triggered by infrastructure state changes (e.g., GCS object creation)</td>
+</tr>
+<tr>
+<td><strong>Cloud Workflows</strong></td>
+<td>Low-latency serverless workflow orchestration</td>
+<td>HTTP/API execution trigger; step-by-step state machine execution via YAML/JSON</td>
+<td>Deterministic sequential step execution, branching, parallel loops, and retries</td>
+<td>Stateful workflow instance execution; state machine checkpointing</td>
+<td>Complex multi-step service orchestration, distributed sagas with compensation logic, and human approval steps</td>
+</tr>
+<tr>
+<td><strong>Application Integration</strong></td>
+<td>Enterprise iPaaS visual integration engine</td>
+<td>API triggers, Pub/Sub triggers, and scheduled cron triggers</td>
+<td>Visual flow-based execution with out-of-the-box data mapping and transformation</td>
+<td>Built-in connector session and transaction management</td>
+<td>Enterprise application connectivity (Salesforce, SAP, ServiceNow) without custom middleware code</td>
+</tr>
+<tr>
+<td><strong>API Gateway</strong></td>
+<td>Managed OpenAPI reverse proxy ingress</td>
+<td>Public HTTP/S client ingress; forwards to Cloud Run, Cloud Functions, or GKE</td>
+<td>Rate limiting per API key or client IP; stateless routing</td>
+<td>Request header forwarding; no message queuing or event deduplication</td>
+<td>Securing, managing, and authenticating external mobile and web client traffic via JWT, OAuth, and API keys</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Message Delivery Semantics &amp; Correctness Boundaries</h4>
+<table class="comparison-table">
+<thead>
+<tr>
+<th>Semantic Tier</th>
+<th>Broker Guarantee</th>
+<th>Producer Retry Handling</th>
+<th>Consumer Crash Behavior</th>
+<th>Latency &amp; Throughput Impact</th>
+<th>Production Invariant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Standard At-Least-Once</strong></td>
+<td>Message is delivered &ge; 1 time; transient duplicates expected</td>
+<td>Duplicates created on publish retry</td>
+<td>Redelivered upon worker timeout or crash</td>
+<td>Lowest latency (&lt;20ms p99), unlimited horizontal throughput</td>
+<td>Consumers MUST be fully idempotent; safe only for naturally commutative operations</td>
+</tr>
+<tr>
+<td><strong>Pub/Sub Transport Exactly-Once (EOD)</strong></td>
+<td>Eliminates redeliveries between broker and SDK while lease active</td>
+<td>Duplicates still created if publisher retries after dropped ack</td>
+<td>Redelivered if worker crashes after DB commit but before ack RPC</td>
+<td>Moderate latency impact (~5-10ms overhead for consensus lease tracking)</td>
+<td>Guarantees single worker delivery within lease; does NOT guarantee exactly-once business outcome</td>
+</tr>
+<tr>
+<td><strong>End-to-End Idempotency (Outbox + Dedup Table)</strong></td>
+<td>Broker delivers at-least-once; application processes exactly once</td>
+<td>Deduplication table catches identical business tokens from publisher retries</td>
+<td>Crash-before-ack replayed safely without mutating business state; crash-after-ack eliminated</td>
+<td>Requires database write for deduplication token; bounded by database IOPS</td>
+<td>Universal enterprise correctness standard; mandatory for financial, inventory, and order operations</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An e-commerce order service uses Cloud Pub/Sub with ordering keys set to <code>store_id</code> to process point-of-sale store syncs. A software deployment sends an unparseable malformed payload to <code>store_id = 'store-chi-042'</code> without a Dead Letter Topic configured. Expected: The consumer fails deserialization and nacks the payload; Pub/Sub immediately halts delivery of all subsequent valid orders for <code>store-chi-042</code>, causing an indefinite regional queue backlog. Resolution: Configure <code>dead-letter-topic</code> with <code>maxDeliveryAttempts: 5</code> and an exponential retry backoff policy to automatically isolate poison pills and preserve stream continuity.</p>
+</div>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-021">Topic 021 source section</a> in this site, with original publisher links and curriculum context.</p>
+<p>Official Google Cloud Documentation: <a href="https://docs.cloud.google.com/pubsub/docs/exactly-once-delivery" rel="noopener noreferrer">Cloud Pub/Sub Exactly-Once Delivery</a>, <a href="https://docs.cloud.google.com/pubsub/docs/ordering" rel="noopener noreferrer">Ordering Messages in Pub/Sub</a>, and <a href="https://docs.cloud.google.com/pubsub/docs/handling-failures" rel="noopener noreferrer">Handling Failures with Dead Letter Topics</a>.</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>Transactional Outbox pattern, consumer deduplication, crash/ack boundaries, and schema compatibility</h3>
+<p>In distributed architectures, microservices must frequently record a state change in a persistent datastore (such as Cloud SQL, AlloyDB, or Spanner) and emit a corresponding domain event to an asynchronous message broker (such as Cloud Pub/Sub) to notify downstream consumers. Developers frequently implement this using direct procedural execution: inserting the database row, followed immediately by calling the messaging SDK's publish method.</p>
+
+<h4>The Dual-Write Trap</h4>
+<p>Direct dual-writing represents a critical architectural flaw known as the <em>dual-write trap</em>. Because relational database commits and network RPCs to an external message broker reside across distinct physical network and consensus boundaries, they cannot execute atomically without distributed transactions (such as two-phase commit / 2PC). However, distributed 2PC across heterogeneous cloud services is practically impossible, highly fragile, and fundamentally prohibited in scalable architectures due to severe lock contention, network latency amplification, and availability degradation dictated by the CAP theorem.</p>
+
+<p>Under direct dual-writing, two fatal failure modes inevitably occur:</p>
+<ol>
+<li><strong>Database Commit Succeeds, Publish Fails:</strong> The database transaction commits the order record, but the subsequent network call to Cloud Pub/Sub encounters a timeout, connection reset, or broker throttle. The application throws an exception or terminates. Business state exists in the database, but the event is permanently lost. Downstream billing, warehouse fulfillment, and analytics systems never learn of the order.</li>
+<li><strong>Publish Succeeds, Database Commit Fails:</strong> If the code publishes the message first and then attempts to commit the database transaction, a database constraint violation, connection exhaustion, or transaction rollback will abort the local write. However, the event has already been published to Pub/Sub and consumed by downstream systems. The warehouse fulfills an order that legally and financially does not exist in the source database.</li>
+</ol>
+
+<h4>The Transactional Outbox Pattern</h4>
+<p>The Transactional Outbox pattern mathematically eliminates the dual-write trap by replacing the external dual-write with a single, atomic local database transaction. In this pattern, the application service writes both its business entity (e.g., an order row in <code>orders</code>) and an event envelope (in an <code>outbox_events</code> table) within the exact same ACID database transaction boundary:</p>
+
+<pre><code>-- Atomic Transactional Outbox Insertion in Cloud SQL
+BEGIN TRANSACTION;
+
+-- 1. Mutate business state
+INSERT INTO orders (order_id, customer_id, total_amount, status, created_at)
+VALUES ('ord-98214', 'cust-502', 149.50, 'PENDING', NOW());
+
+-- 2. Insert event envelope into outbox table
+INSERT INTO outbox_events (event_id, aggregate_type, aggregate_id, event_type, payload, status, created_at)
+VALUES (
+    'evt-550e8400-e29b-41d4-a716-446655440000',
+    'Order',
+    'ord-98214',
+    'OrderCreated',
+    '{"order_id": "ord-98214", "customer_id": "cust-502", "amount": 149.50}',
+    'UNPUBLISHED',
+    NOW()
+);
+
+COMMIT;</code></pre>
+
+<p>Because relational database engines (PostgreSQL, MySQL) guarantee ACID atomicity, either both records are durably written to the write-ahead log (WAL) and disk, or neither is written. If the database crashes, rolls back, or loses power, zero inconsistent state is left behind.</p>
+
+<h4>Outbox Relay Mechanisms: Polling vs. Transaction Log CDC</h4>
+<p>Once the event record is safely stored in the outbox table, an independent asynchronous relay process extracts the record and publishes it to Google Cloud Pub/Sub. There are two primary architectural implementations for the Outbox Relay:</p>
+
+<table class="comparison-table">
+<thead>
+<tr>
+<th>Implementation Strategy</th>
+<th>Mechanism</th>
+<th>Database Engine Overhead</th>
+<th>Freshness / Latency</th>
+<th>Operational Complexity</th>
+<th>Recommended Google Cloud Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Polling Publisher</strong></td>
+<td>Background worker polls outbox table via <code>SELECT ... FOR UPDATE SKIP LOCKED</code>, publishes to Pub/Sub, and updates record status to <code>PUBLISHED</code> or deletes it.</td>
+<td>Moderate: Periodic index scans, row-level locks, and write overhead updating status or deleting processed rows.</td>
+<td>Sub-second to several seconds depending on polling interval.</td>
+<td>Low: Implemented entirely within standard application code without external infrastructure.</td>
+<td>Ideal for small to medium scale (&lt;2,000 events/sec) and simple deployments on Cloud Run or GKE.</td>
+</tr>
+<tr>
+<td><strong>Transaction Log CDC (Datastream / Debezium)</strong></td>
+<td>Serverless CDC service tails the database transaction write-ahead log (PostgreSQL WAL via pgoutput, MySQL binlog) and continuously streams new outbox rows directly into Cloud Pub/Sub.</td>
+<td>Zero query overhead: Reads sequential disk logs directly without database locks or table scans.</td>
+<td>Near-real-time: 100ms to 500ms end-to-end streaming latency.</td>
+<td>Medium to High: Requires managing Datastream connection profiles, stream lifecycle, and replication slot disk thresholds.</td>
+<td>Standard enterprise pattern for high-velocity architectures (&gt;5,000 events/sec) on Cloud SQL, AlloyDB, or Spanner.</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Consumer Deduplication and the Idempotency Engine</h4>
+<p>Because Pub/Sub guarantees at-least-once transport delivery, network hiccups, worker restarts, and outbox relay retries mean duplicate messages will arrive at consumer subscribers. Downstream consumers must maintain an Idempotency Engine to ensure business correctness. The industry standard mechanism is a dedicated <code>processed_events</code> deduplication table containing a unique primary key constraint on <code>event_id</code> (or a compound unique key on <code>(event_id, consumer_name)</code> when multiple independent consumer services share a database).</p>
+
+<p>Every incoming message must be processed within a local database transaction following this strict workflow:</p>
+<ol>
+<li><strong>Atomic Token Insertion:</strong> The consumer executes <code>INSERT INTO processed_events (event_id, consumer_name) VALUES (:event_id, :consumer_name) ON CONFLICT (event_id, consumer_name) DO NOTHING;</code>.</li>
+<li><strong>Cardinality Inspection:</strong> If the database returns 1 row affected, this is the first time this event has been seen. The consumer executes the business logic (e.g., deducting inventory and updating order fulfillment status).</li>
+<li><strong>Transaction Commit:</strong> The consumer commits the transaction. The business mutation and the deduplication token are committed atomically.</li>
+<li><strong>Duplicate Replay Handling:</strong> If the database returns 0 rows affected, the event is a duplicate delivery. The consumer completely bypasses business logic, does not alter business tables, and proceeds directly to step 5.</li>
+<li><strong>Message Acknowledgment:</strong> The consumer calls <code>message.ack()</code> on the Pub/Sub client to release the message from the subscription.</li>
+</ol>
+
+<h4>Crash/Ack Boundaries &amp; The Fundamental Architectural Invariant</h4>
+<p>The sequence in which message acknowledgment and local database transactions occur defines the difference between a resilient enterprise platform and catastrophic silent data corruption. Architects must enforce this absolute invariant across all engineering teams:</p>
+
+<div class="callout caution">
+<strong>THE INVIOLABLE CRASH/ACK INVARIANT:</strong> A message consumer must <strong>NEVER</strong> acknowledge a message to the messaging broker until the local business state mutation and deduplication token have successfully committed to durable storage.
+</div>
+
+<p>To understand why, compare the failure dynamics of the two possible crash boundaries:</p>
+<ul>
+<li><strong>Safe Boundary: Crash-Before-Ack:</strong> The worker executes the database transaction, inserting the deduplication token and mutating business state. The database transaction commits durably to disk. At that exact millisecond, the worker pod experiences a kernel panic, out-of-memory kill, or network disconnection before transmitting the <code>Acknowledge</code> RPC to Pub/Sub. Because no acknowledgment was received, Pub/Sub's ack deadline expires, and the broker redelivers the message to another worker instance. The second worker attempts to insert the <code>event_id</code> into <code>processed_events</code>. The unique constraint prevents duplicate insertion; the worker identifies the message as already processed, skips the business logic, and immediately transmits <code>message.ack()</code>. <em>Result: Zero duplicate business mutations, zero data loss, system heals automatically.</em></li>
+<li><strong>Fatal Boundary: Crash-After-Ack:</strong> A naive developer places <code>message.ack()</code> at the start of the handler to "prevent Pub/Sub from timing out and resending." The worker receives the message and immediately transmits <code>message.ack()</code> to Pub/Sub. The broker receives the acknowledgment and permanently deletes the message from its partition. Next, the worker attempts to write the order to the database. Before the database commits, the worker pod crashes or the database connection drops. <em>Result: The message is gone from Pub/Sub forever. The database transaction never committed. The customer's order is permanently lost from the system without trace or alert.</em></li>
+</ul>
+
+<h4>Pub/Sub Schema Evolution &amp; Contract Governance</h4>
+<p>As microservices evolve independently, event schemas must adapt without breaking running consumers. Google Cloud Pub/Sub provides native Schema Registry support for Protocol Buffers (proto3) and Apache Avro schemas. Topics can be bound to a schema, causing the Pub/Sub broker to reject any publish payload that fails schema validation at ingress.</p>
+
+<p>When evolving schemas across independent deployment pipelines, architects enforce strict compatibility policies:</p>
+<ul>
+<li><strong>BACKWARD Compatibility:</strong> New schema versions can read events produced by older schema versions. This allows consumers to be upgraded before publishers. New fields must have default values, and deleted fields must not be mandatory.</li>
+<li><strong>FORWARD Compatibility:</strong> Older schema versions can read events produced by newer schema versions. This allows publishers to be upgraded before consumers. Newly added fields are safely ignored by older consumers.</li>
+<li><strong>FULL Compatibility:</strong> Schemas are simultaneously backward and forward compatible. Publishers and consumers can be upgraded in any order without synchronization or downtime.</li>
+</ul>
+
+<div class="callout">
+<strong>Apply it</strong>
+<p>Input: An order fulfillment service receives a Pub/Sub message with <code>event_id = 'evt-9901'</code>. The worker commits the fulfillment update to PostgreSQL along with <code>INSERT INTO processed_events VALUES ('evt-9901')</code>, but crashes due to a GKE node drain before sending <code>message.ack()</code>. Expected: Pub/Sub redelivers <code>evt-9901</code> after the 30-second ack deadline; the replacement worker encounters an <code>ON CONFLICT DO NOTHING</code> duplicate detection, skips warehouse dispatching, and transmits <code>message.ack()</code> immediately, preserving single-fulfillment correctness.</p>
+</div>
+
+<div class="callout">
+<strong>Further study</strong>
+<p><a href="../sources.html#topic-021">Topic 021 source section</a> in this site, with original publisher links and curriculum context.</p>
+<p>Official Google Cloud Documentation: <a href="https://docs.cloud.google.com/pubsub/docs/schemas" rel="noopener noreferrer">Pub/Sub Schemas &amp; Validation</a>, <a href="https://docs.cloud.google.com/datastream/docs/overview" rel="noopener noreferrer">Datastream CDC Overview</a>, and <a href="https://docs.cloud.google.com/spanner/docs/true-time-external-consistency" rel="noopener noreferrer">Cloud Spanner External Consistency</a>.</p>
+</div>
+</article>
+</section>
+<section id="part-3" class="part"><h2>3 · Real-world problems and production mitigations</h2>
+<article id="topic-01-problem" class="topic-card">
+<h3>Cloud Pub/Sub Ordering Key Poison Pill Stalling Regional Stream and EOD Transport Misconception · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's regional fulfillment pipeline deployed an update to store point-of-sale (POS) systems across the Midwest region. The pipeline utilized Cloud Pub/Sub with message ordering enabled, using <code>ordering_key = store_id</code> to ensure that inventory deductions, register receipts, and customer order updates were processed in strict sequential order. Immediately following the deployment, POS terminal <code>POS-042</code> at store <code>store-chi-042</code> emitted an invalid order event containing an unescaped control character in the customer notes field. The downstream fulfillment microservice failed to deserialize the JSON payload, raised an unhandled exception, and returned a negative acknowledgment (nack) to Pub/Sub. Because ordering keys guarantee sequential delivery, Pub/Sub paused the entire partition for <code>store-chi-042</code> and repeatedly redelivered the malformed poison pill. Over the next 52 minutes, 14,000 valid customer orders across Chicago retail bakeries accumulated in the unacknowledged queue backlog, bringing regional dispatch to a complete standstill. Concurrently, an upstream network blip caused the payment gateway to retry unacknowledged publish RPCs. Because engineering operated under the assumption that Pub/Sub's Exactly-Once Delivery (EOD) prevented duplicate processing end-to-end, the consumer processed each retried message as an independent transaction, generating 820 duplicate credit card charges totaling $61,500.</p>
+
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li><strong>Backlog and Age Telemetry:</strong> Cloud Monitoring metrics for the subscription <code>fulfillment-worker-sub</code> showed <code>subscription/oldest_unacked_message_age</code> spiking to 3,120 seconds, while <code>subscription/backlog_bytes</code> grew exponentially. However, overall CPU utilization on consumer pods remained below 5%, indicating that worker threads were idle rather than compute-bound.</li>
+<li><strong>Partition Identification:</strong> Querying subscriber log streams in Cloud Logging revealed continuous, repeating stack traces: <code>json.decoder.JSONDecodeError: Invalid control character at: line 1 column 142</code>. Filtering logs by <code>ordering_key</code> identified that 100% of repeated deserialization failures were concentrated on a single key: <code>store-chi-042</code>.</li>
+<li><strong>Ordering Stoppage Verification:</strong> Inspecting Pub/Sub subscription metrics confirmed that valid messages published after the initial failure were buffered in the topic but withheld from delivery, adhering strictly to Pub/Sub's ordering guarantee.</li>
+<li><strong>Producer Retry Audit:</strong> Financial ledger reconciliation flagged 820 transactions with distinct Pub/Sub <code>message_id</code> values but identical POS terminal transaction IDs (<code>pos_tx_id</code>) and identical credit card authorization tokens. Tracing payment gateway egress logs confirmed that network socket timeouts during peak load triggered publisher-side retries, emitting duplicate messages with unique message IDs.</li>
+</ol>
+
+<p><strong>Root cause:</strong> Two interrelated architectural failures caused the incident: (1) The subscription lacked a Dead Letter Topic and exponential backoff retry policy, allowing a single deserialization error to halt an entire ordering partition indefinitely via head-of-line blocking; (2) The engineering team conflated transport-level Exactly-Once Delivery (which only prevents broker-to-client redeliveries during an active lease) with end-to-end business idempotency, failing to implement consumer-side deduplication against producer publish retries.</p>
+
+<p><strong>Defensible remediation:</strong></p>
+<ol>
+<li><strong>Configure Dead Letter Topic &amp; Delivery Threshold:</strong> Attach a Dead Letter Topic (<code>orders.v1.deadletter</code>) to the subscription with <code>maxDeliveryAttempts: 5</code>. Grant the Cloud Pub/Sub service account (<code>service-{PROJECT_NUMBER}@gcp-sa-pubsub.iam.gserviceaccount.com</code>) the <code>roles/pubsub.publisher</code> role on the dead-letter topic and <code>roles/pubsub.subscriber</code> on the primary subscription.</li>
+<li><strong>Implement Exponential Retry Backoff:</strong> Configure the subscription retry policy with a minimum backoff of 10 seconds and a maximum backoff of 600 seconds, preventing tight deserialization retry loops.</li>
+<li><strong>Emergency Cursor Reset via Seek:</strong> During the incident, operators captured a subscription snapshot, executed the seek operation to bypass the poison pill, and pushed the offending message into a manual quarantine queue for offline reprocessing:
+<pre><code>gcloud pubsub subscriptions seek fulfillment-worker-sub --time="2026-09-28T04:15:00Z"</code></pre>
+</li>
+<li><strong>Implement Consumer-Side Token Deduplication:</strong> Add an application-level deduplication filter in the consumer microservice backed by a Cloud SQL unique token store (keyed on <code>pos_tx_id</code>), discarding duplicate messages resulting from publisher retries.</li>
+</ol>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d64-p1-title d64-p1-desc" viewBox="0 0 960 300" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d64-p1-title">Incident 1: Pub/Sub Ordering Key Poison Pill Stalling Regional Stream and EOD Transport Misconception</title>
+<desc id="d64-p1-desc">Failure sequence showing an unparseable poison pill payload stalling an ordering-key partition due to missing dead-letter topic, alongside duplicate charges from producer retries, resolved via DLT quarantine, exponential backoff, and consumer deduplication.</desc>
+<defs>
+<marker id="d64-p1-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d64-p1-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Trigger Node -->
+<rect x="25" y="45" width="190" height="80" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="35" y="65" fill="#c7d2fe" font-size="11" font-weight="700">Trigger: POS Schema Bug</text>
+<text x="35" y="81" fill="#cbd5e1" font-size="10">Store POS emits malformed JSON</text>
+<text x="35" y="96" fill="#cbd5e1" font-size="10">Key: store-chi-042</text>
+<text x="35" y="111" fill="#94a3b8" font-size="9">Network blip triggers retry</text>
+
+<!-- FAILED PATH -->
+<rect x="255" y="45" width="215" height="80" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="265" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: No Dead Letter Topic</text>
+<text x="265" y="81" fill="#cbd5e1" font-size="10">Worker deserialization fails</text>
+<text x="265" y="96" fill="#cbd5e1" font-size="10">Subscriber nacks repeatedly</text>
+<text x="265" y="111" fill="#f43f5e" font-size="9">Zero retry delay backoff</text>
+
+<rect x="505" y="45" width="205" height="80" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="515" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: Partition Stalled</text>
+<text x="515" y="81" fill="#cbd5e1" font-size="10">Pub/Sub halts store-chi-042</text>
+<text x="515" y="96" fill="#cbd5e1" font-size="10">14,000 valid orders blocked</text>
+<text x="515" y="111" fill="#f43f5e" font-size="9">Head-of-line blocking freeze</text>
+
+<rect x="745" y="45" width="190" height="80" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="755" y="65" fill="#f43f5e" font-size="11" font-weight="700">Duplicate Billing Disaster</text>
+<text x="755" y="81" fill="#fca5a5" font-size="10">Producer retried publish RPC</text>
+<text x="755" y="96" fill="#fca5a5" font-size="10">820 duplicate orders billed</text>
+<text x="755" y="111" fill="#f43f5e" font-size="9">$61,500 wrongful charges</text>
+
+<path d="M 215 85 L 255 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d64-p1-mf)"/>
+<path d="M 470 85 L 505 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d64-p1-mf)"/>
+<path d="M 710 85 L 745 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d64-p1-mf)"/>
+
+<!-- CORRECTED PATH -->
+<rect x="255" y="185" width="215" height="80" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="265" y="205" fill="#86efac" font-size="11" font-weight="700">CORRECTED: DLT Configured</text>
+<text x="265" y="221" fill="#cbd5e1" font-size="10">maxDeliveryAttempts: 5</text>
+<text x="265" y="236" fill="#cbd5e1" font-size="10">Backoff: 10s min, 600s max</text>
+<text x="265" y="251" fill="#22c55e" font-size="9">Publishes to orders.v1.deadletter</text>
+
+<rect x="505" y="185" width="205" height="80" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="515" y="205" fill="#86efac" font-size="11" font-weight="700">CORRECTED: Stream Flows</text>
+<text x="515" y="221" fill="#cbd5e1" font-size="10">Poison pill isolated to DLT</text>
+<text x="515" y="236" fill="#cbd5e1" font-size="10">14,000 orders unblocked</text>
+<text x="515" y="251" fill="#22c55e" font-size="9">Processing latency &lt;120ms</text>
+
+<rect x="745" y="185" width="190" height="80" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="755" y="205" fill="#4ade80" font-size="11" font-weight="700">Idempotency Enforced</text>
+<text x="755" y="221" fill="#86efac" font-size="10">Dedup table catches retries</text>
+<text x="755" y="236" fill="#86efac" font-size="10">ON CONFLICT DO NOTHING</text>
+<text x="755" y="251" fill="#22c55e" font-size="9">Zero duplicate billings</text>
+
+<path d="M 120 125 L 120 225 L 255 225" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d64-p1-mc)"/>
+<path d="M 470 225 L 505 225" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d64-p1-mc)"/>
+<path d="M 710 225 L 745 225" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d64-p1-mc)"/>
+
+<!-- Verify Boundary Probe Point -->
+<circle cx="255" cy="225" r="7" fill="#f59e0b" stroke="#ffffff" stroke-width="2"/>
+<text x="245" y="280" fill="#f59e0b" font-size="10" font-weight="700">VERIFY BOUNDARY</text>
+</svg>
+<figcaption>Figure 64.2: Incident 1 Root Cause and Remediation. <strong>Supplied facts:</strong> A point-of-sale terminal software upgrade introduced a malformed JSON payload on ordering key <code>store-chi-042</code>. Because the Pub/Sub subscription lacked a Dead Letter Topic and retry backoff policy, worker deserialization failures triggered continuous nacks, stalling 14,000 valid orders behind the poison pill for 52 minutes. Concurrently, transient network packet drops caused the payment gateway to retry unacknowledged publish RPCs; engineering had assumed Pub/Sub transport Exactly-Once Delivery prevented duplicate business actions, resulting in 820 duplicate customer charges totaling $61,500. <strong>Architectural inference:</strong> Pub/Sub message ordering strictly enforces head-of-line serialization per ordering key, transforming an unquarantined poison pill into a full partition denial-of-service. Furthermore, transport-level EOD operates solely between the broker and subscriber client within an active lease; it does not and cannot deduplicate producer-side publish retries, requiring application-layer deduplication. <strong>Expected post-fix behavior:</strong> Attaching a Dead Letter Topic with <code>maxDeliveryAttempts: 5</code> and exponential backoff (10s to 600s) automatically diverts poison pills to quarantine without halting the partition stream, while an application-level deduplication table in the consumer catches duplicate producer publish tokens, maintaining zero duplicate billing transactions.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> The remediation was validated in the staging environment by injecting 5 synthetic malformed JSON payloads interleaved among 50,000 valid messages under ordering key <code>store-chi-042</code>. Cloud Monitoring confirmed that each poison pill was retried exactly 5 times, after which Pub/Sub automatically forwarded the message to <code>orders.v1.deadletter</code> and acknowledged it on the primary subscription. The remaining 49,995 valid messages processed with zero disruption, maintaining an end-to-end p99 delivery latency of 85ms. Synthetic publisher retries injecting duplicate <code>pos_tx_id</code> tokens were intercepted by the consumer deduplication table with 100% accuracy, verifying zero duplicate financial transactions.</p>
+<p><strong>Residual Risk:</strong> Messages diverted to the Dead Letter Topic require operational monitoring and an automated replay mechanism once software fixes are deployed. Alert policies must be established on <code>subscription/dead_letter_message_count &gt; 0</code> to notify on-call engineers of quarantined payloads.</p>
+</article>
+
+<article id="topic-02-problem" class="topic-card">
+<h3>Transactional Outbox Dual-Write Failure and Premature Crash-After-Ack Data Loss · field case</h3>
+<p><strong>Situation and impact:</strong> Brightloaf's Order Service initially utilized direct procedural dual-writing: incoming checkout requests wrote an order row into a Cloud SQL PostgreSQL database and immediately called <code>pubsub_client.publish()</code> to notify regional warehouse fulfillment services. During a high-velocity Black Friday promotion, Cloud SQL connection pool saturation caused database write latencies to increase to 1,800ms. In several dozen concurrent checkout threads, the database write succeeded and committed, but the subsequent HTTP/2 gRPC call to Pub/Sub timed out after 3 retries due to client-side network socket exhaustion. As a result, 340 customer orders were committed and billed in Cloud SQL, but no fulfillment event was ever emitted to Pub/Sub; the orders sat invisible and unfulfilled in the database while customers complained of missing deliveries. In an emergency reaction, an engineering team deployed a hotfix to the fulfillment consumer service that moved the <code>message.ack()</code> call to the very beginning of the message handler to "prevent Pub/Sub ack deadline timeouts." Two hours later, a Google Kubernetes Engine (GKE) node pool upgrade triggered spot VM preemptions across the cluster. Worker pods acknowledged 185 incoming order messages from Pub/Sub, but their underlying nodes were terminated by GKE before the worker processes could commit the order records to Cloud SQL. Pub/Sub dropped the messages permanently, erasing 185 paid customer orders from the platform without trace.</p>
+
+<p><strong>Diagnostic sequence:</strong></p>
+<ol>
+<li><strong>Audit Log Discrepancy:</strong> Automated end-of-day reconciliation between Stripe payment capture webhooks and Cloud SQL <code>orders</code> rows revealed 340 orders marked 'PAID' in Stripe and present in Cloud SQL, but completely missing from warehouse dispatch logs and Pub/Sub audit logs.</li>
+<li><strong>Network Socket Inspection:</strong> Cloud Logging for the Order Service showed client-side gRPC exceptions: <code>grpc._channel._InactiveRpcError: StatusCode.DEADLINE_EXCEEDED</code> occurring immediately after <code>db.commit()</code> calls, proving that events were dropped post-commit due to network timeouts.</li>
+<li><strong>Ack-Without-Commit Investigation:</strong> Analysis of GKE pod termination logs during the node pool upgrade revealed that 4 fulfillment worker pods received <code>SIGTERM</code> signals while processing batches. Pub/Sub subscription metrics recorded 185 message acknowledgments, but a SQL query for the corresponding order IDs in Cloud SQL returned <code>0 rows</code>. Tracing the hotfixed code confirmed that <code>message.ack()</code> was executed prior to the database transaction, causing catastrophic message loss upon container termination.</li>
+</ol>
+
+<p><strong>Root cause:</strong> The initial outage was caused by the dual-write trap, where independent non-atomic operations across Cloud SQL and Pub/Sub inevitably drop events during network timeouts. The secondary, catastrophic data loss was caused by violating the fundamental crash/ack boundary invariant: acknowledging a message before durable database persistence guarantees irreversible message loss whenever worker compute instances terminate prematurely.</p>
+
+<p><strong>Defensible remediation:</strong></p>
+<ol>
+<li><strong>Implement the Transactional Outbox Pattern:</strong> Re-architect the Order Service to write business records to <code>orders</code> and event envelopes to an <code>outbox_events</code> table within a single ACID transaction in Cloud SQL. Completely eliminate direct Pub/Sub publish calls from the order ingestion path.</li>
+<li><strong>Deploy Resilient Outbox Relay Worker:</strong> Deploy a dedicated daemon worker that polls <code>outbox_events</code> using <code>SELECT ... FOR UPDATE SKIP LOCKED LIMIT 100</code>, publishes events to Cloud Pub/Sub with ordering keys, and updates outbox row status to <code>'PUBLISHED'</code> only after receiving the Pub/Sub publish acknowledgment. (For high-throughput clusters, migrate the relay to serverless Datastream CDC).</li>
+<li><strong>Enforce the Crash-Before-Ack Boundary:</strong> Revert the consumer hotfix and enforce the strict invariant: consumers must execute the database transaction inserting into <code>processed_events</code> and mutating business state FIRST; <code>message.ack()</code> is executed ONLY after the database transaction successfully commits.</li>
+<li><strong>Enable Automatic Ack Deadline Extension:</strong> Configure the consumer's <code>subscriber_client</code> flow control settings to automatically extend acknowledgment deadlines while worker database transactions are in flight, eliminating artificial timeout pressure.</li>
+</ol>
+
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d64-p2-title d64-p2-desc" viewBox="0 0 960 300" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d64-p2-title">Incident 2: Transactional Outbox Dual-Write Failure and Premature Crash-After-Ack Data Loss</title>
+<desc id="d64-p2-desc">Failure sequence showing direct dual-write failure dropping fulfillment events and premature consumer ACK causing permanent order loss on pod crash, resolved via Cloud SQL ACID Transactional Outbox and crash-before-ack idempotent deduplication.</desc>
+<defs>
+<marker id="d64-p2-mf" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#f43f5e"/>
+</marker>
+<marker id="d64-p2-mc" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<polygon points="0 0, 8 4, 0 8" fill="#22c55e"/>
+</marker>
+</defs>
+
+<!-- Trigger Node -->
+<rect x="25" y="45" width="190" height="80" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+<text x="35" y="65" fill="#c7d2fe" font-size="11" font-weight="700">Trigger: High Load Surge</text>
+<text x="35" y="81" fill="#cbd5e1" font-size="10">Flash-sale order volume</text>
+<text x="35" y="96" fill="#cbd5e1" font-size="10">Network timeout &amp; jitter</text>
+<text x="35" y="111" fill="#94a3b8" font-size="9">GKE Spot pod preemptions</text>
+
+<!-- FAILED PATH -->
+<rect x="255" y="45" width="215" height="80" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="265" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: Dual-Write Trap</text>
+<text x="265" y="81" fill="#cbd5e1" font-size="10">Order committed to DB</text>
+<text x="265" y="96" fill="#cbd5e1" font-size="10">Pub/Sub publish times out</text>
+<text x="265" y="111" fill="#f43f5e" font-size="9">340 orders stranded without event</text>
+
+<rect x="505" y="45" width="205" height="80" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1"/>
+<text x="515" y="65" fill="#fca5a5" font-size="11" font-weight="700">FAILED: Crash-After-Ack</text>
+<text x="515" y="81" fill="#cbd5e1" font-size="10">Consumer ACKs before DB write</text>
+<text x="515" y="96" fill="#cbd5e1" font-size="10">Pub/Sub drops message</text>
+<text x="515" y="111" fill="#f43f5e" font-size="9">Worker crashes before commit</text>
+
+<rect x="745" y="45" width="190" height="80" rx="4" fill="#2a1215" stroke="#f43f5e" stroke-width="1.5"/>
+<text x="755" y="65" fill="#f43f5e" font-size="11" font-weight="700">Permanent Data Loss</text>
+<text x="755" y="81" fill="#fca5a5" font-size="10">185 orders lost forever</text>
+<text x="755" y="96" fill="#fca5a5" font-size="10">Zero redelivery possible</text>
+<text x="755" y="111" fill="#f43f5e" font-size="9">Catastrophic revenue leak</text>
+
+<path d="M 215 85 L 255 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d64-p1-mf)"/>
+<path d="M 470 85 L 505 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d64-p1-mf)"/>
+<path d="M 710 85 L 745 85" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#d64-p1-mf)"/>
+
+<!-- CORRECTED PATH -->
+<rect x="255" y="185" width="215" height="80" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="265" y="205" fill="#86efac" font-size="11" font-weight="700">CORRECTED: Outbox Pattern</text>
+<text x="265" y="221" fill="#cbd5e1" font-size="10">orders + outbox_events</text>
+<text x="265" y="236" fill="#cbd5e1" font-size="10">Single local ACID transaction</text>
+<text x="265" y="251" fill="#22c55e" font-size="9">Zero uncommitted dual writes</text>
+
+<rect x="505" y="185" width="205" height="80" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1"/>
+<text x="515" y="205" fill="#86efac" font-size="11" font-weight="700">CORRECTED: Safe Boundary</text>
+<text x="515" y="221" fill="#cbd5e1" font-size="10">Commit DB &amp; dedup table FIRST</text>
+<text x="515" y="236" fill="#cbd5e1" font-size="10">ACK sent only after DB commit</text>
+<text x="515" y="251" fill="#22c55e" font-size="9">Crash-before-ack replayed safely</text>
+
+<rect x="745" y="185" width="190" height="80" rx="4" fill="#0f291e" stroke="#22c55e" stroke-width="1.5"/>
+<text x="755" y="205" fill="#4ade80" font-size="11" font-weight="700">Zero Data Loss SLA</text>
+<text x="755" y="221" fill="#86efac" font-size="10">100% orders reconciled</text>
+<text x="755" y="236" fill="#86efac" font-size="10">Automatic worker recovery</text>
+<text x="755" y="251" fill="#22c55e" font-size="9">Exact business correctness</text>
+
+<path d="M 120 125 L 120 225 L 255 225" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d64-p2-mc)"/>
+<path d="M 470 225 L 505 225" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d64-p2-mc)"/>
+<path d="M 710 225 L 745 225" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#d64-p2-mc)"/>
+
+<!-- Verify Boundary Probe Point -->
+<circle cx="255" cy="225" r="7" fill="#f59e0b" stroke="#ffffff" stroke-width="2"/>
+<text x="245" y="280" fill="#f59e0b" font-size="10" font-weight="700">VERIFY BOUNDARY</text>
+</svg>
+<figcaption>Figure 64.3: Incident 2 Root Cause and Remediation. <strong>Supplied facts:</strong> During a peak retail flash promotion, the order service executed direct procedural dual-writing (writing to Cloud SQL, then calling Pub/Sub publish). A network timeout caused the publish call to fail after the database commit, stranding 340 customer orders in the database without fulfillment events reaching downstream warehouses. In an ill-conceived hotfix to prevent worker processing timeouts, developers modified the fulfillment consumer to call <code>message.ack()</code> upon arrival *before* inserting fulfillment records into Cloud SQL. When a spot VM eviction preempted the worker pods, 185 acknowledged messages were permanently lost from Pub/Sub before the database transaction committed, erasing fulfillment data for 185 paid orders. <strong>Architectural inference:</strong> Direct dual-writing inherently violates atomic consistency across distributed boundaries without 2PC, guaranteeing event dropping during network partitions. In addition, acknowledging messages before database persistence (crash-after-ack) violates the fundamental messaging safety invariant: the broker discards state that has not been durably committed downstream, making pod crash recovery impossible. <strong>Expected post-fix behavior:</strong> Implementing the Transactional Outbox pattern guarantees that orders and outbox records commit atomically in a single local Cloud SQL transaction, reliably relayed to Pub/Sub via a polling worker. Concurrently, consumers strictly enforce the crash-before-ack boundary by committing business state and the deduplication token before acknowledging the message, eliminating data loss and achieving 100% order reconciliation.</figcaption>
+</figure>
+
+<p><strong>Verification:</strong> The remediation was validated under a chaotic load test injecting 2,500 checkout transactions per second while systematically evicting 20% of GKE worker pods via targeted pod deletion commands and severing Cloud SQL network connections for 15-second intervals. End-to-end reconciliation verified that 100% of the 50,000 generated orders were captured in Cloud SQL, 100% were published via the Transactional Outbox Relay, and 100% were fulfilled by the consumer. Replayed messages resulting from killed worker pods were safely intercepted by the <code>processed_events</code> table, yielding exactly 0 duplicate fulfillments and 0 lost orders.</p>
+<p><strong>Residual Risk:</strong> The polling outbox table can accumulate millions of historical published records, degrading query performance. An automated partitioning policy or scheduled archival job must run daily to purge rows with <code>status = 'PUBLISHED' AND created_at &lt; NOW() - INTERVAL '7 days'</code>.</p>
+</article>
+</section>
+<section id="part-4" class="part"><h2>4 · Step-by-step labs for each topic</h2>
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: Pub/Sub messaging architecture, delivery semantics, and GCP integration stack</h3>
+<p><strong>Goal:</strong> Implement and verify an end-to-end Google Cloud Pub/Sub messaging architecture featuring message ordering keys, dead letter topic quarantine for poison-pill payloads, retry backoff policies, seek-to-snapshot replay, and verification of transport-level EOD limitations against producer retries.</p>
+<p><strong>Mode:</strong> local exercise · <strong>Prerequisite:</strong> <a href="day-063.html">Day 63</a>, <a href="day-020.html">Day 20</a>; bring their exit artifacts.</p>
+
+<ol>
+<li><strong>Preflight.</strong> Verify Python 3.9+ and SQLite 3.25+ are available in your local shell. Create an isolated workspace directory named <code>day-064-lab</code>.
+<pre><code>mkdir -p day-064-lab &amp;&amp; cd day-064-lab</code></pre>
+</li>
+
+<li><strong>Review Production Google Cloud CLI Configuration.</strong> In an active Google Cloud environment or the Google Cloud Pub/Sub Emulator, topics with schemas, dead-letter policies, and ordering keys are provisioned using CLI commands. Review the exact command syntax required to configure dead letter topics, retry backoffs, and ordering:
+<pre><code># 1. Create primary and dead-letter topics
+gcloud pubsub topics create orders-topic-v1
+gcloud pubsub topics create orders-dlt-v1
+
+# 2. Create ordered subscription with dead-letter policy and exponential backoff
+gcloud pubsub subscriptions create orders-fulfillment-sub \
+    --topic=orders-topic-v1 \
+    --enable-message-ordering \
+    --dead-letter-topic=orders-dlt-v1 \
+    --max-delivery-attempts=5 \
+    --min-retry-delay=10s \
+    --max-retry-delay=600s \
+    --ack-deadline=30
+
+# 3. Create dead-letter inspection subscription
+gcloud pubsub subscriptions create orders-dlt-sub \
+    --topic=orders-dlt-v1 \
+    --ack-deadline=60</code></pre>
+</li>
+
+<li><strong>Author the Pub/Sub Semantics &amp; Dead Letter Simulator.</strong> Create a script named <code>verify_pubsub_semantics.py</code> that simulates the complete internal mechanics of Pub/Sub: ordering key partition queues, delivery attempts tracking, dead-letter routing upon reaching <code>maxDeliveryAttempts = 5</code>, seek replay, and producer publish retry duplication.
+<pre><code>cat &lt;&lt; 'EOF' &gt; verify_pubsub_semantics.py
+import json
+import time
+from collections import defaultdict
+
+class MockPubSubBroker:
+    def __init__(self, max_delivery_attempts=5):
+        self.max_delivery_attempts = max_delivery_attempts
+        self.partitions = defaultdict(list)  # ordering_key -> list of messages
+        self.dead_letter_topic = []
+        self.acknowledged_messages = set()
+        self.delivery_attempts = defaultdict(int) # message_id -> count
+        self.snapshots = {}
+
+    def publish(self, topic, payload, ordering_key="default", message_id=None):
+        if not message_id:
+            message_id = f"msg-{len(self.partitions[ordering_key]) + 1}-{int(time.time()*1000)}"
+        message = {
+            "id": message_id,
+            "topic": topic,
+            "data": payload,
+            "ordering_key": ordering_key,
+            "published_at": time.time()
+        }
+        self.partitions[ordering_key].append(message)
+        return message_id
+
+    def create_snapshot(self, snapshot_id):
+        self.snapshots[snapshot_id] = set(self.acknowledged_messages)
+        print(f"[Broker] Snapshot '{snapshot_id}' created with {len(self.acknowledged_messages)} acked messages.")
+
+    def seek_snapshot(self, snapshot_id):
+        if snapshot_id in self.snapshots:
+            self.acknowledged_messages = set(self.snapshots[snapshot_id])
+            print(f"[Broker] Seek executed: cursor reset to snapshot '{snapshot_id}'.")
+
+    def pull_ordered(self, ordering_key):
+        queue = self.partitions[ordering_key]
+        for msg in queue:
+            msg_id = msg["id"]
+            if msg_id in self.acknowledged_messages:
+                continue
+            self.delivery_attempts[msg_id] += 1
+            if self.delivery_attempts[msg_id] &gt; self.max_delivery_attempts:
+                # Forward to Dead Letter Topic
+                print(f"[Broker-DLT] Message {msg_id} exceeded {self.max_delivery_attempts} attempts. Quarantining to DLT!")
+                self.dead_letter_topic.append(msg)
+                self.acknowledged_messages.add(msg_id)  # Auto-ack on primary
+                continue
+            return msg  # Head-of-line: return first unacked message
+        return None
+
+    def acknowledge(self, message_id):
+        self.acknowledged_messages.add(message_id)
+
+# SIMULATION EXECUTION
+broker = MockPubSubBroker(max_delivery_attempts=5)
+
+print("=== SCENARIO 1: ORDERED DELIVERY &amp; POISON PILL HEAD-OF-LINE BLOCKING ===")
+# Publish 3 valid messages and 1 poison pill under ordering_key='store-chi-042'
+broker.publish("orders.v1", {"order_id": "ord-101", "items": ["bagel"], "valid": True}, "store-chi-042")
+broker.publish("orders.v1", "MALFORMED_UNPARSEABLE_POISON_PILL_PAYLOAD", "store-chi-042")
+broker.publish("orders.v1", {"order_id": "ord-103", "items": ["sourdough"], "valid": True}, "store-chi-042")
+broker.publish("orders.v1", {"order_id": "ord-104", "items": ["croissant"], "valid": True}, "store-chi-042")
+
+processed_orders = []
+
+for step in range(1, 12):
+    msg = broker.pull_ordered("store-chi-042")
+    if not msg:
+        print(f"Step {step}: No unacknowledged messages ready in queue.")
+        break
+    
+    msg_id = msg["id"]
+    data = msg["data"]
+    print(f"Step {step}: Pulled message {msg_id}, payload: {data}")
+    
+    # Consumer Deserialization &amp; Processing
+    if isinstance(data, dict) and data.get("valid"):
+        processed_orders.append(data["order_id"])
+        broker.acknowledge(msg_id)
+        print(f"   - Successfully processed and ACKed {msg_id} ({data['order_id']})")
+    else:
+        print(f"   - DESERIALIZATION FAILED: Poison pill detected! Nacking message {msg_id} (Attempt {broker.delivery_attempts[msg_id]}).")
+        # Do not acknowledge; Pub/Sub ordering holds this key
+
+print(f"\\nProcessed Orders: {processed_orders}")
+print(f"Dead Letter Topic Count: {len(broker.dead_letter_topic)}")
+assert "ord-101" in processed_orders
+assert "ord-103" in processed_orders
+assert "ord-104" in processed_orders
+assert len(broker.dead_letter_topic) == 1
+print("[Verification 1 Passed] Poison pill quarantined after 5 attempts; subsequent orders unblocked!\\n")
+
+print("=== SCENARIO 2: PRODUCER PUBLISH RETRY &amp; EOD BOUNDARY ===")
+# Demonstrate why transport EOD does not prevent producer duplicates
+tx_token = "pos-tx-998811"
+msg_id_1 = broker.publish("orders.v1", {"tx_token": tx_token, "amount": 45.00}, "store-chi-042")
+print(f"Producer published message 1: ID = {msg_id_1}, Token = {tx_token}")
+
+# Simulate network drop: Publisher client timed out waiting for ACK from Pub/Sub, retries publish
+msg_id_2 = broker.publish("orders.v1", {"tx_token": tx_token, "amount": 45.00}, "store-chi-042")
+print(f"Producer retry published message 2: ID = {msg_id_2}, Token = {tx_token}")
+
+print(f"Broker has two distinct message IDs: {msg_id_1} != {msg_id_2}")
+assert msg_id_1 != msg_id_2
+print("[Verification 2 Passed] Confirmed broker cannot detect producer retry duplication without business token!\\n")
+EOF
+python3 verify_pubsub_semantics.py</code></pre>
+</li>
+
+<li><strong>Execute and Verify Output.</strong> Execute the script in terminal:
+<pre><code>python3 verify_pubsub_semantics.py</code></pre>
+Inspect the terminal output. Notice how the poison pill is nacked 5 consecutive times while blocking subsequent orders, and upon the 5th failure, is automatically routed to <code>orders.v1.deadletter</code>, immediately unlocking <code>ord-103</code> and <code>ord-104</code>.
+</li>
+</ol>
+
+<div class="callout success"><strong>Expected result / acceptance</strong>
+<p>The verification script must confirm that (1) messages under an ordering key remain blocked until poison pills reach the <code>maxDeliveryAttempts</code> threshold; (2) Dead Letter Topic forwarding restores stream throughput; and (3) producer publish retries produce distinct message IDs that bypass broker transport EOD.</p>
+</div>
+
+<div class="callout caution"><strong>Troubleshooting</strong>
+<p>If messages fail to process in order, check that <code>ordering_key</code> is identical across all related payloads. If the poison pill is never sent to the dead-letter queue, verify that <code>delivery_attempts</code> increments on each pull cycle.</p>
+</div>
+
+<div class="callout"><strong>Cleanup and cost</strong>
+<p>All operations execute entirely in-memory using local Python. No cloud charges or project resources are incurred.</p>
+</div>
+
+<label class="check"><input type="checkbox" data-progress="lab-64-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: Transactional Outbox, consumer deduplication, and crash/ack boundary invariants</h3>
+<p><strong>Goal:</strong> Implement a production-grade Transactional Outbox pattern, Outbox Relay worker, and Idempotent Consumer engine using Python and SQLite. Verify that Crash-Before-Ack preserves exact business state via deduplication, while Crash-After-Ack causes catastrophic silent data loss.</p>
+<p><strong>Mode:</strong> local exercise · <strong>Prerequisite:</strong> <a href="day-063.html">Day 63</a>, <a href="day-020.html">Day 20</a>; bring their exit artifacts.</p>
+
+<ol>
+<li><strong>Author the Transactional Outbox &amp; Crash/Ack Engine.</strong> Create a Python script named <code>verify_outbox_and_crash_boundaries.py</code> that implements the atomic transactional outbox, outbox relay polling, deduplication table, and both crash boundary scenarios.
+<pre><code>cat &lt;&lt; 'EOF' &gt; verify_outbox_and_crash_boundaries.py
+import sqlite3
+import json
+import uuid
+import sys
+
+def init_databases():
+    # Producer DB (Cloud SQL Order Service)
+    prod_conn = sqlite3.connect(":memory:")
+    prod_conn.execute("""
+        CREATE TABLE orders (
+            order_id TEXT PRIMARY KEY,
+            customer_id TEXT NOT NULL,
+            amount REAL NOT NULL,
+            status TEXT NOT NULL
+        );
+    """)
+    prod_conn.execute("""
+        CREATE TABLE outbox_events (
+            event_id TEXT PRIMARY KEY,
+            aggregate_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            status TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    # Consumer DB (Cloud SQL Fulfillment Service)
+    cons_conn = sqlite3.connect(":memory:")
+    cons_conn.execute("""
+        CREATE TABLE fulfillments (
+            fulfillment_id TEXT PRIMARY KEY,
+            order_id TEXT NOT NULL,
+            customer_id TEXT NOT NULL,
+            amount REAL NOT NULL,
+            dispatched INTEGER DEFAULT 0
+        );
+    """)
+    cons_conn.execute("""
+        CREATE TABLE processed_events (
+            event_id TEXT PRIMARY KEY,
+            consumer_name TEXT NOT NULL,
+            processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    return prod_conn, cons_conn
+
+print("=== PART 1: ATOMIC TRANSACTIONAL OUTBOX INSERTION ===")
+prod_conn, cons_conn = init_databases()
+
+def create_order_with_outbox(conn, order_id, customer_id, amount):
+    event_id = str(uuid.uuid4())
+    payload = json.dumps({"order_id": order_id, "customer_id": customer_id, "amount": amount})
+    
+    cur = conn.cursor()
+    try:
+        cur.execute("BEGIN TRANSACTION;")
+        cur.execute(
+            "INSERT INTO orders (order_id, customer_id, amount, status) VALUES (?, ?, ?, 'PENDING')",
+            (order_id, customer_id, amount)
+        )
+        cur.execute(
+            "INSERT INTO outbox_events (event_id, aggregate_id, event_type, payload, status) VALUES (?, ?, 'OrderCreated', ?, 'UNPUBLISHED')",
+            (event_id, order_id, payload)
+        )
+        conn.commit()
+        print(f"[Producer] Order {order_id} + Outbox Event {event_id} committed atomically!")
+        return event_id
+    except Exception as e:
+        conn.rollback()
+        print(f"[Producer] Transaction failed, rolled back: {e}")
+        raise
+
+evt_id_1 = create_order_with_outbox(prod_conn, "ord-8801", "cust-42", 129.99)
+
+# Verify atomic state in producer DB
+order_count = prod_conn.execute("SELECT count(*) FROM orders").fetchone()[0]
+outbox_count = prod_conn.execute("SELECT count(*) FROM outbox_events WHERE status='UNPUBLISHED'").fetchone()[0]
+assert order_count == 1 and outbox_count == 1
+print(f"[Verification 1 Passed] Producer database holds 1 order and 1 unpublished outbox event.\\n")
+
+print("=== PART 2: OUTBOX RELAY PUBLISHER POLLING ===")
+class MockPubSubQueue:
+    def __init__(self):
+        self.messages = []
+        self.acked_ids = set()
+
+    def publish(self, event_id, payload, ordering_key):
+        self.messages.append({"event_id": event_id, "payload": payload, "ordering_key": ordering_key})
+
+pubsub_broker = MockPubSubQueue()
+
+def outbox_relay_worker(conn, broker):
+    cur = conn.cursor()
+    cur.execute("SELECT event_id, aggregate_id, payload FROM outbox_events WHERE status='UNPUBLISHED'")
+    rows = cur.fetchall()
+    for event_id, aggregate_id, payload in rows:
+        broker.publish(event_id, payload, ordering_key=aggregate_id)
+        cur.execute("UPDATE outbox_events SET status='PUBLISHED' WHERE event_id=?", (event_id,))
+    conn.commit()
+    print(f"[Outbox Relay] Polled and published {len(rows)} events to Pub/Sub.")
+
+outbox_relay_worker(prod_conn, pubsub_broker)
+assert len(pubsub_broker.messages) == 1
+print("[Verification 2 Passed] Outbox relay successfully published event to Pub/Sub!\\n")
+
+print("=== PART 3: CONSUMER CRASH-BEFORE-ACK (SAFE REPLAY) ===")
+def process_consumer_message(conn, message, simulate_crash_before_ack=False, simulate_crash_after_ack=False):
+    event_id = message["event_id"]
+    data = json.loads(message["payload"])
+    order_id = data["order_id"]
+    customer_id = data["customer_id"]
+    amount = data["amount"]
+    
+    if simulate_crash_after_ack:
+        print("   [Consumer] Executing premature message.ack()...")
+        pubsub_broker.acked_ids.add(event_id)
+        print("   [CRASH] Pod killed (OOMKilled) BEFORE database commit!")
+        return "CRASHED_AFTER_ACK"
+
+    cur = conn.cursor()
+    try:
+        cur.execute("BEGIN TRANSACTION;")
+        cur.execute(
+            "INSERT INTO processed_events (event_id, consumer_name) VALUES (?, 'FulfillmentService') ON CONFLICT (event_id) DO NOTHING;",
+            (event_id,)
+        )
+        rows_inserted = cur.rowcount
+        
+        if rows_inserted == 1:
+            print(f"   [Consumer] New event {event_id}. Executing warehouse dispatch for order {order_id}...")
+            cur.execute(
+                "INSERT INTO fulfillments (fulfillment_id, order_id, customer_id, amount, dispatched) VALUES (?, ?, ?, ?, 1)",
+                (f"ful-{order_id}", order_id, customer_id, amount)
+            )
+        else:
+            print(f"   [Consumer] Duplicate event {event_id} detected in processed_events! Skipping warehouse dispatch.")
+            
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+
+    if simulate_crash_before_ack:
+        print("   [CRASH] Pod killed (Node Preempted) AFTER DB commit, BEFORE message.ack()!")
+        return "CRASHED_BEFORE_ACK"
+
+    pubsub_broker.acked_ids.add(event_id)
+    print(f"   [Consumer] message.ack() sent successfully for event {event_id}.")
+    return "SUCCESS"
+
+# 1. First delivery attempt: crashes before ACK
+msg = pubsub_broker.messages[0]
+print("Attempt 1: Processing message with simulated Crash-Before-Ack...")
+status1 = process_consumer_message(cons_conn, msg, simulate_crash_before_ack=True)
+assert status1 == "CRASHED_BEFORE_ACK"
+assert msg["event_id"] not in pubsub_broker.acked_ids
+
+# 2. Broker redelivers unacknowledged message to replacement worker
+print("\\nAttempt 2: Broker redelivery to surviving worker...")
+status2 = process_consumer_message(cons_conn, msg, simulate_crash_before_ack=False)
+assert status2 == "SUCCESS"
+assert msg["event_id"] in pubsub_broker.acked_ids
+
+# Verify business correctness
+fulfillment_count = cons_conn.execute("SELECT count(*) FROM fulfillments WHERE order_id='ord-8801'").fetchone()[0]
+print(f"Fulfillments created for ord-8801: {fulfillment_count}")
+assert fulfillment_count == 1
+print("[Verification 3 Passed] Crash-Before-Ack safely recovered: Exactly 1 fulfillment created!\\n")
+
+print("=== PART 4: CONSUMER CRASH-AFTER-ACK (CATASTROPHIC DATA LOSS) ===")
+evt_id_2 = create_order_with_outbox(prod_conn, "ord-8802", "cust-99", 250.00)
+outbox_relay_worker(prod_conn, pubsub_broker)
+msg2 = pubsub_broker.messages[1]
+
+print("Processing message with Crash-After-Ack anti-pattern...")
+status_loss = process_consumer_message(cons_conn, msg2, simulate_crash_after_ack=True)
+assert status_loss == "CRASHED_AFTER_ACK"
+assert msg2["event_id"] in pubsub_broker.acked_ids
+
+# Verify that the order was lost from the consumer datastore
+lost_order_count = cons_conn.execute("SELECT count(*) FROM fulfillments WHERE order_id='ord-8802'").fetchone()[0]
+print(f"Fulfillments created for ord-8802: {lost_order_count}")
+assert lost_order_count == 0
+print("[Verification 4 Passed] Crash-After-Ack resulted in permanent, silent data loss!")
+print("PROVEN INVARIANT: NEVER call message.ack() before persistent database commit!\\n")
+EOF
+python3 verify_outbox_and_crash_boundaries.py</code></pre>
+</li>
+
+<li><strong>Execute and Verify Output.</strong> Execute the script in terminal:
+<pre><code>python3 verify_outbox_and_crash_boundaries.py</code></pre>
+Verify that:
+<ol>
+<li>The Transactional Outbox commits both the order and event envelope atomically.</li>
+<li>The Outbox Relay extracts and transitions unpublished events to published.</li>
+<li>The Crash-Before-Ack redelivery creates exactly 1 fulfillment record in the consumer database, proving end-to-end idempotency.</li>
+<li>The Crash-After-Ack scenario creates 0 fulfillment records despite the message being acknowledged, proving catastrophic data loss.</li>
+</ol>
+</li>
+</ol>
+
+<div class="callout success"><strong>Expected result / acceptance</strong>
+<p>Execution of the verification script passes all four assertion milestones, validating atomic outbox persistence, safe at-least-once crash-before-ack recovery via the <code>processed_events</code> deduplication table, and empirical proof of the crash-after-ack invariant.</p>
+</div>
+
+<div class="callout caution"><strong>Troubleshooting</strong>
+<p>If SQLite raises <code>OperationalError: database is locked</code>, ensure all transactions explicitly commit or roll back. Verify that <code>ON CONFLICT (event_id) DO NOTHING</code> is supported by your SQLite version (3.24+).</p>
+</div>
+
+<div class="callout"><strong>Cleanup and cost</strong>
+<p>All operations execute entirely in-memory using SQLite and local Python. No cloud charges or project resources are incurred.</p>
+</div>
+
+<label class="check"><input type="checkbox" data-progress="lab-64-topic-02"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion"><h2>Daily evidence</h2>
+<p>Assemble your three foundational artifacts into your study repository as <code>day-064-messaging-outbox.md</code>:</p>
+<ol>
+<li><strong>Repeatable Invariant Check &amp; Verification Script:</strong> The complete, tested Python script and execution log demonstrating the Transactional Outbox pattern, outbox relay polling, and consumer deduplication table preventing duplicate state mutations under repeated message delivery.</li>
+<li><strong>Crash-Before-Ack vs Crash-After-Ack Invariant Timeline:</strong> A structured architectural timeline and state transition matrix detailing the lifecycle of a message, contrasting the safe at-least-once replay of crash-before-ack against the catastrophic silent data loss of crash-after-ack, accompanied by the mathematical proof of why distributed 2PC cannot be applied across microservices.</li>
+<li><strong>Transport Exactly-Once vs End-to-End Business Idempotency Architectural Analysis:</strong> An Architectural Decision Record (ADR) analyzing the exact boundary of Cloud Pub/Sub's transport-level Exactly-Once Delivery (EOD), articulating why producer publish retries bypass broker-level deduplication, and establishing standard integration boundaries across Google Cloud messaging services (Pub/Sub, Tasks, Eventarc, Workflows, Application Integration, API Gateway).</li>
+</ol>
+<label class="check"><input type="checkbox" data-progress="read-64"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-64"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-063.html">← Day 63<small>Caching, CDC and database selection</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-065.html">Day 65 →<small>Integrate one order-service path</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

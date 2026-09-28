@@ -1,0 +1,47 @@
+# scratch/data_part1.py
+"""Hero, TOC, and Part 1 Topic Overviews for Day 63."""
+
+HERO_AND_TOC = """<main id="main" class="container day" data-day="63" data-prev="day-062.html" data-next="day-064.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-core-services-and-integrated-practice">Core services and integrated practice</a> / Day 63 of 180</div>
+<section class="hero">
+<div class="pills"><span class="pill">DAY</span><span class="pill">3–4 hours</span><span class="pill">local exercise</span><span class="pill">Topics 020</span></div>
+<h1>Day 63 — Caching, CDC and database selection</h1>
+<p class="lead"><strong>Outcome:</strong> Add a tiny local cache or supplied fixture and observe a stale read; replay a small change stream and reconcile source/target counts.</p>
+<div><strong>Entry prerequisites:</strong> <p><a href="day-062.html">Day 62</a>; bring their exit artifacts.</p></div>
+<div class="callout success"><strong>Exit artifact</strong><p>A cache invalidation timeline, CDC-lag explanation and completed database selection sheet.</p></div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+<aside class="toc" aria-label="On this page"><strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic"><span>Memorystore/cache choices, stale reads and invalidation</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div>
+<div class="toc-topic"><span>Database Migration Service and Datastream/CDC</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div>
+<div class="toc-topic"><span>CDC correctness returns on Days 76 and 137</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div>
+</aside>
+"""
+
+PART_1 = """<section id="part-1" class="part"><h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>Memorystore/cache choices, stale reads and invalidation</h3>
+<p>In-memory caching is an architectural tier that absorbs read-heavy access patterns, decouples application microservices from disk I/O bottlenecks, and delivers sub-millisecond data retrieval. Google Cloud provides fully managed in-memory caching through Memorystore, offering engine choices between Redis (rich in-memory data structures, single-threaded command evaluation, disk snapshots, and automated cross-zone failover) and Memcached (multi-threaded, pure key-value caching with client-side consistent hashing). In enterprise deployments, engineers must choose between Basic Tier (ephemeral standalone instance with zero SLA during maintenance), Standard Tier (primary with cross-zone read replica and 99.9% availability SLA), and Memorystore for Redis Cluster (distributed keyspace sharding across 16,384 slots, supporting up to 250 nodes, multi-terabyte memory, and millions of QPS). Selecting a caching topology—Cache-Aside (Lazy Loading), Write-Through, Write-Behind (Write-Back), or Refresh-Ahead—dictates how stale reads and race hazards emerge under concurrent load. Specifically, uncoordinated concurrent writes and reads create dual-write races where a stale database snapshot permanently poisons the cache, while expired hot keys trigger thundering herds that collapse the backing relational database unless mitigated by distributed mutex locking (SETNX) and probabilistic early expiration algorithms.</p>
+<p>During a peak flash-sale campaign, the expiration of a high-traffic product catalog key unleashes an un-throttled thundering herd of 8,500 concurrent cache misses that storm the relational database while a concurrent price update creates a classic dual-write race that permanently poisons the cache with stale pricing. The cascading database connection exhaustion halts customer checkouts for 38 minutes and serves obsolete pricing on 4,200 orders, triggering $185,000 in customer chargebacks and margin losses.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>Database Migration Service and Datastream/CDC</h3>
+<p>Change Data Capture (CDC) and serverless database replication bridge transactional operational databases with modern analytical data warehouses, lakehouses, and event-driven architectures without imposing table locks or performance degradation on production systems. Google Cloud provides two foundational managed data streaming services: Database Migration Service (DMS) and Datastream. DMS specializes in minimal-downtime, serverless database migrations from on-premises, AWS RDS, or self-hosted engines to Cloud SQL and AlloyDB for PostgreSQL, orchestrating an initial baseline snapshot dump followed by continuous change streaming via native database replication protocols (PostgreSQL logical decoding via pgoutput, MySQL binary logs with GTID). Datastream, by contrast, is a serverless, real-time CDC service that continuously mines transaction change streams (INSERT, UPDATE, DELETE) directly from PostgreSQL write-ahead logs (WAL), MySQL binlogs, Oracle LogMiner, and SQL Server CDC, streaming row-level mutations into Google Cloud destinations including BigQuery (via automated continuous streaming upsert merge), Cloud Storage (JSON/Avro), and Cloud Pub/Sub for distributed event consumption. Operational stability hinges on managing backfill parallelism against connection pools, monitoring stream replication lag telemetry (<code>datastream.googleapis.com/stream/stream_latency</code>), preventing source WAL disk exhaustion caused by delayed replication slot checkpoints, and handling non-breaking schema drift.</p>
+<p>An un-throttled historical backfill query combined with massive batch catalog updates across 500,000 inventory items saturates the source PostgreSQL WAL replication slot, triggering disk utilization spikes to 98% and driving Datastream replication lag from 1.2 seconds to 42 minutes. The acute replication lag blinds inventory replenishment services to real-time warehouse stock depletion, causing over 1,400 out-of-stock orders to be accepted and requiring $64,000 in expedited supplier fulfillment fees.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>CDC correctness returns on Days 76 and 137</h3>
+<p>Building resilient, event-driven data systems requires maintaining strict consistency boundaries and understanding the fundamental distinction between transport delivery semantics and application business correctness. Messaging and CDC transport fabrics—including Datastream, Cloud Pub/Sub, and replication slots—guarantee at-least-once transport delivery, meaning network retries, connection failovers, and parallel worker partitions can deliver duplicate and out-of-order mutation records. Downstream consumers and analytical destinations must enforce end-to-end idempotent processing and deterministic ordering by utilizing monotonically increasing transaction sequence tokens, such as PostgreSQL Log Sequence Numbers (LSN), Oracle System Change Numbers (SCN), and MySQL Global Transaction Identifiers (GTID) combined with timestamp vectors. In BigQuery and operational datastores, this requires executing windowed SQL MERGE operations that qualify only the highest LSN per entity key. Beyond data pipeline correctness, enterprise architects must ground system boundaries in Google Cloud's Unified Database Selection Framework, systematically evaluating workload access patterns, scale, consistency requirements, and operational models across Cloud SQL (standard relational OLTP), AlloyDB (enterprise Postgres HTAP), Cloud Spanner (globally distributed multi-region external consistency), Cloud Firestore (serverless document NoSQL), Cloud Bigtable (low-latency high-throughput wide-column), Memorystore (sub-millisecond in-memory cache), and BigQuery (petabyte-scale serverless OLAP warehouse).</p>
+<p>Network packet reordering and multi-threaded consumer processing cause Datastream change events to arrive out of order, overwriting terminal order states with obsolete intermediate statuses while telemetry data misallocated to an un-sharded relational database causes lock serialization deadlocks. The resulting state inversion corrupts downstream fulfillment tracking for 2,100 high-priority consignments and locks up transactional database threads, inflating payment processing latency by 450% and generating a compliance audit exception.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+"""

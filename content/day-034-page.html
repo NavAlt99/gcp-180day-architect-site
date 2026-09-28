@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 34: First controlled cloud resource operation · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+</style>
+<script defer src="../assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-033.html" aria-label="Previous day">← Day 33</a>
+<a href="day-035.html" aria-label="Next day">Day 35 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html">Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html" selected>Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner"><strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="34" data-prev="day-033.html" data-next="day-035.html" data-index="../index.html">
+<div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-cloud-environment-and-identity">Cloud environment and identity</a> / Day 34 of 180</div>
+
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY 34</span>
+<span class="pill">2–3 hours</span>
+<span class="pill">local + cloud sandbox</span>
+<span class="pill">Topics 012, 013, 080</span>
+</div>
+<h1>Day 34 — First controlled cloud resource operation</h1>
+<p class="lead"><strong>Outcome:</strong> Create one disposable VM through the CLI, observe its asynchronous operation, inventory it, and delete it after recording the evidence. Understand why the control plane and data plane are separate and why <em>desired state</em> and <em>observed state</em> can diverge.</p>
+<div>
+<strong>Entry prerequisites:</strong>
+<p><a href="day-026.html">Day 26</a> (credentials and tokens), <a href="day-033.html">Day 33</a> (lifecycle policies); bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>A creation/deletion trace, active-identity checks, and empty-resource confirmation. A supplied trace is acceptable when live access is unavailable; label it as a supplied trace.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-27; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Control plane, data plane, async operations, and desired vs observed state</span>
+<a href="#topic-01-overview">overview</a> ·
+<a href="#topic-01-technical">discussion</a> ·
+<a href="#topic-01-problem">problem</a> ·
+<a href="#topic-01-lab">lab</a>
+</div>
+<div class="toc-topic">
+<span>gcloud VM lifecycle: create, inventory, and delete with error classification</span>
+<a href="#topic-02-overview">overview</a> ·
+<a href="#topic-02-technical">discussion</a> ·
+<a href="#topic-02-problem">problem</a> ·
+<a href="#topic-02-lab">lab</a>
+</div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════ PART 1 ══ -->
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+
+<article id="topic-01-overview" class="topic-card">
+<h3>Control plane, data plane, async operations, and desired vs observed state</h3>
+<p>
+  Every GCP resource operation travels through two distinct subsystems. The <strong>control plane</strong> handles instructions — it authenticates the caller, evaluates IAM, records the desired state, and issues an operation token. The <strong>data plane</strong> is the running infrastructure that enforces that state: the hypervisor that starts the VM, the disk subsystem that attaches the volume, the network that enforces firewall rules.
+</p>
+<p>
+  Because these planes are physically and logically separate, a successful control-plane response does not guarantee that the data-plane effect has completed. GCP makes this explicit: most Compute Engine write operations return a <strong>long-running operation</strong> (LRO) with its own URL and status fields. The resource is not usable until the operation reaches <code>DONE: true</code> and <code>status: RUNNING</code> appears on the instance.
+</p>
+<p>
+  <strong>Desired state</strong> is what you declared (machine type, image, zone, tags). <strong>Observed state</strong> is what the data plane has actually established, reported back via a describe or list call. Permission propagation compounds the gap: a newly granted IAM binding can take time to propagate through GCP's authorization infrastructure, so a principal that just received a role may see transient PERMISSION_DENIED errors on the first attempt.
+</p>
+<p class="small"><em>Problem preview:</em> An operator grants a service account the Compute Instance Admin role and immediately issues <kbd>gcloud compute instances list</kbd>, receiving PERMISSION_DENIED. Because the operator assumes IAM is instantaneous, they retry with a wider role, inadvertently escalating privilege. Business impact: the service account now holds broader access than intended, violating the principle of least privilege recorded in Day 26's exit artifact.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>gcloud VM lifecycle: create, inventory, and delete with error classification</h3>
+<p>
+  The first time you touch a real cloud resource you encounter a concrete lesson in asynchronous operations: <kbd>gcloud compute instances create</kbd> returns immediately with an operation name, not a running VM. You must poll the operation or use <code>--async=false</code> (the default) to block until the resource is ready. Skipping this step means you may attempt to SSH into a VM that is still provisioning.
+</p>
+<p>
+  The <strong>error classification discipline</strong> is equally important. Before retrying any failed operation, determine whether the error is transient (quota exceeded, resource exhausted, internal error) or terminal (invalid image, wrong zone, missing permission). Retrying a terminal error wastes quota and may create orphaned operations. Check <kbd>gcloud compute operations describe</kbd> or look at the operation's <code>httpErrorStatusCode</code> and <code>error.errors[].code</code> fields.
+</p>
+<p>
+  After creation, <strong>inventory</strong> with <kbd>gcloud compute instances describe</kbd> and <kbd>gcloud compute instances list --filter</kbd>. After deletion, confirm with an empty list and verify the operation reached <code>DONE</code>. These steps together form the exit evidence required by the roadmap.
+</p>
+<p class="small"><em>Problem preview:</em> After a quota-exceeded error on instance creation, an operator retries without inspecting the operation state, triggering a second creation attempt. The first attempt had already succeeded (the quota check was a transient spike); now there are two VMs. Business impact: double billing and a stale VM that continues running after the lab ends, violating the sandbox budget assumptions from Day 18.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 2 ══ -->
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+
+<article id="topic-01-technical" class="topic-card">
+<h3>Control plane, data plane, async operations, and desired vs observed state</h3>
+
+<h4>The two-plane model</h4>
+<p>
+  In GCP, the <strong>control plane</strong> is the set of management APIs that accept, validate, and durably record resource intent. When you call <kbd>gcloud compute instances create</kbd>, the request reaches the Compute Engine API service. The API authenticates your identity (via OAuth 2.0 or service account token), checks IAM bindings against the requested resource and project, applies any applicable organization policy constraints (e.g., <code>constraints/compute.restrictCloudRunRegion</code>), and then writes the desired configuration to GCP's internal resource store. At this point the API returns an operation object — not a running VM.
+</p>
+<p>
+  The <strong>data plane</strong> is the physical and virtual infrastructure layer: hypervisors, network fabric, storage controllers. A background process watches the resource store and drives the data plane toward the desired state. When the VM is fully allocated, networked, and booted, the data plane marks the operation as complete and updates the resource's status field. Until then, the resource exists in the control plane's records (desired state) but may not be fully operable in the data plane (observed state).
+</p>
+
+<h4>Long-running operations (LROs)</h4>
+<p>
+  Compute Engine operations are returned as zone-scoped or region-scoped resources accessible via <kbd>gcloud compute operations describe OPERATION_NAME --zone=ZONE</kbd>. Key fields:
+</p>
+<ul>
+  <li><code>status</code>: <code>PENDING</code>, <code>RUNNING</code>, or <code>DONE</code></li>
+  <li><code>progress</code>: 0–100</li>
+  <li><code>error</code>: present only on failure, contains <code>errors[].code</code> and <code>errors[].message</code></li>
+  <li><code>httpErrorStatusCode</code>: HTTP status of the underlying failure (4xx = client error, 5xx = transient)</li>
+  <li><code>targetLink</code>: the resource URL that will exist when <code>status = DONE</code></li>
+</ul>
+<p>
+  By default, <kbd>gcloud compute instances create</kbd> waits synchronously (blocks until DONE). Pass <code>--async</code> to get the operation name immediately and poll manually. This is useful in scripts that create many resources in parallel.
+</p>
+
+<h4>Permission propagation delay</h4>
+<p>
+  IAM binding changes propagate through GCP's authorization infrastructure. Google's documentation notes that changes can take up to 60 seconds to propagate globally but are typically faster within a region. A principal that just received a role should be tested with a short wait before assuming the binding has not applied. The correct response to a transient PERMISSION_DENIED is to wait and retry with the <em>same</em> principal and scope, not to widen the role.
+</p>
+
+<h4>Desired vs observed state: the diagnostic invariant</h4>
+<p>
+  When a resource appears healthy in the console but a workload cannot reach it, the likely explanation is a data-plane lag or a network-level constraint that is not reflected in the control-plane resource record. Conversely, when the control plane reports an error but a resource appears to be functioning, the resource may have been partially provisioned — the safest action is to describe the operation, read its error, and decide whether to delete and re-create or repair.
+</p>
+
+<h4>Architecture path: control-plane to data-plane flow</h4>
+<table class="comparison">
+<thead>
+<tr>
+<th>Stage</th>
+<th>Plane</th>
+<th>Actor / component</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. API call authenticated</td>
+<td>Control</td>
+<td>Compute Engine API + IAM</td>
+<td>Caller identity confirmed; permission checked</td>
+</tr>
+<tr>
+<td>2. Org policy evaluated</td>
+<td>Control</td>
+<td>Organization Policy Service</td>
+<td>Constraint pass/fail; request rejected if violated</td>
+</tr>
+<tr>
+<td>3. Desired state recorded</td>
+<td>Control</td>
+<td>Resource store (internal)</td>
+<td>Operation object with status PENDING returned to caller</td>
+</tr>
+<tr>
+<td>4. Scheduling</td>
+<td>Control → Data</td>
+<td>Borgmaster / cluster scheduler</td>
+<td>Physical host selected; boot disk allocated</td>
+</tr>
+<tr>
+<td>5. VM provisioned</td>
+<td>Data</td>
+<td>Hypervisor + network fabric</td>
+<td>VM kernel starts; NIC and firewall rules applied</td>
+</tr>
+<tr>
+<td>6. Status reconciled</td>
+<td>Control</td>
+<td>Resource store updated</td>
+<td>Operation status → DONE; instance status → RUNNING</td>
+</tr>
+<tr>
+<td>7. Inventory visible</td>
+<td>Control</td>
+<td>List/describe API</td>
+<td>Instance appears in gcloud output with current fields</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ── Part 2 architecture SVG ── -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 360" role="img" aria-labelledby="d34-arch-title d34-arch-desc">
+<title id="d34-arch-title">Control-plane to data-plane lifecycle flow for a Compute Engine VM</title>
+<desc id="d34-arch-desc">A left-to-right flow diagram with four actors across the top (gcloud CLI, Control Plane, Data Plane, and Observer), showing seven numbered stages from API call through desired-state record, physical provisioning, and final inventory visibility. Arrows between boxes illustrate the asynchronous gap between the control plane returning an operation and the data plane completing the VM.</desc>
+<defs>
+<marker id="d34-a-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#38bdf8"/>
+</marker>
+<marker id="d34-a-arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#94a3b8"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="360" rx="8"/>
+
+<!-- Actor headers -->
+<rect fill="#1e293b" stroke="#38bdf8" stroke-width="1" x="18" y="16" width="140" height="44" rx="6"/>
+<text fill="#38bdf8" font-size="13" font-weight="700" x="88" y="43" text-anchor="middle">gcloud CLI</text>
+
+<rect fill="#1e293b" stroke="#38bdf8" stroke-width="1" x="228" y="16" width="220" height="44" rx="6"/>
+<text fill="#38bdf8" font-size="13" font-weight="700" x="338" y="43" text-anchor="middle">Control Plane (API + IAM + Org)</text>
+
+<rect fill="#1e293b" stroke="#38bdf8" stroke-width="1" x="518" y="16" width="220" height="44" rx="6"/>
+<text fill="#38bdf8" font-size="13" font-weight="700" x="628" y="43" text-anchor="middle">Data Plane (Hypervisor + Net)</text>
+
+<rect fill="#1e293b" stroke="#38bdf8" stroke-width="1" x="808" y="16" width="154" height="44" rx="6"/>
+<text fill="#38bdf8" font-size="13" font-weight="700" x="885" y="43" text-anchor="middle">Observer (CLI / API)</text>
+
+<!-- Lifelines -->
+<line stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" x1="88" y1="60" x2="88" y2="350"/>
+<line stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" x1="338" y1="60" x2="338" y2="350"/>
+<line stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" x1="628" y1="60" x2="628" y2="350"/>
+<line stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" x1="885" y1="60" x2="885" y2="350"/>
+
+<!-- Step 1: CLI → Control Plane -->
+<rect class="box" x="30" y="76" width="116" height="44" rx="6"/>
+<text fill="#f8fafc" font-size="12" x="88" y="96" text-anchor="middle">① instances create</text>
+<text fill="#94a3b8" font-size="10" x="88" y="113" text-anchor="middle">+ credentials</text>
+<path class="path" marker-end="url(#d34-a-arr)" d="M146 98 H228"/>
+
+<!-- Step 2: Control Plane auth + policy -->
+<rect class="box" x="240" y="76" width="196" height="44" rx="6"/>
+<text fill="#f8fafc" font-size="12" x="338" y="96" text-anchor="middle">② Authn → IAM → Org policy</text>
+<text fill="#94a3b8" font-size="10" x="338" y="113" text-anchor="middle">identity + permission + constraint</text>
+
+<!-- Step 3: desired state recorded, op returned -->
+<rect class="box" x="240" y="142" width="196" height="44" rx="6"/>
+<text fill="#f8fafc" font-size="12" x="338" y="162" text-anchor="middle">③ Desired state recorded</text>
+<text fill="#94a3b8" font-size="10" x="338" y="179" text-anchor="middle">Operation → PENDING → CLI</text>
+<path class="path" marker-end="url(#d34-a-arr2)" d="M338 120 L338 142"/>
+<!-- op returned to CLI -->
+<path stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 3" marker-end="url(#d34-a-arr2)" fill="none" d="M240 164 H146"/>
+<text fill="#94a3b8" font-size="10" x="193" y="158">op name</text>
+
+<!-- Async gap annotation -->
+<rect fill="#1e1a00" fill-opacity="0.5" stroke="#facc15" stroke-width="1" stroke-dasharray="4 3" x="430" y="136" width="88" height="58" rx="6"/>
+<text fill="#facc15" font-size="10" x="474" y="157" text-anchor="middle">ASYNC</text>
+<text fill="#facc15" font-size="10" x="474" y="172" text-anchor="middle">GAP</text>
+<text fill="#94a3b8" font-size="9" x="474" y="186" text-anchor="middle">desired ≠ observed</text>
+
+<!-- Step 4: scheduling -->
+<rect class="box" x="530" y="142" width="196" height="44" rx="6"/>
+<text fill="#f8fafc" font-size="12" x="628" y="162" text-anchor="middle">④ Host selected + disk alloc</text>
+<text fill="#94a3b8" font-size="10" x="628" y="179" text-anchor="middle">scheduler + storage</text>
+<path class="path" marker-end="url(#d34-a-arr)" d="M436 164 H530"/>
+
+<!-- Step 5: VM provisioned -->
+<rect class="box" x="530" y="208" width="196" height="44" rx="6"/>
+<text fill="#f8fafc" font-size="12" x="628" y="228" text-anchor="middle">⑤ VM kernel boots</text>
+<text fill="#94a3b8" font-size="10" x="628" y="245" text-anchor="middle">NIC + firewall applied</text>
+<path class="path" marker-end="url(#d34-a-arr)" d="M628 186 L628 208"/>
+
+<!-- Step 6: status reconciled -->
+<rect class="box" x="240" y="274" width="196" height="44" rx="6"/>
+<text fill="#f8fafc" font-size="12" x="338" y="294" text-anchor="middle">⑥ Op → DONE; status RUNNING</text>
+<text fill="#94a3b8" font-size="10" x="338" y="311" text-anchor="middle">control store updated</text>
+<path class="path" marker-end="url(#d34-a-arr)" d="M530 230 Q480 260 436 296"/>
+
+<!-- Step 7: observer -->
+<rect class="box" x="820" y="274" width="130" height="44" rx="6"/>
+<text fill="#f8fafc" font-size="12" x="885" y="294" text-anchor="middle">⑦ instances list</text>
+<text fill="#94a3b8" font-size="10" x="885" y="311" text-anchor="middle">observed state visible</text>
+<path class="path" marker-end="url(#d34-a-arr)" d="M436 296 H820"/>
+
+<!-- Labels -->
+<text fill="#94a3b8" font-size="10" x="490" y="290" text-anchor="middle">status reconciled</text>
+</svg>
+<figcaption>
+<strong>What this depicts:</strong> the seven-stage lifecycle of a single <kbd>gcloud compute instances create</kbd> call, from API authentication through data-plane provisioning to the point where the resource appears in inventory. The scope covers one VM in one project. <strong>What it does not prove:</strong> exact timing between stages (not measured), internal Google scheduler behaviour (not observable), or the specific IAM propagation window.
+</figcaption>
+</figure>
+
+<div class="callout">
+<strong>Further study</strong>
+<p>
+  <a href="https://cloud.google.com/compute/docs/api/how-tos/api-requests-responses#handling_api_responses" rel="noopener noreferrer">Compute Engine API: Handling long-running operations</a> — covers operation polling, progress fields, and error structure. (Publisher documentation; link selected from Compute Engine API reference, 2026-09-27.)
+</p>
+<p>
+  <a href="https://cloud.google.com/iam/docs/access-change-propagation" rel="noopener noreferrer">IAM: Access change propagation</a> — explains the propagation window for IAM binding changes. (Publisher documentation; link selected from IAM concepts, 2026-09-27.)
+</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>gcloud VM lifecycle: create, inventory, and delete with error classification</h3>
+
+<h4>The four-phase VM lifecycle</h4>
+<p>
+  Every controlled VM operation follows four phases: <strong>create</strong>, <strong>observe</strong>, <strong>inventory</strong>, <strong>delete</strong>. Each phase has a distinct gcloud command set and a distinct set of failure modes.
+</p>
+
+<h4>Phase 1 — Create</h4>
+<pre><code># Minimal disposable VM: e2-micro in us-central1-a
+gcloud compute instances create bf-lab-vm \
+  --project=PROJECT_ID \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --image-family=debian-12 \
+  --image-project=debian-cloud \
+  --no-address \
+  --scopes=cloud-platform \
+  --labels=env=lab,owner=day34
+
+# Check the returned operation
+gcloud compute operations describe OPERATION_NAME \
+  --zone=us-central1-a \
+  --project=PROJECT_ID</code></pre>
+<p>The <code>--no-address</code> flag avoids assigning a public IP — correct for a sandbox lab with no external access requirement. <code>--scopes=cloud-platform</code> gives the instance's default service account access to GCP APIs (narrowed by IAM in production).</p>
+
+<h4>Error classification before retrying</h4>
+<table class="comparison">
+<thead>
+<tr>
+<th>Error code / HTTP status</th>
+<th>Category</th>
+<th>Retry?</th>
+<th>Correct action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>QUOTA_EXCEEDED</code> / 429</td>
+<td>Transient (rate) or terminal (hard quota)</td>
+<td>Only after checking quota page</td>
+<td><kbd>gcloud compute project-info describe --project=PROJECT_ID</kbd> to check quotas; request increase or use a different region</td>
+</tr>
+<tr>
+<td><code>RESOURCE_EXHAUSTED</code> / 429</td>
+<td>Transient in practice</td>
+<td>Wait, then retry same zone or try alt zone</td>
+<td>Use <code>--zone</code> in a different zone; do not widen permissions</td>
+</tr>
+<tr>
+<td><code>PERMISSION_DENIED</code> / 403</td>
+<td>Terminal (until policy changes)</td>
+<td>No — identify principal + scope first</td>
+<td>Run <kbd>gcloud auth list</kbd>, check IAM bindings, wait for propagation</td>
+</tr>
+<tr>
+<td><code>INVALID_ARGUMENT</code> / 400</td>
+<td>Terminal (client error)</td>
+<td>No — fix the request</td>
+<td>Inspect the error message; correct machine type, image, or zone value</td>
+</tr>
+<tr>
+<td><code>INTERNAL_ERROR</code> / 500</td>
+<td>Transient (server-side)</td>
+<td>Yes — after exponential back-off</td>
+<td>Describe the operation first; if DONE+error, create fresh; if RUNNING, wait</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Phase 2 — Observe the operation</h4>
+<pre><code># Wait for the operation (if --async was used)
+gcloud compute operations wait OPERATION_NAME \
+  --zone=us-central1-a \
+  --project=PROJECT_ID
+
+# Describe the instance (desired → observed state)
+gcloud compute instances describe bf-lab-vm \
+  --zone=us-central1-a \
+  --project=PROJECT_ID \
+  --format="yaml(name,status,networkInterfaces,machineType)"</code></pre>
+
+<h4>Phase 3 — Inventory</h4>
+<pre><code># List with a label filter to confirm scope
+gcloud compute instances list \
+  --project=PROJECT_ID \
+  --filter="labels.env=lab AND labels.owner=day34" \
+  --format="table(name,zone,status,machineType.machine_type())"</code></pre>
+
+<h4>Phase 4 — Delete and confirm</h4>
+<pre><code># Delete (--quiet skips interactive prompt in scripts)
+gcloud compute instances delete bf-lab-vm \
+  --zone=us-central1-a \
+  --project=PROJECT_ID \
+  --quiet
+
+# Confirm empty — expect zero rows
+gcloud compute instances list \
+  --project=PROJECT_ID \
+  --filter="labels.env=lab AND labels.owner=day34"</code></pre>
+
+<h4>Active-identity check (Day 26 prerequisite)</h4>
+<pre><code># Who is acting?
+gcloud auth list
+gcloud config get account
+
+# Which project?
+gcloud config get project
+
+# What roles does the acting principal hold?
+gcloud projects get-iam-policy PROJECT_ID \
+  --flatten="bindings[].members" \
+  --filter="bindings.members=user:YOUR_EMAIL"</code></pre>
+
+<div class="callout">
+<strong>Further study</strong>
+<p>
+  <a href="https://cloud.google.com/sdk/gcloud/reference/compute/instances/create" rel="noopener noreferrer">gcloud compute instances create reference</a> — complete flag list, defaults, and quota notes. (Publisher documentation; link selected from Cloud SDK reference, 2026-09-27.)
+</p>
+<p>
+  <a href="https://cloud.google.com/compute/docs/instances/create-start-instance" rel="noopener noreferrer">Create and start a VM instance</a> — covers machine type selection, image families, and startup behaviour. (Publisher documentation; link selected from Compute Engine how-to guides, 2026-09-27.)
+</p>
+</div>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 3 ══ -->
+<section id="part-3" class="part">
+<h2>3 · Real-world problems and solutions</h2>
+<p class="small"><em>The scenarios below are illustrative examples based on the Day 34 topics. They are not observed production incidents. Numeric values and specific error codes are illustrative; do not treat them as measured results.</em></p>
+
+<!-- ── Problem 1 ── -->
+<article id="topic-01-problem" class="topic-card">
+<h3>Topic 1 field case — Permission propagation misread as a missing role</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  A Brightloaf platform engineer creates a dedicated service account (<code>bf-deploy-sa</code>) for the Order API staging deployment and binds it to the <code>roles/compute.instanceAdmin.v1</code> role on the <code>bf-staging</code> project. Immediately after the binding, the engineer runs an inventory script using the service account's credentials and receives <code>PERMISSION_DENIED</code>. Assuming the binding was incomplete, the engineer escalates the binding to <code>roles/compute.admin</code> (which includes additional permissions over network and firewall objects). The staging environment now has a service account with broader network access than required by the Order API workload.
+</p>
+
+<h4>Operational and business constraints</h4>
+<ul>
+  <li>Day 26 exit artifact established that all service accounts must be scoped to the minimum role required.</li>
+  <li>The staging project budget is monitored; the engineer must not create additional chargeable resources during diagnosis.</li>
+  <li>The identity of the acting principal must match the service account, not the engineer's personal credentials.</li>
+</ul>
+
+<h4>Evidence</h4>
+<p>
+  The engineer captured the PERMISSION_DENIED response from <kbd>gcloud compute instances list --project=bf-staging</kbd> run as <code>bf-deploy-sa</code>. The Cloud Audit Log entry shows the caller as the service account with the <code>roles/compute.instanceAdmin.v1</code> binding already present in the project's IAM policy at the time of the call. The log entry timestamp is within the documented propagation window.
+</p>
+
+<h4>Root cause</h4>
+<p>
+  IAM binding changes have a documented propagation delay. The binding was recorded at the control plane but had not yet propagated to the authorization infrastructure that evaluates the actual API call. The engineer treated the transient denial as a missing role rather than a propagation lag, then widened the scope without re-testing the original binding.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>After any new IAM binding, wait at least 60 seconds before the first authoritative test.</li>
+  <li>Run <kbd>gcloud projects get-iam-policy bf-staging --flatten="bindings[].members" --filter="bindings.members=serviceAccount:bf-deploy-sa@..."</kbd> to confirm the binding is recorded.</li>
+  <li>Test the exact operation that failed (not a broader one) — <kbd>gcloud compute instances list --project=bf-staging --impersonate-service-account=bf-deploy-sa@...</kbd>.</li>
+  <li>If it still fails after 90 seconds, investigate the specific resource scope, not the role breadth.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Revert <code>bf-deploy-sa</code> to <code>roles/compute.instanceAdmin.v1</code>. Implement a short programmatic wait in the deployment script after any binding change before the first permission-dependent call. Document the expected propagation window in the runbook.
+</p>
+
+<h4>Verification</h4>
+<p>
+  After reverting: run the same <kbd>gcloud compute instances list</kbd> command as the service account and confirm it succeeds. Pull the Cloud Audit Log entry for the successful call and confirm the role remains <code>roles/compute.instanceAdmin.v1</code>. Confirm no additional bindings were added by a separate <code>get-iam-policy</code> call.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  Propagation windows are probabilistic, not guaranteed. Under load or in multi-region projects, the window may extend beyond 60 seconds. The deployment script should use exponential back-off with a bounded retry count rather than a fixed wait.
+</p>
+
+<!-- Incident SVG: Topic 1 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 460" role="img" aria-labelledby="d34-i1-title d34-i1-desc">
+<title id="d34-i1-title">IAM propagation delay misread as missing role — incident and corrected path</title>
+<desc id="d34-i1-desc">The upper dashed lane shows the engineer binding a role, immediately running an inventory call that fails with PERMISSION_DENIED during the propagation window, and escalating to a broader role as the incorrect response. The lower solid lane waits for propagation, re-tests the original binding and role, and verifies that the narrow role is sufficient before crossing the verification boundary.</desc>
+<defs>
+<marker id="d34-i1-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d34-i1-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="460" rx="8"/>
+
+<!-- Failed lane -->
+<rect class="lane-failed" x="18" y="18" width="944" height="190" rx="8"/>
+<text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · PROPAGATION DELAY MISREAD AS MISSING ROLE → PRIVILEGE ESCALATION</text>
+
+<!-- Corrected lane -->
+<rect class="lane-corrected" x="18" y="256" width="944" height="188" rx="8"/>
+<text class="lane-label" x="34" y="278" fill="#4ade80">CORRECTED PATH · WAIT + RE-TEST SAME ROLE + VERIFY NARROW BINDING</text>
+
+<!-- Failed path nodes -->
+<rect class="box" x="36" y="72" width="148" height="76" rx="8"/>
+<text x="110" y="104" text-anchor="middle">Engineer</text>
+<text class="small-label" x="110" y="126" text-anchor="middle">bind instanceAdmin.v1</text>
+
+<rect class="failbox" x="240" y="60" width="210" height="100" rx="8"/>
+<text x="345" y="92" text-anchor="middle">FAILURE POINT</text>
+<text x="345" y="114" text-anchor="middle">immediate call during</text>
+<text class="small-label" x="345" y="137" text-anchor="middle">root cause: propagation lag</text>
+
+<rect class="failbox" x="514" y="72" width="190" height="76" rx="8"/>
+<text x="609" y="104" text-anchor="middle">PERMISSION_DENIED</text>
+<text class="small-label" x="609" y="126" text-anchor="middle">transient — misread as missing role</text>
+
+<rect class="failbox" x="764" y="72" width="178" height="76" rx="8"/>
+<text x="853" y="104" text-anchor="middle">Escalated to</text>
+<text x="853" y="122" text-anchor="middle">compute.admin</text>
+<text class="small-label" x="853" y="143" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d34-i1-f)" d="M184 110 H240"/>
+<path class="failed" marker-end="url(#d34-i1-f)" d="M450 110 H514"/>
+<path class="failed" marker-end="url(#d34-i1-f)" d="M704 110 H764"/>
+
+<!-- Corrected path nodes -->
+<rect class="box" x="36" y="312" width="148" height="76" rx="8"/>
+<text x="110" y="344" text-anchor="middle">Same engineer</text>
+<text class="small-label" x="110" y="366" text-anchor="middle">same binding</text>
+
+<rect class="box" x="240" y="300" width="210" height="100" rx="8"/>
+<text x="345" y="332" text-anchor="middle">Corrected control</text>
+<text x="345" y="354" text-anchor="middle">wait ≥ 60 s</text>
+<text class="small-label" x="345" y="376" text-anchor="middle">confirm binding in policy</text>
+
+<rect class="box" x="514" y="312" width="190" height="76" rx="8"/>
+<text x="609" y="344" text-anchor="middle">Re-test same call</text>
+<text class="small-label" x="609" y="366" text-anchor="middle">same SA + same scope</text>
+
+<rect class="verifybox" x="764" y="300" width="178" height="100" rx="8"/>
+<text x="853" y="332" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="853" y="354" text-anchor="middle">call succeeds</text>
+<text class="small-label" x="853" y="376" text-anchor="middle">role still instanceAdmin.v1</text>
+
+<path class="corrected" marker-end="url(#d34-i1-c)" d="M184 350 H240"/>
+<path class="corrected" marker-end="url(#d34-i1-c)" d="M450 350 H514"/>
+<path class="corrected" marker-end="url(#d34-i1-c)" d="M704 350 H764"/>
+
+<rect class="boundary" x="750" y="286" width="206" height="128" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> a service account was bound to <code>roles/compute.instanceAdmin.v1</code>; a <kbd>gcloud compute instances list</kbd> call immediately after the binding returned PERMISSION_DENIED; the Cloud Audit Log shows the binding was already recorded at call time. <strong>Architectural inference:</strong> the denial fell within the documented IAM propagation window; the demonstrated defect is treating a propagation lag as a missing-role condition and escalating scope without re-testing; no outage or billing anomaly is implied. <strong>Expected post-fix behavior:</strong> after reverting to the narrow role and waiting for propagation, the same list call succeeds; the audit log confirms the role remains <code>roles/compute.instanceAdmin.v1</code> and no broader binding was added.
+</figcaption>
+</figure>
+</article>
+
+<!-- ── Problem 2 ── -->
+<article id="topic-02-problem" class="topic-card">
+<h3>Topic 2 field case — Blind retry after quota error creates a duplicate VM</h3>
+
+<h4>Situation and business impact</h4>
+<p>
+  A Brightloaf platform engineer runs a CI script that creates a single disposable lab VM (<code>bf-lab-vm</code>) in <code>us-central1-a</code>. The script receives a 429 <code>QUOTA_EXCEEDED</code> error response within a few seconds of the create call. The script's error handler unconditionally retries, issuing a second <kbd>gcloud compute instances create bf-lab-vm</kbd> command. The first command had already succeeded — the quota error was a rate-limiting spike that the first request passed, and the VM was provisioned. The second create call with the same name fails (the VM already exists), but an unrelated branch of the script has already sent a VM start notification using the operation name from the <em>first</em> call, which is now DONE. Both the first and (erroneously expected) second VMs are tracked, and the cleanup script only deletes the one whose name it records, leaving the original running.
+</p>
+
+<h4>Operational and business constraints</h4>
+<ul>
+  <li>The lab VM must be deleted at the end of each run to stay within the sandbox budget from Day 18.</li>
+  <li>No external SSH access; the VM runs with <code>--no-address</code>.</li>
+  <li>The CI script must not create additional project-wide IAM bindings as a workaround.</li>
+</ul>
+
+<h4>Evidence</h4>
+<p>
+  The CI log shows two <kbd>gcloud compute instances create</kbd> invocations with the same instance name. The second returns an <code>ALREADY_EXISTS</code> error. The billing report (tabletop: assumed hourly) shows a running e2-micro that was not deleted at end-of-run. An inventory check at the start of the next run reveals the orphaned instance.
+</p>
+
+<h4>Root cause</h4>
+<p>
+  The script did not inspect the operation state before retrying. A transient 429 does not mean the operation failed — the Compute Engine API accepted the request and the operation may already be in PENDING or DONE state. The correct discipline: on any error, describe the operation (if an operation name was returned) before retrying. If the operation is DONE with no error, the resource exists; do not retry the create.
+</p>
+
+<h4>Diagnostic sequence</h4>
+<ol>
+  <li>On any non-2xx response from <code>instances create</code>, check whether an operation name was included in the response body (it usually is, even on errors).</li>
+  <li><kbd>gcloud compute operations describe OPERATION_NAME --zone=ZONE --project=PROJECT_ID</kbd> — check <code>status</code> and <code>error</code>.</li>
+  <li>If <code>status=DONE</code> and no <code>error</code> block, the VM exists; do not retry create. Verify with <code>instances describe</code>.</li>
+  <li>If <code>status=DONE</code> and <code>error</code> present, the VM does not exist; retry the create.</li>
+  <li>If <code>status=RUNNING</code> or <code>PENDING</code>, wait and poll — do not retry.</li>
+</ol>
+
+<h4>Defensible solution</h4>
+<p>
+  Rewrite the error handler to inspect the operation state before any retry. Add a post-create inventory check by label to detect any pre-existing VM of the same name. Update the cleanup script to delete by label filter rather than by stored name, so any orphan created under the same label set is caught.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Run the script with a simulated 429 injected after the first create call (using a mock or a local test harness). Confirm that the script detects the operation as DONE, skips the retry, and the inventory shows exactly one VM. After the run, confirm the label-based cleanup removes it and the inventory is empty.
+</p>
+
+<h4>Residual risk</h4>
+<p>
+  If the operation name is not returned with the error response (network-level timeout), the script cannot distinguish a submitted-but-unconfirmed request from a rejected one. A pre-create inventory check by a unique idempotency label is a second defence.
+</p>
+
+<!-- Incident SVG: Topic 2 -->
+<figure class="diagram-figure">
+<svg viewBox="0 0 980 480" role="img" aria-labelledby="d34-i2-title d34-i2-desc">
+<title id="d34-i2-title">Blind retry after quota error creates orphaned VM — incident and corrected path</title>
+<desc id="d34-i2-desc">The upper dashed lane shows a CI script receiving a 429 QUOTA_EXCEEDED, retrying without checking the operation state, and ending with an orphaned running VM after the cleanup script misses it. The lower solid lane checks the operation state after the 429, confirms the VM is already DONE, skips the retry, uses a label-based cleanup, and crosses the verification boundary with an empty inventory.</desc>
+<defs>
+<marker id="d34-i2-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#f43f5e"/>
+</marker>
+<marker id="d34-i2-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 1 L9 5 L0 9 z" fill="#22c55e"/>
+</marker>
+</defs>
+<rect class="canvas" width="980" height="480" rx="8"/>
+
+<!-- Failed lane -->
+<rect class="lane-failed" x="18" y="18" width="944" height="200" rx="8"/>
+<text class="lane-label" x="34" y="40" fill="#fda4af">FAILED PATH · BLIND RETRY AFTER 429 → OPERATION STATE NOT INSPECTED → ORPHANED VM</text>
+
+<!-- Corrected lane -->
+<rect class="lane-corrected" x="18" y="268" width="944" height="196" rx="8"/>
+<text class="lane-label" x="34" y="290" fill="#4ade80">CORRECTED PATH · INSPECT OP STATE → SKIP RETRY → LABEL-BASED CLEANUP → EMPTY INVENTORY</text>
+
+<!-- Failed path nodes -->
+<rect class="box" x="36" y="78" width="140" height="76" rx="8"/>
+<text x="106" y="110" text-anchor="middle">CI script</text>
+<text class="small-label" x="106" y="132" text-anchor="middle">instances create</text>
+
+<rect class="failbox" x="232" y="66" width="196" height="100" rx="8"/>
+<text x="330" y="96" text-anchor="middle">FAILURE POINT</text>
+<text x="330" y="118" text-anchor="middle">429 QUOTA_EXCEEDED</text>
+<text class="small-label" x="330" y="141" text-anchor="middle">root cause: op state not checked</text>
+
+<rect class="failbox" x="488" y="78" width="190" height="76" rx="8"/>
+<text x="583" y="110" text-anchor="middle">Blind retry issued</text>
+<text class="small-label" x="583" y="132" text-anchor="middle">ALREADY_EXISTS error</text>
+
+<rect class="failbox" x="740" y="78" width="184" height="76" rx="8"/>
+<text x="832" y="104" text-anchor="middle">Orphaned VM running</text>
+<text x="832" y="122" text-anchor="middle">cleanup missed it</text>
+<text class="small-label" x="832" y="143" text-anchor="middle">FAILED OUTCOME</text>
+
+<path class="failed" marker-end="url(#d34-i2-f)" d="M176 116 H232"/>
+<path class="failed" marker-end="url(#d34-i2-f)" d="M428 116 H488"/>
+<path class="failed" marker-end="url(#d34-i2-f)" d="M678 116 H740"/>
+
+<!-- Corrected path nodes -->
+<rect class="box" x="36" y="330" width="140" height="76" rx="8"/>
+<text x="106" y="362" text-anchor="middle">Same CI script</text>
+<text class="small-label" x="106" y="384" text-anchor="middle">same create call</text>
+
+<rect class="box" x="232" y="318" width="196" height="100" rx="8"/>
+<text x="330" y="350" text-anchor="middle">Corrected control</text>
+<text x="330" y="372" text-anchor="middle">describe operation</text>
+<text class="small-label" x="330" y="394" text-anchor="middle">status=DONE → VM exists</text>
+
+<rect class="box" x="488" y="330" width="190" height="76" rx="8"/>
+<text x="583" y="362" text-anchor="middle">Retry skipped</text>
+<text class="small-label" x="583" y="384" text-anchor="middle">label-based cleanup runs</text>
+
+<rect class="verifybox" x="740" y="318" width="184" height="100" rx="8"/>
+<text x="832" y="350" text-anchor="middle">VERIFY BOUNDARY</text>
+<text x="832" y="372" text-anchor="middle">inventory empty</text>
+<text class="small-label" x="832" y="394" text-anchor="middle">one VM created, one deleted</text>
+
+<path class="corrected" marker-end="url(#d34-i2-c)" d="M176 368 H232"/>
+<path class="corrected" marker-end="url(#d34-i2-c)" d="M428 368 H488"/>
+<path class="corrected" marker-end="url(#d34-i2-c)" d="M678 368 H740"/>
+
+<rect class="boundary" x="726" y="304" width="212" height="128" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> a CI script issued a VM create call; the API returned a 429 QUOTA_EXCEEDED response; the script retried unconditionally; the second create returned ALREADY_EXISTS; the cleanup script deleted only the instance whose name it tracked from the second (failed) call, leaving the original running. <strong>Architectural inference:</strong> the GCP API accepted and processed the first create request before the 429 was returned to the client; the operation was DONE by the time the retry ran; the root cause is the script's failure to describe the operation before retrying. No billing amount is stated because the running duration is unknown. <strong>Expected post-fix behavior:</strong> after inspecting the operation state and confirming DONE with no error, the script skips the retry; a label-based cleanup removes the single provisioned VM; a post-run inventory check confirms zero matching instances.
+</figcaption>
+</figure>
+</article>
+</section>
+
+<!-- ══════════════════════════════════════════════════ PART 4 ══ -->
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1 — Observe control-plane and data-plane timing; test IAM propagation discipline</h3>
+<p><strong>Goal:</strong> Confirm the distinction between control-plane recording of desired state and data-plane enforcement; practice the correct response to a transient PERMISSION_DENIED after a role binding.</p>
+<p><strong>Mode:</strong> local tabletop + optional cloud sandbox · <strong>Prerequisites:</strong> <a href="day-026.html">Day 26</a> exit artifact (active identity confirmed); <a href="day-033.html">Day 33</a> exit artifact.</p>
+
+<div class="callout">
+<strong>Preflight</strong>
+<p>Open a terminal. Confirm your active identity: <kbd>gcloud auth list</kbd>. Confirm project: <kbd>gcloud config get project</kbd>. If you have a sandbox project, confirm billing is active and you have at least <code>roles/compute.viewer</code>. If no cloud access is available, use the supplied trace mode — complete the tabletop steps below and note each assumption.</p>
+</div>
+
+<ol>
+<li>
+<strong>Create a note file.</strong> Open your text editor and create <code>day-034-topic-01.md</code>. Record the current date, lab mode (live or tabletop), and your active identity from the preflight.
+</li>
+<li>
+<strong>Map the two planes.</strong> In the note, draw a two-column table headed <code>Control plane | Data plane</code>. For a VM create operation, list at least three events in each column in the order they occur. Use the architecture table in Part 2 as a reference.
+</li>
+<li>
+<strong>Identify the async gap.</strong> Write one sentence that answers: "After <kbd>gcloud compute instances create</kbd> returns, what is the observable difference between the control-plane record and the data-plane state?"
+</li>
+<li>
+<strong>Simulate the propagation scenario.</strong> In the note, write the diagnostic steps you would follow if a <kbd>gcloud compute instances list</kbd> call failed immediately after a new IAM binding. State: (a) what command confirms the binding is recorded, (b) how long you wait, (c) what you test before widening the role, and (d) what the correct conclusion is if the call still fails after 90 seconds.
+</li>
+<li>
+<strong>Verify and save.</strong> Check your note against this criterion: it must name the specific gcloud command used to confirm an IAM binding, the documented propagation window source, and the reason widening the role is not the first response. Save the note and add its path to the exit artifact.
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A saved note with a two-plane event table, a one-sentence async-gap explanation, a four-step propagation diagnostic, and a confirmed IAM check command. The note must distinguish between desired state (control plane) and observed state (data plane) in its own words.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If the async gap is unclear, trace the seven-stage flow from the Part 2 SVG and identify which stage returns control to the caller (stage 3) vs which stage makes the VM usable (stage 5). If the IAM propagation step is vague, quote the specific documentation section from the Further Study link in Part 2.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>No chargeable resource is created in this exercise. If you created a test VM in the preflight, delete it now: <kbd>gcloud compute instances delete INSTANCE_NAME --zone=ZONE --project=PROJECT_ID --quiet</kbd>. Confirm with an empty list.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-34-topic-01"> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2 — VM lifecycle: create, observe, inventory, and delete with error classification</h3>
+<p><strong>Goal:</strong> Execute the complete four-phase VM lifecycle with active identity and operation-state checks at each phase; practice error classification discipline before any retry.</p>
+<p><strong>Mode:</strong> cloud sandbox (preferred) or supplied-trace tabletop · <strong>Prerequisites:</strong> <a href="day-026.html">Day 26</a> active identity confirmed; <a href="day-033.html">Day 33</a> exit artifact; a GCP project with Compute Engine API enabled and at least <code>roles/compute.instanceAdmin.v1</code>.</p>
+
+<div class="callout">
+<strong>Preflight</strong>
+<ol>
+<li>Confirm active account: <kbd>gcloud auth list</kbd> — note the active identity.</li>
+<li>Confirm project: <kbd>gcloud config get project</kbd> — record as <code>PROJECT_ID</code>.</li>
+<li>Confirm Compute Engine API: <kbd>gcloud services list --project=PROJECT_ID --filter="name:compute.googleapis.com"</kbd> — must show ENABLED.</li>
+<li>Confirm role: <kbd>gcloud projects get-iam-policy PROJECT_ID --flatten="bindings[].members" --filter="bindings.members=user:YOUR_EMAIL"</kbd> — must include <code>roles/compute.instanceAdmin.v1</code> or <code>roles/compute.admin</code>.</li>
+<li>Confirm quota: <kbd>gcloud compute regions describe us-central1 --project=PROJECT_ID --format="yaml(quotas)"</kbd> — check that <code>CPUS</code> and <code>INSTANCES</code> quotas have available capacity.</li>
+</ol>
+<p>If cloud access is unavailable, document each command's expected output as a supplied trace and label every result as "tabletop prediction."</p>
+</div>
+
+<ol>
+<li>
+<strong>Record active identity.</strong> Append to <code>day-034-topic-02.md</code>: active account email, project ID, and the role confirmed in the preflight.
+</li>
+<li>
+<strong>Create the VM.</strong>
+<pre><code>gcloud compute instances create bf-lab-vm \
+  --project=PROJECT_ID \
+  --zone=us-central1-a \
+  --machine-type=e2-micro \
+  --image-family=debian-12 \
+  --image-project=debian-cloud \
+  --no-address \
+  --labels=env=lab,owner=day34</code></pre>
+Record the full output including the operation name. Note whether the command blocked or returned an operation token.
+</li>
+<li>
+<strong>Observe the operation.</strong> If the command returned immediately, poll: <kbd>gcloud compute operations describe OPERATION_NAME --zone=us-central1-a --project=PROJECT_ID</kbd>. Confirm <code>status: DONE</code> and no <code>error</code> block. Record the <code>targetLink</code> value.
+</li>
+<li>
+<strong>Describe the instance (desired → observed).</strong>
+<pre><code>gcloud compute instances describe bf-lab-vm \
+  --zone=us-central1-a \
+  --project=PROJECT_ID \
+  --format="yaml(name,status,machineType,networkInterfaces)"</code></pre>
+Confirm <code>status: RUNNING</code>. Record the full machine type URI and the network interface details. Note any difference between what was declared (desired state) and what is shown here (observed state).
+</li>
+<li>
+<strong>Inventory by label.</strong>
+<pre><code>gcloud compute instances list \
+  --project=PROJECT_ID \
+  --filter="labels.env=lab AND labels.owner=day34" \
+  --format="table(name,zone,status,machineType.machine_type())"</code></pre>
+Confirm exactly one row. Record the output.
+</li>
+<li>
+<strong>Error classification exercise.</strong> In the note, write the correct response to each of these hypothetical errors: (a) <code>QUOTA_EXCEEDED</code>, (b) <code>PERMISSION_DENIED</code>, (c) <code>INVALID_ARGUMENT</code>, (d) <code>INTERNAL_ERROR</code>. For each, state: retry? what to check first?
+</li>
+<li>
+<strong>Delete and confirm.</strong>
+<pre><code>gcloud compute instances delete bf-lab-vm \
+  --zone=us-central1-a \
+  --project=PROJECT_ID \
+  --quiet</code></pre>
+Wait for completion. Then run:
+<pre><code>gcloud compute instances list \
+  --project=PROJECT_ID \
+  --filter="labels.env=lab AND labels.owner=day34"</code></pre>
+Confirm zero rows. Record the empty output as the deletion confirmation.
+</li>
+<li>
+<strong>Assemble exit artifact.</strong> Combine in <code>day-034-topic-02.md</code>: active identity, project, creation output, operation describe output, describe output, label inventory output, error classification table, deletion output, and empty inventory confirmation. Label any step completed as a tabletop prediction if cloud access was unavailable.
+</li>
+</ol>
+
+<div class="callout success">
+<strong>Expected result / acceptance</strong>
+<p>A note containing: (1) active identity and project, (2) creation trace with operation name, (3) operation describe showing DONE, (4) instance describe showing RUNNING with machine type and network details, (5) label inventory with one row, (6) error classification table with four entries, (7) deletion trace, (8) empty label inventory. Every tabletop prediction must be labeled as such.</p>
+</div>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If PERMISSION_DENIED: run <kbd>gcloud auth list</kbd> and confirm the active account; wait 60 s if a role was recently granted; do not widen the role without re-testing first. If QUOTA_EXCEEDED: check <kbd>gcloud compute regions describe us-central1 --project=PROJECT_ID --format="yaml(quotas)"</kbd> and try a different zone. If the instance does not appear in the label inventory: confirm the <code>--labels</code> flag was passed during create; use <code>instances describe</code> to check the labels field.</p>
+</div>
+<div class="callout">
+<strong>Cleanup and cost</strong>
+<p>The e2-micro VM costs a small amount per hour while running. Ensure deletion is confirmed by the empty inventory before ending the session. The sandbox project's budget alert (Day 18) will notify if spend accumulates. Delete resources in order: VM first (it has no dependents in this lab). Confirm the Compute Engine API quota is not exhausted for future labs.</p>
+</div>
+<label class="check"><input type="checkbox" data-progress="lab-34-topic-02"> I completed and checked this topic exercise</label>
+</article>
+</section>
+
+<section class="completion">
+<h2>Daily evidence</h2>
+<p>Assemble <code>day-034-exit.md</code> containing: (1) active identity and project from the preflight, (2) creation/operation trace from Exercise 2, (3) instance describe output showing RUNNING, (4) label inventory with one row, (5) deletion trace and empty inventory confirmation, (6) error classification table, (7) two-plane event table and propagation diagnostic from Exercise 1. A supplied trace is acceptable when cloud access was unavailable; label it as such.</p>
+<label class="check"><input type="checkbox" data-progress="read-34"> I read and reviewed the day</label>
+<label class="check"><input type="checkbox" data-progress="artifact-34"> I saved the exit artifact</label>
+</section>
+
+<nav class="pager" aria-label="Day pagination">
+<a href="day-033.html">← Day 33<small>Lifecycle policies and operating assumptions</small></a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small></a>
+<a href="day-035.html">Day 35 →<small>Gate 2 — Sandbox and identity readiness</small></a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>

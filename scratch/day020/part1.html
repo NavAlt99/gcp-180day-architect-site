@@ -1,0 +1,25 @@
+    <section class="part" id="part-1" aria-labelledby="part-1-title">
+      <h2 id="part-1-title">1 · Concepts and problem previews</h2>
+
+      <article class="topic-card" id="topic-01-overview">
+        <h3>API enablement, client libraries, and asynchronous operation polling</h3>
+        <p><strong>What it is:</strong> Every Google Cloud service is exposed through programmatic Application Programming Interfaces (APIs) managed centrally by the Service Usage API (<code>serviceusage.googleapis.com</code>). Services must be explicitly enabled per project before resources can be provisioned. Software applications communicate with these enabled APIs using idiomatic Google Cloud Client Libraries (such as <code>google-cloud-pubsub</code> or <code>google-cloud-storage</code>), which wrap high-performance gRPC and REST transports, automate OAuth 2.0 token refreshes, manage connection pools, and handle retries with jitter. Mutations that take extended time—such as provisioning databases, creating Kubernetes clusters, or taking disk snapshots—return Asynchronous Long-Running Operations (LROs) that require programmatic status polling before dependent downstream steps can proceed.</p>
+        <p><strong>Why today:</strong> Building on <a href="day-019.html">Day 19</a>'s command-line configuration, architects must transition from manual CLI execution to programmatic automation and application code. Understanding API enablement lifecycles, client library transport mechanics, and asynchronous polling contracts prevents race conditions and brittle pipeline scripts during cloud infrastructure deployment.</p>
+        <p><strong>Where it sits:</strong> Client libraries execute directly within application runtimes (such as Compute Engine VMs, Google Kubernetes Engine pods, Cloud Run containers, or local workstations). They direct authenticated RPC payloads across HTTP/2 streams to Google API endpoints (<code>*.googleapis.com</code>) or redirect transparently to local loopback ports when configured with emulator environment variables.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>An automated deployment script creates a Cloud SQL instance and immediately attempts database schema migration without polling the returned long-running operation for completion. The pipeline crashed with database connection timeouts, leaving the provisioning workflow in an unrecoverable orphaned state that delayed Brightloaf's regional bakery launch by two business days.</p>
+        </div>
+      </article>
+
+      <article class="topic-card" id="topic-02-overview">
+        <h3>Local software emulators and four-service behavioral boundaries</h3>
+        <p><strong>What it is:</strong> Google Cloud provides local software emulators for key data and messaging services: Cloud Pub/Sub, Cloud Firestore, Cloud Spanner, and Cloud Bigtable. Distributed as standalone binaries or containerized services, these emulators listen on local network ports and emulate the public API contracts of their respective cloud backends. By configuring standard environment variables—such as <code>PUBSUB_EMULATOR_HOST</code> or <code>FIRESTORE_EMULATOR_HOST</code>—official Google Cloud Client Libraries bypass cloud authentication and redirect all network calls to the local emulator process without requiring application code changes.</p>
+        <p><strong>Why today:</strong> Testing cloud architectures exclusively against live cloud backends incurs financial cost, requires constant internet connectivity, and introduces shared-state contamination across developer branches. Local emulators enable rapid, zero-cost integration testing, provided engineers understand where emulator behavioral shortcuts diverge from production distributed systems.</p>
+        <p><strong>Where it sits:</strong> Emulators run on developer workstations, inside local Docker containers, or within isolated CI/CD build agents. They act as drop-in local substitutes for managed Google Cloud services, processing requests in-memory or against local scratch disk volumes without traversing external gateways.</p>
+        <div class="callout warning">
+          <strong>Problem preview</strong>
+          <p>A microservices team relies on the Pub/Sub emulator in staging tests, assuming its single-node in-memory delivery guarantees identical message ordering and consumer deduplication as multi-zone production Pub/Sub. Deploying to production without idempotency controls caused duplicate event replays that double-billed 1,200 automated bakery ingredient orders before an emergency circuit breaker was tripped.</p>
+        </div>
+      </article>
+    </section>

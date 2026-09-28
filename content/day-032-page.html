@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Day 32: Support, inventory and learning tracker · GCP 180 days</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.diagram-figure{margin:18px 0;padding:14px;border:1px solid #1e293b;border-radius:12px;background:#121526;overflow-x:auto}.diagram-figure svg{display:block;min-width:900px;width:100%;height:auto;background:#090d16;border:1px solid #1e293b;border-radius:8px}.diagram-figure figcaption{min-width:860px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-figure .canvas{fill:#090d16}.diagram-figure .lane-failed{fill:#450a0a;fill-opacity:.28;stroke:#7f1d1d;stroke-width:1}.diagram-figure .lane-corrected{fill:#052e16;fill-opacity:.38;stroke:#166534;stroke-width:1}.diagram-figure .box{fill:#161b30;stroke:#38bdf8;stroke-width:2}.diagram-figure .failbox{fill:#450a0a;stroke:#f43f5e;stroke-width:2}.diagram-figure .verifybox{fill:#052e16;stroke:#22c55e;stroke-width:2}.diagram-figure text{fill:#f8fafc;font:13px system-ui,-apple-system,sans-serif}.diagram-figure .small-label{fill:#94a3b8;font-size:11px}.diagram-figure .lane-label{font-size:11px;font-weight:700;letter-spacing:.08em}.diagram-figure .path{fill:none;stroke:#38bdf8;stroke-width:3}.diagram-figure .failed{fill:none;stroke:#f43f5e;stroke-width:3;stroke-dasharray:9 6}.diagram-figure .corrected{fill:none;stroke:#22c55e;stroke-width:4}.diagram-figure .boundary{fill:none;stroke:#22c55e;stroke-width:2;stroke-dasharray:3 4}.comparison{width:100%;border-collapse:collapse;margin:14px 0}.comparison th,.comparison td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.comparison th{color:var(--cyan);background:var(--bg)}
+.diagram-figure .lane-neutral{fill:#082f49;fill-opacity:.22;stroke:#075985;stroke-width:1}
+</style>
+<script defer src="../assets/site.js">
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-nav">
+<nav class="nav-inner" aria-label="Site navigation">
+<a class="brand" href="../index.html">◆ <span>GCP · 180 days</span>
+</a>
+<a href="../index.html">Day index</a>
+<a href="../glossary.html">Glossary</a>
+<a href="../sources.html">Sources</a>
+<a href="../artifacts.html">Artifacts</a>
+<a href="day-031.html" aria-label="Previous day">← Day 31</a>
+<a href="day-033.html" aria-label="Next day">Day 33 →</a>
+<label class="jump-label" for="day-jump">Jump to day</label>
+<select id="day-jump" aria-label="Jump to day">
+<option value="">Choose a day…</option>
+<optgroup label="Foundations">
+<option value="day-001.html">Day 1: Local workspace and learning baseline</option>
+<option value="day-002.html">Day 2: IP addressing and packet paths</option>
+<option value="day-003.html">Day 3: DNS, sockets and transport</option>
+<option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option>
+<option value="day-005.html">Day 5: VPN, load balancers and firewalls</option>
+<option value="day-006.html">Day 6: Shell, processes and services</option>
+<option value="day-007.html">Day 7: SSH, scripts and process inspection</option>
+<option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option>
+<option value="day-009.html">Day 9: VM and container isolation</option>
+<option value="day-010.html">Day 10: Images, filesystems and orchestration</option>
+<option value="day-011.html">Day 11: Cloud service models and responsibility</option>
+<option value="day-012.html">Day 12: Regions, scaling and economics</option>
+<option value="day-013.html">Day 13: State, availability and recovery vocabulary</option>
+<option value="day-014.html">Day 14: Git, APIs and JSON</option>
+<option value="day-015.html">Day 15: Small application and architecture styles</option>
+<option value="day-016.html">Day 16: SQL foundations and business outcomes</option>
+<option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option>
+</optgroup>
+<optgroup label="Cloud environment and identity">
+<option value="day-018.html">Day 18: Cloud sandbox and cost controls</option>
+<option value="day-019.html">Day 19: CLI configuration and identity checks</option>
+<option value="day-020.html">Day 20: APIs, client libraries and emulators</option>
+<option value="day-021.html">Day 21: Resource hierarchy and ownership</option>
+<option value="day-022.html">Day 22: Inheritance, labels and tags</option>
+<option value="day-023.html">Day 23: Organization policies and lifecycle</option>
+<option value="day-024.html">Day 24: Principals and workforce identity</option>
+<option value="day-025.html">Day 25: Roles and authorization decisions</option>
+<option value="day-026.html">Day 26: Credentials, tokens and impersonation</option>
+<option value="day-027.html">Day 27: Billing roles and budget ownership</option>
+<option value="day-028.html">Day 28: Cost attribution and notifications</option>
+<option value="day-029.html">Day 29: Cost exports, quota and capacity</option>
+<option value="day-030.html">Day 30: Region and resource-scope decisions</option>
+<option value="day-031.html">Day 31: Network tiers and delivery paths</option>
+<option value="day-032.html" selected>Day 32: Support, inventory and learning tracker</option>
+<option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option>
+<option value="day-034.html">Day 34: First controlled cloud resource operation</option>
+<option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option>
+</optgroup>
+<optgroup label="Core services and integrated practice">
+<option value="day-036.html">Day 36: VM sizing and image choices</option>
+<option value="day-037.html">Day 37: Disks, metadata and persistence</option>
+<option value="day-038.html">Day 38: Templates, MIGs and scaling</option>
+<option value="day-039.html">Day 39: Autohealing and deployment changes</option>
+<option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option>
+<option value="day-041.html">Day 41: VM operations and resource diagnosis</option>
+<option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option>
+<option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option>
+<option value="day-044.html">Day 44: Service networking and persistent volumes</option>
+<option value="day-045.html">Day 45: Probes, secrets and workload failures</option>
+<option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option>
+<option value="day-047.html">Day 47: Cloud Run and event-driven functions</option>
+<option value="day-048.html">Day 48: Workflows and runtime selection</option>
+<option value="day-049.html">Day 49: VPC address and route design</option>
+<option value="day-050.html">Day 50: Firewall policy and private API access</option>
+<option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option>
+<option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option>
+<option value="day-053.html">Day 53: Load-balancer architecture</option>
+<option value="day-054.html">Day 54: Health checks, certificates and draining</option>
+<option value="day-055.html">Day 55: CDN, WAF and traffic management</option>
+<option value="day-056.html">Day 56: Hybrid topology and failure domains</option>
+<option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option>
+<option value="day-058.html">Day 58: Object storage and local durability</option>
+<option value="day-059.html">Day 59: Transfers, block storage and restore</option>
+<option value="day-060.html">Day 60: File systems and backup design</option>
+<option value="day-061.html">Day 61: Relational databases and transactions</option>
+<option value="day-062.html">Day 62: Distributed and nonrelational database choices</option>
+<option value="day-063.html">Day 63: Caching, CDC and database selection</option>
+<option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option>
+<option value="day-065.html">Day 65: Integrate one order-service path</option>
+<option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option>
+<option value="day-067.html">Day 67: Gate 3 — Operate the core application</option>
+</optgroup>
+<optgroup label="Requirements, migration and architecture">
+<option value="day-068.html">Day 68: Requirements from observed behavior</option>
+<option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option>
+<option value="day-070.html">Day 70: Well-Architected review lenses</option>
+<option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option>
+<option value="day-072.html">Day 72: Application architecture patterns</option>
+<option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option>
+<option value="day-074.html">Day 74: Regional and tenant boundaries</option>
+<option value="day-075.html">Day 75: Migration assessment and VMware fit</option>
+<option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option>
+<option value="day-077.html">Day 77: Migration waves and acceptance</option>
+<option value="day-078.html">Day 78: Decision matrices grounded in experiments</option>
+<option value="day-079.html">Day 79: ADRs, TCO and risk registers</option>
+<option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option>
+<option value="day-081.html">Day 81: First architecture defense</option>
+<option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option>
+</optgroup>
+<optgroup label="Reliability and security">
+<option value="day-083.html">Day 83: Availability math and dependency risk</option>
+<option value="day-084.html">Day 84: Failure domains and graceful degradation</option>
+<option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option>
+<option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option>
+<option value="day-087.html">Day 87: Incidents, toil and capacity</option>
+<option value="day-088.html">Day 88: Availability across infrastructure layers</option>
+<option value="day-089.html">Day 89: Messaging, DNS and application health</option>
+<option value="day-090.html">Day 90: Recovery targets and patterns</option>
+<option value="day-091.html">Day 91: Backups and replication correctness</option>
+<option value="day-092.html">Day 92: Failover and failback planning</option>
+<option value="day-093.html">Day 93: Metrics, alerting and burn rates</option>
+<option value="day-094.html">Day 94: Logs, traces and profiling</option>
+<option value="day-095.html">Day 95: Central observability and audit evidence</option>
+<option value="day-096.html">Day 96: Bounded failure experiment design</option>
+<option value="day-097.html">Day 97: Run a recovery and overload experiment</option>
+<option value="day-098.html">Day 98: Restore and failover acceptance</option>
+<option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option>
+<option value="day-100.html">Day 100: Workload federation and short-lived access</option>
+<option value="day-101.html">Day 101: Workforce federation and remote access</option>
+<option value="day-102.html">Day 102: Privileged access and break-glass</option>
+<option value="day-103.html">Day 103: Defense in depth and network policy</option>
+<option value="day-104.html">Day 104: Data perimeters and egress controls</option>
+<option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option>
+<option value="day-106.html">Day 106: Data classification and key lifecycle</option>
+<option value="day-107.html">Day 107: Secrets and de-identification</option>
+<option value="day-108.html">Day 108: Residency, confidentiality and data access</option>
+<option value="day-109.html">Day 109: Compliance evidence and responsibility</option>
+<option value="day-110.html">Day 110: Policy as code and audit retention</option>
+<option value="day-111.html">Day 111: Regulated workload design</option>
+<option value="day-112.html">Day 112: Threat detection and triage</option>
+<option value="day-113.html">Day 113: Incident response and threat modelling</option>
+<option value="day-114.html">Day 114: Artifact integrity and admission</option>
+<option value="day-115.html">Day 115: Container and pipeline hardening</option>
+<option value="day-116.html">Day 116: Integrate private access and key controls</option>
+<option value="day-117.html">Day 117: Security handover and evidence repair</option>
+<option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option>
+</optgroup>
+<optgroup label="Performance, delivery and operations">
+<option value="day-119.html">Day 119: Cost baseline and commitments</option>
+<option value="day-120.html">Day 120: Storage, network and database costs</option>
+<option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option>
+<option value="day-122.html">Day 122: Unit economics and sensitivity</option>
+<option value="day-123.html">Day 123: Caching correctness under load</option>
+<option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option>
+<option value="day-125.html">Day 125: Profiling and capacity evidence</option>
+<option value="day-126.html">Day 126: Terraform baseline and state boundaries</option>
+<option value="day-127.html">Day 127: Terraform testing, drift and recovery</option>
+<option value="day-128.html">Day 128: Build and deployment pipeline</option>
+<option value="day-129.html">Day 129: Release rollback and delivery measures</option>
+<option value="day-130.html">Day 130: Service catalog and ownership</option>
+<option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option>
+<option value="day-132.html">Day 132: Customer success and platform outcomes</option>
+<option value="day-133.html">Day 133: Operations integration and remediation</option>
+</optgroup>
+<optgroup label="Data, AI and distributed correctness">
+<option value="day-134.html">Day 134: Warehouse foundations and query costs</option>
+<option value="day-135.html">Day 135: Warehouse security and reporting</option>
+<option value="day-136.html">Day 136: Batch and streaming processing choices</option>
+<option value="day-137.html">Day 137: Streaming correctness and CDC</option>
+<option value="day-138.html">Day 138: Lakehouse and open table design</option>
+<option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option>
+<option value="day-140.html">Day 140: ML lifecycle and model selection</option>
+<option value="day-141.html">Day 141: Build a small grounded-answer flow</option>
+<option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option>
+<option value="day-143.html">Day 143: AI security and evaluation</option>
+<option value="day-144.html">Day 144: AI serving and infrastructure choices</option>
+<option value="day-145.html">Day 145: Distributed state and regional correctness</option>
+</optgroup>
+<optgroup label="Discovery, cases and exam preparation">
+<option value="day-146.html">Day 146: Case analysis and discovery method</option>
+<option value="day-147.html">Day 147: Extract facts and numeric requirements</option>
+<option value="day-148.html">Day 148: Map requirements and conflicts</option>
+<option value="day-149.html">Day 149: Discovery: business, load and recovery</option>
+<option value="day-150.html">Day 150: Discovery: data, regulation and skills</option>
+<option value="day-151.html">Day 151: Discovery: budget, risks and success</option>
+<option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option>
+<option value="day-153.html">Day 153: EHR Healthcare — defend the design</option>
+<option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option>
+<option value="day-155.html">Day 155: Altostrat Media — architecture defense</option>
+<option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option>
+<option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option>
+<option value="day-158.html">Day 158: KnightMotives — modernization requirements</option>
+<option value="day-159.html">Day 159: KnightMotives — architecture defense</option>
+<option value="day-160.html">Day 160: Case synthesis and feedback</option>
+<option value="day-161.html">Day 161: Changed-constraint design exercise</option>
+<option value="day-162.html">Day 162: Exam domain mapping and sample questions</option>
+<option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option>
+<option value="day-164.html">Day 164: Readiness plan and remaining repairs</option>
+</optgroup>
+<optgroup label="Multi-team architecture and synthesis">
+<option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option>
+<option value="day-166.html">Day 166: Production identity across teams</option>
+<option value="day-167.html">Day 167: API contracts and compatibility</option>
+<option value="day-168.html">Day 168: Sustainability and assisted operations</option>
+<option value="day-169.html">Day 169: Capacity allocation and overload governance</option>
+<option value="day-170.html">Day 170: Compute and database decision synthesis</option>
+<option value="day-171.html">Day 171: Network decision synthesis</option>
+<option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option>
+<option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option>
+</optgroup>
+<optgroup label="Final gate and capstone defenses">
+<option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option>
+<option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option>
+<option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option>
+<option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option>
+<option value="day-178.html">Day 178: Capstone 4 — Migration defense</option>
+<option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option>
+</optgroup>
+<optgroup label="Final review and rest">
+<option value="day-180.html">Day 180: Final review, logistics and rest</option>
+</optgroup>
+</select>
+<button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button>
+</nav>
+</header>
+<div class="audit-banner">
+<strong>Draft content:</strong> Most lessons use generated templates and have not passed topic-level review. <a href="../CONTENT_AUDIT.md">Read the content audit</a>.</div>
+<main id="main" class="container day" data-day="32" data-prev="day-031.html" data-next="day-033.html" data-index="../index.html">
+<div class="crumb">
+<a href="../index.html">Roadmap index</a> / <a href="../index.html#block-cloud-environment-and-identity">Cloud environment and identity</a> / Day 32 of 180</div>
+<section class="hero">
+<div class="pills">
+<span class="pill">DAY</span>
+<span class="pill">2–3 hours</span>
+<span class="pill">local exercise</span>
+<span class="pill">Topics 012, 065, 069, 071</span>
+</div>
+<h1>Day 32 — Support, inventory and learning tracker</h1>
+<p class="lead">
+<strong>Outcome:</strong> Inventory the sandbox or a supplied asset snapshot; create an 83-topic tracker and locate current exam objectives and support escalation channels.</p>
+<div>
+<strong>Entry prerequisites:</strong> <p>
+<a href="day-021.html">Day 21</a>, <a href="day-029.html">Day 29</a>; bring their exit artifacts.</p>
+</div>
+<div class="callout success">
+<strong>Exit artifact</strong>
+<p>An asset list, topic-to-evidence tracker and incident contact/escalation sheet.</p>
+</div>
+<p class="small">Source curriculum checked 2026-09-26; external documentation links are selected reading and may change. A tabletop result is a design exercise, not a production test.</p>
+</section>
+<aside class="toc" aria-label="On this page">
+<strong>On this page</strong>
+<a href="#part-1">1 · Topics</a>
+<a href="#part-2">2 · Technical discussion</a>
+<a href="#part-3">3 · Problems and solutions</a>
+<a href="#part-4">4 · Labs</a>
+<div class="toc-topic">
+<span>Support plans and escalation, Cloud Asset Inventory, public status and Personalized…</span>
+<a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a>
+</div>
+</aside>
+<section id="part-1" class="part">
+<h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>Operational evidence, escalation and the maintained learning tracker</h3>
+<p>Day 32 connects five practices: know the Customer Care service and authorized contacts before an incident; inventory resources with Cloud Asset Inventory; corroborate possible provider incidents with Personalized Service Health (PSH) and the public Cloud Service Health dashboard; map the official Professional Cloud Architect exam guide&#x27;s six sections; and maintain an 83-topic evidence tracker with current Google Skills resources. This belongs after resource hierarchy and quota work because an operator needs the correct scope, ownership, and evidence before deciding whether a symptom is local, project-specific, or provider-wide.</p>
+<p>In the operating system, asset inventory supplies resource context, service-health channels supply provider-event context, support cases carry a bounded evidence package to Customer Care, and the tracker records which course claims have proof. None of these substitutes for application telemetry, the product API&#x27;s live state, or an internal incident commander.</p>
+<p>
+<strong>Problem preview:</strong> Brightloaf&#x27;s Order API is impaired, but the on-call engineer has no current asset list, cannot identify the support entitlement, and treats a quiet public status page as proof that Google Cloud is healthy. The evidence gap delays ownership and escalation, extending customer checkout disruption.</p>
+<p>
+<a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a>
+</p>
+</article>
+</section>
+<section id="part-2" class="part">
+<h2>2 · Technical discussion of each topic</h2>
+<article id="topic-01-technical" class="topic-card">
+<h3>From asset scope to provider escalation and course evidence</h3>
+<p>
+<strong>Scope and ownership.</strong> Cloud Asset Inventory (CAI) is a global metadata inventory service that can search, export, monitor, and analyze supported assets at project, folder, or organization scope. It is useful for discovery and audit context, but Google explicitly says it is not designed as a real-time production query path; use the owning service API when current state is safety-critical. The organization chooses support service, contacts, incident roles, evidence retention, and tracker ownership.</p>
+<p>
+<strong>Control flow.</strong> Begin with user impact and internal telemetry, identify affected projects/resources, then query the owning service and CAI for context. Check PSH first for events relevant to the selected project or organization; use public Cloud Service Health for broad severe incidents or when PSH is unavailable. If evidence and entitlement justify a case, assign priority from actual business impact, attach a sanitized reproducible package, and keep the internal incident running in parallel. A support-case escalation addresses a support-process breakdown; it is not a shortcut that replaces correct case priority.</p>
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d32-flow-title d32-flow-desc" viewBox="0 0 980 350">
+<title id="d32-flow-title">Day 32 operational evidence and learning loop</title>
+<desc id="d32-flow-desc">A conceptual flow starts with an observed service symptom, enriches it with application evidence and scoped asset inventory, checks personalized and public service health, then routes either to internal remediation or a support case. Accepted evidence also updates the 83-topic tracker and six-domain exam map.</desc>
+<defs>
+<marker id="d32-flow-arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#38bdf8"/>
+</marker>
+</defs>
+<rect class="canvas" x="0" y="0" width="980" height="350" rx="8"/>
+<text class="lane-label" x="24" y="25" fill="#7dd3fc">OBSERVE → SCOPE → CORROBORATE → RESPOND → RETAIN EVIDENCE</text>
+<rect class="box" x="24" y="118" width="145" height="72" rx="8"/>
+<text x="44" y="146">Observed symptom</text>
+<text class="small-label" x="42" y="168">impact + timestamps</text>
+<rect class="box" x="220" y="40" width="170" height="76" rx="8"/>
+<text x="245" y="69">App telemetry</text>
+<text class="small-label" x="242" y="91">live service evidence</text>
+<rect class="box" x="220" y="220" width="170" height="76" rx="8"/>
+<text x="246" y="249">CAI context</text>
+<text class="small-label" x="234" y="271">scope + asset metadata</text>
+<rect class="box" x="456" y="118" width="170" height="76" rx="8"/>
+<text x="480" y="147">Health channels</text>
+<text class="small-label" x="473" y="169">PSH; public fallback</text>
+<rect class="box" x="692" y="40" width="180" height="76" rx="8"/>
+<text x="718" y="69">Internal response</text>
+<text class="small-label" x="714" y="91">mitigate + communicate</text>
+<rect class="box" x="692" y="220" width="180" height="76" rx="8"/>
+<text x="718" y="249">Support case</text>
+<text class="small-label" x="709" y="271">priority + evidence</text>
+<rect class="verifybox" x="782" y="315" width="180" height="30" rx="8"/>
+<text x="797" y="335">83-topic evidence tracker</text>
+<path class="path" marker-end="url(#d32-flow-arrow)" d="M169 140 C190 110 195 78 220 78"/>
+<path class="path" marker-end="url(#d32-flow-arrow)" d="M169 172 C190 205 195 258 220 258"/>
+<path class="path" marker-end="url(#d32-flow-arrow)" d="M390 78 C425 78 420 136 456 146"/>
+<path class="path" marker-end="url(#d32-flow-arrow)" d="M390 258 C425 258 420 178 456 168"/>
+<path class="path" marker-end="url(#d32-flow-arrow)" d="M626 144 C655 115 665 78 692 78"/>
+<path class="path" marker-end="url(#d32-flow-arrow)" d="M626 170 C655 205 665 258 692 258"/>
+<path class="path" marker-end="url(#d32-flow-arrow)" d="M782 116 V315"/>
+<path class="path" marker-end="url(#d32-flow-arrow)" d="M782 296 V315"/>
+</svg>
+<figcaption>Conceptual evidence-routing workflow, not an observed incident or guarantee of provider response. CAI contributes inventory context, not authoritative real-time health; PSH and the public dashboard corroborate provider events but do not replace internal telemetry.</figcaption>
+</figure>
+<table class="comparison">
+<caption>Architecture path, evidence owner and limit</caption>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Owner / source</th>
+<th>Minimum evidence</th>
+<th>Boundary or limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Detect impact</td>
+<td>Brightloaf on-call</td>
+<td>UTC timeline, affected operation, project/region, sanitized request correlation</td>
+<td>A symptom does not identify the failing provider</td>
+</tr>
+<tr>
+<td>Inventory context</td>
+<td>CAI plus resource owners</td>
+<td>Full resource name, asset type, ancestry, location, capture time</td>
+<td>Metadata can be stale; query service API for live decisions</td>
+</tr>
+<tr>
+<td>Corroborate health</td>
+<td>PSH; public Cloud Service Health fallback</td>
+<td>Event ID/state, products, locations, relevance, checked time</td>
+<td>No listed event is not proof of no provider issue</td>
+</tr>
+<tr>
+<td>Open/manage case</td>
+<td>Authorized support contact</td>
+<td>Entitlement, correct priority, impact, reproduction, changes, timestamps</td>
+<td>Case priority follows business impact; escalation flags process failure</td>
+</tr>
+<tr>
+<td>Maintain learning evidence</td>
+<td>Learner/reviewer</td>
+<td>83 topic rows, six official exam sections, artifact links, review date</td>
+<td>Course completion is not proof of practical mastery</td>
+</tr>
+</tbody>
+</table>
+<p>
+<strong>Tracker design.</strong> Give every source topic one stable row with domain, status, last-reviewed date, evidence path, evidence type, confidence, gap, and next action. Keep the current official six-section exam guide as a separate mapping dimension; do not force the roadmap&#x27;s 83 topics into a false one-to-one exam blueprint. Link current Google Skills activities as learning inputs, then require your own artifact before marking a topic evidenced.</p>
+<div class="callout">
+<strong>Further study</strong>
+<p>
+<a href="../sources.html#topic-012">Topic 012 sources</a> · <a href="https://docs.cloud.google.com/support/docs/overview#compare_support_services" rel="noopener noreferrer">Compare Customer Care services</a> · <a href="https://docs.cloud.google.com/support/docs/customer-care-procedures#support_case_priority" rel="noopener noreferrer">Support case priority and escalation</a> · <a href="https://docs.cloud.google.com/asset-inventory/docs/asset-inventory-overview#work_with_assets_in_google_cloud" rel="noopener noreferrer">Work with assets in Cloud Asset Inventory</a> · <a href="https://docs.cloud.google.com/service-health/docs/incident-communication#where-to-look" rel="noopener noreferrer">Where to look for incident communications</a> · <a href="https://cloud.google.com/learn/certification/guides/professional-cloud-architect#section-1" rel="noopener noreferrer">Professional Cloud Architect exam guide</a> · <a href="https://cloud.google.com/learn/training/cloud-infrastructure#cloud-architect-learning-path" rel="noopener noreferrer">Cloud Architect learning path</a>. Sections checked 2026-09-27; no video timestamp is claimed.</p>
+</div>
+</article>
+</section>
+<section id="part-3" class="part">
+<h2>3 · Real-world problem and solution for each topic</h2>
+<article id="topic-01-problem" class="topic-card">
+<h3>Example incident: the empty escalation packet</h3>
+<p>
+<strong>Supplied facts and impact:</strong> Brightloaf operators see failed Order API checkouts in one production project. The public Cloud Service Health page shows no matching broad incident, the team has not checked project-relevant PSH, the asset spreadsheet predates a hierarchy change, and the only named support contact has left the rotation. No failure rate, error text, or provider cause is supplied. Customers cannot reliably place orders, while the incident commander cannot establish affected scope or open a well-supported case.</p>
+<p>
+<strong>Constraints and evidence:</strong> Do not expose customer data or credentials; do not wait for Customer Care before mitigating; do not call a public-dashboard absence proof of provider health. Available evidence is the affected project ID, an internal UTC symptom window, application telemetry, the old asset sheet, and the current support overview page.</p>
+<p>
+<strong>Diagnostic sequence:</strong> (1) keep internal incident command active and preserve telemetry; (2) use the project and owning service API to confirm live resources, then use CAI to rebuild scoped metadata context; (3) check project-relevant PSH and record event details or a timestamped no-match result; (4) check the public dashboard as fallback/corroboration; (5) confirm Customer Care service and authorized contacts; (6) choose case priority from current business impact and workaround status; (7) submit a sanitized package; (8) escalate the case only if the support process itself breaks.</p>
+<p>
+<strong>Root cause and correction:</strong> The operational failure is not a proven Google Cloud outage; it is a broken evidence-and-ownership chain caused by stale inventory, absent contact ownership, and misuse of the public dashboard as a health oracle. Correct it with a scheduled asset snapshot owner, a tested contact sheet, PSH-first runbook, case template, and tracker links to the accepted evidence.</p>
+<figure class="diagram-figure">
+<svg role="img" aria-labelledby="d32-inc-title d32-inc-desc" viewBox="0 0 990 360">
+<title id="d32-inc-title">Incident escalation failure and corrected evidence path</title>
+<desc id="d32-inc-desc">A dashed failed path jumps from an Order API symptom to a quiet public dashboard and then stops at a missing support contact. The corrected solid path keeps internal response active, verifies live resource scope and asset context, checks Personalized Service Health with public fallback, confirms entitlement and contacts, and crosses a case-package verification boundary.</desc>
+<defs>
+<marker id="d32-inc-arrow-f" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#f43f5e"/>
+</marker>
+<marker id="d32-inc-arrow-c" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#34d399"/>
+</marker>
+</defs>
+<rect class="canvas" x="0" y="0" width="990" height="360" rx="8"/>
+<rect class="lane-failed" x="16" y="14" width="958" height="116" rx="8"/>
+<rect class="lane-corrected" x="16" y="218" width="958" height="126" rx="8"/>
+<text class="lane-label" x="32" y="34" fill="#fda4af">FAILED PATH · PUBLIC STATUS SHORTCUT AND STALE CONTACT</text>
+<text class="lane-label" x="32" y="238" fill="#4ade80">CORRECTED PATH · SCOPED EVIDENCE AND OWNED ESCALATION</text>
+<rect class="box" x="24" y="132" width="145" height="72" rx="8"/>
+<text x="45" y="161">Order symptom</text>
+<text class="small-label" x="40" y="183">supplied observation</text>
+<rect class="failbox" x="230" y="28" width="220" height="88" rx="8"/>
+<text x="252" y="57">FAILURE POINT</text>
+<text x="248" y="79">quiet public page</text>
+<text class="small-label" x="248" y="101">treated as health proof</text>
+<rect class="failbox" x="520" y="28" width="190" height="88" rx="8"/>
+<text x="543" y="57">ESCALATION STOPS</text>
+<text x="542" y="79">contact is stale</text>
+<text class="small-label" x="545" y="101">root cause: no owner</text>
+<rect class="box" x="220" y="236" width="170" height="84" rx="8"/>
+<text x="243" y="264">Live scope + CAI</text>
+<text class="small-label" x="243" y="286">service state / context</text>
+<rect class="box" x="435" y="236" width="170" height="84" rx="8"/>
+<text x="458" y="264">PSH + fallback</text>
+<text class="small-label" x="454" y="286">timestamped evidence</text>
+<rect class="box" x="650" y="236" width="155" height="84" rx="8"/>
+<text x="672" y="264">Entitlement +</text>
+<text x="684" y="286">contacts</text>
+<rect class="verifybox" x="835" y="218" width="135" height="120" rx="8"/>
+<text x="846" y="247">VERIFY BOUNDARY</text>
+<text x="852" y="271">case package</text>
+<text class="small-label" x="848" y="294">impact, timeline,</text>
+<text class="small-label" x="850" y="311">scope, evidence</text>
+<path class="failed" marker-end="url(#d32-inc-arrow-f)" d="M169 148 C190 105 205 72 230 72"/>
+<path class="failed" marker-end="url(#d32-inc-arrow-f)" d="M450 72 H520"/>
+<text x="733" y="72">FAILED PATH (dashed)</text>
+<path class="corrected" marker-end="url(#d32-inc-arrow-c)" d="M169 191 C190 230 200 278 220 278"/>
+<path class="corrected" marker-end="url(#d32-inc-arrow-c)" d="M390 278 H435"/>
+<path class="corrected" marker-end="url(#d32-inc-arrow-c)" d="M605 278 H650"/>
+<path class="corrected" marker-end="url(#d32-inc-arrow-c)" d="M805 278 H835"/>
+<text x="435" y="346">CORRECTED PATH (solid); internal mitigation continues in parallel</text>
+<rect class="boundary" x="822" y="205" width="161" height="146" rx="12"/>
+</svg>
+<figcaption>
+<strong>Supplied facts:</strong> checkout impairment, quiet public dashboard, stale asset sheet, and unavailable contact. <strong>Architectural inference:</strong> the team cannot yet attribute the cause; its proven failure is the evidence/escalation chain. <strong>Expected post-fix behavior:</strong> internal mitigation continues while a scoped, sanitized case crosses the marked verification boundary with confirmed ownership.</figcaption>
+</figure>
+<p>
+<strong>Verification and residual risk:</strong> A second operator must reproduce the asset scope, open both health channels, identify the authorized case contact and backup, and review the case package against the template. CAI can lag live changes, PSH may not yet show an emerging event, support response depends on entitlement and case priority, and even a correct provider case does not repair Brightloaf&#x27;s own application defect.</p>
+</article>
+</section>
+<section id="part-4" class="part">
+<h2>4 · Step-by-step labs for each topic</h2>
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise: Build the Day 32 operating binder</h3>
+<p>
+<strong>Goal:</strong> Produce an asset list, an 83-topic evidence tracker mapped to the current six-section exam guide, and an incident contact/escalation sheet.</p>
+<p>
+<strong>Expected Result:</strong> Four locally generated files with machine-checkable row counts and explicit unknowns; no cloud state is changed.</p>
+<p>
+<strong>Mode:</strong> local/offline fixture. This exercises the evidence structure without claiming a live CAI export, active support entitlement, or PSH observation.</p>
+<p>
+<strong>Preflight:</strong> Start in the site repository root. Confirm Python 3 and the source roadmap are available:</p>
+<pre>
+<code>python3 --version
+test -f ../gcp-architect-roadmap-100-days.md</code>
+</pre>
+<p>Bring the Day 21 ownership matrix and Day 29 quota/capacity evidence. The commands create only <code>day-032-evidence/</code>; move an existing directory aside before running.</p>
+<p>
+<strong>Numbered Exact Execution:</strong>
+</p>
+<ol>
+<li>Create the complete supplied fixture and evidence files:</li>
+</ol>
+<pre>
+<code>python3 - &lt;&lt;'PY'
+from pathlib import Path
+import csv, json, re
+
+out = Path("day-032-evidence")
+if out.exists():
+    raise SystemExit("day-032-evidence already exists; preserve or move it first")
+out.mkdir()
+
+assets = [
+    {"name":"//compute.googleapis.com/projects/brightloaf-sandbox/zones/us-central1-a/instances/order-api-1","asset_type":"compute.googleapis.com/Instance","project":"brightloaf-sandbox","location":"us-central1-a","owner":"platform","source":"supplied fixture"},
+    {"name":"//storage.googleapis.com/brightloaf-sandbox-orders","asset_type":"storage.googleapis.com/Bucket","project":"brightloaf-sandbox","location":"US","owner":"data","source":"supplied fixture"},
+    {"name":"//pubsub.googleapis.com/projects/brightloaf-sandbox/topics/orders","asset_type":"pubsub.googleapis.com/Topic","project":"brightloaf-sandbox","location":"global","owner":"fulfillment","source":"supplied fixture"},
+    {"name":"//cloudresourcemanager.googleapis.com/projects/brightloaf-sandbox","asset_type":"cloudresourcemanager.googleapis.com/Project","project":"brightloaf-sandbox","location":"global","owner":"cloud-admin","source":"supplied fixture"},
+]
+(out / "supplied-assets.json").write_text(json.dumps(assets, indent=2) + "\n")
+with (out / "asset-list.csv").open("w", newline="") as f:
+    w = csv.DictWriter(f, fieldnames=assets[0].keys())
+    w.writeheader(); w.writerows(assets)
+
+roadmap = Path("../gcp-architect-roadmap-100-days.md").read_text()
+matches = list(re.finditer(r"^### Topic (\d{3}) references\s*\n\s*\n([^\n]+)", roadmap, re.M))
+if len(matches) != 83:
+    raise SystemExit(f"expected 83 topic headings, found {len(matches)}")
+with (out / "topic-evidence-tracker.csv").open("w", newline="") as f:
+    fields = ["topic_id","topic","exam_section","status","evidence_path","evidence_type","last_reviewed","gap","next_action"]
+    w = csv.DictWriter(f, fieldnames=fields); w.writeheader()
+    for m in matches:
+        w.writerow({"topic_id":m.group(1),"topic":m.group(2).strip(),"exam_section":"unmapped","status":"not-started","evidence_path":"","evidence_type":"","last_reviewed":"","gap":"map and collect evidence","next_action":"assign review day"})
+
+sections = [
+    (1,"Designing and planning a cloud solution architecture"),
+    (2,"Managing and provisioning a solution infrastructure"),
+    (3,"Designing for security and compliance"),
+    (4,"Analyzing and optimizing technical and business processes"),
+    (5,"Managing implementation"),
+    (6,"Ensuring solution and operations reliability"),
+]
+with (out / "exam-map.csv").open("w", newline="") as f:
+    w = csv.writer(f); w.writerow(["section","official_title","checked_date","topic_ids","evidence_gap"])
+    for number, title in sections:
+        w.writerow([number, title, "2026-09-27", "unmapped", "map roadmap topics without claiming one-to-one coverage"])
+
+(out / "incident-escalation.md").write_text("""# Brightloaf incident contact and escalation sheet
+
+- Exercise mode: supplied local fixture; replace unknowns only with authorized facts.
+- Incident commander: UNKNOWN — owner must assign and test.
+- Application on-call and backup: UNKNOWN — owner must assign and test.
+- Cloud Customer Care service: UNKNOWN — verify in Support Overview.
+- Authorized case contacts and backup: UNKNOWN — verify before an incident.
+- Internal security/privacy reviewer: UNKNOWN — required before sharing evidence.
+- PSH primary check: project/organization Service Health dashboard.
+- Public fallback: https://status.cloud.google.com/
+- Case package: UTC impact timeline; project/resource/region scope; sanitized correlation IDs; reproduction; recent changes; attempted mitigation; current workaround.
+- Priority rule: select from current business impact and workaround status.
+- Escalation rule: escalate a support-process breakdown; do not use escalation as a substitute for correct priority.
+- Review cadence and next test date: UNKNOWN.
+""")
+print("created", out)
+PY</code>
+</pre>
+<ol start="2">
+<li>Replace one tracker row&#x27;s <code>unmapped</code> and <code>not-started</code> values with the matching exam section and a real Day 21 or Day 29 artifact path; do not mark it evidenced unless the artifact exists.</li>
+<li>Review the official exam guide and Google Skills learning path linked in Part 2. Record their checked date; treat training completion as an input, not evidence of mastery.</li>
+<li>Using authorized information only, replace every resolvable <code>UNKNOWN</code> in <code>incident-escalation.md</code>. Keep unknown entitlement or contacts visibly unknown and assign an owner.</li>
+<li>If a sandbox and read-only permissions are available, compare the supplied fixture with a separately saved CAI search/export. Label capture time and scope; never overwrite the fixture or claim CAI is live state.</li>
+</ol>
+<p>
+<strong>Verification with expected output:</strong>
+</p>
+<pre>
+<code>python3 - &lt;&lt;'PY'
+from pathlib import Path
+import csv, json
+p = Path("day-032-evidence")
+assets = list(csv.DictReader((p / "asset-list.csv").open()))
+topics = list(csv.DictReader((p / "topic-evidence-tracker.csv").open()))
+domains = list(csv.DictReader((p / "exam-map.csv").open()))
+assert len(assets) == 4, len(assets)
+assert len(topics) == 83, len(topics)
+assert len({r["topic_id"] for r in topics}) == 83
+assert len(domains) == 6, len(domains)
+assert (p / "incident-escalation.md").stat().st_size &gt; 0
+print("PASS assets=4 topics=83 exam_sections=6 escalation_sheet=present")
+PY</code>
+</pre>
+<p>Expected output: <code>PASS assets=4 topics=83 exam_sections=6 escalation_sheet=present</code>. Then manually confirm that the edited tracker row points to an existing artifact and that every unresolved contact has an owner and review date.</p>
+<div class="callout caution">
+<strong>Troubleshooting</strong>
+<p>If the tracker count is not 83, run from the site repository root and confirm the adjacent 100-day roadmap is the 83-topic source. If a topic title is missing, stop rather than synthesize it. If you lack support or PSH permissions, record the exact access gap and owner; do not invent an entitlement or incident result.</p>
+</div>
+<div class="callout">
+<strong>Cleanup</strong>
+<p>No GCP resource is created and no charge is expected. Keep <code>day-032-evidence/</code> as exit evidence. To rehearse again, copy the accepted directory to a versioned evidence location, then remove only the disposable rehearsal copy.</p>
+</div>
+<p>
+<strong>Artifact Acceptance:</strong> Accept only when the asset list states source/scope, the tracker has exactly 83 unique topic IDs, the exam map has the six current official sections with a checked date, and the escalation sheet names owners or explicit owned gaps. The complete exit artifact is the directory containing all four files plus links to Day 21 and Day 29 evidence.</p>
+<label class="check">
+<input type="checkbox" data-progress="lab-32-topic-01"> I completed and checked this topic exercise</label>
+</article>
+</section>
+<section class="completion">
+<h2>Daily evidence</h2>
+<label class="check">
+<input type="checkbox" data-progress="read-32"> I read and reviewed the day</label>
+<label class="check">
+<input type="checkbox" data-progress="artifact-32"> I saved the exit artifact</label>
+</section>
+<nav class="pager" aria-label="Day pagination">
+<a href="day-031.html">← Day 31<small>Network tiers and delivery paths</small>
+</a>
+<a href="../index.html">All 180 days<small>Browse the roadmap</small>
+</a>
+<a href="day-033.html">Day 33 →<small>Lifecycle policies and operating assumptions</small>
+</a>
+</nav>
+<p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>
+</main>
+<footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer>
+</body>
+</html>
