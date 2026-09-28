@@ -105,7 +105,6 @@ TOPICS = [
         "lab": {
             "name": "Exercise Name",
             "file": "day-000-topic-01.md",
-            "level": "Progressive: Beginner → Intermediate → Advanced",
             "goal": "Clear operational objective of the exercise.",
             "expected": "Measurable, verifiable result.",
             "mode": "offline design / emulator / local shell / tabletop",

@@ -296,13 +296,9 @@ def compile_day_page(day_num: int, data: dict) -> None:
             rendered_step = re.sub(r"^<p>(.*?)</p>$", r"\1", rendered_step, flags=re.S)
             steps_html.append(f'<li>{rendered_step}</li>')
 
-        level_val = lab.get("level", "Progressive: Beginner → Intermediate → Advanced")
-        level_p = f'<p><strong>Skill Level:</strong> <span class="pill">{escape(level_val)}</span></p>' if level_val else ""
-
         p4_html.append(
             f'<article id="{key}-lab" class="topic-card lab">'
             f'<h3>Exercise {i}: {escape(lab.get("name", t["title"]))}</h3>'
-            f'{level_p}'
             f'<p><strong>Goal:</strong> {escape(lab.get("goal", ""))}</p>'
             f'<p><strong>Expected result:</strong> {escape(lab.get("expected", ""))}</p>'
             f'<p><strong>Mode:</strong> {escape(lab.get("mode", "local exercise"))} · <strong>Prerequisite:</strong> {escape(lab.get("prereq", "Prior day artifacts"))}</p>'
@@ -385,20 +381,103 @@ def load_day_module(path: Path) -> dict:
     }
 
 
+def parse_range(range_str: str) -> list[int]:
+    """Parse range string like '1-93', '1 - 93', '83..92', or '1,2,5'."""
+    clean = range_str.replace(" ", "").replace("..", "-")
+    days = []
+    for part in clean.split(","):
+        if "-" in part:
+            start, end = part.split("-", 1)
+            days.extend(range(int(start), int(end) + 1))
+        else:
+            days.append(int(part))
+    return sorted(list(set(days)))
+
+
+def process_single_day(day_num: int, data_path_override: str = "") -> None:
+    data_path = Path(data_path_override) if data_path_override else ROOT / "scratch" / f"day_data_{day_num:03d}.py"
+    if data_path.exists():
+        print(f"Loading data from {data_path}...")
+        data = load_day_module(data_path)
+        compile_day_page(day_num, data)
+        res = subprocess.run(
+            [sys.executable, str(SCRIPTS / "build.py"), "--day", str(day_num)],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        if res.returncode != 0:
+            sys.exit(f"Build failed for Day {day_num}:\n{res.stderr or res.stdout}")
+        print(f"Built Day {day_num}: {SITE_DAYS / f'day-{day_num:03d}.html'}")
+    else:
+        override_file = ROOT / "content" / f"day-{day_num:03d}-page.html"
+        if not override_file.exists():
+            print(f"Skipping Day {day_num}: neither {data_path} nor {override_file} exists.")
+            return
+        soup = BeautifulSoup(override_file.read_text(encoding="utf-8"), "html.parser")
+        labs = soup.select("article.lab")
+        modified = False
+        for lab in labs:
+            for p in lab.select("p"):
+                p_text = p.get_text()
+                if "Skill Level:" in p_text or "Difficulty:" in p_text:
+                    p.decompose()
+                    modified = True
+        if modified:
+            override_file.write_text(str(soup), encoding="utf-8")
+            print(f"Removed exercise difficulty labels in {override_file.name}")
+        res = subprocess.run(
+            [sys.executable, str(SCRIPTS / "build.py"), "--day", str(day_num)],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        if res.returncode != 0:
+            sys.exit(f"Build failed for Day {day_num}:\n{res.stderr or res.stdout}")
+        print(f"Built Day {day_num}: {SITE_DAYS / f'day-{day_num:03d}.html'}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Deterministic authoring engine for 180-day GCP curriculum.")
-    parser.add_argument("--day", type=int, required=True, help="Day number (1-180)")
+    parser.add_argument("--day", type=int, default=None, help="Day number (1-180)")
+    parser.add_argument("--range", type=str, default="", help="Range of days to author/update (e.g. '1-93' or '1 - 93')")
     parser.add_argument("--data", type=str, default="", help="Path to day data file (defaults to scratch/day_data_NNN.py)")
     args = parser.parse_args()
 
-    data_path = Path(args.data) if args.data else ROOT / "scratch" / f"day_data_{args.day:03d}.py"
-    if not data_path.exists():
-        sys.exit(f"Data file not found: {data_path}\nPlease create {data_path} with the topic content.")
+    if not args.day and not args.range:
+        parser.error("Must specify either --day or --range.")
 
-    print(f"Loading data from {data_path}...")
-    data = load_day_module(data_path)
-    compile_day_page(args.day, data)
-    build_and_validate(args.day)
+    if args.range:
+        target_days = parse_range(args.range)
+        print(f"Processing {len(target_days)} days in range {args.range}: {target_days[0]} to {target_days[-1]}...")
+        for d in target_days:
+            process_single_day(d)
+        print("\nAll target days built. Running site-wide validator...")
+        res_val = subprocess.run(
+            [sys.executable, str(SCRIPTS / "validate.py")],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        if res_val.returncode != 0:
+            print("Validation errors:\n", res_val.stderr or res_val.stdout)
+            sys.exit(res_val.returncode)
+        print(res_val.stdout.strip())
+        print("Validation passed successfully! 0 errors.")
+    else:
+        process_single_day(args.day, args.data)
+        print("\nRunning validator...")
+        res_val = subprocess.run(
+            [sys.executable, str(SCRIPTS / "validate.py")],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        if res_val.returncode != 0:
+            print("Validation errors:\n", res_val.stderr or res_val.stdout)
+            sys.exit(res_val.returncode)
+        print(res_val.stdout.strip())
+        print("Validation passed successfully! 0 errors.")
 
 
 if __name__ == "__main__":
