@@ -3,7 +3,7 @@
 Covers Migration Rehearsal and Reconciliation: Cutover Patterns, Strangler Modernization,
 CDC Tools, DNS Dependencies, Data Reconciliation, and Rollback Boundaries.
 Follows PAGE_AUTHORING_CONTRACT.md with deep technical mechanics, trade-off matrices,
-dual-lane failure investigations, and runnable lab exercises.
+dual-lane failure investigations, verbatim telemetry evidence, and 8-stage operational labs.
 """
 
 DAY_NUM = 76
@@ -80,15 +80,50 @@ DATA = {
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 76: Cutover Synchronization and Reconciliation Flow",
-        "desc": "Continuous CDC data streaming from on-prem to Cloud SQL, verified via reconciliation before traffic shift.",
-        "nodes": [
-            ("On-Premises Source", "Transactional Database\\n+ Continuous WAL Stream"),
-            ("Continuous CDC", "Database Migration Service\\n+ Sub-Second Replication"),
-            ("Reconciliation Gate", "Row Count & Checksum\\n+ Go/No-Go Decision Gate"),
-            ("Target Cloud State", "Cloud SQL Regional Master\\n+ Strangler URL-Map Facade"),
+        "type": "topology",
+        "title": "Day 76: Enterprise Cutover Synchronization and Reconciliation Topology",
+        "desc": "Multi-tier cutover topology showing Global Anycast edge ingress, Strangler Fig URL routing, continuous DMS CDC replication, and cryptographic hash reconciliation.",
+        "caption": "Figure 76.1: Enterprise cutover architecture illustrating DNS caching decay, Strangler Fig path routing, continuous CDC synchronization, and automated data reconciliation gates.",
+        "width": 1100,
+        "height": 640,
+        "layers": [
+            {"name": "LAYER 1: On-Premises Core Infrastructure & Source Database", "desc": "Chicago Datacenter Monolith, PostgreSQL Primary & Write-Ahead Log (WAL) Producer", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Hybrid Ingress & Modernization Routing Facade", "desc": "Global External ALB + URL Map Strangler Facade, Anycast IP & Global DNS Resolvers", "fill": "#0f2338", "y": 115, "h": 90},
+            {"name": "LAYER 3: Change Data Capture & Stream Transport Fabric", "desc": "Google Cloud Database Migration Service / pgoutput Logical Replication Slot Stream", "fill": "#064e3b", "y": 220, "h": 90},
+            {"name": "LAYER 4: Target Cloud Compute & Managed Database Tier", "desc": "Cloud Run Stateless Microservices & Cloud SQL PostgreSQL Enterprise Plus Master", "fill": "#1e1b4b", "y": 325, "h": 90},
+            {"name": "LAYER 5: Automated Verification & Data Reconciliation Fabric", "desc": "Cryptographic Checksum Auditor, Row Count Parity & Day 64 Invariant Enforcer", "fill": "#3b0764", "y": 430, "h": 90},
         ],
-        "caption": "Figure 76.1: Continuous replication and automated reconciliation pipeline establishing positive verification before cutover."
+        "components": [
+            {"id": "onprem_db", "name": "On-Prem Monolith DB", "detail": "PostgreSQL 14 + WAL Stream", "x": 80, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "dns_edge", "name": "Global DNS Resolvers", "detail": "Anycast Edge + 300s TTL", "x": 420, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "alb_facade", "name": "External ALB Facade", "detail": "Strangler URL-Map Matcher", "x": 80, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "onprem_proxy", "name": "Hybrid Proxy Route", "detail": "Default Path (/*) to On-Prem", "x": 420, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "dms_cdc", "name": "Database Migration Service", "detail": "pgoutput CDC Replication Slot", "x": 760, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "cloudrun_orders", "name": "Cloud Run Orders API", "detail": "Migrated Microservice (/api/*)", "x": 80, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "cloudsql_db", "name": "Cloud SQL Target DB", "detail": "Synchronized Replica -> Master", "x": 420, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "reconciliation", "name": "Reconciliation Engine", "detail": "SHA-256 Hash Slice Range Auditor", "x": 80, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+            {"id": "day64_guard", "name": "Invariant Guardrail", "detail": "Day 64 Single-Fulfillment Check", "x": 420, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 640, "h": 80, "label": "ON-PREMISES SOURCE BOUNDARY (CHICAGO DATACENTER)", "color": "#38bdf8"},
+            {"x": 60, "y": 120, "w": 640, "h": 80, "label": "STRANGLER FIG ROUTING & CDC SYNCHRONIZATION PERIMETER", "color": "#10b981"},
+            {"x": 60, "y": 330, "w": 640, "h": 80, "label": "TARGET GOOGLE CLOUD ENTERPRISE ENVIRONMENT", "color": "#a855f7"},
+        ],
+        "flows": [
+            {"x1": 550, "y1": 82, "x2": 210, "y2": 135, "type": "ok", "label": "Anycast Edge Ingress"},
+            {"x1": 210, "y1": 187, "x2": 210, "y2": 345, "type": "ok", "label": "Strangler Route (/api/orders)"},
+            {"x1": 340, "y1": 161, "x2": 420, "y2": 161, "type": "warn", "label": "Legacy Monolith Proxy (/*)"},
+            {"x1": 210, "y1": 82, "x2": 760, "y2": 240, "type": "ok", "label": "Continuous WAL Stream"},
+            {"x1": 760, "y1": 292, "x2": 550, "y2": 345, "type": "ok", "label": "Sub-Second Ingestion Stream"},
+            {"x1": 340, "y1": 371, "x2": 420, "y2": 371, "type": "ok", "label": "Cloud SQL App Transactions"},
+            {"x1": 550, "y1": 397, "x2": 210, "y2": 450, "type": "ok", "label": "Hash Slice Checksum Extraction"},
+            {"x1": 340, "y1": 476, "x2": 420, "y2": 476, "type": "ok", "label": "Parity & Invariant Proof"},
+        ],
+        "probes": [
+            {"cx": 550, "cy": 56, "label": "PROBE 1: DNS Cache Expiration & TTL Decay Watermark (< 300s)", "color": "#f59e0b"},
+            {"cx": 760, "cy": 266, "label": "PROBE 2: DMS CDC Logical Replication Lag (< 2.0s / 0.0s Drain)", "color": "#22c55e"},
+            {"cx": 210, "cy": 476, "label": "PROBE 3: Cryptographic Hash Slice Parity Gate (100% Match)", "color": "#c084fc"},
+        ]
     },
     "part3_intro": (
         "The following field cases analyze severe operational disasters triggered by cutover and reconciliation failures. "
@@ -96,9 +131,9 @@ DATA = {
         "defensible remediations, and dual-lane failed/corrected architectural diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts for "
-        "configuring Strangler Fig load balancer URL routing, modeling DNS TTL caching decay, and executing automated "
-        "cryptographic data reconciliation."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers configure Strangler Fig "
+        "load balancer URL maps, simulate global DNS TTL caching decay, develop mathematical data reconciliation engines, "
+        "and enforce the Day 64 single-fulfillment invariant under cutover pressure."
     ),
     "topics": [
         {
@@ -136,8 +171,8 @@ DATA = {
                 "- **Continuous Replication via Logical Decoding:** DMS establishes a continuous logical replication slot on the source database "
                 "using standard PostgreSQL output plugins (`pgoutput`). Every committed SQL mutation is streamed, decoded, and applied to Cloud SQL "
                 "in near real-time (sub-second replication lag).\n\n"
-                "```sh\n"
-                "# Verify PostgreSQL replication slot status on source database\n"
+                "```sql\n"
+                "-- Verify PostgreSQL replication slot status on source database\n"
                 "SELECT slot_name, plugin, active, confirmed_flush_lsn \n"
                 "FROM pg_replication_slots \n"
                 "WHERE slot_name = 'dms_migration_slot';\n"
@@ -178,7 +213,7 @@ DATA = {
                 "scenario": (
                     "Brightloaf executed a weekend cutover of its core customer ordering portal from their Chicago co-location facility "
                     "to Google Cloud. The database was migrated to Cloud SQL for PostgreSQL using a one-time data dump. At 00:00 UTC on Sunday, "
-                    "the operations team updated the DNS record for `brightloaf.com` to point to the new Google Cloud Load Balancer Anycast IP. "
+                    "the operations team updated the DNS record for brightloaf.com to point to the new Google Cloud Load Balancer Anycast IP. "
                     "However, the team forgot to lower the DNS TTL, which remained configured at 86,400 seconds (24 hours). On Monday morning, "
                     "approximately 35% of customer traffic—originating from corporate networks and regional ISPs that cached DNS aggressively—continued "
                     "routing to the on-premises servers. The on-premises database, which had not been placed in read-only mode, accepted 1,840 customer "
@@ -192,6 +227,28 @@ DATA = {
                 "constraints": (
                     "Enforce strict pre-cutover DNS TTL reduction; ensure on-premises source is locked to read-only before traffic cutover; "
                     "guarantee that zero transactions can be written to the old database post-cutover."
+                ),
+                "evidence": (
+                    "Global DNS query resolution dump and on-premises HTTP write traffic log:\n\n"
+                    "```text\n"
+                    "$ dig +nocmd +noall +answer brightloaf.com @8.8.8.8\n"
+                    "brightloaf.com.   86392   IN  A   198.51.100.24  # [CRITICAL: 24h TTL cached at Google Public DNS]\n"
+                    "\n"
+                    "$ dig +nocmd +noall +answer brightloaf.com @1.1.1.1\n"
+                    "brightloaf.com.   86210   IN  A   198.51.100.24  # [CRITICAL: 24h TTL cached at Cloudflare]\n"
+                    "\n"
+                    "# On-Premises Apache Edge Log (Chicago Datacenter) at T+8h Post-Cutover (08:14:22 UTC):\n"
+                    "192.0.2.14 - - [28/Sep/2026:08:14:22 +0000] \"POST /api/v1/orders HTTP/1.1\" 200 482 \"https://brightloaf.com/checkout\"\n"
+                    "192.0.2.89 - - [28/Sep/2026:08:14:23 +0000] \"POST /api/v1/orders HTTP/1.1\" 200 482 \"https://brightloaf.com/checkout\"\n"
+                    "# Telemetry: 1,840 write operations committed on decommissioned on-prem database post-cutover!\n"
+                    "\n"
+                    "# PostgreSQL Source Replication Status:\n"
+                    "postgres=# SELECT slot_name, plugin, active, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn)) AS replication_lag FROM pg_replication_slots;\n"
+                    " slot_name          | plugin   | active | replication_lag \n"
+                    "--------------------+----------+--------+-----------------\n"
+                    " dms_cutover_slot   | pgoutput | t      | 482 MB          # [WARNING: WAL Accumulation due to unstopped on-prem writes]\n"
+                    "(1 row)\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
                     "Step 1: Check DNS configuration using `dig +nocmd +noall +answer brightloaf.com`; discover TTL is set to 86,400 seconds (24 hours).",
@@ -237,16 +294,20 @@ DATA = {
                 "prereq": "Day 75 migration phases and Day 72 load balancing",
                 "preflight": "Review Google Cloud URL map path matcher documentation and DNS resolver caching RFCs.",
                 "steps": [
-                    "Draft the Strangler Fig migration strategy in `day-076-cutover-facade.md`.",
-                    "Define the Google Cloud External Load Balancer URL Map specification routing `/api/orders` to Cloud Run while proxying default traffic to on-prem (`strangler-urlmap.yaml`):\n\n```yaml\n# strangler-urlmap.yaml\napiVersion: compute.cnrm.cloud.google.com/v1beta1\nkind: ComputeURLMap\nmetadata:\n  name: brightloaf-strangler-facade\nspec:\n  defaultService:\n    backendServiceRef:\n      name: onprem-monolith-backend-service\n  hostRule:\n  - hosts:\n    - \"brightloaf.com\"\n    pathMatcher: api-path-matcher\n  pathMatcher:\n  - name: api-path-matcher\n    defaultService:\n      backendServiceRef:\n        name: onprem-monolith-backend-service\n    pathRule:\n    - paths:\n      - \"/api/orders/*\"\n      - \"/api/checkout/*\"\n      service:\n        backendServiceRef:\n          name: cloudrun-order-backend-service\n```",
-                    "Develop an executable Python script modeling DNS TTL caching decay across global resolvers (`dns_ttl_sim.py`):\n\n```python\n# dns_ttl_sim.py\nimport time\n\ndef simulate_dns_propagation(ttl_seconds: int, elapsed_seconds: int) -> float:\n    # Model exponential decay of resolvers holding cached DNS records\n    if elapsed_seconds <= 0:\n        return 0.0\n    if elapsed_seconds >= ttl_seconds:\n        # Over 99% of compliant resolvers have evicted cached record\n        return 99.5\n    fraction_expired = (elapsed_seconds / ttl_seconds) * 100.0\n    return min(99.5, fraction_expired)\n\n# Scenario A: Default 24-hour TTL (86,400s) at 1 hour post-cutover (3,600s)\nprop_a = simulate_dns_propagation(ttl_seconds=86400, elapsed_seconds=3600)\n\n# Scenario B: Pre-degraded 5-minute TTL (300s) at 10 minutes post-cutover (600s)\nprop_b = simulate_dns_propagation(ttl_seconds=300, elapsed_seconds=600)\n\nprint(f\"Scenario A (24h TTL, T+1h): {prop_a:.1f}% traffic on Cloud (Danger: {100-prop_a:.1f}% still on on-prem!)\")\nprint(f\"Scenario B (5m TTL, T+10m): {prop_b:.1f}% traffic on Cloud (Clean cutover!)\")\nassert prop_a < 10.0, \"24h TTL should still have massive cache holdover!\"\nassert prop_b >= 99.0, \"5m TTL must achieve full propagation within 10 minutes!\"\nprint(\"DNS TTL Propagation Simulation Verified Successfully.\")\n```",
-                    "Execute the Python DNS propagation simulation test:\n\n```sh\npython3 dns_ttl_sim.py\n```"
+                    "#### Stage 1: Pre-Flight Architecture Topology & Routing Contract\nDraft the Strangler Fig migration strategy in <kbd>day-076-cutover-facade.md</kbd>. Establish the boundary rules: all unmigrated traffic proxies to on-premises over Cloud Interconnect, while migrated microservices receive native Anycast routing.",
+                    "#### Stage 2: DNS TTL Decay Mechanics & Resolver Cache Invariants\nDocument the DNS degrade schedule. At T-7 days, lower DNS TTL to 300 seconds (5 minutes). Calculate expected cache retention across global ISP resolvers.",
+                    "#### Stage 3: Authoring Google Cloud External ALB Strangler Fig URL Map\nDefine the Google Cloud External Load Balancer URL Map specification routing <kbd>/api/orders</kbd> and <kbd>/api/checkout</kbd> to Cloud Run while proxying default traffic to on-prem (<kbd>strangler-urlmap.yaml</kbd>):\n\n```yaml\n# strangler-urlmap.yaml\napiVersion: compute.cnrm.cloud.google.com/v1beta1\nkind: ComputeURLMap\nmetadata:\n  name: brightloaf-strangler-facade\nspec:\n  defaultService:\n    backendServiceRef:\n      name: onprem-monolith-backend-service\n  hostRule:\n  - hosts:\n    - \"brightloaf.com\"\n    pathMatcher: api-path-matcher\n  pathMatcher:\n  - name: api-path-matcher\n    defaultService:\n      backendServiceRef:\n        name: onprem-monolith-backend-service\n    pathRule:\n    - paths:\n      - \"/api/orders/*\"\n      - \"/api/checkout/*\"\n      service:\n        backendServiceRef:\n          name: cloudrun-order-backend-service\n```",
+                    "#### Stage 4: DNS TTL Propagation Simulation Engine Implementation\nDevelop an executable Python script modeling DNS TTL caching decay and traffic distribution across global recursive resolvers (<kbd>dns_ttl_sim.py</kbd>):\n\n```python\n# dns_ttl_sim.py\n\"\"\"Simulates recursive DNS resolver cache decay and traffic migration percentage.\"\"\"\nfrom typing import Dict, Tuple\n\ndef simulate_dns_propagation(ttl_seconds: int, elapsed_seconds: int) -> float:\n    \"\"\"Model percentage of global resolver traffic hitting the new IP address.\"\"\"\n    if elapsed_seconds <= 0:\n        return 0.0\n    if elapsed_seconds >= ttl_seconds:\n        return 99.8\n    # Linear decay model representing staggered resolver cache expiration\n    fraction_expired = (elapsed_seconds / ttl_seconds) * 100.0\n    return min(99.8, round(fraction_expired, 2))\n\nif __name__ == '__main__':\n    # Scenario A: Default 24-hour TTL (86,400s) at 1 hour post-cutover (3,600s)\n    prop_a = simulate_dns_propagation(ttl_seconds=86400, elapsed_seconds=3600)\n\n    # Scenario B: Pre-degraded 5-minute TTL (300s) at 10 minutes post-cutover (600s)\n    prop_b = simulate_dns_propagation(ttl_seconds=300, elapsed_seconds=600)\n\n    print(f\"Scenario A (24h TTL, T+1h):  {prop_a:.1f}% traffic on Cloud (Danger: {100-prop_a:.1f}% still on on-prem!)\")\n    print(f\"Scenario B (5m TTL, T+10m): {prop_b:.1f}% traffic on Cloud (Clean cutover!)\")\n    assert prop_a < 10.0, \"24h TTL should still have massive cache holdover!\"\n    assert prop_b >= 99.0, \"5m TTL must achieve full propagation within 10 minutes!\"\n    print(\"DNS TTL Propagation Simulation Verified Successfully.\")\n```",
+                    "#### Stage 5: Cutover Execution & Global Traffic Decay Verification\nRun the DNS TTL propagation simulation runner:\n\n```sh\npython3 dns_ttl_sim.py\n```",
+                    "#### Stage 6: Failure Injection: Simulating Neglected 24-Hour TTL Disaster\nExecute an automated failure scenario modeling the financial and operational fallout of a stale 24-hour TTL:\n\n```python\n# test_stale_ttl_hazard.py\nfrom dns_ttl_sim import simulate_dns_propagation\n\n# At T+12 hours, with 86,400s TTL, calculate orphaned transaction rate\nelapsed = 12 * 3600\ncloud_pct = simulate_dns_propagation(86400, elapsed)\nonprem_pct = 100.0 - cloud_pct\n\ntotal_daily_orders = 5000\norphaned_orders = int((total_daily_orders / 2) * (onprem_pct / 100.0))\nprint(f\"Stale TTL Fallout at T+12h: {onprem_pct:.1f}% on-prem traffic -> {orphaned_orders} orphaned orders!\")\nassert orphaned_orders > 1000, \"Expected high orphaned order volume with unmitigated TTL!\"\nprint(\"[ALERT CONFIRMED] Stale TTL directly triggers dual-master database divergence.\")\n```",
+                    "#### Stage 7: Rehearsal & Cutover Rollback Playbook\nAuthor the emergency rollback script (<kbd>rollback_runbook.sh</kbd>) reverting the Strangler URL map if the cloud microservice fails:\n\n```sh\n# rollback_runbook.sh\n#!/usr/bin/env bash\nset -euo pipefail\necho \"[ROLLBACK TRIGGERED] Reverting /api/orders routing back to on-premises monolith...\"\n# Revert pathMatcher default in URL map\ncat << 'EOF' > revert-urlmap.yaml\napiVersion: compute.cnrm.cloud.google.com/v1beta1\nkind: ComputeURLMap\nmetadata:\n  name: brightloaf-strangler-facade\nspec:\n  defaultService:\n    backendServiceRef:\n      name: onprem-monolith-backend-service\nEOF\necho \"[SUCCESS] URL map patched; 100% traffic reverted to on-premises in < 15 seconds.\"\n```",
+                    "#### Stage 8: Post-Cutover Operational Invariants & Cleanup\nVerify that the DNS TTL restoration task is scheduled for T+48 hours to return TTL to 86,400 seconds. Confirm that no chargeable cloud resources were provisioned during the offline architectural simulation."
                 ],
                 "verification": (
-                    "Run automated DNS simulation verification:\n\n```sh\npython3 -c \"import dns_ttl_sim; print('DNS TTL Simulator Test Passed')\"\n```\n\nConfirm output displays `DNS TTL Propagation Simulation Verified Successfully`."
+                    "Run automated DNS simulation and failure validation test suite:\n\n```sh\npython3 dns_ttl_sim.py && python3 -c \"import test_stale_ttl_hazard\" && bash rollback_runbook.sh\n```\n\nConfirm output displays `DNS TTL Propagation Simulation Verified Successfully` and `[ALERT CONFIRMED]`."
                 ),
                 "trouble": (
-                    "If URL map YAML fails syntax parsing, verify indentation on `pathMatcher` and `pathRule` blocks."
+                    "If URL map YAML fails syntax parsing, verify indentation on <kbd>pathMatcher</kbd> and <kbd>pathRule</kbd> blocks."
                 ),
                 "cleanup": "No remote cloud resources created; retain YAML manifests and simulation scripts in local repository.",
                 "accept": "A validated Strangler Fig URL map specification, DNS pre-cutover checklist, and working Python DNS simulation test."
@@ -330,7 +391,7 @@ DATA = {
                 "scenario": (
                     "To achieve 'zero downtime' during the migration of Brightloaf's order management database, the development team "
                     "implemented application-level dual-writing. The checkout microservice was modified to execute simultaneous asynchronous "
-                    "writes to the legacy MySQL database in Chicago and the new Cloud SQL PostgreSQL instance in `us-central1`. During peak "
+                    "writes to the legacy MySQL database in Chicago and the new Cloud SQL PostgreSQL instance in us-central1. During peak "
                     "Sunday evening traffic, intermittent packet loss on the Cloud Interconnect caused 14% of the cloud writes to time out, "
                     "while the on-premises writes succeeded. To fix this, an engineer added an uncoordinated retry loop that replayed failed "
                     "cloud writes 10 minutes later. By midnight, out-of-order execution caused order cancellations to be overwritten by delayed "
@@ -344,6 +405,33 @@ DATA = {
                 "constraints": (
                     "Eliminate application dual-writing immediately; enforce single-master write authority; ensure 100% mathematical "
                     "reconciliation of all order states; preserve the Day 64 single-fulfillment invariant."
+                ),
+                "evidence": (
+                    "Application dual-write timeout exception, retry queue storm, and cryptographic checksum mismatch report:\n\n"
+                    "```text\n"
+                    "2026-09-28 20:14:11.892 UTC [OrderService-Worker-3] ERROR com.brightloaf.order.DualWriteService - Cloud write timed out after 5000ms\n"
+                    "java.sql.SQLTimeoutException: Connection to Cloud SQL (10.128.0.45:5432) timed out after 5000 ms (packet loss on hybrid tunnel)\n"
+                    "    at org.postgresql.core.v3.QueryExecutorImpl.execute(QueryExecutorImpl.java:335)\n"
+                    "    at com.brightloaf.order.DualWriteService.writeCloud(DualWriteService.java:114)\n"
+                    "2026-09-28 20:14:11.895 UTC [OrderService-Worker-3] WARN  com.brightloaf.order.DualWriteService - Queuing async retry for Order ORD-99214\n"
+                    "\n"
+                    "2026-09-28 20:24:19.412 UTC [OrderService-RetryExecutor-1] INFO com.brightloaf.order.DualWriteService - Retrying cloud write for Order ORD-99214\n"
+                    "2026-09-28 20:24:19.488 UTC [OrderService-RetryExecutor-1] INFO com.brightloaf.order.DualWriteService - Cloud write succeeded for ORD-99214 (State: CONFIRMED)\n"
+                    "# RACE CONDITION TRACE:\n"
+                    "# 20:14:11 On-Prem committed ORD-99214 (CONFIRMED)\n"
+                    "# 20:18:02 On-Prem committed ORD-99214 (CANCELLED - Customer cancelled in portal)\n"
+                    "# 20:18:03 Cloud SQL committed ORD-99214 (CANCELLED)\n"
+                    "# 20:24:19 Cloud SQL RETRY committed ORD-99214 (CONFIRMED) <- OUT-OF-ORDER MUTATION OVERWROTE CANCELLATION!\n"
+                    "\n"
+                    "$ python3 reconciliation_check.py --range ord_99000-ord_100000\n"
+                    "[RECONCILIATION AUDIT REPORT]\n"
+                    "Key Range: ord_99000 -> ord_100000 (1,000 records)\n"
+                    "Source Checksum (Chicago On-Prem): 8f4b23c9a10294e7721d9b3a014e28c3\n"
+                    "Target Checksum (Cloud SQL nam6):  3c71a9e88d042f11894b611e9a4f7831\n"
+                    "STATUS: DIVERGENCE DETECTED!\n"
+                    "Mismatched Keys: 380 orders have conflicting states (Chicago: CANCELLED vs Cloud SQL: CONFIRMED)\n"
+                    "Day 64 Single-Fulfillment Invariant: VIOLATED (380 cancelled orders dispatched to warehouse picking queues!)\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
                     "Step 1: Compare records between on-prem MySQL and Cloud SQL; discover 380 orders with status `CANCELLED` on-premises but status `CONFIRMED` in Cloud SQL.",
@@ -389,16 +477,20 @@ DATA = {
                 "prereq": "Day 75 wave planning and Day 64 single-fulfillment invariants",
                 "preflight": "Review SQL cryptographic hash aggregation functions and DMS replication monitoring metrics.",
                 "steps": [
-                    "Draft the mathematical data reconciliation methodology in `day-076-reconciliation.md`.",
-                    "Develop an executable Python reconciliation engine (`reconciliation_engine.py`):\n\n```python\n# reconciliation_engine.py\nimport hashlib\nimport sqlite3\n\n# Create source and target simulated databases\nsource_conn = sqlite3.connect(':memory:')\ntarget_conn = sqlite3.connect(':memory:')\n\nfor conn in [source_conn, target_conn]:\n    conn.execute('''CREATE TABLE orders (order_id TEXT PRIMARY KEY, status TEXT, amount REAL)''')\n\n# Populate matching baseline data\nsource_data = [('ord_1', 'PAID', 100.0), ('ord_2', 'SHIPPED', 50.0), ('ord_3', 'CANCELLED', 25.0)]\nsource_conn.executemany('INSERT INTO orders VALUES (?,?,?)', source_data)\ntarget_conn.executemany('INSERT INTO orders VALUES (?,?,?)', source_data)\n\ndef compute_table_checksum(conn) -> str:\n    cur = conn.cursor()\n    cur.execute('SELECT order_id, status, amount FROM orders ORDER BY order_id')\n    rows = cur.fetchall()\n    hasher = hashlib.sha256()\n    for r in rows:\n        hasher.update(f\"{r[0]}:{r[1]}:{r[2]}\".encode('utf-8'))\n    return hasher.hexdigest()\n\n# Test 1: Baseline parity\nsrc_hash = compute_table_checksum(source_conn)\ntgt_hash = compute_table_checksum(target_conn)\nassert src_hash == tgt_hash, \"Baseline checksum mismatch!\"\nprint(f\"Baseline Checksum Parity Verified: {src_hash[:16]}...\")\n\n# Test 2: Simulate out-of-order data corruption in target\ntarget_conn.execute(\"UPDATE orders SET status = 'PAID' WHERE order_id = 'ord_3'\")\ncorrupt_hash = compute_table_checksum(target_conn)\nassert src_hash != corrupt_hash, \"Checksum engine failed to detect corruption!\"\nprint(f\"Data Divergence Detected Successfully: {corrupt_hash[:16]}... != {src_hash[:16]}...\")\n\n# Test 3: Repair divergence\ntarget_conn.execute(\"UPDATE orders SET status = 'CANCELLED' WHERE order_id = 'ord_3'\")\nassert compute_table_checksum(source_conn) == compute_table_checksum(target_conn)\nprint(\"Data Reconciliation Engine Verified Successfully.\")\n```",
-                    "Execute the Python reconciliation engine test:\n\n```sh\npython3 reconciliation_engine.py\n```",
-                    "Document the final Go/No-Go reconciliation checklist in `day-076-reconciliation.md`."
+                    "#### Stage 1: Mathematical Data Reconciliation Topology\nDraft the mathematical data reconciliation methodology in <kbd>day-076-reconciliation.md</kbd>. Establish the three verification tiers: Global Row Count Parity, Primary Key Set Symmetric Difference, and Cryptographic Hash Range Slicing.",
+                    "#### Stage 2: Database Schema & Invariant Constraints Definition\nDefine the database schema with explicit primary key and status constraints, enforcing the Day 64 single-fulfillment constraint (unique index on <kbd>order_id</kbd> and valid status state transitions).",
+                    "#### Stage 3: Core Implementation: Python Checksum & Hash Range Slicing Engine\nDevelop an executable Python reconciliation engine simulating source on-premises and target Cloud SQL databases (<kbd>reconciliation_engine.py</kbd>):\n\n```python\n# reconciliation_engine.py\n\"\"\"Automated cryptographic data reconciliation engine for database cutover validation.\"\"\"\nimport hashlib\nimport sqlite3\nfrom typing import Dict, List, Tuple\n\ndef create_database_instances() -> Tuple[sqlite3.Connection, sqlite3.Connection]:\n    source = sqlite3.connect(':memory:')\n    target = sqlite3.connect(':memory:')\n    for conn in [source, target]:\n        conn.execute('''\n            CREATE TABLE orders (\n                order_id TEXT PRIMARY KEY,\n                customer_id TEXT,\n                status TEXT,\n                amount REAL,\n                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n            )\n        ''')\n    return source, target\n\ndef populate_baseline_data(source: sqlite3.Connection, target: sqlite3.Connection):\n    data = [\n        ('ord_001', 'cust_101', 'PAID', 150.50),\n        ('ord_002', 'cust_102', 'SHIPPED', 89.20),\n        ('ord_003', 'cust_103', 'CANCELLED', 45.00),\n        ('ord_004', 'cust_104', 'CONFIRMED', 210.00),\n    ]\n    for conn in [source, target]:\n        conn.executemany(\n            'INSERT INTO orders (order_id, customer_id, status, amount) VALUES (?,?,?,?)',\n            data\n        )\n        conn.commit()\n\ndef compute_table_checksum(conn: sqlite3.Connection, key_start: str = '', key_end: str = 'ord_zzz') -> str:\n    cur = conn.cursor()\n    cur.execute('''\n        SELECT order_id, customer_id, status, printf(\"%.2f\", amount)\n        FROM orders\n        WHERE order_id BETWEEN ? AND ?\n        ORDER BY order_id ASC\n    ''', (key_start, key_end))\n    rows = cur.fetchall()\n    hasher = hashlib.sha256()\n    for row in rows:\n        row_str = f\"{row[0]}|{row[1]}|{row[2]}|{row[3]}\"\n        hasher.update(row_str.encode('utf-8'))\n    return hasher.hexdigest()\n\nif __name__ == '__main__':\n    source, target = create_database_instances()\n    populate_baseline_data(source, target)\n    src_hash = compute_table_checksum(source)\n    tgt_hash = compute_table_checksum(target)\n    print(f\"Source Hash: {src_hash}\")\n    print(f\"Target Hash: {tgt_hash}\")\n    assert src_hash == tgt_hash, \"Baseline hash mismatch!\"\n    print(\"Baseline Checksum Parity Verified (100% Match).\")\n```",
+                    "#### Stage 4: Failure Injection: Concurrency Hazard & Out-of-Order Mutation Simulation\nInject an asynchronous race condition into the target database simulating dual-write corruption (<kbd>corrupt_target.py</kbd>):\n\n```python\n# corrupt_target.py\n\"\"\"Simulates out-of-order write mutation on target database.\"\"\"\nfrom reconciliation_engine import create_database_instances, populate_baseline_data, compute_table_checksum\n\nsource, target = create_database_instances()\npopulate_baseline_data(source, target)\n\n# Corrupt target: ord_003 was CANCELLED on-prem, but target delayed retry overwrites it with CONFIRMED\ntarget.execute(\"UPDATE orders SET status = 'CONFIRMED' WHERE order_id = 'ord_003'\")\ntarget.commit()\n\nsrc_hash = compute_table_checksum(source)\ntgt_hash = compute_table_checksum(target)\nprint(f\"Post-Corruption Source Hash: {src_hash[:16]}...\")\nprint(f\"Post-Corruption Target Hash: {tgt_hash[:16]}...\")\nassert src_hash != tgt_hash, \"Reconciliation engine failed to catch divergence!\"\nprint(\"[ALERT DETECTED] Cryptographic hash divergence caught out-of-order mutation successfully!\")\n```",
+                    "#### Stage 5: Execution & Forensic Discrepancy Detection\nRun the corruption detection test runner:\n\n```sh\npython3 corrupt_target.py\n```",
+                    "#### Stage 6: Automated Verification & Invariant Proof\nAuthor an automated reconciliation auditor that isolates the exact mismatched rows and verifies the Day 64 single-fulfillment constraint (<kbd>audit_discrepancies.py</kbd>):\n\n```python\n# audit_discrepancies.py\n\"\"\"Isolates diverging rows and enforces Day 64 single-fulfillment invariant.\"\"\"\nfrom reconciliation_engine import create_database_instances, populate_baseline_data\n\nsource, target = create_database_instances()\npopulate_baseline_data(source, target)\ntarget.execute(\"UPDATE orders SET status = 'CONFIRMED' WHERE order_id = 'ord_003'\")\ntarget.commit()\n\n# Symmetric difference scanner\ncur_src = source.cursor().execute('SELECT order_id, status FROM orders ORDER BY order_id').fetchall()\ncur_tgt = target.cursor().execute('SELECT order_id, status FROM orders ORDER BY order_id').fetchall()\n\ns_dict = dict(cur_src)\nt_dict = dict(cur_tgt)\n\ndiscrepancies = []\nfor oid in s_dict:\n    if s_dict[oid] != t_dict.get(oid):\n        discrepancies.append((oid, s_dict[oid], t_dict.get(oid)))\n\nprint(f\"Discrepancies identified: {len(discrepancies)}\")\nfor d in discrepancies:\n    print(f\"Order {d[0]}: Source={d[1]} vs Target={d[2]}\")\nassert len(discrepancies) == 1 and discrepancies[0][0] == 'ord_003'\nprint(\"[VERIFIED] Forensic reconciliation isolated corrupted key ord_003 with zero byte transfer.\")\n```",
+                    "#### Stage 7: Disaster Recovery, Data Repair & Reverse CDC Synchronization\nImplement the repair script (<kbd>repair_discrepancies.py</kbd>) resetting target to match source master:\n\n```python\n# repair_discrepancies.py\n\"\"\"Repairs target divergence and establishes reverse CDC parity.\"\"\"\nfrom reconciliation_engine import create_database_instances, populate_baseline_data, compute_table_checksum\n\nsource, target = create_database_instances()\npopulate_baseline_data(source, target)\ntarget.execute(\"UPDATE orders SET status = 'CONFIRMED' WHERE order_id = 'ord_003'\")\ntarget.commit()\n\n# Repair\ntarget.execute(\"UPDATE orders SET status = 'CANCELLED' WHERE order_id = 'ord_003'\")\ntarget.commit()\nassert compute_table_checksum(source) == compute_table_checksum(target)\nprint(\"[REPAIR SUCCESS] Target database restored to 100% cryptographic parity with source.\")\n```",
+                    "#### Stage 8: Go/No-Go Decision Gate Telemetry Checklist\nDocument the Go/No-Go cutover criteria: 1. CDC replication lag &lt; 2.0s; 2. Source database locked to read-only; 3. DMS WAL drain lag = 0.00s; 4. Cryptographic checksum parity = 100%. Verify that no cloud resources remain active."
                 ],
                 "verification": (
-                    "Run automated reconciliation verification test:\n\n```sh\npython3 -c \"import reconciliation_engine; print('Reconciliation Engine Test Passed')\"\n```\n\nConfirm output displays `Data Reconciliation Engine Verified Successfully`."
+                    "Run automated reconciliation verification test suite:\n\n```sh\npython3 reconciliation_engine.py && python3 corrupt_target.py && python3 audit_discrepancies.py && python3 repair_discrepancies.py\n```\n\nConfirm output displays `Baseline Checksum Parity Verified`, `[ALERT DETECTED]`, `[VERIFIED]`, and `[REPAIR SUCCESS]`."
                 ),
                 "trouble": (
-                    "If checksums mismatch on identical data, verify that SQL query enforces strict `ORDER BY` sorting."
+                    "If checksums mismatch on identical data, verify that the SQL query enforces strict `ORDER BY` sorting and float string formatting."
                 ),
                 "cleanup": "No remote cloud resources created; retain scripts and reconciliation runbooks in local repository.",
                 "accept": "A validated data reconciliation methodology document, an executable Python checksum engine, and verified Go/No-Go criteria."

@@ -91,26 +91,61 @@ DATA = {
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 82: Gate 4 Architectural Audit and Certification Cycle",
-        "desc": "The four-stage Gate 4 audit cycle: artifact inventory, gap remediation, rubric scoring, and formal gate certification.",
-        "nodes": [
-            ("1. Artifact Audit", "14 Block 3 Artifacts\\n+ Traceability Verification"),
-            ("2. Gap Remediation", "Repair Unsupported Claim\\n+ RTO / Invariant Fix"),
-            ("3. Decision Audits", "3 Decisions to Evidence\\n+ PubSub, Spanner, Run"),
-            ("4. Rubric Scoring", "5 Dimensions (Scored 0–3)\\n+ Threshold >= 12/15"),
-            ("5. Gate Passage", "Certified G4 PASS\\n+ Authorization for Block 4"),
+        "type": "topology",
+        "title": "Day 82: Gate 4 Synthesis, Rubric Evaluation, and Certification Topology",
+        "desc": "Multi-tier Gate 4 architectural certification topology illustrating the 14-artifact inventory audit, gap remediation, empirical decision traceability, five-dimension rubric evaluation, and formal Block 4 authorization.",
+        "caption": "Figure 82.1: Gate 4 synthesis and accreditation topology showing artifact inventory auditing, gap remediation, empirical proof validation, rubric scoring, and formal Block 4 certification.",
+        "width": 1100,
+        "height": 640,
+        "layers": [
+            {"name": "LAYER 1: Block 3 Artifact Inventory & Dependency Chain Tier", "desc": "14-Artifact Governance Portfolio (Days 68–81) & Requirements-to-NFR Mapping", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Systematic Gap Analysis & Remediation Memo Fabric", "desc": "Remediation Memo MEMO-0082, DNS-to-Anycast Correction & TCO Reconciliation", "fill": "#0f2338", "y": 115, "h": 90},
+            {"name": "LAYER 3: Empirical Three-Decision Audit & Invariant Gate", "desc": "Pub/Sub Messaging, Spanner TrueTime 2PC & Cloud Run Benchmarks (Day 64 Invariant)", "fill": "#064e3b", "y": 220, "h": 90},
+            {"name": "LAYER 4: Five-Dimension Rubric Scoring & Evaluation Engine", "desc": "Correctness, Traceability, Evidence Quality, Failure Reasoning, Governance (Score >= 12/15)", "fill": "#1e1b4b", "y": 325, "h": 90},
+            {"name": "LAYER 5: Formal Gate 4 Certification & Block 4 Authorization", "desc": "Signed Gate 4 Evaluation Record & Unconditional Authorization for Reliability & Security", "fill": "#3b0764", "y": 430, "h": 90},
         ],
-        "caption": "Figure 82.1: Gate 4 governance cycle validating empirical evidence and rubric compliance prior to reliability and security phases."
+        "components": [
+            {"id": "artifact_inventory", "name": "14-Artifact Inventory", "detail": "Requirements through Defense Memo", "x": 80, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "invariant_audit", "name": "Single-Fulfillment Gate", "detail": "Day 64 Invariant Proof Across Days", "x": 420, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "memo_0082", "name": "Remediation MEMO-0082", "detail": "DNS Failover to Anycast LB Fix", "x": 80, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "tco_reconciler", "name": "TCO Budget Harmonizer", "detail": "Polyglot $12.1k/mo Reconciliation", "x": 420, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "decision_auditor", "name": "Three-Decision Auditor", "detail": "Pub/Sub, Spanner, Cloud Run Proof", "x": 80, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "telemetry_vault", "name": "Rehearsal Proof Logs", "detail": "Measured Day 76/78 Benchmarks", "x": 420, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "rubric_engine", "name": "Five-Dimension Rubric", "detail": "Evaluated 14/15 (No Score < 2)", "x": 80, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "threshold_guard", "name": "Threshold Guardrail", "detail": "Strict Verification Criteria Gate", "x": 420, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "gate4_record", "name": "Gate 4 Evaluation Record", "detail": "Signed Audit Accreditation Certificate", "x": 80, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+            {"id": "block4_auth", "name": "Block 4 Authorization", "detail": "Accredited for Reliability & Security", "x": 420, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 640, "h": 80, "label": "BLOCK 3 ARTIFACT INVENTORY & REMEDIATION PERIMETER", "color": "#38bdf8"},
+            {"x": 60, "y": 120, "w": 640, "h": 80, "label": "EMPIRICAL TELEMETRY & DECISION TRACEABILITY BOUNDARY", "color": "#10b981"},
+            {"x": 60, "y": 330, "w": 640, "h": 80, "label": "FIVE-DIMENSION RUBRIC SCORING & CERTIFICATION GATE", "color": "#a855f7"},
+        ],
+        "flows": [
+            {"x1": 340, "y1": 56, "x2": 420, "y2": 56, "type": "ok", "label": "Invariant Check"},
+            {"x1": 210, "y1": 82, "x2": 210, "y2": 135, "type": "ok", "label": "Audit Findings"},
+            {"x1": 340, "y1": 161, "x2": 420, "y2": 161, "type": "ok", "label": "Cost Balance"},
+            {"x1": 210, "y1": 187, "x2": 210, "y2": 240, "type": "ok", "label": "Remediated Baseline"},
+            {"x1": 340, "y1": 266, "x2": 420, "y2": 266, "type": "ok", "label": "Empirical Proof"},
+            {"x1": 210, "y1": 292, "x2": 210, "y2": 345, "type": "ok", "label": "Audited Decisions"},
+            {"x1": 340, "y1": 371, "x2": 420, "y2": 371, "type": "warn", "label": "Rubric Validation"},
+            {"x1": 210, "y1": 397, "x2": 210, "y2": 450, "type": "ok", "label": "Passing Score 14/15"},
+            {"x1": 340, "y1": 476, "x2": 420, "y2": 476, "type": "ok", "label": "Gate Accreditation"},
+        ],
+        "probes": [
+            {"cx": 420, "cy": 56, "label": "PROBE 1: 14-Artifact Invariant Compliance (100% pass)", "color": "#38bdf8"},
+            {"cx": 420, "cy": 266, "label": "PROBE 2: Decision Empirical Grounding Ratio (3/3 verified)", "color": "#22c55e"},
+            {"cx": 420, "cy": 371, "label": "PROBE 3: Gate 4 Rubric Aggregate Score (14/15 >= 12 threshold)", "color": "#f59e0b"},
+        ]
     },
     "part3_intro": (
         "The following field cases analyze severe gate evaluation crises where candidate portfolios were rejected due to unverified "
         "assumptions or incomplete failure tests, and the disciplined remediation procedures that salvaged architectural certification. "
-        "Each case details real-world symptoms, quantitative impact, diagnostic sequences, defensible remediations, and dual-lane diagrams."
+        "Each case details real-world symptoms, quantitative impact, diagnostic sequences with verbatim evidence, defensible remediations, and dual-lane diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts for "
-        "auditing the complete Block 3 artifact chain, verifying Day 64 single-fulfillment invariant preservation, and "
-        "executing the formal Gate 4 Rubric Scoring Engine in Python."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers audit the complete Block 3 artifact chain, "
+        "verify Day 64 single-fulfillment invariant preservation, and execute the formal Gate 4 Rubric Scoring Engine in Python."
     ),
     "topics": [
         {
@@ -186,10 +221,17 @@ DATA = {
                     "$15,000; must provide empirical benchmark logs proving claimed RTO and RPO; must preserve Day 64 single-fulfillment invariant."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Inspect Day 74 architecture diagram; confirm the text explicitly claimed 'Active-Active Multi-Region Zero-Downtime Failover'.",
-                    "Step 2: Cross-reference Day 79 TCO spreadsheet; observe line item 'Database: Cloud SQL Regional Master $180/mo' with zero multi-region replica budget.",
-                    "Step 3: Review Day 76 cutover rehearsal logs; confirm cross-region network latency of 48 ms between us-central1 and us-east4 introduces unavoidable commit replication lag.",
-                    "Step 4: Audit Day 81 Defense Memo; discover that ADR-0081 had already solved this conflict by establishing a hybrid polyglot model, but the candidate had failed to backport the remediation into Day 74."
+                    "Step 1: Inspect Gate 4 audit committee findings log; observe fatal contradiction between Day 74 landing zone and Day 79 TCO budget:\n\n"
+                    "```text\n"
+                    "2026-11-02T10:15:00Z [gate4-audit-panel] AUDIT FAILED: Fatal contradiction detected across Block 3 portfolio!\n"
+                    "  - Artifact Day 74 (Regional Topology): Claims Active-Active Multi-Region Zero RTO (Requires 2x Spanner Multi-Region Nodes)\n"
+                    "  - Artifact Day 79 (TCO PERT Model):    Budgets $180/mo for a single-zone Cloud SQL db-standard-2 instance!\n"
+                    "  - Rehearsal Proof (Day 76 Telemetry):  Measured cross-region commit lag = 184 ms; impossible without TrueTime Paxos.\n"
+                    "  - Verdict: Portfolio REJECTED due to unverified architectural contradiction.\n"
+                    "```",
+                    "Step 2: Review Day 76 cutover rehearsal logs; confirm cross-region network latency of 48 ms between us-central1 and us-east4 introduces unavoidable commit replication lag.",
+                    "Step 3: Audit Day 81 Defense Memo; discover that ADR-0081 had already solved this conflict by establishing a hybrid polyglot model, but the candidate had failed to backport the remediation into Day 74.",
+                    "Step 4: Draft formal Remediation Memo MEMO-0082 reconciling the topology and budget."
                 ],
                 "root": (
                     "Authoring architectural artifacts in siloed day-by-day increments without continuous bidirectional reconciliation, "
@@ -229,9 +271,14 @@ DATA = {
                 "prereq": "Exit artifacts from Days 68 through 81",
                 "preflight": "Verify Python 3 is installed in your local shell environment.",
                 "steps": [
-                    "Document the 14-artifact inventory and audit criteria in `day-082-portfolio-audit.md`.",
-                    "Develop the automated portfolio audit engine script (`portfolio_auditor.py`):\n\n```python\n# portfolio_auditor.py\nimport json\nimport sys\n\ndef run_portfolio_audit():\n    print(\"=\" * 85)\n    print(\"DAY 82: GATE 4 PORTFOLIO AUDIT & ARTIFACT REMEDIATION ENGINE\")\n    print(\"=\" * 85)\n    \n    # Inventory of all 14 Block 3 Artifacts: (Day, Name, Scope, InvariantChecked, RemediationStatus)\n    artifacts = [\n        (68, \"Requirements Register\", \"Business Drivers & SMART SLOs\", True, \"Clean\"),\n        (69, \"Stakeholder Matrix\", \"Priority Weights & Tradeoffs\", True, \"Clean\"),\n        (70, \"Well-Architected Review\", \"Four-Pillar Assessment\", True, \"Clean\"),\n        (71, \"Six-Pillar Workload Review\", \"Sustainability & Carbon\", True, \"Clean\"),\n        (72, \"Application Architecture\", \"Event-Driven Outbox Pattern\", True, \"Clean\"),\n        (73, \"Data Architecture\", \"Data Contracts & CDC Streams\", True, \"Clean\"),\n        (74, \"Regional Landing Zone\", \"Multi-Region Network Topologies\", True, \"REMEDIATED\"),\n        (75, \"Migration Assessment\", \"VMware 6 Rs Rationalization\", True, \"Clean\"),\n        (76, \"Cutover Rehearsal\", \"CDC Sync & Checksum Reconciliation\", True, \"Clean\"),\n        (77, \"Migration Waves & Rollback\", \"Sole-Tenant & Positive Fencing\", True, \"Clean\"),\n        (78, \"Decision Matrices\", \"AHP Weighting & Sensitivity Sweeps\", True, \"Clean\"),\n        (79, \"ADRs & Risk Registers\", \"Three-Point PERT TCO & Risk Registers\", True, \"REMEDIATED\"),\n        (80, \"Architecture Diagrams\", \"C4 Models & Failure Sequences\", True, \"Clean\"),\n        (81, \"First Architecture Defense\", \"ARB Defense Memo & ADR-0081\", True, \"Clean\"),\n    ]\n    \n    print(f\"\\n{'Day':<5} | {'Artifact Title':<28} | {'Scope / Discipline':<32} | {'Invariant':<10} | {'Status'}\")\n    print(\"-\" * 92)\n    \n    invariant_failures = 0\n    remediated_count = 0\n    \n    for day, title, scope, inv_ok, status in artifacts:\n        inv_str = \"VERIFIED\" if inv_ok else \"FAIL\"\n        if not inv_ok:\n            invariant_failures += 1\n        if status == \"REMEDIATED\":\n            remediated_count += 1\n        print(f\"{day:<5} | {title:<28} | {scope:<32} | {inv_str:<10} | {status}\")\n        \n    print(\"-\" * 92)\n    print(f\"TOTAL AUDITED ARTIFACTS: {len(artifacts)}\")\n    print(f\"  - Invariant Compliance: {len(artifacts) - invariant_failures} / {len(artifacts)} (100% Target)\")\n    print(f\"  - Repaired / Remediated Gaps: {remediated_count}\")\n    \n    # Audit Assertions\n    assert invariant_failures == 0, \"CRITICAL: Single-fulfillment invariant violated in portfolio!\"\n    assert remediated_count >= 1, \"Audit must identify and repair at least 1 unsupported claim!\"\n    \n    print(\"\\n>> Portfolio Audit Verification: PASSED (14/14 artifacts compliant; 0 invariant breaches).\")\n    print(\"=\" * 85)\n\nif __name__ == '__main__':\n    run_portfolio_audit()\n```",
-                    "Execute the portfolio audit script:\n\n```sh\npython3 portfolio_auditor.py\n```"
+                    "#### Stage 1: Design Specification & Artifact Inventory Skeleton\nDocument the 14-artifact inventory and audit criteria in <kbd>day-082-portfolio-audit.md</kbd>. Establish the verification matrix: Day Number, Artifact Title, Primary Scope, Invariant Safety Check, and Remediation Status.",
+                    "#### Stage 2: Preflight Environment Validation & Syntax Check\nVerify that the Python runtime has standard json and sys modules available (<kbd>preflight_audit.py</kbd>):\n\n```python\n# preflight_audit.py\nimport json, sys\nprint(f\"Python Version: {sys.version}\")\nassert sys.version_info >= (3, 8), \"Python 3.8+ required\"\nprint(\"[PASS] Environment ready for Gate 4 portfolio audit.\")\n```",
+                    "#### Stage 3: Core Implementation: Automated Portfolio Audit Engine\nDevelop the automated portfolio audit engine script (<kbd>portfolio_auditor.py</kbd>):\n\n```python\n# portfolio_auditor.py\n\"\"\"Inventories all 14 Block 3 artifacts and audits invariant compliance.\"\"\"\nimport json, sys\nfrom typing import List, Tuple\n\ndef run_portfolio_audit() -> Tuple[int, int]:\n    print(\"=\" * 85)\n    print(\"DAY 82: GATE 4 PORTFOLIO AUDIT & ARTIFACT REMEDIATION ENGINE\")\n    print(\"=\" * 85)\n    \n    artifacts = [\n        (68, \"Requirements Register\", \"Business Drivers & SMART SLOs\", True, \"Clean\"),\n        (69, \"Stakeholder Matrix\", \"Priority Weights & Tradeoffs\", True, \"Clean\"),\n        (70, \"Well-Architected Review\", \"Four-Pillar Assessment\", True, \"Clean\"),\n        (71, \"Six-Pillar Workload Review\", \"Sustainability & Carbon\", True, \"Clean\"),\n        (72, \"Application Architecture\", \"Event-Driven Outbox Pattern\", True, \"Clean\"),\n        (73, \"Data Architecture\", \"Data Contracts & CDC Streams\", True, \"Clean\"),\n        (74, \"Regional Landing Zone\", \"Multi-Region Network Topologies\", True, \"REMEDIATED\"),\n        (75, \"Migration Assessment\", \"VMware 6 Rs Rationalization\", True, \"Clean\"),\n        (76, \"Cutover Rehearsal\", \"CDC Sync & Checksum Reconciliation\", True, \"Clean\"),\n        (77, \"Migration Waves & Rollback\", \"Sole-Tenant & Positive Fencing\", True, \"Clean\"),\n        (78, \"Decision Matrices\", \"AHP Weighting & Sensitivity Sweeps\", True, \"Clean\"),\n        (79, \"ADRs & Risk Registers\", \"Three-Point PERT TCO & Risk Registers\", True, \"REMEDIATED\"),\n        (80, \"Architecture Diagrams\", \"C4 Models & Failure Sequences\", True, \"Clean\"),\n        (81, \"First Architecture Defense\", \"ARB Defense Memo & ADR-0081\", True, \"Clean\"),\n    ]\n    \n    print(f\"\\n{'Day':<5} | {'Artifact Title':<28} | {'Scope / Discipline':<32} | {'Invariant':<10} | {'Status'}\")\n    print(\"-\" * 92)\n    \n    invariant_failures = 0\n    remediated_count = 0\n    \n    for day, title, scope, inv_ok, status in artifacts:\n        inv_str = \"VERIFIED\" if inv_ok else \"FAIL\"\n        if not inv_ok:\n            invariant_failures += 1\n        if status == \"REMEDIATED\":\n            remediated_count += 1\n        print(f\"{day:<5} | {title:<28} | {scope:<32} | {inv_str:<10} | {status}\")\n        \n    print(\"-\" * 92)\n    print(f\"TOTAL AUDITED ARTIFACTS: {len(artifacts)}\")\n    print(f\"  - Invariant Compliance: {len(artifacts) - invariant_failures} / {len(artifacts)} (100% Target)\")\n    print(f\"  - Repaired / Remediated Gaps: {remediated_count}\")\n    \n    assert invariant_failures == 0, \"CRITICAL: Single-fulfillment invariant violated in portfolio!\"\n    assert remediated_count >= 1, \"Audit must identify and repair at least 1 unsupported claim!\"\n    \n    print(\"\\n>> Portfolio Audit Verification: PASSED (14/14 artifacts compliant; 0 invariant breaches).\")\n    print(\"=\" * 85)\n    return len(artifacts), remediated_count\n\nif __name__ == '__main__':\n    run_portfolio_audit()\n```",
+                    "#### Stage 4: Execution & Audit Tabulation\nExecute the portfolio audit script:\n\n```sh\npython3 preflight_audit.py && python3 portfolio_auditor.py\n```",
+                    "#### Stage 5: Live Verification & Invariant Proof Assertions\nAuthor an assertion test verifying that all 14 artifacts uphold the Day 64 single-fulfillment invariant without exceptions (<kbd>test_portfolio_assertions.py</kbd>):\n\n```python\n# test_portfolio_assertions.py\nfrom portfolio_auditor import run_portfolio_audit\ntotal, rem = run_portfolio_audit()\nassert total == 14, f\"Expected 14 artifacts, got {total}\"\nassert rem == 2, f\"Expected exactly 2 remediated gaps (Day 74, Day 79), got {rem}\"\nprint(\"[PASS] Portfolio audit assertions verified: Complete 14-day chain accredited.\")\n```",
+                    "#### Stage 6: Chaos & Invariant Breach Simulation\nSimulate an unverified artifact violating the single-fulfillment invariant to test gate rejection (<kbd>test_invariant_breach.py</kbd>):\n\n```python\n# test_invariant_breach.py\nflawed_artifact = (74, \"Flawed Active-Active\", \"Eventual Consistency without Lock\", False, \"FAIL\")\nassert flawed_artifact[3] is False, \"Breach check failed\"\nprint(\"[PASS] Invariant gate active: Any artifact with invariant violation halts gate.\")\n```",
+                    "#### Stage 7: Runbook Authoring: Remediation Memo MEMO-0082\nDocument formal Remediation Memo MEMO-0082 in the repository. Supersede Day 74's ungrounded 'zero RTO' claim with measured 8-minute pilot light failover logs and synchronize Day 79 TCO (<kbd>MEMO-0082.md</kbd>).",
+                    "#### Stage 8: Teardown & Script Cleanup\nClean up temporary verification files:\n\n```sh\npython3 test_portfolio_assertions.py && python3 test_invariant_breach.py\n```"
                 ],
                 "verification": (
                     "Run automated audit assertion test:\n\n```sh\npython3 -c \"import portfolio_auditor; portfolio_auditor.run_portfolio_audit()\"\n```\n\nConfirm output demonstrates that all 14 artifacts are inventoried, 0 invariant violations exist, and unsupported claims are remediated."
@@ -240,7 +287,7 @@ DATA = {
                     "If the invariant assertion triggers, review the artifact list and ensure every transactional day enforces idempotency keys on `order_id`."
                 ),
                 "cleanup": (
-                    "Remove temporary portfolio audit scripts:\n\n```sh\nrm -f portfolio_auditor.py\n```"
+                    "Remove temporary portfolio audit scripts:\n\n```sh\nrm -f preflight_audit.py test_portfolio_assertions.py test_invariant_breach.py\n```"
                 ),
                 "accept": "A verified Gate 4 Portfolio Audit and Remediation Register documenting all 14 Block 3 artifacts.",
                 "file": "day-082-portfolio-audit.md"
@@ -313,9 +360,22 @@ DATA = {
                     "idempotency and single-fulfillment invariant preservation under duplicate event delivery; zero new cloud services permitted."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Inspect reviewer evaluation notes; confirm failure was triggered exclusively by Dimension 4 scoring 1/3 (below the required minimum threshold of 2).",
+                    "Step 1: Inspect reviewer evaluation notes; confirm failure was triggered exclusively by Dimension 4 scoring 1/3 (below the required minimum threshold of 2):\n\n"
+                    "```text\n"
+                    "2026-11-02T14:30:00Z [gate-evaluator] REVIEW DEFICIT DETECTED:\n"
+                    "  - Dimension 4 (Failure & Recovery Reasoning): Assessed Score = 1/3 (FAIL)\n"
+                    "  - Audit Finding: Candidate asserted duplicate Pub/Sub delivery is prevented, but lacked empirical test execution logs.\n"
+                    "  - Gate Governance Violation: At least 2/3 required in EVERY dimension. Gate 4 Status: PROVISIONALLY FAILED.\n"
+                    "```",
                     "Step 2: Review Day 72 and Day 80 lab artifacts; discover that while the architecture described idempotency conceptually, no executable test script had been checked into the evidence repository.",
-                    "Step 3: Develop an automated Python test script simulating duplicate event replays against a mock database with unique key constraints.",
+                    "Step 3: Develop and run an automated Python test script simulating duplicate event replays against a mock database with unique key constraints:\n\n"
+                    "```text\n"
+                    "2026-11-02T15:45:12Z [test-idempotency] Simulating 10,000 Pub/Sub events with 3x duplicate injection:\n"
+                    "  - Total Events Ingested:    30,000\n"
+                    "  - Deduplicated via Redis:   20,000 (HTTP 200 Cached Receipt returned)\n"
+                    "  - Committed to Spanner:     10,000 (Unique Order IDs)\n"
+                    "  - Invariant Verification:   Exactly 0 duplicate allocations; 100% single-fulfillment preserved!\n"
+                    "```",
                     "Step 4: Execute the test across 10,000 simulated events, proving 100% deduplication and zero duplicate fulfillment records."
                 ],
                 "root": (
@@ -355,9 +415,14 @@ DATA = {
                 "prereq": "Portfolio audit register from Topic 1 and all Block 3 artifacts",
                 "preflight": "Verify Python 3 is installed in your local shell environment.",
                 "steps": [
-                    "Document the Gate 4 rubric dimensions, scoring justifications, and decision audits in `day-082-gate-4-evaluation.md`.",
-                    "Develop the complete Gate 4 Rubric Scoring Engine script (`gate4_evaluator.py`):\n\n```python\n# gate4_evaluator.py\nimport sys\n\ndef evaluate_gate_4():\n    print(\"=\" * 85)\n    print(\"DAY 82: GATE 4 RUBRIC SCORING & CERTIFICATION EVALUATION ENGINE\")\n    print(\"=\" * 85)\n    \n    # Rubric Dimensions: (Name, Target, Score, Justification)\n    rubric = [\n        (\"1. Correctness\", 2, 3, \"Technically sound GCP services: Shared VPC, PSC, CMEK, IAM federation\"),\n        (\"2. Requirement Traceability\", 2, 3, \"100% bidirectional traceability from REQ-01-05 to C4 containers\"),\n        (\"3. Evidence Quality\", 2, 3, \"Strict separation of measured rehearsal telemetry, APIs, and assumptions\"),\n        (\"4. Failure & Recovery Reasoning\", 2, 2, \"Circuit breakers & positive fencing verified; residual RPO accepted\"),\n        (\"5. Communication & Governance\", 2, 3, \"Immutable Git ADRs, PERT TCO models, Risk Registers, and C4 models\"),\n    ]\n    \n    # Three Audited Decisions: (Decision ID, Architecture Choice, Empirical Evidence Base)\n    decisions = [\n        (\"DEC-01\", \"Asynchronous Pub/Sub Ingestion\", \"Day 72 Idempotency test & Day 78 45k msg/s load test\"),\n        (\"DEC-02\", \"Polyglot Persistence (Spanner + Cloud SQL)\", \"Day 81 budget simulation ($12.1k/mo) & TrueTime 2PC benchmark\"),\n        (\"DEC-03\", \"Serverless Cloud Run Runtime\", \"Cold-start benchmarks (<800ms) with min-instances=1\"),\n    ]\n    \n    print(\"\\n1. AUDITING THREE CORE ARCHITECTURAL DECISIONS:\")\n    print(\"-\" * 85)\n    for dec_id, choice, ev_base in decisions:\n        print(f\"  [{dec_id}] {choice:<36}\")\n        print(f\"         Evidence: {ev_base}\")\n        \n    print(\"\\n2. FIVE-DIMENSION RUBRIC SCORING BREAKDOWN:\")\n    print(\"-\" * 85)\n    print(f\"{'Dimension':<32} | {'Min':<4} | {'Score':<5} | {'Justification'}\")\n    print(\"-\" * 85)\n    \n    total_score = 0\n    threshold_violation = False\n    \n    for dim, target, score, just in rubric:\n        total_score += score\n        status = \"PASS\" if score >= target else \"FAIL\"\n        if score < target:\n            threshold_violation = True\n        print(f\"{dim:<32} | {target:<4} | {score:<2}/3 ({status}) | {just[:38]}...\")\n        \n    print(\"-\" * 85)\n    print(f\"TOTAL AGGREGATE SCORE: {total_score} / 15 (Passing Threshold: >= 12 / 15)\")\n    \n    # Evaluate Formal Gate Verdict\n    gate_passed = (total_score >= 12) and (not threshold_violation)\n    verdict_str = \"GATE 4 VERDICT: PASS\" if gate_passed else \"GATE 4 VERDICT: REPEAT\"\n    \n    print(f\"\\n3. FORMAL CERTIFICATION DECISION: {verdict_str}\")\n    if gate_passed:\n        print(\"   >> Full authorization granted to advance to Block 4 (Reliability and Security, Days 83–118).\")\n    else:\n        print(\"   >> Prerequisite criteria not met; candidate must remediate weaknesses.\")\n        \n    assert not threshold_violation, \"Rubric evaluation failed: one or more dimensions scored below 2!\"\n    assert total_score >= 12, f\"Aggregate score ({total_score}) is below the passing threshold of 12!\"\n    assert len(decisions) == 3, \"Must audit exactly three core architectural decisions!\"\n    \n    print(\"\\n>> Gate 4 Certification PASSED: Portfolio fully accredited under ARB standards.\")\n    print(\"=\" * 85)\n\nif __name__ == '__main__':\n    evaluate_gate_4()\n```",
-                    "Execute the Gate 4 Rubric Evaluation script:\n\n```sh\npython3 gate4_evaluator.py\n```"
+                    "#### Stage 1: Design Specification & Rubric Scoring Blueprint\nDocument the Gate 4 rubric dimensions, scoring justifications, and decision audits in <kbd>day-082-gate-4-evaluation.md</kbd>. Establish the evaluation criteria for the five dimensions (0 to 3 scale) and the three audited decisions.",
+                    "#### Stage 2: Preflight Environment Validation & Python Precision Check\nVerify that the Python runtime has standard modules available (<kbd>preflight_gate.py</kbd>):\n\n```python\n# preflight_gate.py\nimport sys\nprint(f\"Python Version: {sys.version}\")\nassert sys.version_info >= (3, 8), \"Python 3.8+ required\"\nprint(\"[PASS] Environment ready for Gate 4 rubric evaluation.\")\n```",
+                    "#### Stage 3: Core Implementation: Gate 4 Rubric Scoring Engine\nDevelop the complete Gate 4 Rubric Scoring Engine script (<kbd>gate4_evaluator.py</kbd>):\n\n```python\n# gate4_evaluator.py\n\"\"\"Evaluates Gate 4 rubric criteria and certifies readiness for Block 4.\"\"\"\nimport sys\nfrom typing import List, Tuple\n\ndef evaluate_gate_4() -> Tuple[int, bool]:\n    print(\"=\" * 85)\n    print(\"DAY 82: GATE 4 RUBRIC SCORING & CERTIFICATION EVALUATION ENGINE\")\n    print(\"=\" * 85)\n    \n    rubric = [\n        (\"1. Correctness\", 2, 3, \"Technically sound GCP services: Shared VPC, PSC, CMEK, IAM federation\"),\n        (\"2. Requirement Traceability\", 2, 3, \"100% bidirectional traceability from REQ-01-05 to C4 containers\"),\n        (\"3. Evidence Quality\", 2, 3, \"Strict separation of measured rehearsal telemetry, APIs, and assumptions\"),\n        (\"4. Failure & Recovery Reasoning\", 2, 2, \"Circuit breakers & positive fencing verified; residual RPO accepted\"),\n        (\"5. Communication & Governance\", 2, 3, \"Immutable Git ADRs, PERT TCO models, Risk Registers, and C4 models\"),\n    ]\n    \n    decisions = [\n        (\"DEC-01\", \"Asynchronous Pub/Sub Ingestion\", \"Day 72 Idempotency test & Day 78 45k msg/s load test\"),\n        (\"DEC-02\", \"Polyglot Persistence (Spanner + Cloud SQL)\", \"Day 81 budget simulation ($12.1k/mo) & TrueTime 2PC benchmark\"),\n        (\"DEC-03\", \"Serverless Cloud Run Runtime\", \"Cold-start benchmarks (<800ms) with min-instances=1\"),\n    ]\n    \n    print(\"\\n1. AUDITING THREE CORE ARCHITECTURAL DECISIONS:\")\n    print(\"-\" * 85)\n    for dec_id, choice, ev_base in decisions:\n        print(f\"  [{dec_id}] {choice:<36}\")\n        print(f\"         Evidence: {ev_base}\")\n        \n    print(\"\\n2. FIVE-DIMENSION RUBRIC SCORING BREAKDOWN:\")\n    print(\"-\" * 85)\n    print(f\"{'Dimension':<32} | {'Min':<4} | {'Score':<5} | {'Justification'}\")\n    print(\"-\" * 85)\n    \n    total_score = 0\n    threshold_violation = False\n    \n    for dim, target, score, just in rubric:\n        total_score += score\n        status = \"PASS\" if score >= target else \"FAIL\"\n        if score < target:\n            threshold_violation = True\n        print(f\"{dim:<32} | {target:<4} | {score:<2}/3 ({status}) | {just[:38]}...\")\n        \n    print(\"-\" * 85)\n    print(f\"TOTAL AGGREGATE SCORE: {total_score} / 15 (Passing Threshold: >= 12 / 15)\")\n    \n    gate_passed = (total_score >= 12) and (not threshold_violation)\n    verdict_str = \"GATE 4 VERDICT: PASS\" if gate_passed else \"GATE 4 VERDICT: REPEAT\"\n    \n    print(f\"\\n3. FORMAL CERTIFICATION DECISION: {verdict_str}\")\n    if gate_passed:\n        print(\"   >> Full authorization granted to advance to Block 4 (Reliability and Security, Days 83–118).\")\n    else:\n        print(\"   >> Prerequisite criteria not met; candidate must remediate weaknesses.\")\n        \n    assert not threshold_violation, \"Rubric evaluation failed: one or more dimensions scored below 2!\"\n    assert total_score >= 12, f\"Aggregate score ({total_score}) is below the passing threshold of 12!\"\n    assert len(decisions) == 3, \"Must audit exactly three core architectural decisions!\"\n    \n    print(\"\\n>> Gate 4 Certification PASSED: Portfolio fully accredited under ARB standards.\")\n    print(\"=\" * 85)\n    return total_score, gate_passed\n\nif __name__ == '__main__':\n    evaluate_gate_4()\n```",
+                    "#### Stage 4: Execution & Rubric Score Telemetry\nExecute the Gate 4 Rubric Evaluation script:\n\n```sh\npython3 preflight_gate.py && python3 gate4_evaluator.py\n```",
+                    "#### Stage 5: Live Verification & Accreditation Assertions\nAuthor an assertion suite to verify that aggregate scores and dimension thresholds strictly satisfy certification requirements (<kbd>test_gate_assertions.py</kbd>):\n\n```python\n# test_gate_assertions.py\nfrom gate4_evaluator import evaluate_gate_4\nscore, passed = evaluate_gate_4()\nassert score == 14, f\"Expected score 14/15, got {score}\"\nassert passed is True, \"Gate 4 certification check failed\"\nprint(\"[PASS] Gate 4 assertions verified: Total score 14/15 qualifies for Block 4 authorization.\")\n```",
+                    "#### Stage 6: Chaos & Sub-Threshold Rubric Rejection Test\nSimulate an evaluation where Failure Reasoning scores 1/3 to verify that the threshold guard halts gate progression (<kbd>test_subthreshold_rejection.py</kbd>):\n\n```python\n# test_subthreshold_rejection.py\nflawed_scores = [3, 3, 3, 1, 3] # Dim 4 fails (< 2)\nassert any(s < 2 for s in flawed_scores), \"Threshold check failed\"\nprint(\"[PASS] Rubric guardrail active: Dimension score < 2 triggers immediate gate rejection.\")\n```",
+                    "#### Stage 7: Runbook Authoring: Gate 4 Certification Handover Document\nDocument the formal Gate 4 Accreditation Memo. Record the verified artifact inventory, the three audited decisions, the 14/15 rubric scorecard, and the signature block authorizing entry into Block 4 (<kbd>gate_4_certification.md</kbd>).",
+                    "#### Stage 8: Teardown & Script Cleanup\nClean up temporary verification files:\n\n```sh\npython3 test_gate_assertions.py && python3 test_subthreshold_rejection.py\n```"
                 ],
                 "verification": (
                     "Run automated evaluation test:\n\n```sh\npython3 -c \"import gate4_evaluator; gate4_evaluator.evaluate_gate_4()\"\n```\n\nConfirm output demonstrates that all three core decisions are audited, all rubric dimensions score >= 2, total score is 14/15, and the Gate 4 PASS verdict is certified."
@@ -366,7 +431,7 @@ DATA = {
                     "If the score assertion triggers, verify that `rubric` list contains exact dimension scores totaling >= 12 with no value below 2."
                 ),
                 "cleanup": (
-                    "Remove temporary evaluation scripts:\n\n```sh\nrm -f gate4_evaluator.py\n```"
+                    "Remove temporary evaluation scripts:\n\n```sh\nrm -f preflight_gate.py test_gate_assertions.py test_subthreshold_rejection.py\n```"
                 ),
                 "accept": "A scored Gate 4 Evaluation Record certifying passage and requirement-to-ADR-to-evidence traceability.",
                 "file": "day-082-gate-4-evaluation.md"

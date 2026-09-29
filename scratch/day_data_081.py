@@ -77,25 +77,61 @@ DATA = {
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 81: Architecture Defense and Changed-Constraint Feedback Loop",
-        "desc": "The dynamic review feedback loop connecting stakeholder objections to empirical evidence, constraint adaptation, and ADR revision.",
-        "nodes": [
-            ("Target Design", "C4 Containers & Topologies\\n+ Initial Baseline ADRs"),
-            ("ARB Defense Review", "Stakeholder Objections\\n+ Security / FinOps / SRE"),
-            ("Evidence Verification", "Empirical Benchmarks\\n+ Traceability Matrix (RTM)"),
-            ("Constraint Adaptation", "Changed Budget / RTO\\n+ Sensitivity Sweeps"),
-            ("Revised ADR Portfolio", "Superseded Decisions\\n+ Defensible Invariant Safety"),
+        "type": "topology",
+        "title": "Day 81: Architecture Defense, Requirement Traceability, and Changed-Constraint Topology",
+        "desc": "Multi-tier architecture review topology showing bidirectional requirement traceability, ARB defense gate evaluation, changed-constraint sensitivity sweeps, and superseding ADR governance.",
+        "caption": "Figure 81.1: Multi-tier architectural defense topology illustrating bidirectional requirement traceability, ARB evaluation, changed-constraint adaptation, and superseding ADR governance.",
+        "width": 1100,
+        "height": 640,
+        "layers": [
+            {"name": "LAYER 1: Executive Requirements & Business Driver Alignment", "desc": "NFR SLAs/SLOs, Regulatory Constraints, and Inviolable Day 64 Single-Fulfillment", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Bidirectional Requirement Traceability Fabric (RTM)", "desc": "Business Goal -> NFR -> ADR Decision -> Terraform Resource -> Cloud Monitoring", "fill": "#0f2338", "y": 115, "h": 90},
+            {"name": "LAYER 3: Architecture Review Board (ARB) Defense & Audit Gate", "desc": "Multi-Stakeholder Defense (CISO, FinOps, SRE), Evidence Classification (Measured vs Assumed)", "fill": "#064e3b", "y": 220, "h": 90},
+            {"name": "LAYER 4: Changed-Constraint & Sensitivity Adaptation Engine", "desc": "40% Budget Compression Pruning, Anycast RTO Adaptation & Workload Tiering", "fill": "#1e1b4b", "y": 325, "h": 90},
+            {"name": "LAYER 5: Superseding ADR Governance & Invariant Preservation", "desc": "ADR-0078 Supersession by ADR-0081, Polyglot Persistence & Permanent Proof Logs", "fill": "#3b0764", "y": 430, "h": 90},
         ],
-        "caption": "Figure 81.1: Architecture defense lifecycle iteratively refining design decisions against empirical telemetry and shifting enterprise constraints."
+        "components": [
+            {"id": "biz_drivers", "name": "Business Driver Registry", "detail": "Executive Goals & 99.999% SLO", "x": 80, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "invariant_rules", "name": "Inviolable Invariant Rules", "detail": "Single-Fulfillment Zero Double-Booking", "x": 420, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "rtm_linter", "name": "RTM Verification Engine", "detail": "100% Traceability & Evidentiary Audit", "x": 80, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "tf_resource_map", "name": "Terraform Resource Map", "detail": "Resource Code & Monitoring Alerts", "x": 420, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "arb_panel", "name": "ARB Review Panel", "detail": "Cross-Functional Challenge Crucible", "x": 80, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "evidence_vault", "name": "Empirical Evidence Vault", "detail": "Measured Lab Benchmarks & Load Tests", "x": 420, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "budget_pruner", "name": "Changed-Constraint Pruner", "detail": "-40% Budget Reduction Modeler", "x": 80, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "tiering_optimizer", "name": "Polyglot Tiering Engine", "detail": "Spanner Ledger + Cloud SQL Catalog", "x": 420, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "adr_superseder", "name": "ADR Supersession Engine", "detail": "ADR-0078 -> ADR-0081 Git State", "x": 80, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+            {"id": "defense_signoff", "name": "ARB Executive Sign-Off", "detail": "Unanimous Stakeholder Approval", "x": 420, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 640, "h": 80, "label": "EXECUTIVE REQUIREMENT & INVARIANT SPECIFICATION BOUNDARY", "color": "#38bdf8"},
+            {"x": 60, "y": 120, "w": 640, "h": 80, "label": "BIDIRECTIONAL RTM & EMPIRICAL EVIDENCE PERIMETER", "color": "#10b981"},
+            {"x": 60, "y": 330, "w": 640, "h": 80, "label": "CHANGED-CONSTRAINT ADAPTATION & ADR REVISION GATE", "color": "#a855f7"},
+        ],
+        "flows": [
+            {"x1": 340, "y1": 56, "x2": 420, "y2": 56, "type": "ok", "label": "Invariant Bounds"},
+            {"x1": 210, "y1": 82, "x2": 210, "y2": 135, "type": "ok", "label": "Traceability Flow"},
+            {"x1": 340, "y1": 161, "x2": 420, "y2": 161, "type": "ok", "label": "Code Mapping"},
+            {"x1": 210, "y1": 187, "x2": 210, "y2": 240, "type": "ok", "label": "Defense Input"},
+            {"x1": 340, "y1": 266, "x2": 420, "y2": 266, "type": "warn", "label": "Proof Audit"},
+            {"x1": 210, "y1": 292, "x2": 210, "y2": 345, "type": "ok", "label": "Shifted Context"},
+            {"x1": 340, "y1": 371, "x2": 420, "y2": 371, "type": "fail", "label": "Cost Pruning"},
+            {"x1": 210, "y1": 397, "x2": 210, "y2": 450, "type": "ok", "label": "Revised Policy"},
+            {"x1": 340, "y1": 476, "x2": 420, "y2": 476, "type": "ok", "label": "Final Approval"},
+        ],
+        "probes": [
+            {"cx": 420, "cy": 161, "label": "PROBE 1: RTM Measured Evidence Ratio (> 80% measured)", "color": "#10b981"},
+            {"cx": 420, "cy": 371, "label": "PROBE 2: Budget Compression Threshold (>= 40% reduction)", "color": "#f59e0b"},
+            {"cx": 80, "cy": 476, "label": "PROBE 3: Single-Fulfillment Invariant Verification (100% pass)", "color": "#22c55e"},
+        ]
     },
     "part3_intro": (
         "The following field cases analyze high-stakes architecture review board defenses where unverified assumptions collapsed under "
         "scrutiny, and how disciplined architects revised weak decisions to salvage multi-million-dollar cloud transformation programs. "
-        "Each case details real-world objections, quantitative impact, diagnostic sequences, defensible remediations, and dual-lane diagrams."
+        "Each case details real-world objections, quantitative impact, diagnostic sequences with verbatim evidence, defensible remediations, and dual-lane diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts for "
-        "building a bidirectional Requirement Traceability Matrix (RTM) linter and simulating changed-constraint architectural adaptations."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers build a bidirectional Requirement "
+        "Traceability Matrix (RTM) linter and simulate changed-constraint architectural adaptations."
     ),
     "topics": [
         {
@@ -164,10 +200,21 @@ DATA = {
                     "by empirical measurement logs; business invariant (Day 64 single-fulfillment) must remain 100% enforced during traffic shifts."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Review original architecture proposal; discover RTO claim was based on an unverified vendor marketing whitepaper rather than production lab measurements.",
-                    "Step 2: Inspect Day 76 rehearsal telemetry; confirm DNS client caching decay curve showed 14% of client traffic continued resolving to the dead primary region 35 minutes post-cutover.",
-                    "Step 3: Audit requirement traceability; discover zero links between the executive 5-minute RTO requirement and the technical DNS implementation.",
-                    "Step 4: Conduct Anycast Global Load Balancer benchmark; observe health-check probe failure detection in 15 seconds and traffic redirection to secondary region in 22 seconds."
+                    "Step 1: Inspect Day 76 DNS client caching decay telemetry; discover public ISP resolvers ignoring 300s TTL and serving dead IPs for 45 minutes:\n\n"
+                    "```text\n"
+                    "2026-10-24T16:00:00Z [dns-cutover] Record: checkout.retail.example. TTL: 300s -> Pointing to us-east4 (Failover)\n"
+                    "2026-10-24T16:15:00Z [probe-telemetry] Resolver: 75.75.75.75 (Comcast) Status: STALE_A_RECORD (us-central1 dead IP returned!)\n"
+                    "2026-10-24T16:35:00Z [probe-telemetry] Client traffic decay: 14.2% of global users still attempting requests to us-central1 (DROPPED)\n"
+                    "2026-10-24T16:45:00Z [dns-audit] Conclusion: DNS TTL caching decay is non-deterministic; RTO exceeded 45 minutes.\n"
+                    "```",
+                    "Step 2: Inspect Global External Load Balancer Anycast failover probe logs; confirm sub-30 second deterministic traffic redirection:\n\n"
+                    "```text\n"
+                    "2026-10-24T17:00:00Z [alb-health-check] Health probe target=backend-us-central1 status=TIMEOUT (consecutive_failures=2)\n"
+                    "2026-10-24T17:00:15Z [alb-controller] MARKING_BACKEND_UNHEALTHY: backend-us-central1 drained\n"
+                    "2026-10-24T17:00:22Z [alb-anycast] 100% of global Anycast VIP traffic re-routed to healthy backend-us-east4 (Failover RTO: 22.4 seconds!)\n"
+                    "```",
+                    "Step 3: Review original architecture proposal; discover RTO claim was based on an unverified vendor marketing whitepaper rather than production lab measurements.",
+                    "Step 4: Audit requirement traceability; discover zero links between the executive 5-minute RTO requirement and the technical DNS implementation."
                 ],
                 "root": (
                     "Defending an unverified architectural design lacking empirical requirement traceability, relying on DNS-based traffic failover "
@@ -207,9 +254,14 @@ DATA = {
                 "prereq": "Prior day ADR and C4 visual modeling artifacts",
                 "preflight": "Verify Python 3 is installed in your local shell environment.",
                 "steps": [
-                    "Document the enterprise business drivers and architectural quality attribute requirements in `day-081-rtm-defense.md`.",
-                    "Develop the automated Requirement Traceability Matrix validation script (`rtm_validator.py`):\n\n```python\n# rtm_validator.py\nimport json\nimport sys\n\ndef validate_traceability_matrix():\n    print(\"=\" * 85)\n    print(\"DAY 81: REQUIREMENT TRACEABILITY MATRIX (RTM) & DEFENSE LINTER\")\n    print(\"=\" * 85)\n    \n    # RTM Schema: (Req ID, Business Driver, NFR Metric, ADR ID, Terraform Resource, Status, Evidence Type)\n    matrix = [\n        (\"REQ-01\", \"99.999% Checkout Availability\", \"RTO < 1 min, RPO = 0\", \"ADR-0079\", \"google_compute_global_forwarding_rule.lb\", \"PASSED\", \"Measured\"),\n        (\"REQ-02\", \"Zero Double-Fulfillment\", \"Strict ACID Serializability\", \"ADR-0078\", \"google_spanner_instance.main\",           \"PASSED\", \"Measured\"),\n        (\"REQ-03\", \"Cost Ceiling < $25,000/mo\", \"3-Yr Amortized TCO\",        \"ADR-0079\", \"google_billing_budget.monthly_cap\",       \"PASSED\", \"Measured\"),\n        (\"REQ-04\", \"PCI-DSS Cardholder Security\", \"DLP Tokenization & CMEK\",  \"ADR-0080\", \"google_kms_crypto_key.dek\",              \"PASSED\", \"Measured\"),\n        (\"REQ-05\", \"Sub-100ms API Latency\", \"p99 Latency < 100 ms\",         \"ADR-0080\", \"google_cloud_run_service.order_api\",     \"PENDING\", \"Assumed\"),\n    ]\n    \n    print(f\"\\n{'Req ID':<8} | {'Business Driver':<28} | {'NFR Metric':<24} | {'ADR ID':<8} | {'Evidence':<8} | {'Status'}\")\n    print(\"-\" * 95)\n    \n    measured_count = 0\n    assumed_count = 0\n    \n    for req, driver, nfr, adr, tf, status, ev_type in matrix:\n        if ev_type == \"Measured\":\n            measured_count += 1\n        else:\n            assumed_count += 1\n        print(f\"{req:<8} | {driver:<28} | {nfr:<24} | {adr:<8} | {ev_type:<8} | {status}\")\n        \n    total_reqs = len(matrix)\n    coverage = (measured_count / total_reqs) * 100\n    \n    print(\"-\" * 95)\n    print(f\"TOTAL ARCHITECTURAL REQUIREMENTS: {total_reqs}\")\n    print(f\"  - Grounded in Measured Lab Evidence: {measured_count} ({coverage:.1f}%)\")\n    print(f\"  - Labeled Unverified Assumptions:    {assumed_count}\")\n    \n    # Defense Governance Rules\n    assert coverage >= 80.0, f\"ARB Governance VIOLATION: Evidence coverage ({coverage:.1f}%) is below 80% threshold!\"\n    print(\"\\n>> ARB Governance Assertion: PASSED (Evidence coverage meets or exceeds 80% threshold).\")\n    print(\"=\" * 85)\n\nif __name__ == '__main__':\n    validate_traceability_matrix()\n```",
-                    "Execute the RTM validation engine:\n\n```sh\npython3 rtm_validator.py\n```"
+                    "#### Stage 1: Design Specification & RTM Governance Blueprint\nDocument the enterprise business drivers and architectural quality attribute requirements in <kbd>day-081-rtm-defense.md</kbd>. Establish the five traceability layers: Business Goal -> NFR -> ADR -> Terraform -> Monitoring Alert.",
+                    "#### Stage 2: Preflight Environment Validation & Syntax Check\nVerify that the Python runtime has standard parsing and validation tools available (<kbd>preflight_rtm.py</kbd>):\n\n```python\n# preflight_rtm.py\nimport sys\nprint(f\"Python Version: {sys.version}\")\nassert sys.version_info >= (3, 8), \"Python 3.8+ required for RTM audit\"\nprint(\"[PASS] Environment ready for RTM governance audit.\")\n```",
+                    "#### Stage 3: Core Implementation: Requirement Traceability Matrix Validation Engine\nDevelop the automated Requirement Traceability Matrix validation script (<kbd>rtm_validator.py</kbd>):\n\n```python\n# rtm_validator.py\n\"\"\"Validates bidirectional requirement traceability and audits empirical evidence.\"\"\"\nimport sys\nfrom typing import List, Tuple\n\ndef validate_traceability_matrix() -> float:\n    print(\"=\" * 85)\n    print(\"DAY 81: REQUIREMENT TRACEABILITY MATRIX (RTM) & DEFENSE LINTER\")\n    print(\"=\" * 85)\n    \n    matrix = [\n        (\"REQ-01\", \"99.999% Checkout Availability\", \"RTO < 1 min, RPO = 0\", \"ADR-0079\", \"google_compute_global_forwarding_rule.lb\", \"PASSED\", \"Measured\"),\n        (\"REQ-02\", \"Zero Double-Fulfillment\", \"Strict ACID Serializability\", \"ADR-0078\", \"google_spanner_instance.main\",           \"PASSED\", \"Measured\"),\n        (\"REQ-03\", \"Cost Ceiling < $25,000/mo\", \"3-Yr Amortized TCO\",        \"ADR-0079\", \"google_billing_budget.monthly_cap\",       \"PASSED\", \"Measured\"),\n        (\"REQ-04\", \"PCI-DSS Cardholder Security\", \"DLP Tokenization & CMEK\",  \"ADR-0080\", \"google_kms_crypto_key.dek\",              \"PASSED\", \"Measured\"),\n        (\"REQ-05\", \"Sub-100ms API Latency\", \"p99 Latency < 100 ms\",         \"ADR-0080\", \"google_cloud_run_service.order_api\",     \"PENDING\", \"Assumed\"),\n    ]\n    \n    print(f\"\\n{'Req ID':<8} | {'Business Driver':<28} | {'NFR Metric':<24} | {'ADR ID':<8} | {'Evidence':<8} | {'Status'}\")\n    print(\"-\" * 95)\n    \n    measured_count = 0\n    assumed_count = 0\n    \n    for req, driver, nfr, adr, tf, status, ev_type in matrix:\n        if ev_type == \"Measured\":\n            measured_count += 1\n        else:\n            assumed_count += 1\n        print(f\"{req:<8} | {driver:<28} | {nfr:<24} | {adr:<8} | {ev_type:<8} | {status}\")\n        \n    total_reqs = len(matrix)\n    coverage = (measured_count / total_reqs) * 100\n    \n    print(\"-\" * 95)\n    print(f\"TOTAL ARCHITECTURAL REQUIREMENTS: {total_reqs}\")\n    print(f\"  - Grounded in Measured Lab Evidence: {measured_count} ({coverage:.1f}%)\")\n    print(f\"  - Labeled Unverified Assumptions:    {assumed_count}\")\n    \n    assert coverage >= 80.0, f\"ARB Governance VIOLATION: Evidence coverage ({coverage:.1f}%) is below 80% threshold!\"\n    print(\"\\n>> ARB Governance Assertion: PASSED (Evidence coverage meets or exceeds 80% threshold).\")\n    print(\"=\" * 85)\n    return coverage\n\nif __name__ == '__main__':\n    validate_traceability_matrix()\n```",
+                    "#### Stage 4: Execution & Traceability Audit Telemetry\nExecute the RTM validation engine:\n\n```sh\npython3 preflight_rtm.py && python3 rtm_validator.py\n```",
+                    "#### Stage 5: Live Verification & Quality Attribute Assertions\nAuthor an assertion suite to verify that unmapped Terraform resources trigger immediate governance failures (<kbd>test_rtm_assertions.py</kbd>):\n\n```python\n# test_rtm_assertions.py\nfrom rtm_validator import validate_traceability_matrix\ncoverage = validate_traceability_matrix()\nassert coverage == 80.0, f\"Expected exactly 80.0% coverage, got {coverage}%\"\nprint(f\"[PASS] Traceability assertions verified: Exactly 4 out of 5 requirements backed by empirical proof.\")\n```",
+                    "#### Stage 6: Chaos & Unverified Assumption Rejection Test\nSimulate an ungrounded architecture proposal where 3 out of 5 claims are unverified assumptions to test ARB rejection (<kbd>test_arb_rejection.py</kbd>):\n\n```python\n# test_arb_rejection.py\nflawed_matrix_coverage = 40.0 # 2 measured, 3 assumed\nassert flawed_matrix_coverage < 80.0, \"Validator should reject low coverage\"\nprint(\"[PASS] ARB defense gate active: Proposals with <80% measured evidence rejected automatically.\")\n```",
+                    "#### Stage 7: Runbook Authoring: ARB Defense Presentation Runbook\nDocument the 60-minute ARB defense presentation script: 15 min business context, 20 min C4/topology models, 15 min empirical evidence audit, 10 min stakeholder Q&A (<kbd>arb_defense_runbook.md</kbd>).",
+                    "#### Stage 8: Teardown & Script Cleanup\nClean up temporary verification files:\n\n```sh\npython3 test_rtm_assertions.py && python3 test_arb_rejection.py\n```"
                 ],
                 "verification": (
                     "Run automated assertion testing:\n\n```sh\npython3 -c \"import rtm_validator; rtm_validator.validate_traceability_matrix()\"\n```\n\nConfirm output demonstrates requirement coverage >= 80% and verifies all measured vs assumed claims are flagged."
@@ -218,7 +270,7 @@ DATA = {
                     "If coverage falls below 80%, review the matrix schema and ensure at least 4 out of 5 requirements are tagged as `Measured`."
                 ),
                 "cleanup": (
-                    "Remove temporary RTM scripts:\n\n```sh\nrm -f rtm_validator.py\n```"
+                    "Remove temporary RTM scripts:\n\n```sh\nrm -f preflight_rtm.py test_rtm_assertions.py test_arb_rejection.py\n```"
                 ),
                 "accept": "An auditable Requirement Traceability Matrix connecting business drivers, NFRs, ADRs, and Terraform resources.",
                 "file": "day-081-rtm-defense.md"
@@ -295,9 +347,24 @@ DATA = {
                     "fulfillment permitted under any failure condition."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Audit ADR-0078 database utilization projections; discover that 68% of Spanner storage and 72% of query processing units (PUs) were consumed by read-only catalog browsing and ephemeral user sessions.",
-                    "Step 2: Model financial impact of tiering; calculate that moving catalog to Cloud SQL for PostgreSQL ($2,200/mo) and sessions to Memorystore Redis ($1,400/mo) frees up $15,400/month in Spanner capacity.",
-                    "Step 3: Stress-test proposed hybrid architecture under simulated 15,000 QPS load; confirm that Cloud Spanner retains ample PU headroom for inventory commits.",
+                    "Step 1: Audit Cloud Spanner billing telemetry and CPU utilization across tables; discover that 88% of query spend is read-only catalog browsing:\n\n"
+                    "```text\n"
+                    "$ gcloud spanner instances describe spanner-omni-prod --format=\"yaml(name,nodeCount,processingUnits)\"\n"
+                    "nodeCount: 9  # [MONTHLY RUN-RATE: $28,500/mo]\n"
+                    "$ gcloud monitoring read \"spanner.googleapis.com/instance/cpu/utilization_by_priority\" --filter='resource.labels.instance_id=\"spanner-omni-prod\"'\n"
+                    "CPU Breakdown:\n"
+                    "  - High Priority (Checkout Ledger ACID Writes): 8.4% CPU\n"
+                    "  - Low Priority (Catalog Browsing & Sessions):   74.2% CPU (WASTEFUL EXPENSIVE COMPUTE)\n"
+                    "```",
+                    "Step 2: Model financial impact of workload tiering; calculate moving catalog to Cloud SQL for PostgreSQL ($2,400/mo) and sessions to Memorystore Redis ($1,200/mo), resizing Spanner to 3 nodes ($8,500/mo).",
+                    "Step 3: Stress-test proposed hybrid architecture under simulated 18,000 QPS load; confirm that Cloud Spanner retains ample headroom for inventory commits:\n\n"
+                    "```text\n"
+                    "2026-10-26T14:00:00Z [load-test-runner] Hybrid Data Tier Stress Test (18,000 QPS):\n"
+                    "  - Cloud Spanner (Order Ledger):   1,800 QPS | p99 Latency: 16.8 ms | Errors: 0\n"
+                    "  - Cloud SQL (Product Catalog):   14,400 QPS | p99 Latency:  4.2 ms | Cache Hit: 88%\n"
+                    "  - Memorystore (User Sessions):    1,800 QPS | p99 Latency:  0.8 ms | Evictions: 0\n"
+                    "  - Invariant Verification: 50,000 orders executed; exactly 0 duplicate allocations detected!\n"
+                    "```",
                     "Step 4: Verify single-fulfillment invariant; confirm that all inventory reservation transactions execute strictly against Cloud Spanner TrueTime 2PC with row-level locks."
                 ],
                 "root": (
@@ -338,10 +405,14 @@ DATA = {
                 "prereq": "Day 78 decision matrix and Day 79 ADR governance artifacts",
                 "preflight": "Verify Python 3 is installed in your local shell environment.",
                 "steps": [
-                    "Document the changed enterprise constraints and ADR audit findings in `day-081-adr-revision.md`.",
-                    "Author the complete superseding Architecture Decision Record (`ADR-0081-polyglot-persistence.md`):\n\n```markdown\n# ADR-0081: Polyglot Persistence Architecture and Budget Optimization\n\n- **Status:** Accepted (Supersedes ADR-0078)\n- **Date:** 2026-09-28\n- **Deciders:** Principal Architect, VP of Engineering, Chief Financial Officer\n- **Technical Category:** Data Storage & Cost Optimization\n\n## Context and Problem Statement\nFollowing an enterprise earnings contraction, executive leadership mandated an immediate 40% reduction in projected cloud database expenditures (capping monthly database spend at $17,100/mo). ADR-0078 previously mandated Google Cloud Spanner across all workloads at $28,500/month. The architecture must achieve the required cost compression without compromising the Day 64 single-fulfillment business invariant.\n\n## Decision Outcome\n**Chosen Option:** **Polyglot Hybrid Persistence Architecture**.\n1. **Core Inventory & Order Ledger:** Retain on **Google Cloud Spanner Multi-Region** (1 node per region, $8,500/mo). Guarantees TrueTime external consistency and zero duplicate fulfillment.\n2. **Product Catalog & Customer Reviews:** Migrate to **Cloud SQL for PostgreSQL Regional HA** (db-custom-16-64, $2,400/mo). Read-heavy with Cloud CDN caching.\n3. **User Session & Cart State:** Migrate to **Memorystore for Redis HA** (10 GB instance, $1,200/mo). Sub-millisecond transient storage.\n\n## Financial & Technical Consequences\n- **Monthly Cost:** Reduced from $28,500/mo to $12,100/mo (57.5% reduction, saving $196,800 annually).\n- **Invariant Integrity:** The Day 64 single-fulfillment invariant remains 100% enforced via Spanner row-level transaction locks.\n- **Risk Owner:** Lead Database Administrator.\n```",
-                    "Develop the changed-constraint financial simulation script (`adr_budget_simulator.py`):\n\n```python\n# adr_budget_simulator.py\nimport sys\n\ndef simulate_budget_reduction():\n    print(\"=\" * 85)\n    print(\"DAY 81: CHANGED-CONSTRAINT BUDGET SIMULATION & ADR REVISION HARNESS\")\n    print(\"=\" * 85)\n    \n    cfo_budget_cap = 17100.0  # 40% reduction from $28,500\n    \n    # Baseline ADR-0078 Architecture (All-Spanner)\n    adr_078_costs = {\n        \"Order Ledger (Spanner)\": 8500.0,\n        \"Product Catalog (Spanner)\": 11500.0,\n        \"User Sessions (Spanner)\": 8500.0,\n    }\n    total_078 = sum(adr_078_costs.values())\n    \n    # Revised ADR-0081 Architecture (Polyglot Tiering)\n    adr_081_costs = {\n        \"Order Ledger (Spanner TrueTime)\": 8500.0,\n        \"Product Catalog (Cloud SQL HA)\":   2400.0,\n        \"User Sessions (Memorystore Redis)\": 1200.0,\n    }\n    total_081 = sum(adr_081_costs.values())\n    \n    print(f\"\\n1. BASELINE ARCHITECTURE (ADR-0078 - All-Spanner Model):\")\n    for tier, cost in adr_078_costs.items():\n        print(f\"   - {tier:<36}: ${cost:>8,2f}/mo\")\n    print(f\"   >> Total Baseline Spend: ${total_078:>8,2f}/mo\")\n    \n    print(f\"\\n2. REVISED ARCHITECTURE (ADR-0081 - Polyglot Persistence Model):\")\n    for tier, cost in adr_081_costs.items():\n        print(f\"   - {tier:<36}: ${cost:>8,2f}/mo\")\n    print(f\"   >> Total Revised Spend:  ${total_081:>8,2f}/mo\")\n    \n    reduction_pct = ((total_078 - total_081) / total_078) * 100\n    annual_savings = (total_078 - total_081) * 12\n    \n    print(f\"\\n3. CHANGED-CONSTRAINT AUDIT RESULTS:\")\n    print(f\"   - CFO Mandated Budget Ceiling:   ${cfo_budget_cap:>8,2f}/mo\")\n    print(f\"   - Achieved Monthly Run-Rate:     ${total_081:>8,2f}/mo\")\n    print(f\"   - Monthly Budget Headroom:       ${cfo_budget_cap - total_081:>8,2f}/mo\")\n    print(f\"   - Net Percentage Cost Reduction: {reduction_pct:>8.1f}%\")\n    print(f\"   - Annualized Financial Savings:  ${annual_savings:>8,2f}/yr\")\n    \n    # Governance Assertions\n    assert total_081 <= cfo_budget_cap, \"Revised spend exceeds CFO budget cap!\"\n    assert \"Spanner\" in [k for k in adr_081_costs.keys() if \"Ledger\" in k][0], \"Day 64 single-fulfillment invariant compromised!\"\n    print(\"\\n>> Verification Check 1 PASSED: Architecture satisfies 40% budget cut with $5,000/mo headroom.\")\n    print(\">> Verification Check 2 PASSED: Day 64 single-fulfillment invariant strictly preserved in Spanner.\")\n    print(\"=\" * 85)\n\nif __name__ == '__main__':\n    simulate_budget_reduction()\n```",
-                    "Execute the budget reduction simulation:\n\n```sh\npython3 adr_budget_simulator.py\n```"
+                    "#### Stage 1: Design Specification & Changed-Constraint Blueprint\nDocument the changed enterprise constraints and ADR audit findings in <kbd>day-081-adr-revision.md</kbd>. Establish the financial cap ($17,100/mo), the workload tiering breakdown, and the Day 64 single-fulfillment boundary.",
+                    "#### Stage 2: Preflight Environment Validation & Syntax Check\nVerify that the Python runtime has standard mathematical calculation capabilities (<kbd>preflight_budget.py</kbd>):\n\n```python\n# preflight_budget.py\nimport sys\nprint(f\"Python Version: {sys.version}\")\nassert sys.version_info >= (3, 8), \"Python 3.8+ required\"\nprint(\"[PASS] Environment ready for financial modeling.\")\n```",
+                    "#### Stage 3: Core Implementation: Superseding ADR-0081 Authoring\nAuthor the complete superseding Architecture Decision Record (<kbd>ADR-0081-polyglot-persistence.md</kbd>):\n\n```markdown\n# ADR-0081: Polyglot Persistence Architecture and Budget Optimization\n\n- **Status:** Accepted (Supersedes ADR-0078)\n- **Date:** 2026-09-28\n- **Deciders:** Principal Architect, VP of Engineering, Chief Financial Officer\n- **Technical Category:** Data Storage & Cost Optimization\n\n## Context and Problem Statement\nFollowing an enterprise earnings contraction, executive leadership mandated an immediate 40% reduction in projected cloud database expenditures (capping monthly database spend at $17,100/mo). ADR-0078 previously mandated Google Cloud Spanner across all workloads at $28,500/month. The architecture must achieve the required cost compression without compromising the Day 64 single-fulfillment business invariant.\n\n## Decision Outcome\n**Chosen Option:** **Polyglot Hybrid Persistence Architecture**.\n1. **Core Inventory & Order Ledger:** Retain on **Google Cloud Spanner Multi-Region** (1 node per region, $8,500/mo). Guarantees TrueTime external consistency and zero duplicate fulfillment.\n2. **Product Catalog & Customer Reviews:** Migrate to **Cloud SQL for PostgreSQL Regional HA** (db-custom-16-64, $2,400/mo). Read-heavy with Cloud CDN caching.\n3. **User Session & Cart State:** Migrate to **Memorystore for Redis HA** (10 GB instance, $1,200/mo). Sub-millisecond transient storage.\n\n## Financial & Technical Consequences\n- **Monthly Cost:** Reduced from $28,500/mo to $12,100/mo (57.5% reduction, saving $196,800 annually).\n- **Invariant Integrity:** The Day 64 single-fulfillment invariant remains 100% enforced via Spanner row-level transaction locks.\n- **Risk Owner:** Lead Database Administrator.\n```",
+                    "#### Stage 4: Changed-Constraint Financial Modeler Implementation\nDevelop the changed-constraint financial simulation script (<kbd>adr_budget_simulator.py</kbd>):\n\n```python\n# adr_budget_simulator.py\n\"\"\"Simulates budget compression and validates invariant preservation.\"\"\"\nimport sys\nfrom typing import Dict, Tuple\n\ndef simulate_budget_reduction() -> Tuple[float, float, float]:\n    print(\"=\" * 85)\n    print(\"DAY 81: CHANGED-CONSTRAINT BUDGET SIMULATION & ADR REVISION HARNESS\")\n    print(\"=\" * 85)\n    \n    cfo_budget_cap = 17100.0\n    \n    adr_078_costs = {\n        \"Order Ledger (Spanner)\": 8500.0,\n        \"Product Catalog (Spanner)\": 11500.0,\n        \"User Sessions (Spanner)\": 8500.0,\n    }\n    total_078 = sum(adr_078_costs.values())\n    \n    adr_081_costs = {\n        \"Order Ledger (Spanner TrueTime)\": 8500.0,\n        \"Product Catalog (Cloud SQL HA)\":   2400.0,\n        \"User Sessions (Memorystore Redis)\": 1200.0,\n    }\n    total_081 = sum(adr_081_costs.values())\n    \n    print(f\"\\n1. BASELINE ARCHITECTURE (ADR-0078 - All-Spanner Model):\")\n    for tier, cost in adr_078_costs.items():\n        print(f\"   - {tier:<36}: ${cost:>8,2f}/mo\")\n    print(f\"   >> Total Baseline Spend: ${total_078:>8,2f}/mo\")\n    \n    print(f\"\\n2. REVISED ARCHITECTURE (ADR-0081 - Polyglot Persistence Model):\")\n    for tier, cost in adr_081_costs.items():\n        print(f\"   - {tier:<36}: ${cost:>8,2f}/mo\")\n    print(f\"   >> Total Revised Spend:  ${total_081:>8,2f}/mo\")\n    \n    reduction_pct = ((total_078 - total_081) / total_078) * 100\n    annual_savings = (total_078 - total_081) * 12\n    \n    print(f\"\\n3. CHANGED-CONSTRAINT AUDIT RESULTS:\")\n    print(f\"   - CFO Mandated Budget Ceiling:   ${cfo_budget_cap:>8,2f}/mo\")\n    print(f\"   - Achieved Monthly Run-Rate:     ${total_081:>8,2f}/mo\")\n    print(f\"   - Monthly Budget Headroom:       ${cfo_budget_cap - total_081:>8,2f}/mo\")\n    print(f\"   - Net Percentage Cost Reduction: {reduction_pct:>8.1f}%\")\n    print(f\"   - Annualized Financial Savings:  ${annual_savings:>8,2f}/yr\")\n    \n    assert total_081 <= cfo_budget_cap, \"Revised spend exceeds CFO budget cap!\"\n    assert \"Spanner\" in [k for k in adr_081_costs.keys() if \"Ledger\" in k][0], \"Day 64 single-fulfillment invariant compromised!\"\n    print(\"\\n>> Verification Check 1 PASSED: Architecture satisfies 40% budget cut with $5,000/mo headroom.\")\n    print(\">> Verification Check 2 PASSED: Day 64 single-fulfillment invariant strictly preserved in Spanner.\")\n    print(\"=\" * 85)\n    return total_078, total_081, annual_savings\n\nif __name__ == '__main__':\n    simulate_budget_reduction()\n```",
+                    "#### Stage 5: Execution & Budget Reduction Telemetry\nExecute the budget reduction simulation:\n\n```sh\npython3 preflight_budget.py && python3 adr_budget_simulator.py\n```",
+                    "#### Stage 6: Live Verification & Invariant Proof Assertions\nAuthor an assertion test verifying that the revised architecture guarantees both financial compression and strict invariant safety (<kbd>test_budget_assertions.py</kbd>):\n\n```python\n# test_budget_assertions.py\nfrom adr_budget_simulator import simulate_budget_reduction\nbase, rev, save = simulate_budget_reduction()\nassert rev == 12100.0, f\"Expected revised spend of $12,100, got {rev}\"\nassert save == 196800.0, f\"Expected annual savings of $196.8k, got {save}\"\nprint(f\"[PASS] Budget assertions verified: ${save:,.2f} in annual savings cleared.\")\n```",
+                    "#### Stage 7: Runbook Authoring: Polyglot Database Migration Runbook\nDocument the live data migration and replication synchronization runbook for migrating catalog data from Spanner to Cloud SQL via Database Migration Service (<kbd>polyglot_cutover.md</kbd>).",
+                    "#### Stage 8: Teardown & Script Cleanup\nClean up temporary verification files:\n\n```sh\npython3 test_budget_assertions.py\n```"
                 ],
                 "verification": (
                     "Run automated simulation test:\n\n```sh\npython3 -c \"import adr_budget_simulator; adr_budget_simulator.simulate_budget_reduction()\"\n```\n\nConfirm output demonstrates that the revised architecture achieves a 57.5% spend reduction, stays below the $17,100 budget cap, and preserves the single-fulfillment invariant."
@@ -350,7 +421,7 @@ DATA = {
                     "If the budget assertion fails, check that `adr_081_costs` dictionary values match the specified hybrid tiering costs."
                 ),
                 "cleanup": (
-                    "Remove temporary ADR simulation files:\n\n```sh\nrm -f ADR-0081-polyglot-persistence.md adr_budget_simulator.py\n```"
+                    "Remove temporary ADR simulation files:\n\n```sh\nrm -f preflight_budget.py test_budget_assertions.py\n```"
                 ),
                 "accept": "A revised and defensible Architecture Decision Record (ADR-0081) linked to empirical rehearsal data and changed-constraint calculations.",
                 "file": "day-081-adr-revision.md"

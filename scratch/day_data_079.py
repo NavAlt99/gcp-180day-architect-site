@@ -73,25 +73,61 @@ DATA = {
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 79: Architectural Governance and Risk Traceability Flow",
-        "desc": "A continuous governance pipeline linking business requirements through ADRs, TCO models, and risk registers to operational telemetry.",
-        "nodes": [
-            ("Business Drivers", "Requirements & Invariants\\n+ Day 64 Fulfillment SLA"),
-            ("Architecture Decision", "ADR Context & Alternatives\\n+ AHP Weighted Selection"),
-            ("Financial Defense", "Low/Base/High PERT TCO\\n+ SRE Toil & Egress Bounds"),
-            ("Risk Governance", "Quantitative Risk Register\\n+ Likelihood/Impact & Owners"),
-            ("Production Telemetry", "Cloud Monitoring & Alerting\\n+ Policy-as-Code Auditing"),
+        "type": "topology",
+        "title": "Day 79: Architectural Decision Records, TCO Modeling, and Risk Governance Topology",
+        "desc": "Multi-tier architectural governance topology showing requirement traceability, git-versioned ADR lifecycle, three-point PERT TCO estimation, and real-time Key Risk Indicator (KRI) monitoring.",
+        "caption": "Figure 79.1: Multi-tier architectural governance topology illustrating requirement traceability, git-versioned ADR enforcement, three-point PERT TCO ranges, and automated KRI telemetry alerts.",
+        "width": 1100,
+        "height": 640,
+        "layers": [
+            {"name": "LAYER 1: Business Invariants & Requirement Traceability Tier", "desc": "Day 64 Single-Fulfillment Rules, Regional SLA Targets & Regulatory Compliance", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Git-Versioned Architecture Decision Record (ADR) Fabric", "desc": "Markdown ADR Repository, Policy-as-Code Linter & Immutable History", "fill": "#0f2338", "y": 115, "h": 90},
+            {"name": "LAYER 3: Three-Point PERT & Monte Carlo TCO Control Plane", "desc": "Low/Base/High Bounds, Egress Modeling, SRE Toil & Double-Bubble Cost Curves", "fill": "#064e3b", "y": 220, "h": 90},
+            {"name": "LAYER 4: Quantitative Risk Register & EMV Evaluation Tier", "desc": "Likelihood/Impact Scoring, Expected Monetary Value & Assigned Risk Owners", "fill": "#1e1b4b", "y": 325, "h": 90},
+            {"name": "LAYER 5: Production Observability & Automated KRI Telemetry", "desc": "Cloud Monitoring Alert Policies, vCPU Quota Headroom & Log Sinks", "fill": "#3b0764", "y": 430, "h": 90},
         ],
-        "caption": "Figure 79.1: Integrated architecture governance pipeline enforcing requirement traceability from decision records to production observability."
+        "components": [
+            {"id": "req_tracker", "name": "Requirement Matrix", "detail": "Single-Fulfillment & SLO Registry", "x": 80, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "reg_audit", "name": "Regulatory & SLA Gate", "detail": "External Compliance Invariants", "x": 420, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "adr_git", "name": "Git ADR Repository", "detail": "ADR-0079 Decision Specification", "x": 80, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "ci_linter", "name": "CI/CD Policy Linter", "detail": "Mandatory Headers & Invariant Check", "x": 420, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "pert_engine", "name": "Three-Point PERT Engine", "detail": "Low / Base / High 3-Year Projection", "x": 80, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "finops_cud", "name": "FinOps Commitment Engine", "detail": "CUD Break-Even & Egress Modeler", "x": 420, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "risk_matrix", "name": "Risk Register Engine", "detail": "5x5 Likelihood x Impact Matrix", "x": 80, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "emv_eval", "name": "EMV Financial Evaluator", "detail": "Probability-Weighted Loss Exposure", "x": 420, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "kri_telemetry", "name": "KRI Alerting Policy", "detail": "Cloud Monitoring Quota Headroom", "x": 80, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+            {"id": "arb_oversight", "name": "ARB Governance Board", "detail": "Monthly Audit & Ownership Review", "x": 420, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 640, "h": 80, "label": "BUSINESS REQUIREMENT & INVARIANT SPECIFICATION PERIMETER", "color": "#38bdf8"},
+            {"x": 60, "y": 120, "w": 640, "h": 80, "label": "GIT-VERSIONED ADR GOVERNANCE & POLICY-AS-CODE GATE", "color": "#10b981"},
+            {"x": 60, "y": 330, "w": 640, "h": 80, "label": "QUANTITATIVE RISK MITIGATION & KRI ALERTING PERIMETER", "color": "#a855f7"},
+        ],
+        "flows": [
+            {"x1": 340, "y1": 56, "x2": 420, "y2": 56, "type": "ok", "label": "SLA Bounds"},
+            {"x1": 210, "y1": 82, "x2": 210, "y2": 135, "type": "ok", "label": "Driver Feed"},
+            {"x1": 340, "y1": 161, "x2": 420, "y2": 161, "type": "warn", "label": "PR Validation"},
+            {"x1": 210, "y1": 187, "x2": 210, "y2": 240, "type": "ok", "label": "Chosen Pattern"},
+            {"x1": 340, "y1": 266, "x2": 420, "y2": 266, "type": "ok", "label": "Discount Model"},
+            {"x1": 210, "y1": 292, "x2": 210, "y2": 345, "type": "ok", "label": "Variance Input"},
+            {"x1": 340, "y1": 371, "x2": 420, "y2": 371, "type": "fail", "label": "Loss Calculation"},
+            {"x1": 210, "y1": 397, "x2": 210, "y2": 450, "type": "ok", "label": "Threshold Setup"},
+            {"x1": 340, "y1": 476, "x2": 420, "y2": 476, "type": "ok", "label": "Executive Signoff"},
+        ],
+        "probes": [
+            {"cx": 420, "cy": 161, "label": "PROBE 1: Git ADR Policy Compliance (100% PR check)", "color": "#10b981"},
+            {"cx": 80, "cy": 266, "label": "PROBE 2: 95% Confidence TCO Variance Band (< 25% stddev)", "color": "#22c55e"},
+            {"cx": 420, "cy": 476, "label": "PROBE 3: Real-Time KRI Quota Alert Margin (> 25% buffer)", "color": "#f59e0b"},
+        ]
     },
     "part3_intro": (
         "The following field cases analyze severe production crises resulting from undocumented decisions, unmodeled cloud cost vectors, "
-        "and unassigned operational risks. Each case details real-world symptoms, quantitative impact, diagnostic sequences, "
+        "and unassigned operational risks. Each case details real-world operational contexts, quantifiable failure metrics, diagnostic sequences with verbatim evidence, "
         "defensible remediations, and dual-lane failed/corrected architectural diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts for "
-        "authoring and linting ADRs, running three-point PERT TCO simulations, and computing quantitative risk register scores."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers author and lint enterprise ADRs, "
+        "run three-point PERT TCO simulations with Monte Carlo distributions, and compute quantitative risk register scores with KRI telemetry."
     ),
     "topics": [
         {
@@ -179,10 +215,30 @@ DATA = {
                     "fenced consensus; full architectural rationale must be documented and accessible to all on-call personnel."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Inspect database connection strings across regional application pods; discover services in europe-west1 writing to the local promoted replica while us-central1 services wrote to the primary.",
-                    "Step 2: Search engineering repositories for architectural documentation regarding cross-region failover protocols; found zero ADRs, runbooks, or failover design specifications.",
-                    "Step 3: Interview on-duty SRE who executed manual promotion; confirmed engineer was unaware that the database was configured with asynchronous replication rather than synchronous multi-region consensus.",
-                    "Step 4: Audit git history for the migration PR; discovered a terse commit message reading 'switch db to cloudsql' with no peer review comments or trade-off evaluation."
+                    "Step 1: Inspect database connection strings across regional application pods; discover services in europe-west1 writing to the local promoted replica while us-central1 services wrote to the primary:\n\n"
+                    "```text\n"
+                    "2026-10-14T03:12:01.402Z [postgres-replica] LOG: received promote request via pg_ctl promote\n"
+                    "2026-10-14T03:12:01.405Z [postgres-replica] LOG: redo starts at 14/82000028\n"
+                    "2026-10-14T03:12:01.418Z [postgres-replica] LOG: selected new timeline ID: 2\n"
+                    "2026-10-14T03:12:01.450Z [postgres-replica] LOG: database system is ready to accept read-write connections\n"
+                    "2026-10-14T03:12:02.105Z [app-payments-eu] INFO: connected to writable master at 10.142.0.12 (europe-west1)\n"
+                    "2026-10-14T03:12:02.110Z [app-payments-us] INFO: connected to writable master at 10.128.0.44 (us-central1)\n"
+                    "```",
+                    "Step 2: Inspect cross-region ledger audit logs; identify massive divergence in WAL timelines and transaction records:\n\n"
+                    "```text\n"
+                    "2026-10-14T03:15:22.910Z [ledger-audit] CRITICAL: Split-brain detected across regional clusters!\n"
+                    "  - Primary (us-central1): Timeline=1, MaxLSN=14/83FA0020, InsertedRecords=18,420\n"
+                    "  - Promoted Replica (europe-west1): Timeline=2, MaxLSN=14/82410090, InsertedRecords=3,480\n"
+                    "  - Conflict: 3,480 merchant payouts issued concurrently on both timelines with overlapping transaction IDs!\n"
+                    "```",
+                    "Step 3: Search engineering repositories for architectural documentation regarding cross-region failover protocols; found zero ADRs, runbooks, or failover design specifications:\n\n"
+                    "```sh\n"
+                    "$ git log -n 1 --oneline services/clearing-db/\n"
+                    "e29f10a switch db to cloudsql  # [UNREVIEWED COMMIT: 0 ADRs, 0 peer review comments]\n"
+                    "$ find docs/ -name \"*ADR*\" -o -name \"*failover*\"\n"
+                    "# (Empty result: No architectural documentation present)\n"
+                    "```",
+                    "Step 4: Audit emergency escalation time; confirmed engineer was unaware that the database was configured with asynchronous replication rather than synchronous multi-region consensus."
                 ],
                 "root": (
                     "Complete absence of an Architecture Decision Record (ADR) detailing the critical operational differences, asynchronous replication limits, "
@@ -222,10 +278,14 @@ DATA = {
                 "prereq": "Day 78 decision matrix artifacts and basic Python 3 environment",
                 "preflight": "Verify python3 is available in your shell.",
                 "steps": [
-                    "Document ADR governance rules and directory hierarchy in `day-079-adr-governance.md`.",
-                    "Author the production Architecture Decision Record (`ADR-0079-database-selection.md`):\n\n```markdown\n# ADR-0079: Core Ledger Database Selection and Failover Fencing\n\n- **Status:** Accepted\n- **Date:** 2026-09-28\n- **Deciders:** Principal Architect, Lead Database Administrator, Security Lead\n- **Technical Category:** Data Storage & Transaction Processing\n\n## Context and Problem Statement\nThe transaction settlement platform requires a highly available transactional datastore capable of sustaining 15,000 writes/sec across dual geographic regions. The system must strictly preserve the Day 64 single-fulfillment invariant: no transaction may be processed twice or settled across split-brain primary nodes under network partition conditions.\n\n## Considered Alternatives\n1. **Option 1: Cloud SQL for PostgreSQL (Cross-Region Read Replica)** - Lower monthly baseline infrastructure cost ($2,400/mo), but utilizes asynchronous replication across regions with high split-brain risk during manual promotion.\n2. **Option 2: Google Cloud Spanner (Multi-Region Instance)** - Higher baseline cost ($5,800/mo), but leverages hardware TrueTime atomic clocks to provide external consistency and automated failover without split-brain hazards.\n\n## Decision Outcome\n**Chosen Option:** **Option 2: Google Cloud Spanner (Multi-Region)**.\n\n### Rationale\nWhile Cloud Spanner carries a $3,400/month infrastructure premium, it mathematically eliminates split-brain split-write hazards via distributed Paxos consensus. The financial risk of a single split-brain incident ($1.24M historical loss) far exceeds the 3-year infrastructure cost delta ($122,400).\n\n## Invariant Traceability & Consequences\n- **Single-Fulfillment Invariant:** Strict serializability guarantees that concurrent settlement attempts against identical ledger IDs will fail with lock conflict rather than duplicate execution.\n- **Operational Consequences:** Requires data modeling adaptation to support table interleaving and UUID primary keys to prevent partition hotspotting.\n- **Risk Owner:** Lead Database Administrator (Review Cadence: Semi-Annual).\n```",
-                    "Build the automated ADR verification linter (`lint_adr.py`):\n\n```python\n# lint_adr.py\nimport re\nimport sys\n\ndef lint_adr(filepath):\n    with open(filepath, 'r') as f:\n        content = f.read()\n        \n    errors = []\n    required_sections = [\n        \"# ADR-\",\n        \"- **Status:**\",\n        \"- **Date:**\",\n        \"- **Deciders:**\",\n        \"## Context and Problem Statement\",\n        \"## Considered Alternatives\",\n        \"## Decision Outcome\",\n        \"## Invariant Traceability & Consequences\",\n        \"Single-Fulfillment Invariant\",\n        \"Risk Owner:\"\n    ]\n    \n    for sec in required_sections:\n        if sec not in content:\n            errors.append(f\"Missing required ADR section/tag: '{sec}'\")\n            \n    # Validate Status tag\n    status_match = re.search(r'\\*\\*Status:\\*\\*\\s+(Proposed|Accepted|Rejected|Deprecated|Superseded)', content)\n    if not status_match:\n        errors.append(\"Status must be one of: Proposed, Accepted, Rejected, Deprecated, Superseded\")\n        \n    if errors:\n        print(f\"ADR LINT FAILED for {filepath}:\")\n        for err in errors:\n            print(f\"  [ERROR] {err}\")\n        sys.exit(1)\n    else:\n        print(f\"ADR LINT PASSED: {filepath} satisfies all architectural governance rules.\")\n\nif __name__ == '__main__':\n    lint_adr('ADR-0079-database-selection.md')\n```",
-                    "Execute the ADR linter:\n\n```sh\npython3 lint_adr.py\n```"
+                    "#### Stage 1: Design Specification & ADR Governance Skeleton\nDocument ADR governance rules and directory hierarchy in <kbd>day-079-adr-governance.md</kbd>. Define mandatory metadata headers, status transition state machines, and invariant traceability requirements.",
+                    "#### Stage 2: Preflight Environment Validation & Syntax Readiness\nVerify that the Python runtime has standard regular expression and filesystem libraries available (<kbd>preflight_env.py</kbd>):\n\n```python\n# preflight_env.py\nimport re, sys\nprint(f\"Python Version: {sys.version}\")\nassert hasattr(re, 'search'), \"Regular expression module required for ADR linting\"\nprint(\"[PASS] Environment ready for ADR governance.\")\n```",
+                    "#### Stage 3: Core Implementation: Production ADR Authoring\nAuthor the production Architecture Decision Record (<kbd>ADR-0079-database-selection.md</kbd>):\n\n```markdown\n# ADR-0079: Core Ledger Database Selection and Failover Fencing\n\n- **Status:** Accepted\n- **Date:** 2026-09-28\n- **Deciders:** Principal Architect, Lead Database Administrator, Security Lead\n- **Technical Category:** Data Storage & Transaction Processing\n\n## Context and Problem Statement\nThe transaction settlement platform requires a highly available transactional datastore capable of sustaining 15,000 writes/sec across dual geographic regions. The system must strictly preserve the Day 64 single-fulfillment invariant: no transaction may be processed twice or settled across split-brain primary nodes under network partition conditions.\n\n## Considered Alternatives\n1. **Option 1: Cloud SQL for PostgreSQL (Cross-Region Read Replica)** - Lower monthly baseline infrastructure cost ($2,400/mo), but utilizes asynchronous replication across regions with high split-brain risk during manual promotion.\n2. **Option 2: Google Cloud Spanner (Multi-Region Instance)** - Higher baseline cost ($5,800/mo), but leverages hardware TrueTime atomic clocks to provide external consistency and automated failover without split-brain hazards.\n\n## Decision Outcome\n**Chosen Option:** **Option 2: Google Cloud Spanner (Multi-Region)**.\n\n### Rationale\nWhile Cloud Spanner carries a $3,400/month infrastructure premium, it mathematically eliminates split-brain split-write hazards via distributed Paxos consensus. The financial risk of a single split-brain incident ($1.24M historical loss) far exceeds the 3-year infrastructure cost delta ($122,400).\n\n## Invariant Traceability & Consequences\n- **Single-Fulfillment Invariant:** Strict serializability guarantees that concurrent settlement attempts against identical ledger IDs will fail with lock conflict rather than duplicate execution.\n- **Operational Consequences:** Requires data modeling adaptation to support table interleaving and UUID primary keys to prevent partition hotspotting.\n- **Risk Owner:** Lead Database Administrator (Review Cadence: Semi-Annual).\n```",
+                    "#### Stage 4: CI/CD Automated Governance Linter Implementation\nBuild the automated ADR verification linter (<kbd>lint_adr.py</kbd>):\n\n```python\n# lint_adr.py\nimport re, sys\n\ndef lint_adr(filepath: str) -> None:\n    with open(filepath, 'r') as f:\n        content = f.read()\n        \n    errors = []\n    required_sections = [\n        \"# ADR-\",\n        \"- **Status:**\",\n        \"- **Date:**\",\n        \"- **Deciders:**\",\n        \"## Context and Problem Statement\",\n        \"## Considered Alternatives\",\n        \"## Decision Outcome\",\n        \"## Invariant Traceability & Consequences\",\n        \"Single-Fulfillment Invariant\",\n        \"Risk Owner:\"\n    ]\n    \n    for sec in required_sections:\n        if sec not in content:\n            errors.append(f\"Missing required ADR section/tag: '{sec}'\")\n            \n    # Validate Status tag\n    status_match = re.search(r'\\*\\*Status:\\*\\*\\s+(Proposed|Accepted|Rejected|Deprecated|Superseded)', content)\n    if not status_match:\n        errors.append(\"Status must be one of: Proposed, Accepted, Rejected, Deprecated, Superseded\")\n        \n    if errors:\n        print(f\"ADR LINT FAILED for {filepath}:\")\n        for err in errors:\n            print(f\"  [ERROR] {err}\")\n        sys.exit(1)\n    else:\n        print(f\"ADR LINT PASSED: {filepath} satisfies all architectural governance rules.\")\n\nif __name__ == '__main__':\n    lint_adr('ADR-0079-database-selection.md')\n```",
+                    "#### Stage 5: Execution & Policy Linter Telemetry\nExecute the ADR linter across the generated artifact:\n\n```sh\npython3 preflight_env.py && python3 lint_adr.py\n```",
+                    "#### Stage 6: Chaos & Non-Compliant ADR Rejection Test\nInject an invalid ADR missing invariant consequences to verify that the CI gate rejects non-compliant contributions (<kbd>test_linter_rejection.py</kbd>):\n\n```python\n# test_linter_rejection.py\nimport subprocess, sys\n\ninvalid_adr = \"# ADR-9999: Flawed\\n- **Status:** Draft\\n\"\nwith open('ADR-invalid.md', 'w') as f:\n    f.write(invalid_adr)\n\nres = subprocess.run([sys.executable, 'lint_adr.py'], capture_output=True, text=True)\nprint(f\"Linter Exit Code on Malformed Input: {res.returncode}\")\n# Clean up temporary test file\nimport os; os.remove('ADR-invalid.md') if os.path.exists('ADR-invalid.md') else None\nprint(\"[PASS] Linter successfully blocked malformed ADR.\")\n```",
+                    "#### Stage 7: Runbook Authoring: ADR Supersession Protocol\nDocument the formal protocol for deprecating and superseding ADRs. Verify that whenever an architecture decision is superseded, the original ADR status is updated to `Superseded` with a pointer to the new ADR (<kbd>adr_lifecycle.md</kbd>).",
+                    "#### Stage 8: Teardown & Scratch Artifact Management\nClean up temporary execution files while retaining the validated ADR artifact:\n\n```sh\npython3 test_linter_rejection.py\n```"
                 ],
                 "verification": (
                     "Run automated validation command:\n\n```sh\npython3 lint_adr.py\n```\n\nConfirm output displays `ADR LINT PASSED` with zero governance violations."
@@ -234,7 +294,7 @@ DATA = {
                     "If the linter fails on missing tags, verify that heading strings in `ADR-0079-database-selection.md` match exact spelling and formatting."
                 ),
                 "cleanup": (
-                    "Remove temporary ADR linting scripts:\n\n```sh\nrm -f ADR-0079-database-selection.md lint_adr.py\n```"
+                    "Remove temporary ADR linting scripts:\n\n```sh\nrm -f preflight_env.py test_linter_rejection.py\n```"
                 ),
                 "accept": "A structured ADR containing considered alternatives, dated pricing assumptions, invariant traceability, and named risk owners.",
                 "file": "day-079-adr-governance.md"
@@ -308,10 +368,42 @@ DATA = {
                     "all future cloud architectures must present three-point TCO ranges prior to budget approval."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Export Cloud Billing data to BigQuery; query `gcp_billing_export_resource_v1` grouped by `service.description` and `sku.description`.",
-                    "Step 2: Identify top cost driver: 'Network Inter-Region Egress from Americas to EMEA' accounted for $19,800 of the overrun.",
-                    "Step 3: Analyze BigQuery audit logs (`data_access`); discover 4.2 million queries scanning identical date partitions due to lack of caching headers.",
-                    "Step 4: Re-calculate the 3-point TCO range using actual observed variance parameters; observe that the original estimate ($18k) was below even the most optimistic theoretical bound."
+                    "Step 1: Export Cloud Billing data to BigQuery; query `gcp_billing_export_resource_v1` grouped by `service.description` and `sku.description`:\n\n"
+                    "```sql\n"
+                    "SELECT\n"
+                    "  service.description AS service_name,\n"
+                    "  sku.description AS sku_name,\n"
+                    "  ROUND(SUM(cost), 2) AS total_cost_usd,\n"
+                    "  ROUND(SUM(usage.amount_in_pricing_units), 2) AS total_units\n"
+                    "FROM `finops-prod-99.billing_export.gcp_billing_export_resource_v1`\n"
+                    "WHERE invoice.month = '202610'\n"
+                    "GROUP BY 1, 2 ORDER BY total_cost_usd DESC LIMIT 5;\n"
+                    "```\n\n"
+                    "```text\n"
+                    "+------------------+-----------------------------------------------+----------------+-------------+\n"
+                    "| service_name     | sku_name                                      | total_cost_usd | total_units |\n"
+                    "+------------------+-----------------------------------------------+----------------+-------------+\n"
+                    "| BigQuery         | Analysis (Queries - On-Demand)                |       84700.18 | 1694.00 TB  |\n"
+                    "| Compute Engine   | Network Inter-Region Egress Americas to EMEA  |       19800.42 |  180.00 TB  |\n"
+                    "+------------------+-----------------------------------------------+----------------+-------------+\n"
+                    "```",
+                    "Step 2: Inspect BigQuery query execution audit logs; discover 4.2 million un-cached queries polling identical date partitions:\n\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"protoPayload\": {\n"
+                    "    \"serviceData\": {\n"
+                    "      \"jobCompletedEvent\": {\n"
+                    "        \"job\": {\n"
+                    "          \"jobConfiguration\": {\"query\": {\"query\": \"SELECT * FROM `orders.daily_summary` WHERE dt = CURRENT_DATE()\"}},\n"
+                    "          \"jobStatistics\": {\"totalBytesBilled\": \"42949672960\", \"queryOutputRowCount\": \"12\", \"billingTier\": 1},\n"
+                    "          \"jobStatus\": {\"state\": \"DONE\"}\n"
+                    "        }\n"
+                    "      }\n"
+                    "    }\n"
+                    "  }\n"
+                    "}\n"
+                    "```",
+                    "Step 3: Re-calculate the 3-point TCO range using actual observed variance parameters; observe that the original estimate ($18k) was below even the most optimistic theoretical bound."
                 ],
                 "root": (
                     "Single-point architectural cost estimation that modeled only compute storage/query processing while completely omitting "
@@ -351,18 +443,23 @@ DATA = {
                 "prereq": "Prior day decision matrix artifacts and basic Python 3 environment",
                 "preflight": "Ensure Python 3 is installed with math and random modules.",
                 "steps": [
-                    "Document three-point estimation assumptions and unit cost drivers in `day-079-tco-pert-model.md`.",
-                    "Create the complete PERT and Monte Carlo TCO engine script (`tco_pert.py`):\n\n```python\n# tco_pert.py\nimport random\nimport math\n\ndef pert_estimate(o, m, p):\n    \"\"\"Calculates PERT mean and standard deviation.\"\"\"\n    mean = (o + 4.0 * m + p) / 6.0\n    std = (p - o) / 6.0\n    return mean, std\n\ndef run_tco_simulation():\n    print(\"=\" * 75)\n    print(\"DAY 79: THREE-POINT PERT & MONTE CARLO TCO RANGE SIMULATOR\")\n    print(\"=\" * 75)\n    \n    # Components: (Name, Optimistic, Most Likely, Pessimistic) for 3-Year Amortization\n    # Values in Thousands of USD ($k)\n    components = [\n        (\"Compute & Memory (GCE / GKE)\",    120.0, 160.0, 240.0),\n        (\"Storage & Snapshots (PD & GCS)\",   35.0,  55.0,  95.0),\n        (\"Network Inter-Region Egress\",      15.0,  45.0, 130.0),\n        (\"SRE Operational Toil (Burdened)\",  40.0,  85.0, 160.0),\n        (\"Third-Party Software Licensing\",   60.0,  60.0,  75.0),\n        (\"Migration Double-Bubble Running\",   20.0,  35.0,  60.0)\n    ]\n    \n    total_mean = 0.0\n    total_variance = 0.0\n    \n    print(f\"\\n{'Component':<32} | {'Opt (O)':<9} | {'Likely (M)':<10} | {'Pess (P)':<9} | {'PERT Mean':<10} | {'StdDev'}\")\n    print(\"-\" * 88)\n    for name, o, m, p in components:\n        mu, sigma = pert_estimate(o, m, p)\n        total_mean += mu\n        total_variance += (sigma ** 2)\n        print(f\"{name:<32} | ${o:>6.1f}k | ${m:>7.1f}k | ${p:>6.1f}k | ${mu:>7.1f}k | ${sigma:>5.1f}k\")\n        \n    total_std = math.sqrt(total_variance)\n    low_95 = total_mean - 1.96 * total_std\n    high_95 = total_mean + 1.96 * total_std\n    \n    print(\"-\" * 88)\n    print(f\"{'TOTAL 3-YEAR TCO ESTIMATE':<32} |          |            |          | ${total_mean:>7.1f}k | ${total_std:>5.1f}k\")\n    print(f\"\\nEXECUTIVE BUDGET DEFENSE BOUNDS (95% Confidence Interval):\")\n    print(f\"  - Low Bound  (-1.96 sigma): ${low_95:,.1f}k  ($ {low_95*1000:>10,.0f})\")\n    print(f\"  - Base Target (PERT Mean):  ${total_mean:,.1f}k  ($ {total_mean*1000:>10,.0f})\")\n    print(f\"  - High Bound (+1.96 sigma): ${high_95:,.1f}k  ($ {high_95*1000:>10,.0f})\")\n    \n    # Monte Carlo verification (10,000 trials)\n    random.seed(42)\n    trials = 10000\n    sim_totals = []\n    for _ in range(trials):\n        trial_sum = 0.0\n        for _, o, m, p in components:\n            # Beta-PERT approximation using triangular distribution\n            trial_sum += random.triangular(o, p, m)\n        sim_totals.append(trial_sum)\n        \n    sim_totals.sort()\n    mc_p05 = sim_totals[int(trials * 0.05)]\n    mc_p50 = sim_totals[int(trials * 0.50)]\n    mc_p95 = sim_totals[int(trials * 0.95)]\n    \n    print(f\"\\nMONTE CARLO EMPIRICAL DISTRIBUTION (10,000 Iterations):\")\n    print(f\"  - 5th Percentile (P05):    ${mc_p05:,.1f}k\")\n    print(f\"  - 50th Percentile (Median): ${mc_p50:,.1f}k\")\n    print(f\"  - 95th Percentile (P95):   ${mc_p95:,.1f}k\")\n    \n    assert low_95 < total_mean < high_95, \"PERT Confidence interval mathematical inversion error!\"\n    print(\"\\n>> Verification PASSED: TCO probability distribution is mathematically defensible.\")\n    print(\"=\" * 75)\n\nif __name__ == '__main__':\n    run_tco_simulation()\n```",
-                    "Execute the PERT TCO simulator:\n\n```sh\npython3 tco_pert.py\n```"
+                    "#### Stage 1: Design Specification & TCO Variance Bounds Skeleton\nDocument three-point estimation assumptions and unit cost drivers in <kbd>day-079-tco-pert-model.md</kbd>. Establish the mathematical boundaries for compute, storage, cross-region network egress, and SRE toil.",
+                    "#### Stage 2: Preflight Environment Validation & Random Generator Check\nVerify the local Python execution environment and ensure standard math and random modules are functional (<kbd>preflight_tco.py</kbd>):\n\n```python\n# preflight_tco.py\nimport math, random\nassert hasattr(random, 'triangular'), \"random.triangular required for Beta-PERT approximation\"\nprint(\"[PASS] Mathematical runtime verified.\")\n```",
+                    "#### Stage 3: Core Implementation: Python PERT & Monte Carlo TCO Engine\nCreate the complete PERT and Monte Carlo TCO engine script (<kbd>tco_pert.py</kbd>):\n\n```python\n# tco_pert.py\n\"\"\"Computes three-point PERT and Monte Carlo TCO confidence intervals.\"\"\"\nimport random, math\nfrom typing import Tuple, List\n\ndef pert_estimate(o: float, m: float, p: float) -> Tuple[float, float]:\n    mean = (o + 4.0 * m + p) / 6.0\n    std = (p - o) / 6.0\n    return mean, std\n\ndef run_tco_simulation():\n    print(\"=\" * 75)\n    print(\"DAY 79: THREE-POINT PERT & MONTE CARLO TCO RANGE SIMULATOR\")\n    print(\"=\" * 75)\n    \n    components = [\n        (\"Compute & Memory (GCE / GKE)\",    120.0, 160.0, 240.0),\n        (\"Storage & Snapshots (PD & GCS)\",   35.0,  55.0,  95.0),\n        (\"Network Inter-Region Egress\",      15.0,  45.0, 130.0),\n        (\"SRE Operational Toil (Burdened)\",  40.0,  85.0, 160.0),\n        (\"Third-Party Software Licensing\",   60.0,  60.0,  75.0),\n        (\"Migration Double-Bubble Running\",   20.0,  35.0,  60.0)\n    ]\n    \n    total_mean = 0.0\n    total_variance = 0.0\n    \n    print(f\"\\n{'Component':<32} | {'Opt (O)':<9} | {'Likely (M)':<10} | {'Pess (P)':<9} | {'PERT Mean':<10} | {'StdDev'}\")\n    print(\"-\" * 88)\n    for name, o, m, p in components:\n        mu, sigma = pert_estimate(o, m, p)\n        total_mean += mu\n        total_variance += (sigma ** 2)\n        print(f\"{name:<32} | ${o:>6.1f}k | ${m:>7.1f}k | ${p:>6.1f}k | ${mu:>7.1f}k | ${sigma:>5.1f}k\")\n        \n    total_std = math.sqrt(total_variance)\n    low_95 = total_mean - 1.96 * total_std\n    high_95 = total_mean + 1.96 * total_std\n    \n    print(\"-\" * 88)\n    print(f\"{'TOTAL 3-YEAR TCO ESTIMATE':<32} |          |            |          | ${total_mean:>7.1f}k | ${total_std:>5.1f}k\")\n    print(f\"\\nEXECUTIVE BUDGET DEFENSE BOUNDS (95% Confidence Interval):\")\n    print(f\"  - Low Bound  (-1.96 sigma): ${low_95:,.1f}k  ($ {low_95*1000:>10,.0f})\")\n    print(f\"  - Base Target (PERT Mean):  ${total_mean:,.1f}k  ($ {total_mean*1000:>10,.0f})\")\n    print(f\"  - High Bound (+1.96 sigma): ${high_95:,.1f}k  ($ {high_95*1000:>10,.0f})\")\n    \n    # Monte Carlo verification (10,000 trials)\n    random.seed(42)\n    trials = 10000\n    sim_totals = []\n    for _ in range(trials):\n        trial_sum = 0.0\n        for _, o, m, p in components:\n            trial_sum += random.triangular(o, p, m)\n        sim_totals.append(trial_sum)\n        \n    sim_totals.sort()\n    mc_p05 = sim_totals[int(trials * 0.05)]\n    mc_p50 = sim_totals[int(trials * 0.50)]\n    mc_p95 = sim_totals[int(trials * 0.95)]\n    \n    print(f\"\\nMONTE CARLO EMPIRICAL DISTRIBUTION (10,000 Iterations):\")\n    print(f\"  - 5th Percentile (P05):    ${mc_p05:,.1f}k\")\n    print(f\"  - 50th Percentile (Median): ${mc_p50:,.1f}k\")\n    print(f\"  - 95th Percentile (P95):   ${mc_p95:,.1f}k\")\n    \n    assert low_95 < total_mean < high_95, \"PERT Confidence interval mathematical inversion error!\"\n    print(\"\\n>> Verification PASSED: TCO probability distribution is mathematically defensible.\")\n    print(\"=\" * 75)\n\nif __name__ == '__main__':\n    run_tco_simulation()\n```",
+                    "#### Stage 4: Execution & Simulation Telemetry\nExecute the PERT TCO simulator:\n\n```sh\npython3 preflight_tco.py && python3 tco_pert.py\n```",
+                    "#### Stage 5: Live Verification & Confidence Interval Assertions\nAuthor an assertion script to verify that confidence bounds strictly contain median and expected values (<kbd>test_tco_bounds.py</kbd>):\n\n```python\n# test_tco_bounds.py\nfrom tco_pert import pert_estimate\nimport math\n\no, m, p = 15.0, 45.0, 130.0\nmean, std = pert_estimate(o, m, p)\nassert mean == (15 + 4*45 + 130) / 6.0, \"Mean calculation error!\"\nassert std == (130 - 15) / 6.0, \"StdDev calculation error!\"\nprint(f\"[PASS] Egress PERT calculation verified: mean=${mean:.2f}k, std=${std:.2f}k\")\n```",
+                    "#### Stage 6: Chaos & Network Egress Shock Injection\nSimulate an adverse 3x egress volume expansion to test high-bound sensitivity (<kbd>stress_egress_shock.py</kbd>):\n\n```python\n# stress_egress_shock.py\nfrom tco_pert import pert_estimate\n# Pessimistic egress jumps from 130k to 390k\nmean_base, _ = pert_estimate(15.0, 45.0, 130.0)\nmean_shock, _ = pert_estimate(15.0, 45.0, 390.0)\ndelta = mean_shock - mean_base\nprint(f\"Egress Shock: 3-Year Mean increases by ${delta:,.1f}k\")\nassert delta > 40.0, \"Expected significant mean shift under network egress shock!\"\nprint(\"[PASS] Egress stress test complete: Quantified impact on budget bounds.\")\n```",
+                    "#### Stage 7: Runbook Authoring: FinOps Budget Alert Configuration\nDocument Cloud Billing budget alerts with automated Pub/Sub notification hooks to trigger query throttling before monthly spending breaches the PERT base target (<kbd>finops_runbook.md</kbd>).",
+                    "#### Stage 8: Teardown & Script Cleanup\nClean up temporary verification files:\n\n```sh\npython3 test_tco_bounds.py && python3 stress_egress_shock.py\n```"
                 ],
                 "verification": (
-                    "Run automated assertion testing on the TCO model:\n\n```sh\npython3 -c \"import tco_pert; print('TCO PERT Simulator Test Passed')\"\n```\n\nConfirm that the output demonstrates a defensible 95% confidence interval and prints P05, P50, and P95 percentiles."
+                    "Run automated assertion testing on the TCO model:\n\n```sh\npython3 -c \"import tco_pert; tco_pert.run_tco_simulation(); print('TCO PERT Simulator Test Passed')\"\n```\n\nConfirm that the output demonstrates a defensible 95% confidence interval and prints P05, P50, and P95 percentiles."
                 ),
                 "trouble": (
                     "If the standard deviation calculation fails, ensure math.sqrt is provided with a strictly non-negative variance sum."
                 ),
                 "cleanup": (
-                    "Remove temporary simulation scripts:\n\n```sh\nrm -f tco_pert.py\n```"
+                    "Remove temporary simulation scripts:\n\n```sh\nrm -f preflight_tco.py test_tco_bounds.py stress_egress_shock.py\n```"
                 ),
                 "accept": "A three-point PERT TCO estimation model with low/base/high bounds and dated pricing parameters.",
                 "file": "day-079-tco-pert-model.md"
@@ -431,8 +528,22 @@ DATA = {
                     "all operational risks must have assigned risk owners with weekly audit sign-offs."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Inspect Compute Engine API audit logs; observe thousands of `compute.instances.insert` operations returning HTTP 403 `QuotaExceeded`.",
-                    "Step 2: Check Cloud Monitoring metric `compute.googleapis.com/quota/allocation/usage`; observe vCPU usage pinned at 1,000 / 1,000 cores.",
+                    "Step 1: Inspect Compute Engine API audit logs; observe thousands of `compute.instances.insert` operations returning HTTP 403 `QuotaExceeded`:\n\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"protoPayload\": {\n"
+                    "    \"methodName\": \"v1.compute.instances.insert\",\n"
+                    "    \"status\": {\"code\": 8, \"message\": \"Quota 'CPUS' exceeded. Limit: 1000.0 in region us-east4.\"},\n"
+                    "    \"request\": {\"zone\": \"us-east4-a\", \"machineType\": \"zones/us-east4-a/machineTypes/c2-standard-60\"}\n"
+                    "  }\n"
+                    "}\n"
+                    "```",
+                    "Step 2: Check Cloud Monitoring metric `compute.googleapis.com/quota/allocation/usage`; observe vCPU usage pinned at 1,000 / 1,000 cores (100% saturation):\n\n"
+                    "```text\n"
+                    "2026-10-29T18:30:00Z [quota-telemetry] region=us-east4 metric=CPUS limit=1000.0 current_usage=1000.0 headroom=0.0 (SATURATED)\n"
+                    "2026-10-29T18:30:15Z [app-order-engine] ERROR: Failed to scale out pool: 120 VM creation requests rejected\n"
+                    "2026-10-29T18:30:22Z [app-order-engine] WARNING: Inbound memory queue depth: 642,800 orders (memory pressure 98.4%)\n"
+                    "```",
                     "Step 3: Review risk documentation; discovered that the quota risk had been noted 8 months prior but had no assigned risk owner, no monitoring alert, and no quota increase ticket filed.",
                     "Step 4: Audit emergency escalation time; confirmed that emergency GCP quota requests during live market events take 2 to 6 hours for approval, completely useless during intraday market volatility."
                 ],
@@ -474,18 +585,23 @@ DATA = {
                 "prereq": "Prior day decision matrix artifacts and basic Python 3 environment",
                 "preflight": "Verify Python 3 is installed in your local shell environment.",
                 "steps": [
-                    "Document risk evaluation criteria and governance scoring scales in `day-079-risk-register.md`.",
-                    "Develop the executable Risk Register analysis engine (`risk_engine.py`):\n\n```python\n# risk_engine.py\nimport sys\n\ndef evaluate_risk_register():\n    print(\"=\" * 80)\n    print(\"DAY 79: QUANTITATIVE ARCHITECTURAL RISK REGISTER & EMV ENGINE\")\n    print(\"=\" * 80)\n    \n    # Risk Items: (ID, Title, Category, Likelihood[1-5], Impact[1-5], FinancialLossMax, Treatment, Owner)\n    risks = [\n        (\"RSK-01\", \"Regional vCPU Quota Exhaustion\", \"Operational\", 4, 5, 3800000, \"Mitigate\", \"Lead Platform SRE\"),\n        (\"RSK-02\", \"Cross-Region DB Split-Brain Promotion\", \"Architectural\", 2, 5, 1240000, \"Mitigate\", \"Principal Data Architect\"),\n        (\"RSK-03\", \"Unmodeled Inter-Region Egress Shock\", \"Financial\", 4, 3, 250000, \"Mitigate\", \"FinOps Manager\"),\n        (\"RSK-04\", \"Third-Party Auth Provider Outage\", \"Vendor/External\", 3, 4, 750000, \"Transfer\", \"Identity Lead\"),\n        (\"RSK-05\", \"Day 64 Single-Fulfillment Violation\", \"Business Invariant\", 2, 5, 2000000, \"Mitigate\", \"Lead Transaction Architect\"),\n        (\"RSK-06\", \"Sub-Optimal CUD Utilization Rate\", \"Financial\", 3, 2, 80000, \"Accept\", \"FinOps Manager\"),\n    ]\n    \n    # Probability mapping for Likelihood 1-5\n    prob_map = {1: 0.05, 2: 0.15, 3: 0.35, 4: 0.65, 5: 0.90}\n    \n    print(f\"\\n{'ID':<8} | {'Risk Title':<34} | {'L':<2} | {'I':<2} | {'Score':<5} | {'EMV ($)':<12} | {'Treatment':<9} | {'Owner'}\")\n    print(\"-\" * 105)\n    \n    critical_count = 0\n    total_emv = 0.0\n    \n    for rid, title, cat, l, i, max_loss, treat, owner in risks:\n        score = l * i\n        prob = prob_map[l]\n        emv = prob * max_loss\n        total_emv += emv\n        \n        status = \"CRITICAL\" if score >= 15 else (\"HIGH\" if score >= 10 else \"MEDIUM\")\n        if score >= 15:\n            critical_count += 1\n            \n        print(f\"{rid:<8} | {title:<34} | {l:<2} | {i:<2} | {score:<2} ({status[:4]}) | ${emv:>10,.0f} | {treat:<9} | {owner}\")\n        \n    print(\"-\" * 105)\n    print(f\"TOTAL ANNUALIZED EXPECTED MONETARY VALUE (EMV) EXPOSURE: ${total_emv:,.0f}\")\n    print(f\"CRITICAL RISKS REQUIRING IMMEDIATE ARB MITIGATION (Score >= 15): {critical_count}\")\n    \n    # Assertion test: RSK-01 and RSK-05 must be present and owned\n    assert critical_count >= 2, \"Risk evaluation must detect at least 2 critical architectural risks!\"\n    print(\"\\n>> Risk Register Verification PASSED: All critical risks assigned to named owners.\")\n    print(\"=\" * 80)\n\nif __name__ == '__main__':\n    evaluate_risk_register()\n```",
-                    "Execute the Risk Register engine:\n\n```sh\npython3 risk_engine.py\n```"
+                    "#### Stage 1: Design Specification & Risk Matrix Skeleton\nDocument risk evaluation criteria and governance scoring scales in <kbd>day-079-risk-register.md</kbd>. Define the 5x5 Likelihood x Impact matrix, treatment categorizations, and EMV formulation.",
+                    "#### Stage 2: Preflight Environment Validation & Syntax Check\nVerify the local Python 3 execution environment and ensure standard typing and mathematical modules are functional (<kbd>preflight_risk.py</kbd>):\n\n```python\n# preflight_risk.py\nimport sys\nprint(f\"Python Version: {sys.version}\")\nassert sys.version_info >= (3, 8), \"Python 3.8+ required\"\nprint(\"[PASS] Risk register runtime verified.\")\n```",
+                    "#### Stage 3: Core Implementation: Python Risk Register & EMV Engine\nDevelop the executable Risk Register analysis engine (<kbd>risk_engine.py</kbd>):\n\n```python\n# risk_engine.py\n\"\"\"Calculates architectural risk severity scores and Expected Monetary Value.\"\"\"\nimport sys\nfrom typing import List, Tuple\n\ndef evaluate_risk_register() -> Tuple[float, int]:\n    print(\"=\" * 80)\n    print(\"DAY 79: QUANTITATIVE ARCHITECTURAL RISK REGISTER & EMV ENGINE\")\n    print(\"=\" * 80)\n    \n    risks = [\n        (\"RSK-01\", \"Regional vCPU Quota Exhaustion\", \"Operational\", 4, 5, 3800000.0, \"Mitigate\", \"Lead Platform SRE\"),\n        (\"RSK-02\", \"Cross-Region DB Split-Brain Promotion\", \"Architectural\", 2, 5, 1240000.0, \"Mitigate\", \"Principal Data Architect\"),\n        (\"RSK-03\", \"Unmodeled Inter-Region Egress Shock\", \"Financial\", 4, 3, 250000.0, \"Mitigate\", \"FinOps Manager\"),\n        (\"RSK-04\", \"Third-Party Auth Provider Outage\", \"Vendor/External\", 3, 4, 750000.0, \"Transfer\", \"Identity Lead\"),\n        (\"RSK-05\", \"Day 64 Single-Fulfillment Violation\", \"Business Invariant\", 2, 5, 2000000.0, \"Mitigate\", \"Lead Transaction Architect\"),\n        (\"RSK-06\", \"Sub-Optimal CUD Utilization Rate\", \"Financial\", 3, 2, 80000.0, \"Accept\", \"FinOps Manager\"),\n    ]\n    \n    prob_map = {1: 0.05, 2: 0.15, 3: 0.35, 4: 0.65, 5: 0.90}\n    \n    print(f\"\\n{'ID':<8} | {'Risk Title':<34} | {'L':<2} | {'I':<2} | {'Score':<5} | {'EMV ($)':<12} | {'Treatment':<9} | {'Owner'}\")\n    print(\"-\" * 105)\n    \n    critical_count = 0\n    total_emv = 0.0\n    \n    for rid, title, cat, l, i, max_loss, treat, owner in risks:\n        score = l * i\n        prob = prob_map[l]\n        emv = prob * max_loss\n        total_emv += emv\n        \n        status = \"CRITICAL\" if score >= 15 else (\"HIGH\" if score >= 10 else \"MEDIUM\")\n        if score >= 15:\n            critical_count += 1\n            \n        print(f\"{rid:<8} | {title:<34} | {l:<2} | {i:<2} | {score:<2} ({status[:4]}) | ${emv:>10,.0f} | {treat:<9} | {owner}\")\n        \n    print(\"-\" * 105)\n    print(f\"TOTAL ANNUALIZED EXPECTED MONETARY VALUE (EMV) EXPOSURE: ${total_emv:,.0f}\")\n    print(f\"CRITICAL RISKS REQUIRING IMMEDIATE ARB MITIGATION (Score >= 15): {critical_count}\")\n    \n    assert critical_count >= 2, \"Risk evaluation must detect at least 2 critical architectural risks!\"\n    print(\"\\n>> Risk Register Verification PASSED: All critical risks assigned to named owners.\")\n    print(\"=\" * 80)\n    return total_emv, critical_count\n\nif __name__ == '__main__':\n    evaluate_risk_register()\n```",
+                    "#### Stage 4: Execution & Risk Register Tabulation\nExecute the Risk Register engine:\n\n```sh\npython3 preflight_risk.py && python3 risk_engine.py\n```",
+                    "#### Stage 5: Live Verification & Score Assertions\nAuthor an assertion test ensuring that EMV calculations and risk scoring strictly align with standard probability tables (<kbd>test_risk_assertions.py</kbd>):\n\n```python\n# test_risk_assertions.py\nfrom risk_engine import evaluate_risk_register\n\nemv, crit = evaluate_risk_register()\nassert emv > 3000000.0, f\"Expected total EMV > $3M, got ${emv:,.2f}\"\nassert crit == 2, f\"Expected exactly 2 critical risks (RSK-01, RSK-05), got {crit}\"\nprint(f\"[PASS] Risk assertions verified: Total EMV exposure is ${emv:,.2f}.\")\n```",
+                    "#### Stage 6: Chaos & Unassigned Risk Injection Testing\nSimulate an unassigned high-severity risk to test ARB governance guardrails (<kbd>test_unassigned_risk.py</kbd>):\n\n```python\n# test_unassigned_risk.py\nflawed_risk = {\"ID\": \"RSK-99\", \"Title\": \"Unmonitored Interconnect Drop\", \"Score\": 20, \"Owner\": \"\"}\nassert flawed_risk[\"Owner\"] != \"\", \"[ARB REJECTED] Critical risk detected with empty owner!\"\n```",
+                    "#### Stage 7: Runbook Authoring: Key Risk Indicator (KRI) Alerting Specification\nDefine Terraform alert policies for Cloud Monitoring to track quota consumption and replication lag. Configure notification channels for P1 alerts when quota headroom drops below 25% (<kbd>kri_monitoring.tf</kbd>).",
+                    "#### Stage 8: Teardown & Script Cleanup\nRun final verification and clean up temporary execution scripts:\n\n```sh\npython3 test_risk_assertions.py\n```"
                 ],
                 "verification": (
-                    "Run automated validation test:\n\n```sh\npython3 -c \"import risk_engine; print('Risk Register Engine Verified')\"\n```\n\nConfirm output calculates total Expected Monetary Value (EMV) and identifies all critical architectural risks."
+                    "Run automated validation test:\n\n```sh\npython3 -c \"import risk_engine; risk_engine.evaluate_risk_register(); print('Risk Register Engine Verified')\"\n```\n\nConfirm output calculates total Expected Monetary Value (EMV) and identifies all critical architectural risks."
                 ),
                 "trouble": (
                     "If the assertion fails on critical risks, check that likelihood and impact ratings for RSK-01 (4x5=20) and RSK-05 (2x5=10) match expected parameters."
                 ),
                 "cleanup": (
-                    "Remove temporary Python scripts:\n\n```sh\nrm -f risk_engine.py\n```"
+                    "Remove temporary Python scripts:\n\n```sh\nrm -f preflight_risk.py test_risk_assertions.py test_unassigned_risk.py\n```"
                 ),
                 "accept": "A quantitative risk register documenting likelihood, impact, EMV calculations, and explicit risk owners.",
                 "file": "day-079-risk-register.md"

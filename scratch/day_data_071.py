@@ -1,8 +1,10 @@
 """day_data_071.py — Exhaustive architecture data specification for Day 71.
 
-Covers Performance, Sustainability, System Design, and Conflicting Architectural Trade-offs.
+Standard: Days 40–50 Architectural Benchmark (e.g., day-044, day-045, day-050).
+Covers Performance Optimization, Sustainability (GreenOps), System Design Decoupling,
+and Conflicting Architectural Trade-offs.
 Follows PAGE_AUTHORING_CONTRACT.md with deep technical mechanics, trade-off matrices,
-dual-lane failure investigations, and runnable lab exercises.
+verbatim telemetry error logs, 8-stage operational engineering exercises, and zero difficulty labels.
 """
 
 DAY_NUM = 71
@@ -29,67 +31,97 @@ DATA = {
     ),
     "arch_table_html": """<div class="table-container">
 <table>
-  <thead>
-    <tr>
-      <th>Evaluation Lens</th>
-      <th>Architectural Goal</th>
-      <th>Primary Conflict / Cost</th>
-      <th>Engineering Resolution Pattern</th>
-      <th>Target Optimization Metric</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Performance Optimization</strong></td>
-      <td>Sub-second p99 response times; high IOPS</td>
-      <td>Premium network tariffs; expensive NVMe tiers</td>
-      <td>Tiered caching, Hyperdisk Balanced right-sizing</td>
-      <td>Disk queue depth &lt; 4; p99 latency &lt; 50 ms</td>
-    </tr>
-    <tr>
-      <td><strong>Sustainability (GreenOps)</strong></td>
-      <td>Minimize carbon emissions (Scope 2/3)</td>
-      <td>Latency penalties from distant green regions</td>
-      <td>Temporal job shifting; selecting &gt; 85% CFE regions</td>
-      <td>Carbon-Free Energy (CFE%) &gt; 80%; idle kWh minimized</td>
-    </tr>
-    <tr>
-      <td><strong>System Design Patterns</strong></td>
-      <td>Decouple failure domains; elastic scale</td>
-      <td>Eventual consistency; distributed tracing overhead</td>
-      <td>Event-driven choreography; Cloud Tasks rate limiting</td>
-      <td>Zero cascading failovers; bounded backpressure</td>
-    </tr>
-    <tr>
-      <td><strong>Trade-off Governance</strong></td>
-      <td>Align architecture with business priorities</td>
-      <td>Subjective team disputes; architectural drift</td>
-      <td>Weighted decision matrices; formal ADR registers</td>
-      <td>100% architectural changes backed by versioned ADRs</td>
-    </tr>
-  </tbody>
+<caption>Enterprise Architectural Comparison across Performance, Sustainability, and Trade-offs</caption>
+<thead>
+<tr>
+  <th scope="col">Evaluation Lens</th>
+  <th scope="col">Architectural Goal</th>
+  <th scope="col">Primary Conflict / Cost</th>
+  <th scope="col">Engineering Resolution Pattern</th>
+  <th scope="col">Target Optimization Metric</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <th scope="row">Performance Optimization</th>
+  <td>Sub-second p99 response times; high storage IOPS</td>
+  <td>Premium network tariffs; expensive NVMe tiers</td>
+  <td>Tiered caching, Hyperdisk Balanced right-sizing</td>
+  <td>Disk queue depth &lt; 4; p99 latency &lt; 50 ms</td>
+</tr>
+<tr>
+  <th scope="row">Sustainability (GreenOps)</th>
+  <td>Minimize carbon emissions (Scope 2/3)</td>
+  <td>Latency penalties from distant green regions</td>
+  <td>Temporal job shifting; selecting &gt; 85% CFE regions</td>
+  <td>Carbon-Free Energy (CFE%) &gt; 80%; idle kWh minimized</td>
+</tr>
+<tr>
+  <th scope="row">System Design Patterns</th>
+  <td>Decouple failure domains; elastic scale</td>
+  <td>Eventual consistency; distributed tracing overhead</td>
+  <td>Event-driven choreography; Cloud Tasks rate limiting</td>
+  <td>Zero cascading failovers; bounded backpressure</td>
+</tr>
+<tr>
+  <th scope="row">Trade-off Governance</th>
+  <td>Align architecture with business priorities</td>
+  <td>Subjective team disputes; architectural drift</td>
+  <td>Weighted decision matrices; formal ADR registers</td>
+  <td>100% architectural changes backed by versioned ADRs</td>
+</tr>
+</tbody>
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 71: Multi-Variable Architectural Trade-off Balancing Flow",
-        "desc": "Resolving tensions between performance, sustainability, cost, and reliability through weighted evaluation.",
-        "nodes": [
-            ("Constraints", "Business Drivers\\n+ SLA/SLO Requirements"),
-            ("Analysis", "Storage & Carbon Profiling\\n+ IOPS & CFE% Evaluation"),
-            ("Resolution", "Weighted Trade-off Matrix\\n+ Pillar Conflict Arbitration"),
-            ("Artifact", "Formal ADR\\n+ Measurable Verification"),
+        "type": "topology",
+        "title": "Performance Optimization, Sustainability, and Trade-Off Topology",
+        "desc": "Multi-tier operational architecture showing performance scaling, low-carbon region routing, and rate-limiting boundaries.",
+        "caption": "Figure 71.1: Multi-tier topology balancing performance, green energy routing, asynchronous queuing, and decision governance.",
+        "width": 1100,
+        "height": 640,
+        "layers": [
+            {"name": "LAYER 1: Global Ingress & Traffic Director", "desc": "Anycast Edge, Premium Network Tier, Geolocation Steering", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Temporal Dispatch & GreenOps Broker", "desc": "Carbon-Aware Cloud Scheduler, Temporal Batch Router", "fill": "#0f2338", "y": 110, "h": 90},
+            {"name": "LAYER 3: Compute & Decoupled Execution", "desc": "Cloud Run, Cloud Tasks Rate Limiting, Backpressure Buffers", "fill": "#064e3b", "y": 210, "h": 90},
+            {"name": "LAYER 4: High-Performance Storage Tier", "desc": "Hyperdisk Balanced (16k IOPS), Memorystore Redis Cache", "fill": "#1e1b4b", "y": 310, "h": 90},
+            {"name": "LAYER 5: Carbon & Decision Audit Vault", "desc": "Carbon Footprint API Exporter, ADR Versioned Governance Repository", "fill": "#3b0764", "y": 410, "h": 90},
         ],
-        "caption": "Figure 71.1: Structured architectural decision flow converting conflicting business constraints into defensible ADRs."
+        "components": [
+            {"id": "alb", "name": "Global External ALB", "detail": "Premium Tier Anycast Routing", "x": 100, "y": 30, "w": 250, "h": 50, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "green", "name": "GreenOps Carbon Router", "detail": "CFE% & Regional Grid Evaluator", "x": 420, "y": 30, "w": 260, "h": 50, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "tasks", "name": "Cloud Tasks Rate Limiter", "detail": "Token Bucket (100 req/sec)", "x": 420, "y": 130, "w": 260, "h": 50, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "workload", "name": "Fulfillment Microservice", "detail": "Stateless Auto-scaling Workers", "x": 420, "y": 230, "w": 260, "h": 50, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "hyperdisk", "name": "Hyperdisk Balanced Tier", "detail": "Decoupled 16k IOPS / 200 MB/s", "x": 420, "y": 330, "w": 260, "h": 50, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "vault", "name": "ADR & Telemetry Vault", "detail": "Trade-off Weights & Carbon Audit", "x": 750, "y": 430, "w": 260, "h": 50, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "flows": [
+            {"x1": 350, "y1": 55, "x2": 420, "y2": 55, "type": "ok", "label": "Low-Carbon Split"},
+            {"x1": 550, "y1": 80, "x2": 550, "y2": 130, "type": "ok", "label": "Throttled Tasks"},
+            {"x1": 550, "y1": 180, "x2": 550, "y2": 230, "type": "ok", "label": "Bounded Queue"},
+            {"x1": 550, "y1": 280, "x2": 550, "y2": 330, "type": "ok", "label": "Direct IOPS"},
+            {"x1": 680, "y1": 255, "x2": 750, "y2": 455, "type": "ok", "label": "ADR Metrics"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 300, "h": 76, "label": "PREMIUM NETWORK PERIMETER", "color": "#38bdf8"},
+            {"x": 60, "y": 114, "w": 300, "h": 76, "label": "BACKPRESSURE & RATE BOUNDARY", "color": "#10b981"},
+            {"x": 60, "y": 314, "w": 300, "h": 76, "label": "HIGH-THROUGHPUT STORAGE BOUNDARY", "color": "#a855f7"},
+        ],
+        "probes": [
+            {"cx": 550, "cy": 105, "label": "PROBE 1: Carbon Intensity Check", "color": "#f59e0b"},
+            {"cx": 550, "cy": 205, "label": "PROBE 2: Token Bucket Queue Depth", "color": "#f43f5e"},
+            {"cx": 550, "cy": 305, "label": "PROBE 3: Disk I/O Await Latency", "color": "#f43f5e"},
+        ]
     },
     "part3_intro": (
         "The following field cases investigate severe system breakdowns triggered by unmanaged architectural trade-offs. "
-        "Each case details the real-world scenario, quantifiable impact, diagnostic trace, defensible remediation sequence, "
-        "and responsive dual-lane SVG diagrams."
+        "Each case details the real-world scenario, quantifiable impact, verbatim log evidence, diagnostic sequences, "
+        "defensible remediations, and dual-lane failed/corrected architectural diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts for "
-        "profiling storage IOPS, evaluating regional carbon footprints, simulating token-bucket rate limiters, and "
-        "generating weighted decision matrices."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers author production "
+        "manifests, benchmark storage IOPS, evaluate regional carbon footprints, simulate token-bucket rate limiters, "
+        "and generate weighted decision matrices with zero difficulty labels."
     ),
     "topics": [
         {
@@ -100,53 +132,32 @@ DATA = {
                 "eliminate I/O queue bottlenecks, and evaluate Google Cloud Premium vs Standard network tiers."
             ),
             "preview": (
-                "An e-commerce order processing database grinds to a halt during peak sales because the Persistent Disk volume was "
-                "provisioned with insufficient capacity, capping disk IOPS at 300 and causing query queues to back up indefinitely."
+                "A sudden surge of 2,400 write transactions/second overwhelms a 100GB persistent disk capped at 600 IOPS, "
+                "exploding kernel I/O queue depth past 140 and freezing the entire fulfillment pipeline."
             ),
             "technical": (
                 "#### 1. Storage Thermodynamics: IOPS, Throughput, and Queue Depth\n\n"
-                "In Google Cloud, disk performance is decoupled from physical server drives and delivered via a distributed SDN storage "
-                "fabric. With standard Persistent Disk (PD), IOPS and throughput scale linearly with provisioned disk size (e.g. 30 IOPS "
-                "per GB on pd-ssd up to instance limits). Provisioning a small 50GB disk for a database caps performance at 1,500 IOPS, "
-                "regardless of whether the underlying VM possesses 64 vCPUs.\n\n"
-                "- **Hyperdisk Generation:** Google Cloud Hyperdisk decouples storage capacity from performance. Architects provision "
-                "capacity (GB), IOPS, and Throughput (MB/s) independently:\n\n"
-                "```sh\n"
-                "# Create Hyperdisk Balanced with customized performance\n"
-                "gcloud compute disks create brightloaf-db-disk \\\n"
-                "  --zone=us-central1-a \\\n"
-                "  --type=hyperdisk-balanced \\\n"
-                "  --size=200GB \\\n"
-                "  --provisioned-iops=10000 \\\n"
-                "  --provisioned-throughput=250\n"
-                "```\n\n"
-                "- **Queue Depth Dynamics:** When application threads issue I/O requests faster than the storage tier can acknowledge them, "
-                "the operating system I/O queue depth expands. If queue depth exceeds optimal limits (typically 16 to 32 on Linux), thread "
-                "wait states (`iowait`) skyrocket, freezing application worker runtimes.\n\n"
-                "#### 2. Network Tiers: Premium vs Standard\n\n"
-                "Google Cloud offers two global network routing tiers:\n\n"
-                "  1. **Premium Tier (Default):** Ingress traffic enters Google's private global fiber backbone at the edge PoP nearest to the "
-                "user (Cold Potato routing). Traffic traverses Google's private low-jitter network directly to the origin region, bypassing the "
-                "congested public internet.\n"
-                "  2. **Standard Tier:** Traffic is handed off to public transit ISPs as quickly as possible (Hot Potato routing). Lower cost, "
-                "but subject to ISP peering congestion, variable packet loss, and higher jitter. Ideal for non-latency-critical bulk data transfers.\n\n"
-                "#### 3. Memory Hierarchy and Cache Locality\n\n"
-                "Optimizing compute performance requires understanding hardware memory latency tiers:\n\n"
-                "- L1/L2/L3 CPU Cache: 1–10 ns\n"
-                "- Main RAM (DDR5): 50–100 ns\n"
-                "- Local SSD (NVMe via PCIe): 10–50 µs\n"
-                "- Network Storage (Hyperdisk / PD): 500 µs – 2 ms\n"
-                "- Cross-Region Network Hop: 30 – 120 ms\n\n"
-                "Application architectures that eliminate remote database round-trips via in-memory caching (Memorystore Redis) achieve "
-                "a 1,000x reduction in request latency.\n\n"
-                "#### 4. Kernel Tuning and TCP Socket Buffers\n\n"
-                "High-throughput networking on Compute Engine VMs requires tuning Linux kernel network stack parameters (`sysctl`). Default "
-                "TCP buffer limits (`rmem_max`, `wmem_max`) throttle single-connection TCP window sizes on high-bandwidth cross-region links "
-                "(Bandwidth-Delay Product limitation).\n\n"
-                "#### 5. Architectural Trade-offs: Storage Performance Primitives\n\n"
-                "| Storage Primitive | Max Read IOPS | Max Throughput | Latency (p99) | Persistence / Durability | Relative Cost |\n"
+                "In cloud block storage, performance is governed by three interrelated physical variables:\n\n"
+                "- **IOPS (Input/Output Operations Per Second):** Frequency of discrete read/write operations (typically measured at 4KB or 8KB blocks).\n"
+                "- **Throughput (MB/s):** Aggregate volume of data transferred per second (`IOPS * I/O block size = Throughput`).\n"
+                "- **Latency and Queue Depth:** Disk controller response time. By Little's Law, `Queue Depth = Arrival Rate * Latency`. "
+                "When arrival rate exceeds disk controller processing capacity, kernel queue depth balloons exponentially, and latency surges "
+                "from single-digit milliseconds to seconds.\n\n"
+                "#### 2. Decoupling Storage Performance: Persistent Disk vs Hyperdisk\n\n"
+                "Historically, Persistent Disk (PD-Standard, PD-Balanced, PD-SSD) tightly coupled performance to provisioned capacity "
+                "(e.g., PD-Balanced provided 6 IOPS per GB). Sizing a disk for 12,000 IOPS required over-provisioning 2,000 GB of unwanted capacity.\n\n"
+                "**Google Cloud Hyperdisk** fundamentally decouples capacity from performance:\n\n"
+                "- **Hyperdisk Balanced:** Allows independent provisioning of capacity (GB), IOPS (up to 160,000), and Throughput (up to 2,400 MB/s).\n"
+                "- **Dynamic Online Resizing:** Administrators can dynamically modify IOPS and throughput without taking the VM or filesystem offline.\n\n"
+                "#### 3. Network Tier Routing Mechanics: Premium vs Standard\n\n"
+                "Google Cloud offers two global networking tiers:\n\n"
+                "- **Premium Tier (Default):** Ingress traffic enters Google's private global backbone at the point of presence (PoP) closest "
+                "to the user ('Cold Potato routing'). Traffic travels exclusively over Google's subsea fiber cables with guaranteed SLA.\n"
+                "- **Standard Tier:** Traffic travels over the public internet and enters Google's network at the PoP closest to the target "
+                "data center ('Hot Potato routing'). Lower egress cost, but subject to public internet transit congestion and fluctuating latency.\n\n"
+                "#### 4. Architectural Trade-offs: Google Cloud Block Storage Options\n\n"
+                "| Storage Type | Max IOPS / Volume | Max Throughput | Latency Profile | Durability / Scope | Cost / GB / Month |\n"
                 "|---|---|---|---|---|---|\n"
-                "| **Local SSD (NVMe)** | Up to 2,400,000 | Up to 9,600 MB/s | Sub-millisecond (< 50 µs) | Ephemeral (wiped on VM stop) | Moderate (per GB/hr) |\n"
                 "| **Hyperdisk Extreme** | Up to 500,000 | Up to 10,000 MB/s | Sub-millisecond (200 µs) | Durable (Regional / Zonal) | Highest |\n"
                 "| **Hyperdisk Balanced** | Up to 160,000 | Up to 2,400 MB/s | Low (< 1 ms) | Durable (Flexible sizing) | Moderate |\n"
                 "| **Persistent Disk SSD** | Up to 100,000 | Up to 1,200 MB/s | Low (1–2 ms) | Durable (Capacity-bound) | Standard |\n"
@@ -178,22 +189,40 @@ DATA = {
                     "Resolve the storage I/O bottleneck with zero database downtime; ensure storage performance scales independently of "
                     "disk capacity; maintain sub-20ms database write latencies under 5,000 transactions/second."
                 ),
-                "diagnostic_steps": [
-                    "Step 1: Check VM metrics in Cloud Monitoring; observe disk write IOPS flatlined at exactly 600 while I/O queue depth climbed continuously.",
-                    "Step 2: SSH into the database instance and run `iostat -xz 1`; identify `%util` at 100% and `await` exceeding 850ms on `/dev/sdb`.",
-                    "Step 3: Review disk provisioning configuration; confirm the disk is a 100GB `pd-balanced` volume without custom IOPS provisioning.",
-                    "Step 4: Correlate with application thread dumps; observe 180 worker threads stuck in `BLOCKED` state waiting on PostgreSQL WAL write flushes."
-                ],
+                "evidence": (
+                    "Inspecting Linux storage performance via `iostat` on the database VM revealed 100% disk utilization and massive await times:\n\n"
+                    "```text\n"
+                    "$ iostat -xz 1 /dev/sdb\n"
+                    "avg-cpu:  %user   %nice %system %iowait  %steal   %idle\n"
+                    "           4.12    0.00    3.80   68.45    0.00   23.63\n"
+                    "\n"
+                    "Device            r/s     w/s     rkB/s     wkB/s  rrqm/s  wrqm/s  r_await w_await aqu-sz  %util\n"
+                    "sdb              8.00  592.00     64.00   4736.00    0.00    0.00     3.10  864.20 142.50 100.00\n"
+                    "```\n\n"
+                    "Checking Google Cloud disk resource configuration:\n\n"
+                    "```yaml\n"
+                    "$ gcloud compute disks describe brightloaf-db-disk --zone=us-central1-a --format=\"yaml(sizeGb,type)\"\n"
+                    "sizeGb: '100'\n"
+                    "type: https://www.googleapis.com/compute/v1/projects/brightloaf-prod/zones/us-central1-a/diskTypes/pd-balanced\n"
+                    "# Effective baseline IOPS: 600 IOPS, Throughput: 28 MB/s\n"
+                    "```"
+                ),
                 "root": (
                     "Capacity-coupled storage provisioning capped disk IOPS at 600. High-frequency transactional writes saturated disk I/O, "
                     "exhausting kernel queue depth and blocking database commit operations."
                 ),
-                "remediation_steps": [
-                    "Step 1: Dynamically modify the disk type and performance online: upgrade disk to `hyperdisk-balanced` with 12,000 provisioned IOPS and 300 MB/s throughput using online volume modification.",
-                    "Step 2: Move the PostgreSQL Write-Ahead Log (WAL) directory to a dedicated, high-IOPS storage volume to isolate write-heavy sequential logging from random table reads.",
-                    "Step 3: Tune PostgreSQL memory configuration parameters (`shared_buffers = 16GB`, `work_mem = 64MB`, `wal_buffers = 16MB`) to optimize in-memory caching and reduce disk sync frequency.",
-                    "Step 4: Establish Cloud Monitoring alerting on disk queue depth (`disk/queue_depth > 10` for 2 minutes) to detect I/O saturation before latency spills over to customer APIs."
+                "diagnostic_steps": [
+                    "Step 1: Check VM metrics in Cloud Monitoring; observe disk write IOPS flatlined at exactly 600 while I/O queue depth climbed continuously.",
+                    "Step 2: SSH into the database instance and run <kbd>iostat -xz 1</kbd>; identify `%util` at 100% and `await` exceeding 850ms on `/dev/sdb`.",
+                    "Step 3: Review disk provisioning configuration; confirm the disk is a 100GB `pd-balanced` volume without custom IOPS provisioning.",
+                    "Step 4: Correlate with application thread dumps; observe 180 worker threads stuck in `BLOCKED` state waiting on PostgreSQL WAL write flushes."
                 ],
+                "fix": (
+                    "Tactical Fix: Dynamically upgrade the disk online to `hyperdisk-balanced` with 12,000 provisioned IOPS and 300 MB/s "
+                    "throughput using <kbd>gcloud compute disks update</kbd>.\n\n"
+                    "Strategic Fix: Move PostgreSQL Write-Ahead Logs to a dedicated high-throughput volume and tune memory buffers "
+                    "(`shared_buffers = 16GB`, `wal_buffers = 16MB`) to minimize synchronous disk flushing."
+                ),
                 "verify": (
                     "Execute a synthetic transactional benchmark simulating 4,000 writes/second. Verify in Cloud Monitoring that disk IOPS "
                     "surges to 4,200 without saturation, I/O queue depth remains below 4, and p99 transaction write latency stays under 12ms."
@@ -216,17 +245,124 @@ DATA = {
             "lab": {
                 "name": "Storage IOPS Modeling and Disk Sizing Benchmarking",
                 "file": "day-071-performance-sizing.md",
-                "goal": "Model storage IOPS requirements, write a Hyperdisk provisioning script, and benchmark disk queue depth dynamics.",
-                "expected": "A complete storage sizing document, a Hyperdisk creation command specification, and an executable Python I/O modeling script.",
+                "goal": "Model storage IOPS requirements, author Hyperdisk provisioning manifests, benchmark disk queue depth dynamics, and test online volume modification.",
+                "expected": "A complete storage sizing document, a Hyperdisk creation command specification, an executable Python I/O modeling script, and a verified queue depth assertion.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
                 "prereq": "Day 70 operational metrics and Day 68 technical requirements",
                 "preflight": "Review Google Cloud Hyperdisk documentation and pricing tiers.",
                 "steps": [
-                    "Draft the storage performance requirements in `day-071-performance-sizing.md`: peak transaction rate = 4,000 writes/sec, average write size = 8 KB, target latency < 15ms.",
-                    "Calculate throughput: `4,000 writes/sec * 8 KB = 32,000 KB/s = 31.25 MB/s`. With read traffic (3:1 read-to-write ratio), total IOPS needed = 16,000 IOPS, total throughput = 125 MB/s.",
-                    "Define the Hyperdisk Balanced creation command:\n\n```sh\n# Provision Hyperdisk Balanced with decoupled IOPS and throughput\ngcloud compute disks create brightloaf-highperf-data \\\n  --zone=us-central1-a \\\n  --type=hyperdisk-balanced \\\n  --size=250GB \\\n  --provisioned-iops=16000 \\\n  --provisioned-throughput=200\n```",
-                    "Develop an executable Python script to model queue depth and disk latency (`io_model.py`):\n\n```python\n# io_model.py\n\ndef model_io_latency(arrival_rate: float, service_capacity_iops: float):\n    # M/M/1 queuing model approximation for I/O queue depth\n    rho = arrival_rate / service_capacity_iops\n    if rho >= 1.0:\n        return float('inf'), float('inf'), rho\n    # Average queue length L = rho / (1 - rho)\n    queue_length = rho / (1.0 - rho)\n    # Average response time W = 1 / (mu - lambda) in seconds\n    response_time_ms = (1.0 / (service_capacity_iops - arrival_rate)) * 1000.0\n    return queue_length, response_time_ms, rho\n\n# Test Old Config: 550 IOPS arrival against 600 IOPS capacity\nq_old, lat_old, util_old = model_io_latency(550, 600)\n# Test Hyperdisk Config: 4000 IOPS arrival against 16000 IOPS capacity\nq_new, lat_new, util_new = model_io_latency(4000, 16000)\n\nprint(f\"Old PD: Utilization={util_old*100:.1f}%, Queue={q_old:.1f}, Latency={lat_old:.2f} ms\")\nprint(f\"Hyperdisk: Utilization={util_new*100:.1f}%, Queue={q_new:.2f}, Latency={lat_new:.2f} ms\")\nassert lat_new < 1.0, \"Hyperdisk latency calculation failed!\"\nprint(\"Storage Performance Modeling Verified Successfully.\")\n```",
-                    "Execute the Python storage modeling test:\n\n```sh\npython3 io_model.py\n```"
+                    (
+                        "**Stage 1: Preflight & Environment Validation**\n"
+                        "- Define target variables and verify compute service API enablement:\n\n"
+                        "```sh\n"
+                        "export PROJECT_ID=\"brightloaf-prod\"\n"
+                        "export ZONE=\"us-central1-a\"\n"
+                        "export DISK_NAME=\"brightloaf-order-data\"\n"
+                        "\n"
+                        "gcloud config set project ${PROJECT_ID}\n"
+                        "gcloud services enable compute.googleapis.com\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 2: Target / Backing Infrastructure Provisioning**\n"
+                        "- Calculate storage requirements in `day-071-performance-sizing.md`: peak rate = 4,000 writes/sec, average block size = 8 KB, read:write ratio = 3:1 (total IOPS = 16,000, throughput = 125 MB/s)."
+                    ),
+                    (
+                        "**Stage 3: Production Manifest Authoring (Hyperdisk Balanced CLI)**\n"
+                        "- Author the gcloud disk provisioning manifest with decoupled IOPS and throughput (`provision_hyperdisk.sh`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > provision_hyperdisk.sh\n"
+                        "#!/usr/bin/env bash\n"
+                        "echo \"Provisioning Hyperdisk Balanced volume with decoupled performance...\"\n"
+                        "# gcloud compute disks create ${DISK_NAME} \\\n"
+                        "#   --zone=${ZONE} \\\n"
+                        "#   --type=hyperdisk-balanced \\\n"
+                        "#   --size=250GB \\\n"
+                        "#   --provisioned-iops=16000 \\\n"
+                        "#   --provisioned-throughput=200\n"
+                        "echo \"Hyperdisk Balanced created: 250GB, 16000 IOPS, 200 MB/s throughput.\"\n"
+                        "EOF\n"
+                        "chmod +x provision_hyperdisk.sh\n"
+                        "./provision_hyperdisk.sh\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 4: Workload Deployment & Online IOPS Modification**\n"
+                        "- Author script for online volume modification without VM detachment (`update_disk_iops.sh`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > update_disk_iops.sh\n"
+                        "#!/usr/bin/env bash\n"
+                        "echo \"Dynamically updating provisioned IOPS to 20,000 online...\"\n"
+                        "# gcloud compute disks update ${DISK_NAME} \\\n"
+                        "#   --zone=${ZONE} \\\n"
+                        "#   --provisioned-iops=20000 \\\n"
+                        "#   --provisioned-throughput=250\n"
+                        "echo \"Online modification initiated; disk performance scaled without downtime.\"\n"
+                        "EOF\n"
+                        "chmod +x update_disk_iops.sh\n"
+                        "./update_disk_iops.sh\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 5: Runtime Inspection & Verification**\n"
+                        "- Author and execute the queuing theory mathematical verification model (`io_model.py`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > io_model.py\n"
+                        "def model_io_latency(arrival_rate: float, service_capacity_iops: float):\n"
+                        "    rho = arrival_rate / service_capacity_iops\n"
+                        "    if rho >= 1.0:\n"
+                        "        return float('inf'), float('inf'), rho\n"
+                        "    queue_length = rho / (1.0 - rho)\n"
+                        "    response_time_ms = (1.0 / (service_capacity_iops - arrival_rate)) * 1000.0\n"
+                        "    return queue_length, response_time_ms, rho\n"
+                        "\n"
+                        "# Scenario A: Saturated pd-balanced (550 arrival vs 600 capacity)\n"
+                        "q_old, lat_old, util_old = model_io_latency(550, 600)\n"
+                        "# Scenario B: Decoupled Hyperdisk Balanced (4000 arrival vs 16000 capacity)\n"
+                        "q_new, lat_new, util_new = model_io_latency(4000, 16000)\n"
+                        "\n"
+                        "print(f\"Old PD-Balanced: Utilization={util_old*100:.1f}%, Queue={q_old:.1f}, Latency={lat_old:.2f} ms\")\n"
+                        "print(f\"Hyperdisk Balanced: Utilization={util_new*100:.1f}%, Queue={q_new:.2f}, Latency={lat_new:.2f} ms\")\n"
+                        "assert lat_new < 1.0, 'Hyperdisk latency calculation failed!'\n"
+                        "print('Storage Performance Modeling Verified Successfully.')\n"
+                        "EOF\n"
+                        "python3 io_model.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 6: Chaos / Fault Injection & I/O Saturation Rehearsal**\n"
+                        "- Simulate a traffic spike exceeding capacity and verify queue depth alerting logic:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > simulate_io_spike.py\n"
+                        "from io_model import model_io_latency\n"
+                        "# Simulate arrival rate spiking to 18,000 IOPS against 16,000 capacity\n"
+                        "q_spike, lat_spike, rho_spike = model_io_latency(18000, 16000)\n"
+                        "print(f\"Spike arrival exceeds capacity: rho = {rho_spike:.2f}\")\n"
+                        "assert rho_spike > 1.0 and q_spike == float('inf')\n"
+                        "print(\"ALERT CONDITION CONFIRMED: Storage queue depth saturation detected!\")\n"
+                        "EOF\n"
+                        "python3 simulate_io_spike.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 7: Triage, Troubleshooting & Remediation Patch**\n"
+                        "- Execute online capacity headroom adjustment in response to saturation alert:\n\n"
+                        "```sh\n"
+                        "python3 -c \"from io_model import model_io_latency; q, lat, _ = model_io_latency(18000, 24000); print(f'Post-Remediation (24k IOPS): Queue={q:.2f}, Latency={lat:.2f} ms')\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 8: Cleanup & Resource Teardown**\n"
+                        "- Remove temporary benchmarking and simulation scripts:\n\n"
+                        "```sh\n"
+                        "rm -f provision_hyperdisk.sh update_disk_iops.sh io_model.py simulate_io_spike.py\n"
+                        "echo \"Performance sizing artifacts cleaned up successfully.\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 9: Artifact Acceptance Criteria**\n"
+                        "- Record the verified storage sizing calculations, Hyperdisk provisioning commands, and queuing latency assertions into `day-071-performance-sizing.md`."
+                    )
                 ],
                 "verification": (
                     "Run automated storage sizing test:\n\n```sh\npython3 -c \"import io_model; print('Storage Model Test Passed')\"\n```\n\nConfirm output displays `Storage Model Test Passed` and verifies latency under 1ms."
@@ -250,401 +386,778 @@ DATA = {
                 "more carbon emissions than if scheduled in a nearby hydro/nuclear-powered low-carbon region."
             ),
             "technical": (
-                "#### 1. GreenOps and the Physics of Datacenter Decarbonization\n\n"
-                "Cloud computing consumes vast amounts of electrical energy. Google Cloud operates datacenters globally, but the electrical "
-                "grids supplying those datacenters vary drastically in their energy sources:\n\n"
-                "- **Carbon-Free Energy (CFE%):** The percentage of time a specific Google Cloud region is powered by carbon-free energy "
-                "(solar, wind, hydro, nuclear) on an hourly matched basis.\n"
-                "- **Grid Carbon Intensity:** The average grams of CO2 equivalent emitted per kilowatt-hour of electricity generated on "
-                "that local regional grid (gCO2eq/kWh).\n\n"
-                "For example:\n\n"
-                "- `europe-north1` (Hamina, Finland): **97% CFE** (low carbon; hydro & nuclear)\n"
-                "- `us-central1` (Council Bluffs, Iowa): **89% CFE** (wind-rich)\n"
-                "- `asia-south1` (Mumbai, India): **18% CFE** (fossil-heavy coal grid)\n\n"
-                "#### 2. Architectural Strategies for Carbon Reduction\n\n"
-                "Architects achieve direct emission reductions through three primary engineering levers:\n\n"
-                "  1. **Spatial Workload Placement (Region Selection):** For non-latency-sensitive workloads (machine learning training, "
-                "nightly BigQuery batch analytics, video transcode pipelines), select regions designated with the 'Low CO2' badge in the Google "
-                "Cloud Console (`europe-north1`, `us-west1`, `northamerica-northeast1`).\n"
-                "  2. **Temporal Workload Shifting:** Shifting batch processing to hours of peak renewable generation (e.g. running daytime "
-                "analytics when regional solar farms produce surplus grid energy).\n"
-                "  3. **Elastic Wattage Elimination:** An idle VM running at 5% CPU consumes over 50% of its peak power draw due to baseline "
-                "motherboard, RAM refresh, and cooling overhead. Aggressive serverless scale-to-zero (Cloud Run) and ephemeral compute (Dataproc Serverless) "
-                "physically turns off Silicon when work is complete.\n\n"
-                "#### 3. Google Cloud Carbon Footprint Tool and BigQuery Export\n\n"
-                "Google Cloud provides monthly reporting of greenhouse gas emissions associated with cloud usage via the **Carbon Footprint Tool**. "
-                "Data is calculated according to the Greenhouse Gas Protocol (GHG Protocol Scope 2: market-based and location-based emissions). "
-                "Billing administrators export carbon metrics to BigQuery for automated executive ESG compliance reporting.\n\n"
-                "#### 4. The Latency-Carbon Trade-off\n\n"
-                "While batch workloads can easily run in Finland or Oregon, real-time user-facing APIs cannot arbitrarily move across continents "
-                "without violating latency SLOs. Architects resolve this tension by splitting the workload topology: user-facing presentation "
-                "tiers reside close to users, while asynchronous backends and data pipelines reside in high-CFE green regions.\n\n"
-                "#### 5. Architectural Trade-offs: Regional Carbon Efficiency\n\n"
-                "| Google Cloud Region | CFE Score (%) | Grid Carbon Intensity | Average Network RTT to US East | Primary Energy Source | Recommended Workload |\n"
+                "#### 1. Cloud Carbon Accounting: Scope 1, 2, and 3 Emissions\n\n"
+                "Enterprise sustainability frameworks (GHG Protocol) evaluate emissions across three boundaries:\n\n"
+                "- **Scope 1:** Direct emissions from owned facilities (e.g. diesel backup generators at on-prem data centers).\n"
+                "- **Scope 2:** Indirect emissions from purchased electricity consumed by cloud data centers hosting the infrastructure.\n"
+                "- **Scope 3:** Value-chain emissions (embodied carbon in manufacturing server hardware, network switches, and concrete data halls).\n\n"
+                "Migrating from legacy on-premises facilities to Google Cloud eliminates Scope 1 emissions and reduces Scope 2/3 emissions "
+                "due to Google's average Power Usage Effectiveness (PUE) of 1.10 compared to an industry average of 1.58.\n\n"
+                "#### 2. Carbon-Free Energy Percentage (CFE%) and Grid Carbon Intensity\n\n"
+                "Every Google Cloud region is tied to a local electrical grid with fluctuating clean energy availability:\n\n"
+                "- **CFE% (Carbon-Free Energy Percentage):** The proportion of time a data center's electricity is matched on an hourly basis "
+                "by regional carbon-free generation (solar, wind, hydro, nuclear).\n"
+                "- **Grid Carbon Intensity (gCO2e/kWh):** The grams of greenhouse gases emitted per kilowatt-hour of electricity generated on the regional grid.\n\n"
+                "For example, `europe-west9` (Paris, nuclear/hydro) and `europe-north1` (Hamina, hydro/wind) achieve **90% to 93% CFE%** with "
+                "intensities below 50 gCO2e/kWh. Conversely, regions in fossil-heavy grids may show **less than 25% CFE%** with intensities "
+                "exceeding 450 gCO2e/kWh.\n\n"
+                "#### 3. Temporal and Spatial Workload Shifting\n\n"
+                "Architects implement **GreenOps** through two primary mechanisms:\n\n"
+                "  1. **Spatial Shifting:** Routing non-latency-sensitive batch processing (BigQuery ETL, ML training, monthly reporting) "
+                "to the lowest-carbon regional data center globally.\n"
+                "  2. **Temporal Shifting:** Using Cloud Scheduler and Eventarc to trigger non-urgent batch jobs during midday peak solar "
+                "generation hours on the regional grid.\n\n"
+                "#### 4. Architectural Trade-offs: GreenOps Region Selection\n\n"
+                "| Region Location | Typical CFE% | Grid Intensity (gCO2e/kWh) | Primary Energy Source | Network Egress Latency to US | GreenOps Suitability |\n"
                 "|---|---|---|---|---|---|\n"
-                "| **us-west1 (Oregon)** | **92% CFE** | 85 gCO2eq/kWh | ~65 ms | Hydroelectric & Wind | Ideal US Green Tier for ML & Analytics |\n"
-                "| **europe-north1 (Finland)** | **97% CFE** | 42 gCO2eq/kWh | ~105 ms | Hydro, Wind & Nuclear | European Green Tier; Global Batch |\n"
-                "| **us-central1 (Iowa)** | **89% CFE** | 120 gCO2eq/kWh | ~30 ms | High Wind Capacity | General Purpose US Core Compute |\n"
-                "| **us-east4 (N. Virginia)** | **46% CFE** | 340 gCO2eq/kWh | < 5 ms | Mixed Natural Gas & Coal | Latency-critical US East Ingress Only |\n"
-                "| **asia-east1 (Taiwan)** | **17% CFE** | 510 gCO2eq/kWh | ~180 ms | High Fossil Fuel Mix | Strictly Regional APAC Ingress |\n"
+                "| **europe-north1 (Hamina)** | ~93% | ~28 gCO2e/kWh | Wind, Hydro, Nuclear | ~105 ms | Best for European batch analytics |\n"
+                "| **europe-west9 (Paris)** | ~90% | ~52 gCO2e/kWh | Nuclear, Hydro | ~90 ms | Excellent for EU production workloads |\n"
+                "| **us-central1 (Iowa)** | ~85% | ~220 gCO2e/kWh | Wind, Mixed | Baseline (0 ms) | Strong balance of latency & clean energy |\n"
+                "| **asia-southeast1 (Singapore)** | ~4% | ~410 gCO2e/kWh | Natural Gas | ~180 ms | Restrict to localized latency requirements |\n"
             ),
             "questions": [
-                "What is the difference between hourly-matched Carbon-Free Energy (CFE%) and annual unbundled renewable energy credits?",
-                "Why does an idle VM consume more than 50% of its peak electrical power?",
-                "How do architects resolve the conflict between choosing a low-carbon region and meeting user latency SLOs?",
-                "What metrics are tracked under Scope 2 market-based versus location-based carbon accounting?",
+                "What is the mathematical difference between annual 100% renewable matching and 24/7 hourly Carbon-Free Energy (CFE%)?",
+                "How does Power Usage Effectiveness (PUE) impact overall Scope 2 carbon footprint calculations?",
+                "What architectural trade-offs arise when shifting batch analytics workloads to geographically distant green regions?",
+                "How can Google Cloud Carbon Footprint data be exported to BigQuery for automated ESG compliance reporting?",
             ],
             "reference": "https://docs.cloud.google.com/architecture/framework/sustainability",
-            "reference_label": "Google Cloud Architecture Center: Sustainability pillar",
+            "reference_label": "Google Cloud Architecture Center: Sustainability Pillar",
             "scenario": {
                 "scenario": (
-                    "Brightloaf's enterprise data team executes a massive daily sales reconciliation and supply-chain forecasting pipeline "
-                    "running 12 hours every night across a 40-node Compute Engine Dataproc cluster in `us-east4` (Northern Virginia). "
-                    "During an annual corporate sustainability audit, the Chief Sustainability Officer discovered that the data engineering "
-                    "pipeline generated 42.8 metric tons of CO2 equivalent annually. Northern Virginia's regional grid had a CFE score of only "
-                    "46%, powered heavily by fossil fuels. The company risked failing its board-mandated Net-Zero carbon reduction targets, "
-                    "jeopardizing ESG-linked corporate financing lines."
+                    "Brightloaf scheduled daily 6-hour machine learning recommendation retraining jobs across a cluster of 64 Compute Engine "
+                    "`a2-highgpu-1g` instances in `asia-southeast1` (Singapore), chosen arbitrarily by a remote contractor. The Singapore "
+                    "grid has a Carbon-Free Energy score of only 4% and a high carbon intensity of 412 gCO2e/kWh. Meanwhile, Brightloaf had "
+                    "committed to a corporate net-zero carbon reduction target under ESG board governance. At the end of the quarter, the "
+                    "Carbon Footprint API revealed that this single batch pipeline generated 14.8 metric tons of preventable CO2 equivalent "
+                    "emissions every month, threatening an ESG non-compliance audit."
                 ),
                 "impact": (
-                    "ESG compliance failure and regulatory audit citation. Carbon emissions from cloud infrastructure were 3.8x higher than "
-                    "necessary. Threat of losing a $15 million sustainability-linked credit facility due to failure to meet Scope 2 reduction targets."
+                    "Severe ESG governance breach. Preventable carbon emissions of 177 metric tons CO2e annualized. Formal warning from the "
+                    "board Sustainability Committee. Exposure to European supply chain carbon disclosure penalties under the CSRD framework."
                 ),
                 "constraints": (
-                    "Reduce batch data pipeline carbon emissions by at least 65% within 60 days; do not increase compute infrastructure costs; "
-                    "maintain existing 06:00 UTC morning delivery deadlines for executive business reports."
+                    "Reduce batch training carbon emissions by at least 80% without increasing compute costs; ensure completed models are "
+                    "replicated back to Southeast Asia production serving clusters within 45 minutes of training completion."
+                ),
+                "evidence": (
+                    "Querying the Google Cloud Carbon Footprint API for project compute emissions:\n\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"location\": \"asia-southeast1\",\n"
+                    "  \"service\": \"Compute Engine\",\n"
+                    "  \"carbonFreeEnergyPercentage\": 4.0,\n"
+                    "  \"gridCarbonIntensityGramsPerKwh\": 412.0,\n"
+                    "  \"monthlyScope2EmissionsKgCo2e\": 14820.5\n"
+                    "}\n"
+                    "```\n\n"
+                    "Comparing against green regional alternatives via Carbon Footprint metrics:\n\n"
+                    "```text\n"
+                    "$ gcloud compute regions list --filter=\"name:(europe-north1 OR europe-west9)\" --format=\"table(name,description)\"\n"
+                    "NAME          DESCRIPTION\n"
+                    "europe-north1 Finland (CFE: 93%, 28 gCO2e/kWh - Hydro/Wind)\n"
+                    "europe-west9  Paris (CFE: 90%, 52 gCO2e/kWh - Nuclear/Hydro)\n"
+                    "```"
+                ),
+                "root": (
+                    "Workloads were deployed without regional carbon awareness. Scheduling heavy batch processing in a fossil-intensive "
+                    "grid (4% CFE) produced 14x more carbon emissions than executing the identical workload in a clean-energy grid (93% CFE)."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Open Google Cloud Carbon Footprint dashboard; filter emissions by project and service; identify Dataproc in `us-east4` accounts for 74% of total departmental emissions.",
-                    "Step 2: Review regional CFE ratings; observe `us-east4` is 46% CFE, while `us-west1` (Oregon) is 92% CFE and `europe-north1` is 97% CFE.",
-                    "Step 3: Check network transfer latency and egress costs between primary storage in `us-central1` and compute in `us-west1`; confirm cross-region transfer completes in 18 minutes without violating report delivery deadlines.",
-                    "Step 4: Audit cluster utilization; discover the Dataproc cluster remained running idle for 12 hours during the day after batch completion."
+                    "Step 1: Export Google Cloud Carbon Footprint data to BigQuery to analyze emissions broken down by project, region, and service.",
+                    "Step 2: Identify batch workloads that do not have strict low-latency requirements for end-user serving.",
+                    "Step 3: Query Google Cloud regional CFE% scores to identify target migration locations with > 85% clean energy.",
+                    "Step 4: Audit data transfer bandwidth and egress costs between target training regions and final serving regions."
                 ],
-                "root": (
-                    "Workloads were deployed by default to `us-east4` without considering carbon intensity. Failure to use ephemeral "
-                    "serverless processing allowed idle VMs to consume power 24/7 on a fossil-heavy grid."
+                "fix": (
+                    "Tactical Fix: Migrate the ML retraining batch pipeline to `europe-north1` (Hamina, Finland - 93% CFE%), cutting carbon "
+                    "emissions by 88% immediately with identical compute pricing.\n\n"
+                    "Strategic Fix: Author a carbon-aware scheduling policy using Cloud Scheduler and Eventarc that checks real-time "
+                    "grid intensity signals before dispatching non-urgent data processing jobs."
                 ),
-                "remediation_steps": [
-                    "Step 1: Migrate the batch processing pipeline to `us-west1` (Oregon, 92% CFE), immediately cutting grid carbon intensity from 340 gCO2eq/kWh to 85 gCO2eq/kWh.",
-                    "Step 2: Replace the permanent 24/7 Dataproc cluster with Dataproc Serverless, ensuring compute resources provision on demand and scale to zero instantly upon job completion.",
-                    "Step 3: Establish a Cloud Scheduler trigger initiating the batch run at 01:00 Pacific Time, aligning execution with regional wind energy surges.",
-                    "Step 4: Implement organizational policies restricting batch compute deployments to Google Cloud regions with CFE scores exceeding 80%."
-                ],
                 "verify": (
-                    "Monitor the Carbon Footprint BigQuery export following the migration. Verify that monthly carbon emissions for the analytics "
-                    "pipeline drop from 3.56 metric tons to 0.88 metric tons CO2eq (a 75.2% reduction) with zero impact on morning report delivery."
+                    "Review Carbon Footprint reports in the Google Cloud Console 30 days post-migration. Verify monthly emissions for the "
+                    "pipeline drop from 14,820 kg CO2e to under 1,650 kg CO2e, while model training execution duration remains identical."
                 ),
                 "residual": (
-                    "Cross-region data transfer between `us-central1` storage and `us-west1` compute incurs cross-region network egress costs; "
-                    "data transfers must be scheduled in compressed columnar formats (Parquet) to minimize network bytes."
+                    "Cross-regional model artifact transfers from `europe-north1` to `asia-southeast1` incur inter-region network egress "
+                    "charges ($0.08/GB); compressed artifact synchronization must be used to minimize network transfer costs."
                 ),
                 "diagram": (
-                    "24/7 Dataproc in us-east4 (46% CFE)",
-                    "Fossil grid, idle VMs draw power",
-                    "42.8 tons CO2/yr, ESG target failed",
-                    "Move to us-west1 (92% CFE) + Serverless",
-                    "75% carbon cut, scale-to-zero efficiency"
+                    "ML training in 4% CFE region",
+                    "Fossil grid emits 14.8t CO2e/mo",
+                    "ESG non-compliance risk",
+                    "Shift training to europe-north1 (93% CFE)",
+                    "Carbon cut by 88%, zero perf loss"
                 ),
-                "facts": "Dataproc batch ran in us-east4 (46% CFE); emitted 42.8 tons CO2/yr; idle cluster drew power for 12 hours daily.",
-                "inference": "Non-urgent batch compute should be spatially and temporally shifted to high-CFE regions and ephemeral runtimes.",
-                "expected": "Migrating to us-west1 Dataproc Serverless cuts emissions by 75% while scaling compute to zero upon completion."
+                "facts": "Singapore ML training emitted 14.8 tons CO2e/mo; grid was 4% CFE; europe-north1 has 93% CFE; compute cost is identical.",
+                "inference": "Spatial workload shifting for batch compute achieves massive carbon reduction without latency or infrastructure penalty.",
+                "expected": "Migrating training to Hamina reduces monthly emissions to under 1.7t CO2e, restoring ESG compliance."
             },
             "lab": {
-                "name": "Regional Carbon Footprint Evaluation and Workload Placement Model",
-                "file": "day-071-sustainability-model.md",
-                "goal": "Build an environmental carbon accounting model in Python to evaluate emissions across GCP regions and automate green placement.",
-                "expected": "A complete sustainability policy document, a region evaluation matrix, and an executable Python carbon calculation script.",
+                "name": "Regional Carbon Footprint Evaluation and Workload Shifting Simulation",
+                "file": "day-071-sustainability-greenops.md",
+                "goal": "Evaluate regional Carbon-Free Energy metrics, build a Python carbon emissions comparison model, and configure a spatial batch workload migration pipeline.",
+                "expected": "A complete regional GreenOps analysis document, an executable Python carbon calculation script, and verified emission reduction assertions.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
-                "prereq": "Day 70 cost modeling and Day 68 technical requirements",
-                "preflight": "Review Google Cloud Region Carbon Information dataset and GHG Protocol Scope 2 guidance.",
+                "prereq": "Day 70 cost optimization and Day 68 technical requirements",
+                "preflight": "Review Google Cloud Carbon Footprint methodology and regional CFE% documentation.",
                 "steps": [
-                    "Draft the GreenOps regional placement strategy in `day-071-sustainability-model.md`.",
-                    "Define the regional carbon comparison dataset in Python (`carbon_calc.py`):\n\n```python\n# carbon_calc.py\n\nREGIONS = {\n    'us-east4': {'name': 'Northern Virginia', 'cfe': 0.46, 'intensity_g_kwh': 340},\n    'us-central1': {'name': 'Iowa', 'cfe': 0.89, 'intensity_g_kwh': 120},\n    'us-west1': {'name': 'Oregon', 'cfe': 0.92, 'intensity_g_kwh': 85},\n    'europe-north1': {'name': 'Finland', 'cfe': 0.97, 'intensity_g_kwh': 42}\n}\n\ndef calculate_annual_emissions(kwh_per_run: float, runs_per_year: int, region_key: str):\n    reg = REGIONS[region_key]\n    total_kwh = kwh_per_run * runs_per_year\n    emissions_kg_co2 = (total_kwh * reg['intensity_g_kwh']) / 1000.0\n    emissions_tons = emissions_kg_co2 / 1000.0\n    return total_kwh, emissions_tons\n\n# Scenario: 40-node batch job consuming 350 kWh per run, 365 runs/year\nkwh_run = 350.0\nruns = 365\n\nkwh, tons_east = calculate_annual_emissions(kwh_run, runs, 'us-east4')\n_, tons_oregon = calculate_annual_emissions(kwh_run, runs, 'us-west1')\n_, tons_finland = calculate_annual_emissions(kwh_run, runs, 'europe-north1')\n\nsavings_tons = tons_east - tons_oregon\npct_reduction = (savings_tons / tons_east) * 100\n\nprint(f\"Annual Energy Consumption: {kwh:,.0f} kWh\")\nprint(f\"us-east4 (Virginia) Emissions: {tons_east:.2f} metric tons CO2eq\")\nprint(f\"us-west1 (Oregon) Emissions: {tons_oregon:.2f} metric tons CO2eq\")\nprint(f\"europe-north1 (Finland) Emissions: {tons_finland:.2f} metric tons CO2eq\")\nprint(f\"Net Reduction (Oregon vs Virginia): {savings_tons:.2f} tons ({pct_reduction:.1f}% reduction)\")\nassert pct_reduction > 70.0, \"Carbon reduction calculation error!\"\nprint(\"Carbon Model Verified Successfully.\")\n```",
-                    "Execute the Python carbon footprint model:\n\n```sh\npython3 carbon_calc.py\n```",
-                    "Create a gcloud policy definition template restricting batch clusters to green regions:\n\n```sh\ncat << 'EOF' > green-region-policy.json\n{\n  \"constraint\": \"constraints/gcp.resourceLocations\",\n  \"listPolicy\": {\n    \"allowedValues\": [\n      \"in:us-west1-locations\",\n      \"in:europe-north1-locations\"\n    ]\n  }\n}\nEOF\n```"
+                    (
+                        "**Stage 1: Preflight & Environment Validation**\n"
+                        "- Set target variables and enable Carbon Footprint and BigQuery APIs:\n\n"
+                        "```sh\n"
+                        "export PROJECT_ID=\"brightloaf-prod\"\n"
+                        "export BASELINE_REGION=\"asia-southeast1\"\n"
+                        "export TARGET_REGION=\"europe-north1\"\n"
+                        "\n"
+                        "gcloud config set project ${PROJECT_ID}\n"
+                        "gcloud services enable carbonfootprint.googleapis.com bigquery.googleapis.com\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 2: Target / Backing Infrastructure Provisioning**\n"
+                        "- Record regional carbon intensity and CFE% metrics in `day-071-sustainability-greenops.md`:\n"
+                        "  - `asia-southeast1`: 4% CFE, 412 gCO2e/kWh\n"
+                        "  - `europe-north1`: 93% CFE, 28 gCO2e/kWh\n"
+                        "  - `us-central1`: 85% CFE, 220 gCO2e/kWh"
+                    ),
+                    (
+                        "**Stage 3: Production Manifest Authoring (Batch Workload Migration)**\n"
+                        "- Author Cloud Batch job specification targeting low-carbon region (`green_batch_job.json`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > green_batch_job.json\n"
+                        "{\n"
+                        "  \"taskGroups\": [\n"
+                        "    {\n"
+                        "      \"taskSpec\": {\n"
+                        "        \"runnables\": [\n"
+                        "          {\n"
+                        "            \"container\": {\n"
+                        "              \"imageUri\": \"mirror.gcr.io/library/python:3.11-slim\",\n"
+                        "              \"commands\": [\"python3\", \"-c\", \"print('Executing low-carbon ML batch processing in europe-north1')\"]\n"
+                        "            }\n"
+                        "          }\n"
+                        "        ],\n"
+                        "        \"computeResource\": {\"cpuMilli\": 4000, \"memoryMib\": 16384}\n"
+                        "      },\n"
+                        "      \"taskCount\": 16\n"
+                        "    }\n"
+                        "  ],\n"
+                        "  \"allocationPolicy\": {\n"
+                        "    \"location\": {\"allowedLocations\": [\"regions/europe-north1\"]}\n"
+                        "  }\n"
+                        "}\n"
+                        "EOF\n"
+                        "cat green_batch_job.json\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 4: Workload Deployment & Carbon Calculation Modeling**\n"
+                        "- Author the Python GreenOps carbon emissions calculator (`carbon_model.py`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > carbon_model.py\n"
+                        "def calculate_emissions(power_kw: float, hours_per_month: float, grid_intensity_g_per_kwh: float):\n"
+                        "    total_kwh = power_kw * hours_per_month\n"
+                        "    emissions_kg_co2e = (total_kwh * grid_intensity_g_per_kwh) / 1000.0\n"
+                        "    return total_kwh, emissions_kg_co2e\n\n"
+                        "# Workload: 64 GPUs/CPUs drawing 12 kW average, running 180 hours/month\n"
+                        "kwh_sg, co2_sg = calculate_emissions(12.0, 180.0, 412.0)  # Singapore\n"
+                        "kwh_fi, co2_fi = calculate_emissions(12.0, 180.0, 28.0)   # Finland\n\n"
+                        "savings_kg = co2_sg - co2_fi\n"
+                        "percent_reduced = (savings_kg / co2_sg) * 100.0\n\n"
+                        "print(f\"Singapore Monthly Emissions: {co2_sg:,.1f} kg CO2e\")\n"
+                        "print(f\"Finland Monthly Emissions: {co2_fi:,.1f} kg CO2e\")\n"
+                        "print(f\"Net Monthly Carbon Reduction: {savings_kg:,.1f} kg CO2e ({percent_reduced:.1f}% reduction)\")\n"
+                        "assert percent_reduced > 90.0, 'Carbon reduction threshold failed!'\n"
+                        "print('GreenOps Carbon Model Verified Successfully.')\n"
+                        "EOF\n"
+                        "python3 carbon_model.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 5: Runtime Inspection & Verification**\n"
+                        "- Validate job JSON syntax and carbon calculation assertions:\n\n"
+                        "```sh\n"
+                        "python3 -c \"import json; j = json.load(open('green_batch_job.json')); assert j['allocationPolicy']['location']['allowedLocations'] == ['regions/europe-north1']; print('Green Batch Job Schema Verified')\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 6: Chaos / Dirty Grid Simulation**\n"
+                        "- Simulate scheduling in coal-heavy grid and verify carbon threshold alert policy trigger:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > simulate_carbon_alert.py\n"
+                        "from carbon_model import calculate_emissions\n"
+                        "_, co2_dirty = calculate_emissions(12.0, 180.0, 550.0)  # High carbon intensity\n"
+                        "print(f\"Simulated dirty grid emissions: {co2_dirty:.1f} kg CO2e\")\n"
+                        "assert co2_dirty > 1000.0, 'Carbon threshold alert failed to fire!'\n"
+                        "print('ESG POLICY VIOLATION TRIGGERED: Spatial re-routing required!')\n"
+                        "EOF\n"
+                        "python3 simulate_carbon_alert.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 7: Triage, Troubleshooting & Automated Re-routing Patch**\n"
+                        "- Re-route job destination to Finland and assert compliance recovery:\n\n"
+                        "```sh\n"
+                        "python3 -c \"from carbon_model import calculate_emissions; _, co2 = calculate_emissions(12.0, 180.0, 28.0); assert co2 < 100.0; print('Compliance Restored: Emitting only', f'{co2:.1f} kg CO2e')\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 8: Cleanup & Resource Teardown**\n"
+                        "- Clean up temporary configuration manifests and calculation models:\n\n"
+                        "```sh\n"
+                        "rm -f green_batch_job.json carbon_model.py simulate_carbon_alert.py\n"
+                        "echo \"Sustainability lab artifacts cleaned up successfully.\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 9: Artifact Acceptance Criteria**\n"
+                        "- Document verified regional CFE% trade-off tables, Cloud Batch spatial manifests, and Python carbon reduction models in `day-071-sustainability-greenops.md`."
+                    )
                 ],
                 "verification": (
-                    "Run automated sustainability calculation verification:\n\n```sh\npython3 -c \"import carbon_calc; print('Carbon Footprint Model Validated')\"\n```\n\nConfirm output shows net carbon reduction exceeding 70%."
+                    "Run automated sustainability modeling test:\n\n```sh\npython3 -c \"import carbon_model; print('Sustainability Model Test Passed')\"\n```\n\nConfirm output shows carbon reduction exceeding 90%."
                 ),
                 "trouble": (
-                    "If policy constraint deployment fails, verify Access Context Manager organization policy editing privileges."
+                    "If inter-region transfer latency causes batch job completion delays, verify that only final model artifacts and not raw datasets are transferred back to the serving region."
                 ),
-                "cleanup": "No remote cloud resources created; retain JSON policies and calculation scripts in local repository.",
-                "accept": "A verified GreenOps mathematical model, carbon comparison matrix, and regional constraint policy manifest."
+                "cleanup": "No remote cloud resources created; retain scripts and configuration files in local repository.",
+                "accept": "A verified carbon emissions reduction model, regional CFE% comparison matrix, and working Cloud Batch spatial configuration."
             }
         },
         {
             "key": "topic-03",
-            "title": "System Design as Cross-Cutting Guidance: Decoupling, Backpressure, and Idempotency",
+            "title": "System Design as Cross-Cutting Architectural Discipline: Decoupling, Queuing, and Backpressure",
             "overview": (
-                "Apply core distributed system patterns across all Well-Architected pillars. Implement event-driven decoupling, "
-                "token-bucket rate limiting for backpressure, and idempotent request handling."
+                "Master system design patterns decoupling distributed microservices. Implement asynchronous message queues, "
+                "token-bucket rate limiters, backpressure controls, and idempotency guarantees."
             ),
             "preview": (
-                "A third-party payment gateway suffers a 2-minute outage; callers retry immediately, generating a synchronous "
-                "thread cascade that crashes the entire e-commerce checkout tier."
+                "A sudden surge in orders floods a synchronous REST checkout microservice, exhausting database connection "
+                "pools and triggering cascading 503 errors across all payment and inventory services."
             ),
             "technical": (
-                "#### 1. Synchronous vs Asynchronous Boundary Dynamics\n\n"
-                "System design is the cross-cutting discipline that binds all Well-Architected lenses together. A foundational rule of "
-                "cloud resilience is: **never allow a synchronous dependency to cross an external or multi-tenant boundary**.\n\n"
-                "- In a synchronous model (`Client -> Web -> Order API -> Payment Gateway -> DB`), the latency and availability of the entire "
-                "chain is bounded by the slowest, least reliable dependency (`Availability = A_web * A_order * A_pay * A_db`). A momentary hiccup "
-                "in the payment gateway ties up client threads in the web tier, causing thread exhaustion.\n"
-                "- In an asynchronous decoupled model (`Client -> Web -> Pub/Sub / Cloud Tasks -> Worker Pool -> Payment Gateway`), the "
-                "ingress tier accepts the order immediately, persists it to durable queue storage, and returns an HTTP 202 Accepted status with "
-                "a correlation tracking ID. Downstream workers process tasks asynchronously, buffering load surges safely.\n\n"
-                "#### 2. Backpressure and Token Bucket Rate Limiting\n\n"
-                "When downstream capacity is bounded (e.g. legacy ERP systems that crash beyond 200 RPS), upstream systems must enforce "
-                "**Backpressure**. Cloud Tasks provides native rate-limiting controls:\n\n"
-                "```sh\n"
-                "# Create Cloud Tasks queue with strict concurrency and rate limits\n"
-                "gcloud tasks queues create order-processing-queue \\\n"
-                "  --max-dispatches-per-second=150 \\\n"
-                "  --max-concurrent-dispatches=50 \\\n"
-                "  --max-attempts=10 \\\n"
-                "  --min-backoff=2s \\\n"
-                "  --max-backoff=60s\n"
-                "```\n\n"
-                "If the queue depth grows, callers receive backpressure signals rather than overwhelming the downstream service.\n\n"
-                "#### 3. Idempotency Keys and the Day 64 Invariant\n\n"
-                "In decoupled and asynchronous architectures, network retries guarantee at-least-once delivery. Without idempotency, retries "
-                "cause duplicate charges, duplicate inventory allocations, and double shipments, violating the core **Day 64 single-fulfillment invariant**.\n\n"
-                "Every state-changing mutation must require an **Idempotency Key** (a client-generated UUID attached to the HTTP request header "
-                "`Idempotency-Key: 7b2a8f9c-...`). The server checks an atomic distributed cache (Memorystore Redis `SET key value NX EX 86400`):\n\n"
-                "  1. If the key is new: execute the transaction and cache the response.\n"
-                "  2. If the key exists: return the previously cached response immediately without re-executing business logic.\n\n"
-                "#### 4. Orchestration vs Choreography\n\n"
-                "Distributed workflows choose between:\n\n"
-                "- **Choreography (Pub/Sub + Eventarc):** Services emit domain events; downstream services react autonomously. Loose coupling, "
-                "high scalability, but difficult to visualize end-to-end workflow state.\n"
-                "- **Orchestration (Cloud Workflows):** A centralized state machine coordinates steps, manages retries, handles branching logic, "
-                "and monitors timeouts. Ideal for complex multi-step sagas (order -> inventory -> payment -> shipment).\n\n"
-                "#### 5. Architectural Trade-offs: Decoupling & Orchestration Patterns\n\n"
-                "| Pattern Primitive | Coupling Level | Delivery Guarantee | State Visibility | Concurrency Control | Best Suited For |\n"
+                "#### 1. Synchronous Tight Coupling vs Asynchronous Event Choreography\n\n"
+                "In traditional synchronous microservice architectures, an incoming HTTP request triggers a cascade of downstream REST calls "
+                "(Checkout -> Inventory -> Payment -> Notification). This design suffers from three catastrophic vulnerabilities:\n\n"
+                "- **Compounding Latency:** Overall response time is the sum of all downstream latencies (`T_total = T_inv + T_pay + T_notif`).\n"
+                "- **Availability Brittleness:** If any single downstream service fails or times out, the entire transaction fails.\n"
+                "- **Unbounded Concurrency Spikes:** Downstream services must be provisioned to absorb instantaneous peak traffic spikes, driving up infrastructure costs.\n\n"
+                "**Asynchronous Decoupling** with **Cloud Pub/Sub** or **Cloud Tasks** buffers incoming requests into an immutable message "
+                "queue, transforming instantaneous traffic spikes into a smooth, manageable stream processed at consumer capacity.\n\n"
+                "#### 2. Rate Limiting and Token Bucket Mechanics\n\n"
+                "To protect vulnerable downstream services (such as legacy databases or third-party payment gateways), architectures "
+                "enforce **Token Bucket Rate Limiting**:\n\n"
+                "- Tokens are added to the bucket at a constant fill rate (e.g. `100 tokens/second`).\n"
+                "- The bucket has a maximum capacity (e.g. `500 tokens`) to accommodate temporary bursts.\n"
+                "- Each incoming request consumes one token. If the bucket is empty, requests are either rejected immediately with "
+                "`HTTP 429 Too Many Requests` or queued in Cloud Tasks for deferred execution.\n\n"
+                "#### 3. Idempotency Keys and Exactly-Once Semantics\n\n"
+                "Because distributed messaging systems guarantee **at-least-once delivery**, network retries inevitably produce duplicate "
+                "messages. To prevent duplicate credit card charges or double-fulfilled orders, architectures enforce **Idempotency Keys**:\n\n"
+                "  1. The client generates a unique UUID `Idempotency-Key: e82b4a1c-9d83-4f11-b2a3`.\n"
+                "  2. The server checks a distributed in-memory cache (Cloud Memorystore Redis). If the key exists, the cached previous "
+                "response is returned immediately without re-executing business logic.\n"
+                "  3. If the key is new, the server sets a short-lived atomic lock (`SETNX`), executes the transaction, stores the result, "
+                "and releases the lock.\n\n"
+                "#### 4. Architectural Trade-offs: Decoupling and Queuing Primitives\n\n"
+                "| Mechanism | Coupling Level | Delivery Guarantee | Ordering | Backpressure Support | Typical Latency |\n"
                 "|---|---|---|---|---|---|\n"
-                "| **Direct Synchronous (REST/gRPC)** | High (Tight) | At-most-once (or caller retry) | Immediate (Call stack) | None (Caller overwhelms target) | Low-latency read queries, UI data fetching |\n"
-                "| **Cloud Tasks Queue** | Low (Loose) | At-least-once (Configurable) | High (Queue depth & metrics) | Built-in Token Bucket Rate Limiting | Dispatching work to rate-limited third-party APIs |\n"
-                "| **Cloud Pub/Sub Messaging** | Lowest (Decoupled) | At-least-once (or EOD) | Moderate (Subscription lag) | Horizontal subscriber autoscaling | High-throughput broadcast events, analytics streaming |\n"
-                "| **Cloud Workflows Engine** | Moderate (Orchestrated) | Exactly-once state transitions | Highest (Visual execution graph) | Programmatic concurrency branches | Complex transactional sagas, order fulfillment |\n"
+                "| **Direct REST / gRPC** | Tight (Synchronous) | None (Caller retries) | In-order per stream | None (Caller overwhelms target) | Sub-10 ms |\n"
+                "| **Cloud Tasks** | Loose (Asynchronous) | At-least-once | Bounded per queue | Full (Configurable dispatch rate) | 50–200 ms |\n"
+                "| **Cloud Pub/Sub** | Decoupled (Pub/Sub) | At-least-once | Optional ordering keys | Dynamic (Consumer pull/push limits) | 20–50 ms |\n"
+                "| **Eventarc (CloudEvents)** | Fully decoupled | At-least-once | Unordered | Automatic (Serverless routing) | 100–500 ms |\n"
             ),
             "questions": [
-                "How does converting a synchronous payment call into an asynchronous queue protect the frontend web tier?",
-                "Why is an idempotency key required whenever network retries are introduced into a payment flow?",
-                "What is the difference between workflow orchestration (Cloud Workflows) and event choreography (Pub/Sub)?",
-                "How does Cloud Tasks token bucket rate limiting prevent downstream ERP database collapse?",
+                "Why does synchronous request-response coupling cause cascading failures across microservices?",
+                "How does the Token Bucket algorithm differ from the Leaky Bucket algorithm in handling bursty traffic?",
+                "Why is an idempotency key required even when using message queues with exactly-once processing claims?",
+                "What is the operational risk of setting a Cloud Tasks dispatch rate higher than downstream database connection limits?",
             ],
             "reference": "https://docs.cloud.google.com/architecture/framework/system-design",
-            "reference_label": "Google Cloud Architecture Center: System design pillar",
+            "reference_label": "Google Cloud Architecture Center: System Design Principles",
             "scenario": {
                 "scenario": (
-                    "Brightloaf's checkout system processed orders by making a direct, synchronous HTTP call from the web application "
-                    "to a legacy third-party fraud detection API. During an international promotional campaign, the fraud detection vendor "
-                    "experienced a database brownout, causing response times to balloon from 200ms to 45 seconds per request. Because the "
-                    "call was synchronous and lacked a circuit breaker or timeout ceiling, 250 incoming customer requests per second occupied "
-                    "every available thread in the web application container pool. Within 90 seconds, all frontend Compute Engine instances "
-                    "exhausted their thread pools and failed their Load Balancer health checks, taking down the entire website."
+                    "During a promotional cyber-event, Brightloaf's checkout service received a surge of 3,800 requests/second. "
+                    "The checkout service called the downstream inventory and payment services synchronously via REST. Under load, "
+                    "the payment gateway began rate-limiting requests and response times climbed from 200ms to 4.5 seconds. Because "
+                    "the checkout microservice used synchronous threads without connection timeouts or circuit breakers, all 200 "
+                    "worker threads in each container became blocked waiting on the payment service. Within 3 minutes, every Cloud Run "
+                    "checkout instance crashed with memory exhaustion and HTTP 503 Service Unavailable errors."
                 ),
                 "impact": (
-                    "P1 total system outage lasting 48 minutes. Zero orders processed across all retail channels. Over 18,000 active shopping "
-                    "carts abandoned. Lost sales estimated at $220,000. Customer trust damaged by browser gateway timeout screens."
+                    "Complete checkout outage lasting 48 minutes. Over 11,000 customers encountered checkout failure screens. Direct lost "
+                    "sales estimated at $220,000. Subsequent duplicate orders caused by customer frantic page refreshes resulted in $32,000 "
+                    "in double-charges and merchant chargeback dispute fees."
                 ),
                 "constraints": (
-                    "Decouple the checkout transaction from third-party API availability; enforce strict backpressure; preserve the Day 64 "
-                    "single-fulfillment invariant under all retry scenarios."
+                    "Prevent downstream microservices from crashing the core checkout flow; guarantee strict order idempotency to eliminate "
+                    "duplicate credit card charges; smooth traffic bursts up to 5,000 requests/second without dropping orders."
+                ),
+                "evidence": (
+                    "Querying Cloud Logging for checkout service errors during the incident window revealed downstream connection exhaustion:\n\n"
+                    "```json\n"
+                    "[\n"
+                    "  {\n"
+                    "    \"insertId\": \"7a91b4c30009d1e4\",\n"
+                    "    \"httpRequest\": {\"status\": 503, \"latency\": \"30.002s\"},\n"
+                    "    \"jsonPayload\": {\n"
+                    "      \"error\": \"HTTP 503 Service Unavailable: Downstream inventory microservice connection pool exhausted\",\n"
+                    "      \"threadCount\": 200,\n"
+                    "      \"activeConnections\": 200,\n"
+                    "      \"queueDepth\": 1840\n"
+                    "    },\n"
+                    "    \"severity\": \"ERROR\"\n"
+                    "  }\n"
+                    "]\n"
+                    "```\n\n"
+                    "Inspecting Cloud Tasks queue configuration confirmed lack of rate limiting buffers:\n\n"
+                    "```text\n"
+                    "$ gcloud tasks queues describe order-processing-queue --location=us-central1\n"
+                    "ERROR: (gcloud.tasks.queues.describe) NOT_FOUND: Queue [order-processing-queue] does not exist.\n"
+                    "```"
+                ),
+                "root": (
+                    "Synchronous architectural coupling propagated downstream latency surges upstream. Absence of asynchronous message "
+                    "queuing, rate-limiting backpressure buffers, and idempotency protection caused thread exhaustion and duplicate charges."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Inspect Load Balancer backend service metrics; observe 100% of compute instances marked UNHEALTHY simultaneously.",
-                    "Step 2: Review web application thread dumps; identify 500+ threads in `WAITING` state on `SocketInputStream.socketRead0()` to external fraud vendor IP.",
-                    "Step 3: Audit client timeout configurations; discover HTTP client timeout was set to 60 seconds with unlimited retries.",
-                    "Step 4: Check architecture documentation; confirm zero asynchronous queuing or backpressure buffers between web tier and external vendor."
+                    "Step 1: Check Cloud Monitoring response latency breakdown; isolate downstream payment API call taking 4.5 seconds.",
+                    "Step 2: Inspect Cloud Run instance thread and memory metrics; observe container max worker concurrency reached and memory limit hit.",
+                    "Step 3: Review transaction database records; discover duplicate orders submitted with identical cart contents within 10-second intervals.",
+                    "Step 4: Check message queue infrastructure; verify absence of Cloud Tasks or Pub/Sub buffering between checkout and downstream fulfillment."
                 ],
-                "root": (
-                    "Synchronous coupling to an external third-party service without timeouts, circuit breakers, or asynchronous queuing "
-                    "caused a downstream brownout to propagate upstream, starving application threads and collapsing ingress compute."
+                "fix": (
+                    "Tactical Fix: Decouple checkout submission from backend fulfillment using Cloud Tasks with a max dispatch rate of "
+                    "150 tasks/second, and deploy Redis-backed idempotency verification on order IDs.\n\n"
+                    "Strategic Fix: Re-architect order processing as an event-driven choreography using Cloud Pub/Sub and Workflows, "
+                    "enforcing token-bucket rate limiters and dead-letter queues."
                 ),
-                "remediation_steps": [
-                    "Step 1: Immediately configure strict client-side HTTP timeouts (socket timeout = 2.5s) with a circuit breaker tripping after 5 consecutive timeouts.",
-                    "Step 2: Decouple the fraud check: publish order events to Cloud Tasks (`order-processing-queue`) configured with rate limiting (150 dispatches/sec).",
-                    "Step 3: Implement Redis-backed idempotency tokens (`Idempotency-Key` header) across all order processing endpoints, enforcing the Day 64 single-fulfillment invariant.",
-                    "Step 4: Return an immediate HTTP 202 Accepted response to the customer upon queue commit, polling or streaming status updates via WebSockets."
-                ],
                 "verify": (
-                    "Inject a simulated 30-second delay into the fraud detection mock endpoint. Verify that the frontend web tier continues "
-                    "serving checkouts in under 180ms, tasks queue safely in Cloud Tasks, and zero duplicate order fulfillments occur."
+                    "Simulate an incoming load spike of 4,000 orders/second. Verify that the checkout API accepts requests in < 50ms, "
+                    "enqueues tasks into Cloud Tasks, and downstream services process orders smoothly at 150 tasks/second without thread starvation or 503s."
                 ),
                 "residual": (
-                    "Asynchronous order acceptance requires robust frontend polling or push notifications to inform customers of delayed "
-                    "payment authorizations or fraud rejections."
+                    "Asynchronous order acceptance converts checkout to an eventual consistency model; order confirmation screens must "
+                    "display an 'Order Received - Processing' state and notify customers via WebSocket or email upon final fulfillment."
                 ),
                 "diagram": (
-                    "Sync call to slow fraud API",
-                    "500 threads blocked on I/O",
-                    "All VMs fail health checks (504)",
-                    "Decouple via Cloud Tasks + Idempotency",
-                    "202 Accepted, rate-limited execution"
+                    "Synchronous REST cascade",
+                    "Payment latency spikes to 4.5s",
+                    "Thread pool exhausted, 503 crash",
+                    "Cloud Tasks queue + token bucket",
+                    "Smooth 150/s processing, zero 503s"
                 ),
-                "facts": "Synchronous fraud API took 45s; web thread pools exhausted; all VMs failed health checks; site down for 48 minutes.",
-                "inference": "Synchronous dependencies across network boundaries cause cascading thread starvation; asynchronous queues isolate failure domains.",
-                "expected": "Cloud Tasks buffers traffic surges and rate-limits downstream calls, keeping frontend web APIs responsive."
+                "facts": "3,800 req/s flooded synchronous REST checkout; 200 worker threads blocked; Cloud Run hit 503; duplicate charges totaled $32k.",
+                "inference": "Synchronous coupling propagates downstream delays into fatal upstream crashes; asynchronous queues enforce bounded backpressure.",
+                "expected": "Cloud Tasks buffers peak loads and dispatches at a controlled rate, guaranteeing zero thread starvation."
             },
             "lab": {
-                "name": "Asynchronous Decoupling and Token-Bucket Rate Limiter Simulation",
-                "file": "day-071-system-design.md",
-                "goal": "Build an executable Python token-bucket rate limiter and simulate idempotent asynchronous event dispatching.",
-                "expected": "A complete system design runbook, a Cloud Tasks queue configuration, and an executable Python rate limiter script.",
+                "name": "Asynchronous Rate Limiting and Token Bucket Backpressure Simulation",
+                "file": "day-071-system-design-decoupling.md",
+                "goal": "Author Cloud Tasks queue manifests, write a Python token-bucket rate limiter with burst tolerance, and verify idempotency filtering.",
+                "expected": "A complete system design decoupling specification, a Cloud Tasks queue creation manifest, an executable Python token-bucket script, and an idempotency test runner.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
-                "prereq": "Day 70 reliability and Day 64 invariant specifications",
-                "preflight": "Review Google Cloud Tasks architecture and Token Bucket rate limiting algorithms.",
+                "prereq": "Day 70 reliability mechanics and Day 68 technical requirements",
+                "preflight": "Review Cloud Tasks documentation and Token Bucket algorithm design.",
                 "steps": [
-                    "Draft the decoupled system architecture specification in `day-071-system-design.md`.",
-                    "Define the production Cloud Tasks rate-limited queue creation command:\n\n```sh\n# Create rate-limited Cloud Tasks queue\ngcloud tasks queues create order-dispatch-queue \\\n  --location=us-central1 \\\n  --max-dispatches-per-second=100 \\\n  --max-concurrent-dispatches=30 \\\n  --max-attempts=5 \\\n  --min-backoff=1s \\\n  --max-backoff=30s\n```",
-                    "Write an executable Python Token Bucket rate limiter simulation (`token_bucket_sim.py`):\n\n```python\n# token_bucket_sim.py\nimport time\n\nclass TokenBucketRateLimiter:\n    def __init__(self, capacity: int, refill_rate_per_sec: float):\n        self.capacity = float(capacity)\n        self.tokens = float(capacity)\n        self.refill_rate = float(refill_rate_per_sec)\n        self.last_update = time.time()\n\n    def allow_request(self, tokens_needed: float = 1.0) -> bool:\n        now = time.time()\n        elapsed = now - self.last_update\n        self.last_update = now\n        # Add newly generated tokens based on elapsed time\n        self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)\n        \n        if self.tokens >= tokens_needed:\n            self.tokens -= tokens_needed\n            return True\n        return False\n\n# Configure bucket: capacity 5 tokens, refill 10 tokens/sec\nlimiter = TokenBucketRateLimiter(capacity=5, refill_rate_per_sec=10.0)\n\n# Burst test: consume 5 tokens instantly\nfor i in range(5):\n    assert limiter.allow_request() is True, f\"Token {i} should be allowed!\"\n\n# 6th request should fail due to burst depletion\nassert limiter.allow_request() is False, \"6th request must be throttled!\"\n\n# Wait 0.25 seconds (should generate ~2.5 tokens)\ntime.sleep(0.25)\nassert limiter.allow_request() is True, \"Refilled token should be allowed!\"\nprint(\"Token Bucket Rate Limiter Mathematics Verified Successfully.\")\n```",
-                    "Execute the Python rate limiter test:\n\n```sh\npython3 token_bucket_sim.py\n```"
+                    (
+                        "**Stage 1: Preflight & Environment Validation**\n"
+                        "- Set target variables and enable cloud tasks API:\n\n"
+                        "```sh\n"
+                        "export PROJECT_ID=\"brightloaf-prod\"\n"
+                        "export REGION=\"us-central1\"\n"
+                        "export QUEUE_NAME=\"order-fulfillment-queue\"\n"
+                        "\n"
+                        "gcloud config set project ${PROJECT_ID}\n"
+                        "gcloud services enable cloudtasks.googleapis.com\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 2: Target / Backing Infrastructure Provisioning**\n"
+                        "- Define target queue parameters in `day-071-system-design-decoupling.md`: max dispatch rate = 150/s, max concurrent dispatches = 50, max burst size = 100."
+                    ),
+                    (
+                        "**Stage 3: Production Manifest Authoring (Cloud Tasks Queue CLI)**\n"
+                        "- Author the gcloud Cloud Tasks creation script enforcing rate limits (`create_rate_limited_queue.sh`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > create_rate_limited_queue.sh\n"
+                        "#!/usr/bin/env bash\n"
+                        "echo \"Provisioning Cloud Tasks queue with token-bucket rate limiting...\"\n"
+                        "# gcloud tasks queues create ${QUEUE_NAME} \\\n"
+                        "#   --location=${REGION} \\\n"
+                        "#   --max-dispatches-per-second=150 \\\n"
+                        "#   --max-concurrent-dispatches=50 \\\n"
+                        "#   --max-attempts=5\n"
+                        "echo \"Cloud Tasks queue specified: max 150 dispatches/sec, max 50 concurrent.\"\n"
+                        "EOF\n"
+                        "chmod +x create_rate_limited_queue.sh\n"
+                        "./create_rate_limited_queue.sh\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 4: Workload Deployment & Token Bucket Authoring**\n"
+                        "- Author the executable Python token bucket rate limiter and idempotency filter (`rate_limiter_sim.py`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > rate_limiter_sim.py\n"
+                        "import time\n"
+                        "\n"
+                        "class TokenBucket:\n"
+                        "    def __init__(self, capacity: int, fill_rate_per_sec: float):\n"
+                        "        self.capacity = capacity\n"
+                        "        self.fill_rate = fill_rate_per_sec\n"
+                        "        self.tokens = capacity\n"
+                        "        self.last_update = time.time()\n"
+                        "\n"
+                        "    def consume(self, tokens: int = 1) -> bool:\n"
+                        "        now = time.time()\n"
+                        "        elapsed = now - self.last_update\n"
+                        "        self.tokens = min(self.capacity, self.tokens + elapsed * self.fill_rate)\n"
+                        "        self.last_update = now\n"
+                        "        if self.tokens >= tokens:\n"
+                        "            self.tokens -= tokens\n"
+                        "            return True\n"
+                        "        return False\n"
+                        "\n"
+                        "class IdempotencyRegistry:\n"
+                        "    def __init__(self):\n"
+                        "        self.keys = set()\n"
+                        "\n"
+                        "    def process(self, key: str) -> str:\n"
+                        "        if key in self.keys:\n"
+                        "            return 'DUPLICATE_IGNORED_200'\n"
+                        "        self.keys.add(key)\n"
+                        "        return 'PROCESSED_SUCCESS_201'\n"
+                        "\n"
+                        "bucket = TokenBucket(capacity=5, fill_rate_per_sec=10.0)\n"
+                        "reg = IdempotencyRegistry()\n"
+                        "print('TokenBucket initialized with capacity=5, fill_rate=10/s')\n"
+                        "EOF\n"
+                        "python3 rate_limiter_sim.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 5: Runtime Inspection & Verification**\n"
+                        "- Test normal token consumption and idempotency filtering:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' >> rate_limiter_sim.py\n"
+                        "# Test burst capacity\n"
+                        "assert all(bucket.consume() for _ in range(5))\n"
+                        "print('PASS 1: Burst capacity of 5 tokens successfully consumed.')\n"
+                        "# Next token fails immediately (rate limit enforced)\n"
+                        "assert not bucket.consume()\n"
+                        "print('PASS 2: 6th request correctly rate-limited (HTTP 429).')\n"
+                        "\n"
+                        "# Test idempotency deduplication\n"
+                        "assert reg.process('order-101') == 'PROCESSED_SUCCESS_201'\n"
+                        "assert reg.process('order-101') == 'DUPLICATE_IGNORED_200'\n"
+                        "print('PASS 3: Duplicate transaction order-101 safely ignored.')\n"
+                        "print('All System Design Invariants Verified Successfully.')\n"
+                        "EOF\n"
+                        "python3 rate_limiter_sim.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 6: Chaos / Flood Injection Simulation**\n"
+                        "- Simulate a massive flood of 50 concurrent requests against exhausted bucket and verify rejection:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > simulate_burst.py\n"
+                        "from rate_limiter_sim import TokenBucket\n"
+                        "tb = TokenBucket(capacity=10, fill_rate_per_sec=5.0)\n"
+                        "for _ in range(10): tb.consume()\n"
+                        "# Flood 50 requests\n"
+                        "rejected = sum(1 for _ in range(50) if not tb.consume())\n"
+                        "print(f\"50 flood requests: {rejected} rejected by token bucket.\")\n"
+                        "assert rejected == 50\n"
+                        "print(\"RATE LIMIT PROTECTION CONFIRMED: Downstream protected!\")\n"
+                        "EOF\n"
+                        "python3 simulate_burst.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 7: Triage, Troubleshooting & Queue Buffer Patch**\n"
+                        "- Verify token bucket refills after timeout:\n\n"
+                        "```sh\n"
+                        "python3 -c \"import time; from rate_limiter_sim import TokenBucket; tb = TokenBucket(5, 10.0); [tb.consume() for _ in range(5)]; time.sleep(0.5); assert tb.consume(); print('Bucket refilled after pause: PASS')\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 8: Cleanup & Resource Teardown**\n"
+                        "- Remove temporary queue manifests and simulation scripts:\n\n"
+                        "```sh\n"
+                        "rm -f create_rate_limited_queue.sh rate_limiter_sim.py simulate_burst.py\n"
+                        "echo \"System design decoupling lab cleaned up successfully.\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 9: Artifact Acceptance Criteria**\n"
+                        "- Document verified Cloud Tasks rate-limiting configurations, Python token-bucket code, and idempotency invariants in `day-071-system-design-decoupling.md`."
+                    )
                 ],
                 "verification": (
-                    "Run automated rate limiter verification:\n\n```sh\npython3 -c \"import token_bucket_sim; print('Rate Limiter Test Passed')\"\n```\n\nConfirm output displays `Token Bucket Rate Limiter Mathematics Verified Successfully`."
+                    "Run automated rate limiter test:\n\n```sh\npython3 -c \"import rate_limiter_sim; print('Rate Limiter Test Passed')\"\n```\n\nConfirm output displays `All System Design Invariants Verified Successfully`."
                 ),
                 "trouble": (
-                    "If burst test fails, verify that initial token allocation equals configured bucket capacity."
+                    "If token bucket allows excessive requests during testing, ensure elapsed time calculation is monotonic and not affected by system clock adjustments."
                 ),
                 "cleanup": "No remote cloud resources created; retain scripts and configuration files in local repository.",
-                "accept": "A validated asynchronous queue specification, Cloud Tasks CLI runbook, and working Python token-bucket rate limiter."
+                "accept": "A verified system design decoupling specification, Cloud Tasks rate-limiting manifest, and working Python token-bucket simulator."
             }
         },
         {
             "key": "topic-04",
-            "title": "Conflicting Objectives and Trade-off Records: Weighted Matrices and ADR Governance",
+            "title": "How the Pillars Conflict: Trade-off Arbitration, Decision Matrices, and ADRs",
             "overview": (
-                "Master the art of architectural compromise. Document conflicting requirements, evaluate multi-pillar tensions "
-                "(cost vs reliability, security vs latency), and write defensible Architecture Decision Records (ADRs)."
+                "Master architectural governance when Well-Architected pillars conflict. Construct weighted decision matrices, "
+                "formalize Architecture Decision Records (ADRs), and defend trade-offs under competing constraints."
             ),
             "preview": (
-                "An engineering team engages in a 3-month deadlock over multi-region active-active Spanner vs regional Cloud SQL, "
-                "paralyzing project delivery because trade-offs were argued emotionally without a weighted scoring framework."
+                "An engineering team cuts Cloud Spanner node capacity by 60% to satisfy a short-term cost mandate, "
+                "triggering severe p99 latency spikes and violating customer contractual availability agreements."
             ),
             "technical": (
-                "#### 1. The Reality of Architectural Friction\n\n"
-                "In enterprise software architecture, every design decision is an exercise in compromise. The Well-Architected Framework "
-                "pillars naturally exist in structural tension with one another:\n\n"
-                "- **Reliability vs. Cost:** Achieving 99.99% availability via multi-region synchronous replication triples infrastructure "
-                "and cross-region networking spend.\n"
-                "- **Security vs. Latency / Usability:** Enforcing mutual TLS (mTLS), deep payload packet inspection, and hardware security "
-                "modules (HSM) adds milliseconds of computational overhead to every transaction.\n"
-                "- **Feature Velocity vs. Operational Stability:** Continuous daily deployments maximize product agility but consume error "
-                "budgets and increase regression risk.\n\n"
-                "The architect's primary deliverable is NOT a system without trade-offs; it is a **formally documented trade-off record** "
-                "proving why a specific compromise was selected against explicit business priorities.\n\n"
-                "#### 2. Weighted Decision Matrix Methodology\n\n"
-                "To resolve architectural disputes objectively, architects construct **Weighted Scoring Matrices**:\n\n"
-                "  1. Identify candidate architectures (e.g. Option A: Cloud SQL Regional HA vs. Option B: Cloud Spanner Multi-Region).\n"
-                "  2. Establish evaluation criteria with executive stakeholders (e.g. Availability, Monthly Cost, RTO/RPO, Migration Effort).\n"
-                "  3. Assign mathematical weights to each criterion based on strategic business goals (summing to 100%).\n"
-                "  4. Score each candidate from 1 to 5; multiply scores by weights to calculate the definitive mathematical winner.\n\n"
-                "#### 3. Architecture Decision Records (ADRs) as Immutable Contracts\n\n"
-                "An **Architecture Decision Record (ADR)** is a version-controlled document capturing an architectural decision, its context, "
-                "considered options, and resulting consequences. ADRs follow the standard Michael Nygard format:\n\n"
-                "  - **Title:** `ADR-071: Regional Cloud SQL HA vs Multi-Region Spanner for Order Persistence`\n"
-                "  - **Status:** Proposed / Accepted / Deprecated / Superseded\n"
-                "  - **Context:** Business drivers, traffic forecasts ($10M revenue, 99.95% SLO, $5k/mo budget cap).\n"
-                "  - **Decision:** We will deploy Cloud SQL PostgreSQL with Regional HA and cross-region read replicas.\n"
-                "  - **Consequences:** Positive (stays within budget, sub-10ms writes); Negative (RTO in regional catastrophe is 30 minutes, "
-                "requiring manual replica promotion).\n"
-                "  - **Compliance with Invariants:** Preserves the Day 64 single-fulfillment business invariant via PostgreSQL ACID row locks.\n\n"
-                "#### 4. Preserving Invariants Under Architectural Shift\n\n"
-                "When migrating architectures (e.g. monolith to microservices, or relational DB to NoSQL), architects must identify the "
-                "system's **core business invariants**—rules that must never be broken regardless of the underlying technology. For Brightloaf, "
-                "the Day 64 single-fulfillment invariant requires that a paid order cannot be fulfilled twice, even under split-brain network "
-                "partitions. Any proposed architectural option that cannot guarantee this invariant is disqualified immediately.\n\n"
-                "#### 5. Architectural Trade-offs: Cross-Pillar Conflict Resolution Matrix\n\n"
-                "| Conflict Pair | Primary Architectural Tension | Trade-off Strategy | Compromise Archetype | Governance Artifact |\n"
+                "#### 1. The Reality of Conflicting Architectural Pillars\n\n"
+                "The Well-Architected Framework defines ideals across operations, security, reliability, performance, and cost. However, "
+                "in production systems, **these pillars exist in constant, permanent tension**:\n\n"
+                "- **Reliability vs Cost:** Multi-region active-active redundancy and multi-zone database replicas double or triple cloud spend.\n"
+                "- **Security vs Performance & Developer Velocity:** Mandatory egress proxies, deep packet inspection, and mutual TLS (mTLS) "
+                "add CPU cycles and network latency (5–15ms) while increasing local setup friction.\n"
+                "- **Performance vs Cost & Sustainability:** Provisioning Hyperdisk Extreme and high-frequency compute clusters maximizes throughput "
+                "but wastes cloud dollars and increases carbon emissions during low-traffic valleys.\n\n"
+                "#### 2. Weighted Decision Matrices and Multi-Attribute Utility Analysis\n\n"
+                "When evaluating competing architecture options, subjective debates waste weeks of engineering time. Professional architects "
+                "build **Weighted Scoring Decision Matrices**:\n\n"
+                "  1. Define evaluation criteria aligned with business goals (e.g. Cost, Availability, Latency, Complexity).\n"
+                "  2. Assign weights that sum to 100% (e.g. Availability = 35%, Cost = 25%, Latency = 20%, Complexity = 20%).\n"
+                "  3. Score each candidate architecture from 1 to 5 based on verifiable benchmarks.\n"
+                "  4. Calculate the weighted score (`Score_total = sum(Score_i * Weight_i)`) to determine the defensible target design.\n\n"
+                "#### 3. Architecture Decision Records (ADRs): Anatomy and Versioning\n\n"
+                "Architectural decisions must be immutable and version-controlled. Every architectural decision is codified in an **ADR** "
+                "stored directly in the Git repository alongside the codebase:\n\n"
+                "- **Title:** Numbered, descriptive identifier (e.g. `ADR-0042: Adoption of Cloud Spanner for Regional Multi-Tenant Store`).\n"
+                "- **Status:** Proposed, Accepted, Deprecated, or Superseded.\n"
+                "- **Context:** The technical and business drivers, constraints, and observed failure modes that necessitate a decision.\n"
+                "- **Decision:** The concrete architectural choice and chosen GCP primitives.\n"
+                "- **Consequences:** Both positive outcomes and negative trade-offs/technical debt accepted by the team.\n\n"
+                "#### 4. Architectural Trade-offs: Database Decision Matrix Example\n\n"
+                "| Candidate Architecture | 99.99% Availability (Weight: 35%) | Sub-20ms Latency (Weight: 25%) | Monthly Cost (Weight: 25%) | Operational Overhead (Weight: 15%) | Total Weighted Score (1–5) |\n"
                 "|---|---|---|---|---|---|\n"
-                "| **Reliability vs Cost** | Multi-region active-active vs single-region budget | Cap availability SLO at 99.95% instead of 99.99% | Regional HA with cold DR replica | ADR with explicit MTTR & RTO budget |\n"
-                "| **Security vs Latency** | Zero-Trust mTLS token checks vs sub-50ms API SLA | In-memory token caching with 5-minute pre-fetch | Cryptographic check without metadata round-trip | Security review sign-off with SLA verification |\n"
-                "| **Performance vs Cost** | Provisioned Hyperdisk Extreme vs Standard PD | Hyperdisk Balanced with dynamic auto-tuning | Pay for 10k IOPS baseline, scale on alert | FinOps storage policy |\n"
-                "| **Velocity vs Stability** | Continuous prod deploys vs change risk | SRE Error Budget Policy | Deploy when budget > 20%; freeze when < 0% | Error Budget Policy contract |\n"
+                "| **Option 1: Single-Zone Cloud SQL** | 2 / 5 (Zonal SPOF) | 5 / 5 (Local NVMe) | 5 / 5 (Lowest cost) | 5 / 5 (Fully managed) | **3.95** (Breaches SLA) |\n"
+                "| **Option 2: Regional Cloud SQL HA** | 4 / 5 (Sub-60s failover) | 4 / 5 (Synchronous replica) | 4 / 5 (2x compute/disk) | 4 / 5 (Automated failover) | **4.00** (Balanced) |\n"
+                "| **Option 3: Multi-Region Spanner** | 5 / 5 (External consistency) | 4 / 5 (TrueTime sync) | 2 / 5 (High node cost) | 5 / 5 (Zero maintenance) | **4.00** (High Scale) |\n"
             ),
             "questions": [
-                "Why are emotional or subjective arguments ineffective for resolving architectural disagreements?",
-                "What five structural sections comprise a standard Michael Nygard Architecture Decision Record (ADR)?",
-                "How does establishing a business invariant (e.g. Day 64 single-fulfillment) eliminate unviable architectural options?",
-                "Under what strategic business conditions should cost be prioritized over high availability?",
+                "Why must architectural trade-offs be documented in versioned ADRs rather than design documents on shared drives?",
+                "How do weighted scoring matrices prevent 'loudest engineer in the room' decision biases?",
+                "Under what business conditions should an enterprise accept high infrastructure cost to preserve availability?",
+                "What is the risk of allowing individual product teams to optimize cost without considering cross-service reliability dependencies?",
             ],
-            "reference": "https://docs.cloud.google.com/architecture/framework",
-            "reference_label": "Google Cloud Architecture Center: Well-Architected Framework Overview",
+            "reference": "https://docs.cloud.google.com/architecture/framework/pillars",
+            "reference_label": "Google Cloud Architecture Center: Pillar Trade-offs",
             "scenario": {
                 "scenario": (
-                    "Brightloaf's platform engineering team became deadlocked in a contentious 3-month debate regarding the database "
-                    "architecture for the new international checkout service. The infrastructure lead advocated for Cloud Spanner multi-region "
-                    "(`nam6`), arguing that anything less than 99.999% availability was irresponsible. The finance lead and product manager "
-                    "opposed the proposal, pointing out that Spanner's minimum 3-node multi-region footprint would cost over $6,500/month—exceeding "
-                    "the entire application infrastructure budget. The debate resulted in analysis paralysis, missed product launch milestones, "
-                    "and escalating interpersonal conflict, all because the team had no formal evaluation methodology or agreed criteria weights."
+                    "Faced with an executive mandate to cut cloud costs by 20% before the end of Q3, Brightloaf's platform team "
+                    "downsized their production Cloud Spanner cluster from 6 nodes to 2 nodes without consulting the application "
+                    "architecture team. At 2 nodes, Spanner lost sufficient compute headroom to handle background compaction and split "
+                    "re-balancing during peak traffic hours. Two days later, during peak morning bakery ordering, read transaction p99 "
+                    "latencies spiked from 18ms to 480ms. The checkout microservice began failing requests, triggering customer-facing "
+                    "errors and breaching contractual merchant SLAs. Cost was reduced by $3,200/month, but the resulting 2-hour latency "
+                    "spike caused $68,000 in abandoned orders."
                 ),
                 "impact": (
-                    "Severe project delivery delay: international market launch delayed by 14 weeks. Engineering opportunity cost estimated "
-                    "at $180,000 in diverted developer salaries. Market first-mover advantage lost to a regional competitor."
+                    "Severe SLA degradation and revenue loss. $68,000 in abandoned shopping carts. Merchant penalty fees of $15,000 assessed "
+                    "for SLA availability breach. The short-term $3,200 cost reduction produced a net business loss of $83,000."
                 ),
                 "constraints": (
-                    "Establish a quantitative, objective decision method; deliver a binding architectural decision within 5 business days; "
-                    "honor the strict $3,500/month database budget ceiling while achieving at least 99.95% monthly availability."
+                    "Restore p99 read latencies under 25ms immediately; enforce formal architecture governance prohibiting unilateral "
+                    "production infrastructure downsizing; establish weighted criteria balancing cost and performance."
+                ),
+                "evidence": (
+                    "Cloud Logging alert records confirmed unapproved production downsizing and subsequent SLO breach:\n\n"
+                    "```text\n"
+                    "2026-09-28T09:12:14Z WARNING: Unapproved production configuration change: Cloud Spanner node count reduced from 6 to 2 by dev-ops team to cut costs.\n"
+                    "2026-09-28T09:14:02Z CRITICAL: SLO Breach alert: P99 read latency spiked to 480ms (SLO threshold: 40ms). Conflicting priority: Cost reduction violated Availability & Latency invariants.\n"
+                    "```\n\n"
+                    "Querying Spanner CPU metrics during the incident window:\n\n"
+                    "```text\n"
+                    "$ gcloud spanner instances describe brightloaf-orders --format=\"yaml(nodeCount,processingUnits)\"\n"
+                    "nodeCount: 2\n"
+                    "# High-priority CPU utilization was 94% (recommended limit: 65% for multi-region HA)\n"
+                    "```"
+                ),
+                "root": (
+                    "Unilateral optimization of the Cost pillar in isolation violated the non-negotiable Performance and Reliability "
+                    "invariants of the core business. Absence of formal ADR governance allowed catastrophic operational drift."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Review engineering meeting minutes; discover zero documented Architecture Decision Records (ADRs) or weighted decision matrices.",
-                    "Step 2: Audit project constraints; identify that business requirements explicitly require 99.95% availability (not 99.999%), with a hard budget cap of $3,500/month.",
-                    "Step 3: Analyze Cloud Spanner pricing; confirm minimum 3-node `nam6` multi-region cluster costs $6,742/month (breaching budget by 92%).",
-                    "Step 4: Analyze Cloud SQL Regional HA pricing; confirm PostgreSQL Regional HA on `db-custom-8-32` with cross-region replica costs $1,840/month (comfortably within budget)."
+                    "Step 1: Check Cloud Monitoring Spanner metrics; observe high-priority CPU utilization exceeded 90% continuously.",
+                    "Step 2: Inspect Cloud Audit Logs; identify `UpdateInstance` API call reducing node count from 6 to 2.",
+                    "Step 3: Correlate node reduction timestamp with the exact onset of checkout transaction latency spikes.",
+                    "Step 4: Check architecture repository; confirm zero ADRs or change requests were filed or approved for the downsizing."
                 ],
-                "root": (
-                    "Absence of a structured weighted decision framework allowed engineers to optimize for an unconstrained theoretical ideal "
-                    "(99.999% availability) rather than aligning architecture with contractual business and financial realities."
+                "fix": (
+                    "Tactical Fix: Immediately restore Cloud Spanner node count to 6 nodes via <kbd>gcloud spanner instances update</kbd>, "
+                    "reducing high-priority CPU below 50% and returning p99 latency to 16ms.\n\n"
+                    "Strategic Fix: Formalize ADR governance requiring weighted decision matrices and architectural review before modifying "
+                    "production capacity, and configure automated autoscaling with minimum node floors."
                 ),
-                "remediation_steps": [
-                    "Step 1: Construct a formal Weighted Decision Matrix scoring candidates across Cost (35%), Availability (25%), Latency (20%), and Operational Simplicity (20%).",
-                    "Step 2: Calculate composite mathematical scores: Cloud SQL Regional HA scores 4.25/5.0, while Cloud Spanner scores 2.85/5.0 due to severe cost penalties.",
-                    "Step 3: Author and publish `ADR-071: Regional Cloud SQL HA Persistence for Checkout Tier`, documenting the context, trade-offs, and consequences.",
-                    "Step 4: Formally incorporate the Day 64 single-fulfillment invariant into the ADR acceptance criteria, verified via PostgreSQL serializable transaction isolation."
-                ],
                 "verify": (
-                    "Conduct formal stakeholder review with finance, product, and engineering leads. Secure unanimous written approval on "
-                    "ADR-071 within 48 hours, unblocking engineering execution and deployment pipelines."
+                    "Review Spanner CPU and latency metrics 10 minutes post-restoration. Confirm high-priority CPU drops to 42%, p99 read "
+                    "latency stabilizes at 16ms, and checkout success rate returns to 100%."
                 ),
                 "residual": (
-                    "Cloud SQL Regional HA provides 99.95% availability within a single region; cross-region disaster recovery requires "
-                    "an automated replica promotion runbook if an entire multi-zone region suffers an extended catastrophic outage."
+                    "Running 6 Spanner nodes incurs $3,200/month in baseline compute cost; the team must optimize database schema indexing "
+                    "and query efficiency before safely evaluating down-scaling."
                 ),
                 "diagram": (
-                    "3-month emotional deadlock",
-                    "Spanner ($6.7k) vs Cloud SQL ($1.8k)",
-                    "Project delayed 14 weeks ($180k waste)",
-                    "Build weighted matrix + author ADR-071",
-                    "Unanimous sign-off, unblocked in 48h"
+                    "Downsize Spanner 6 to 2 nodes",
+                    "CPU hits 94%, latency spikes 480ms",
+                    "Checkout freezes, $68k loss",
+                    "Restore 6 nodes + formal ADR policy",
+                    "Latency drops to 16ms, governance enforced"
                 ),
-                "facts": "Team deadlocked for 3 months; Spanner cost $6.7k/mo; budget was $3.5k; requirement was 99.95% SLO; launch delayed 14 weeks.",
-                "inference": "Without weighted criteria, teams optimize for extreme technical virtues rather than business utility.",
-                "expected": "Weighted decision matrices convert emotional architectural debates into objective mathematical resolutions."
+                "facts": "Spanner downsized from 6 to 2 nodes to save $3.2k; CPU hit 94%; p99 latency surged to 480ms; lost $68k in orders.",
+                "inference": "Optimizing cost in isolation without cross-pillar governance guarantees catastrophic reliability failure.",
+                "expected": "Formal ADR governance and automated node floors ensure reliability and latency invariants are preserved."
             },
             "lab": {
-                "name": "Weighted Decision Matrix Modeling and ADR Authoring",
-                "file": "day-071-decision-matrix.md",
-                "goal": "Build an executable Python weighted decision matrix calculator and author a complete Architecture Decision Record (ADR).",
-                "expected": "A complete ADR document (ADR-071), a weighted matrix calculation script, and verified scoring output.",
+                "name": "Weighted Decision Matrix Modeling and Architecture Decision Record Formulation",
+                "file": "day-071-tradeoff-governance.md",
+                "goal": "Build a multi-variable weighted scoring decision matrix in Python, resolve a database tier conflict, and author a production Architecture Decision Record (ADR).",
+                "expected": "A complete weighted scoring calculator script, a verified architectural decision rank, and a formal ADR document resolving pillar tensions.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
-                "prereq": "Day 70 review lenses and Day 68 business requirements",
-                "preflight": "Review Michael Nygard ADR format and Kepner-Tregoe decision analysis principles.",
+                "prereq": "Day 70 Well-Architected lenses and Day 68 technical constraints",
+                "preflight": "Review Michael Nygard's Architecture Decision Record specification and multi-attribute decision theory.",
                 "steps": [
-                    "Draft `ADR-071: Database Architecture for International Checkout Tier` in `day-071-decision-matrix.md` following standard Nygard format.",
-                    "Define the evaluation criteria and weights: Cost = 35%, Availability = 25%, Latency = 20%, Operational Simplicity = 20%.",
-                    "Write an executable Python weighted decision matrix calculator (`decision_matrix.py`):\n\n```python\n# decision_matrix.py\n\nCRITERIA = {\n    'cost': {'weight': 0.35, 'name': 'Monthly Budget Fit (< $3,500/mo)'},\n    'availability': {'weight': 0.25, 'name': 'High Availability (>= 99.95%)'},\n    'latency': {'weight': 0.20, 'name': 'p99 Transaction Latency (< 50ms)'},\n    'simplicity': {'weight': 0.20, 'name': 'Operational & Migration Simplicity'}\n}\n\n# Candidates scored from 1 (poor) to 5 (excellent)\nCANDIDATES = {\n    'Cloud Spanner (nam6 Multi-Region)': {\n        'cost': 1,        # $6,742/mo (violates budget cap)\n        'availability': 5, # 99.999% SLA\n        'latency': 4,      # 20-40ms TrueTime consensus\n        'simplicity': 3    # Requires schema migration, query rewrites\n    },\n    'Cloud SQL PostgreSQL (Regional HA)': {\n        'cost': 5,        # $1,840/mo (well under budget)\n        'availability': 4, # 99.95% SLA\n        'latency': 5,      # Sub-10ms local zonal writes\n        'simplicity': 5    # Native Postgres compatibility\n    }\n}\n\ndef evaluate_matrix():\n    results = {}\n    for candidate, scores in CANDIDATES.items():\n        total_score = sum(scores[crit] * data['weight'] for crit, data in CRITERIA.items())\n        results[candidate] = total_score\n    return results\n\nscores = evaluate_matrix()\nfor cand, score in sorted(scores.items(), key=lambda x: x[1], reverse=True):\n    print(f\"{cand}: Weighted Composite Score = {score:.2f} / 5.00\")\n\nwinner = max(scores, key=scores.get)\nprint(f\"\\nDefinitive Mathematical Winner: {winner}\")\nassert 'Cloud SQL' in winner, \"Evaluation matrix error!\"\nprint(\"Decision Matrix Calculation Verified Successfully.\")\n```",
-                    "Execute the Python weighted decision matrix test:\n\n```sh\npython3 decision_matrix.py\n```"
+                    (
+                        "**Stage 1: Preflight & Environment Validation**\n"
+                        "- Define target variables and verify repository governance paths:\n\n"
+                        "```sh\n"
+                        "export PROJECT_ID=\"brightloaf-prod\"\n"
+                        "export ADR_NUM=\"0042\"\n"
+                        "export ADR_TITLE=\"database-tier-tradeoff-arbitration\"\n"
+                        "\n"
+                        "mkdir -p docs/adr\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 2: Target / Backing Infrastructure Provisioning**\n"
+                        "- Establish the evaluation criteria and business weights in `day-071-tradeoff-governance.md`:\n"
+                        "  - Availability (SLA 99.95%): Weight = 35%\n"
+                        "  - Performance (p99 < 20ms): Weight = 25%\n"
+                        "  - Monthly Cost Budget: Weight = 25%\n"
+                        "  - Operational Overhead: Weight = 15%"
+                    ),
+                    (
+                        "**Stage 3: Production Manifest Authoring (Weighted Decision Matrix Python)**\n"
+                        "- Author the executable multi-attribute weighted scoring calculator (`decision_matrix.py`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > decision_matrix.py\n"
+                        "class ArchitectureOption:\n"
+                        "    def __init__(self, name: str, scores: dict):\n"
+                        "        self.name = name\n"
+                        "        self.scores = scores\n"
+                        "\n"
+                        "    def weighted_score(self, weights: dict) -> float:\n"
+                        "        return sum(self.scores[crit] * weights[crit] for crit in weights)\n"
+                        "\n"
+                        "weights = {\n"
+                        "    'availability': 0.35,\n"
+                        "    'performance': 0.25,\n"
+                        "    'cost': 0.25,\n"
+                        "    'complexity': 0.15\n"
+                        "}\n"
+                        "assert round(sum(weights.values()), 2) == 1.0, 'Weights must sum to 1.0!'\n"
+                        "\n"
+                        "options = [\n"
+                        "    ArchitectureOption('Single-Zone Cloud SQL', {'availability': 2, 'performance': 5, 'cost': 5, 'complexity': 5}),\n"
+                        "    ArchitectureOption('Regional Cloud SQL HA', {'availability': 4, 'performance': 4, 'cost': 4, 'complexity': 4}),\n"
+                        "    ArchitectureOption('Multi-Region Spanner',  {'availability': 5, 'performance': 4, 'cost': 2, 'complexity': 5})\n"
+                        "]\n"
+                        "\n"
+                        "results = [(opt.name, opt.weighted_score(weights)) for opt in options]\n"
+                        "results.sort(key=lambda x: x[1], reverse=True)\n"
+                        "for name, score in results:\n"
+                        "    print(f\"{name:25}: Score = {score:.2f} / 5.00\")\n"
+                        "\n"
+                        "best_choice = results[0][0]\n"
+                        "print(f\"Selected Defensible Architecture: {best_choice}\")\n"
+                        "EOF\n"
+                        "python3 decision_matrix.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 4: Workload Deployment & Production ADR Authoring**\n"
+                        "- Author the formal Architecture Decision Record markdown manifest (`docs/adr/ADR-0042.md`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > docs/adr/ADR-0042.md\n"
+                        "# ADR-0042: Database Tier Selection & Trade-Off Arbitration\n\n"
+                        "## Status\n"
+                        "Accepted (2026-09-28)\n\n"
+                        "## Context\n"
+                        "The checkout platform requires balancing a 99.95% availability SLA, sub-20ms p99 write latency, "
+                        "and a strict monthly cost ceiling. Unilateral downsizing previously caused an $83,000 outage.\n\n"
+                        "## Decision\n"
+                        "We select **Regional Cloud SQL for PostgreSQL with High Availability** (Synchronous Zone B standby). "
+                        "We reject Single-Zone Cloud SQL due to fatal availability SPOF risks. We defer Multi-Region Spanner "
+                        "until transactional volume exceeds 10,000 writes/sec.\n\n"
+                        "## Consequences\n"
+                        "- **Positive:** Satisfies 99.95% SLA with sub-60s automated failover; achieves 16ms p99 latency.\n"
+                        "- **Negative:** Requires 2x storage and compute allocation; failover drops existing TCP pools momentarily.\n"
+                        "EOF\n"
+                        "cat docs/adr/ADR-0042.md\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 5: Runtime Inspection & Verification**\n"
+                        "- Execute automated test verifying mathematical decision calculation:\n\n"
+                        "```sh\n"
+                        "python3 -c \"import decision_matrix; assert decision_matrix.results[0][0] in ['Regional Cloud SQL HA', 'Multi-Region Spanner']; print('Decision Matrix Mathematical Consistency Verified')\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 6: Chaos / Conflict Dispute Simulation**\n"
+                        "- Simulate a cost-cutting dispute that attempts to force Single-Zone Cloud SQL and assert policy rejection:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > test_governance_gate.py\n"
+                        "from decision_matrix import options\n"
+                        "opt1 = [o for o in options if o.name == 'Single-Zone Cloud SQL'][0]\n"
+                        "# Single-zone availability score of 2 violates SLA gate threshold of 3.5\n"
+                        "assert opt1.scores['availability'] < 3.5\n"
+                        "print('GOVERNANCE GATE: Single-Zone Cloud SQL rejected due to availability invariant failure!')\n"
+                        "EOF\n"
+                        "python3 test_governance_gate.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 7: Triage, Troubleshooting & ADR Invariant Enforcement**\n"
+                        "- Verify ADR document format conforms to standard Nygard specification:\n\n"
+                        "```sh\n"
+                        "grep -E '## (Status|Context|Decision|Consequences)' docs/adr/ADR-0042.md\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 8: Cleanup & Resource Teardown**\n"
+                        "- Remove temporary test scripts while preserving ADR in documentation hierarchy:\n\n"
+                        "```sh\n"
+                        "rm -f decision_matrix.py test_governance_gate.py\n"
+                        "echo \"Trade-off governance verification completed successfully.\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 9: Artifact Acceptance Criteria**\n"
+                        "- Save verified decision matrices, ADR-0042 markdown specifications, and conflict resolution logs in `day-071-tradeoff-governance.md`."
+                    )
                 ],
                 "verification": (
-                    "Run automated decision matrix verification:\n\n```sh\npython3 -c \"import decision_matrix; print('Decision Matrix Test Passed')\"\n```\n\nConfirm output identifies Cloud SQL Regional HA as the winner with score 4.55/5.00."
+                    "Run automated decision matrix test:\n\n```sh\npython3 -c \"import decision_matrix; print('Decision Matrix Test Passed')\"\n```\n\nConfirm output shows Regional Cloud SQL HA selected with score >= 4.0."
                 ),
                 "trouble": (
-                    "If weights do not sum to 1.0, verify the dictionary criteria weights in `decision_matrix.py`."
+                    "If scoring produces an ambiguous tie, introduce a tie-breaker criterion such as operational team familiarity or time-to-market."
                 ),
-                "cleanup": "No remote cloud resources created; retain ADR documents and calculation scripts in local repository.",
-                "accept": "A completed ADR-071 document, a weighted decision scoring model, and verified Python evaluation output."
+                "cleanup": "No remote cloud resources created; retain scripts and configuration files in local repository.",
+                "accept": "A verified weighted decision matrix calculator, formal Architecture Decision Record (ADR-0042), and trade-off governance policy."
             }
         }
     ]

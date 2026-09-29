@@ -204,7 +204,12 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
     desc = arch_diagram.get("desc", "Multi-tier operational architecture showing infrastructure layers, request traces, and security boundaries.")
     caption = arch_diagram.get("caption", "Architecture topology, request traces, and boundary verification.")
     vb_w = arch_diagram.get("width", 1100)
-    vb_h = arch_diagram.get("height", 640)
+    raw_probes = arch_diagram.get("probes", [])
+    # Provide generous canvas height if probes exist
+    default_h = 660 if raw_probes else 620
+    vb_h = arch_diagram.get("height", default_h)
+    if raw_probes and vb_h < 660:
+        vb_h = 660
 
     layers_html = []
     for l in arch_diagram.get("layers", []):
@@ -213,12 +218,15 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
         lw = l.get("w", vb_w - 20)
         lx = l.get("x", 10)
         fill = l.get("fill", "#1e3a5f")
-        op = l.get("opacity", 0.5)
+        op = l.get("opacity", 0.45)
         title_color = l.get("title_color", "#93c5fd")
+        # Full layer container
         layers_html.append(f'<rect x="{lx}" y="{ly}" width="{lw}" height="{lh}" rx="6" fill="{fill}" opacity="{op}"/>')
-        layers_html.append(f'<text x="{lx + 14}" y="{ly + 28}" font-family="monospace" font-size="13" fill="{title_color}" font-weight="bold">{escape(l.get("name", ""))}</text>')
+        # Crisp, dedicated Layer Header Strip across top of layer (strictly above components at ly + 20)
+        layers_html.append(f'<rect x="{lx}" y="{ly}" width="{lw}" height="18" rx="4" fill="#090d16" stroke="{title_color}" stroke-opacity="0.3" stroke-width="1"/>')
+        layers_html.append(f'<text x="{lx + 12}" y="{ly + 13}" font-family="monospace" font-size="9.5" fill="{title_color}" font-weight="bold">{escape(l.get("name", ""))}</text>')
         if l.get("desc"):
-            layers_html.append(f'<text x="{lx + 14}" y="{ly + 46}" font-family="monospace" font-size="11" fill="#64748b">{escape(l["desc"])}</text>')
+            layers_html.append(f'<text x="{lx + lw - 14}" y="{ly + 13}" text-anchor="end" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(l["desc"])}</text>')
 
     comps_html = []
     for c in arch_diagram.get("components", []):
@@ -229,22 +237,43 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
         sd = f' stroke-dasharray="{c["dash"]}"' if c.get("dash") else ""
         text_color = c.get("text_color", stroke)
         comps_html.append(f'<rect x="{cx}" y="{cy}" width="{cw}" height="{ch}" rx="4" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"{sd}/>')
-        lines = wrap_svg(c.get("name", ""), limit=28, max_lines=2)
-        ty = cy + (22 if len(lines) == 1 else 17)
-        for j, line in enumerate(lines):
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{ty + j * 15}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(line)}</text>')
-        if c.get("detail"):
-            d_lines = wrap_svg(c["detail"], limit=32, max_lines=2)
-            d_y = cy + ch - (12 if len(d_lines) == 1 else 18)
-            for j, d_line in enumerate(d_lines):
-                comps_html.append(f'<text x="{cx + cw // 2}" y="{d_y + j * 13}" text-anchor="middle" font-family="monospace" font-size="10" fill="#94a3b8">{escape(d_line)}</text>')
+        
+        name_lines = wrap_svg(c.get("name", ""), limit=28, max_lines=2)
+        detail_lines = wrap_svg(c.get("detail", ""), limit=32, max_lines=2) if c.get("detail") else []
+        
+        # Format text lines with mathematically guaranteed non-overlapping spacing
+        if len(name_lines) == 1 and not detail_lines:
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + ch // 2 + 4}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+        elif len(name_lines) == 1 and len(detail_lines) == 1:
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 22}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + ch - 12}" text-anchor="middle" font-family="monospace" font-size="9.5" fill="#94a3b8">{escape(detail_lines[0])}</text>')
+        elif len(name_lines) == 1 and len(detail_lines) >= 2:
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 18}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 33}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[0])}</text>')
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 46}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[1])}</text>')
+        elif len(name_lines) >= 2 and len(detail_lines) <= 1:
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 16}" text-anchor="middle" font-family="monospace" font-size="10.5" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 29}" text-anchor="middle" font-family="monospace" font-size="10.5" fill="{text_color}" font-weight="bold">{escape(name_lines[1])}</text>')
+            if detail_lines:
+                comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + ch - 10}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[0])}</text>')
+        else:
+            # 2 name lines, 2 detail lines
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 14}" text-anchor="middle" font-family="monospace" font-size="10" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 26}" text-anchor="middle" font-family="monospace" font-size="10" fill="{text_color}" font-weight="bold">{escape(name_lines[1])}</text>')
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 39}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(detail_lines[0])}</text>')
+            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 50}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(detail_lines[1])}</text>')
 
     bounds_html = []
     for b in arch_diagram.get("boundaries", []):
         bx, by, bw, bh = b["x"], b["y"], b["w"], b["h"]
         b_color = b.get("color", "#f59e0b")
+        lbl = b.get("label", "BOUNDARY")
+        tag_w = len(lbl) * 5.6 + 14
+        tag_x = bx + bw - tag_w - 20
+        tag_y = by + bh - 9
         bounds_html.append(f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="4" fill="none" stroke="{b_color}" stroke-width="2" stroke-dasharray="5,3"/>')
-        bounds_html.append(f'<text x="{bx + bw // 2}" y="{by + bh + 14}" text-anchor="middle" font-family="monospace" font-size="10" fill="{b_color}" font-weight="bold">{escape(b.get("label", "BOUNDARY"))}</text>')
+        bounds_html.append(f'<rect x="{tag_x}" y="{tag_y}" width="{tag_w}" height="17" rx="3" fill="#0f172a" stroke="{b_color}" stroke-width="1.5"/>')
+        bounds_html.append(f'<text x="{tag_x + tag_w / 2}" y="{tag_y + 12}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="{b_color}" font-weight="bold">{escape(lbl)}</text>')
 
     flows_html = []
     for f in arch_diagram.get("flows", []):
@@ -268,17 +297,66 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
             dash = ""
         flows_html.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" stroke-width="{sw}"{dash} marker-end="url(#{marker})"/>')
         if f.get("label"):
-            mid_x, mid_y = (x1 + x2) // 2, (y1 + y2) // 2 - 6
-            flows_html.append(f'<text x="{mid_x}" y="{mid_y}" text-anchor="middle" font-family="monospace" font-size="9" fill="{color}">{escape(f["label"])}</text>')
+            lbl = f["label"]
+            mid_x = (x1 + x2) // 2
+            mid_y = (y1 + y2) // 2
+            is_horizontal = abs(y2 - y1) < 15
+            dx = abs(x2 - x1)
+            
+            if is_horizontal and dx < 140:
+                words = lbl.split()
+                if len(words) >= 2 and len(lbl) > 10:
+                    w1, w2 = words[0], " ".join(words[1:])
+                    tw = max(len(w1), len(w2)) * 5.2 + 10
+                    tw = min(tw, max(50, dx - 12))
+                    flows_html.append(f'<rect x="{mid_x - tw / 2}" y="{mid_y - 22}" width="{tw}" height="20" rx="3" fill="#090d16" stroke="{color}" stroke-width="1" stroke-opacity="0.8"/>')
+                    flows_html.append(f'<text x="{mid_x}" y="{mid_y - 12}" text-anchor="middle" font-family="monospace" font-size="7.5" fill="{color}" font-weight="bold">{escape(w1)}</text>')
+                    flows_html.append(f'<text x="{mid_x}" y="{mid_y - 3}" text-anchor="middle" font-family="monospace" font-size="7.5" fill="{color}" font-weight="bold">{escape(w2)}</text>')
+                else:
+                    tw = min(len(lbl) * 5.2 + 10, max(50, dx - 10))
+                    flows_html.append(f'<rect x="{mid_x - tw / 2}" y="{mid_y - 18}" width="{tw}" height="15" rx="3" fill="#090d16" stroke="{color}" stroke-width="1" stroke-opacity="0.8"/>')
+                    flows_html.append(f'<text x="{mid_x}" y="{mid_y - 7}" text-anchor="middle" font-family="monospace" font-size="7.5" fill="{color}" font-weight="bold">{escape(lbl)}</text>')
+            else:
+                tw = len(lbl) * 5.6 + 12
+                flows_html.append(f'<rect x="{mid_x - tw / 2}" y="{mid_y - 9}" width="{tw}" height="17" rx="3" fill="#090d16" stroke="{color}" stroke-width="1" stroke-opacity="0.8"/>')
+                flows_html.append(f'<text x="{mid_x}" y="{mid_y + 3}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="{color}" font-weight="bold">{escape(lbl)}</text>')
 
     probes_html = []
-    for p in arch_diagram.get("probes", []):
-        px, py = p["cx"], p["cy"]
-        p_color = p.get("color", "#f43f5e")
-        probes_html.append(f'<circle cx="{px}" cy="{py}" r="12" fill="{p_color}" opacity="0.85"/>')
-        probes_html.append(f'<text x="{px}" y="{py + 4}" text-anchor="middle" font-family="monospace" font-size="9" fill="white" font-weight="bold">{escape(p.get("badge", "FI"))}</text>')
-        if p.get("label"):
-            probes_html.append(f'<text x="{px + 18}" y="{py + 4}" font-family="monospace" font-size="10" fill="{p_color}">{escape(p["label"])}</text>')
+    probe_cards_html = []
+    if raw_probes:
+        p_panel_y = vb_h - 105
+        p_panel_h = 52
+        probe_cards_html.append(f'<rect x="10" y="{p_panel_y}" width="{vb_w - 20}" height="{p_panel_h}" rx="4" fill="#090d16" stroke="#1e293b" stroke-width="1" opacity="0.95"/>')
+        probe_cards_html.append(f'<text x="24" y="{p_panel_y + 16}" font-family="monospace" font-size="10" fill="#94a3b8" font-weight="bold">SYSTEM PROBES &amp; INVARIANT VERIFICATION CHECKPOINTS:</text>')
+        col_w = (vb_w - 48) // max(1, len(raw_probes))
+        
+        for idx, p in enumerate(raw_probes):
+            px, py = p["cx"], p["cy"]
+            p_color = p.get("color", "#f43f5e")
+            raw_badge = p.get("badge")
+            if not raw_badge:
+                m = re.search(r"PROBE\s*(\d+)", p.get("label", ""), re.IGNORECASE)
+                raw_badge = f"P{m.group(1)}" if m else (f"P{idx+1}" if "fault" not in p.get("label", "").lower() else "FI")
+            
+            # Auto-snap probe to top-right corner of component if (px, py) intersects a component box
+            for c in arch_diagram.get("components", []):
+                cx, cy, cw, ch = c["x"], c["y"], c["w"], c["h"]
+                if (cx - 5 <= px <= cx + cw + 5) and (cy - 5 <= py <= cy + ch + 5):
+                    px = cx + cw - 12
+                    py = cy + 12
+                    break
+            
+            # Clean on-canvas circle pin (badge on component corner or line)
+            probes_html.append(f'<circle cx="{px}" cy="{py}" r="10" fill="{p_color}" stroke="#ffffff" stroke-width="1.5" opacity="0.95"/>')
+            probes_html.append(f'<text x="{px}" y="{py + 3}" text-anchor="middle" font-family="monospace" font-size="8" fill="white" font-weight="bold">{escape(raw_badge)}</text>')
+            
+            # Dedicated probe footer entry
+            bx = 24 + idx * col_w
+            by = p_panel_y + 36
+            probe_cards_html.append(f'<circle cx="{bx + 8}" cy="{by - 3}" r="7" fill="{p_color}"/>')
+            probe_cards_html.append(f'<text x="{bx + 8}" y="{by}" text-anchor="middle" font-family="monospace" font-size="7.5" fill="white" font-weight="bold">{escape(raw_badge)}</text>')
+            p_lbl = p.get("label", f"Probe {idx+1}")
+            probe_cards_html.append(f'<text x="{bx + 20}" y="{by}" font-family="monospace" font-size="9" fill="{p_color}">{escape(p_lbl)}</text>')
 
     leg_y = vb_h - 44
     legend_html = [
@@ -307,6 +385,7 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
 {"".join(comps_html)}
 {"".join(flows_html)}
 {"".join(probes_html)}
+{"".join(probe_cards_html)}
 {"".join(legend_html)}
 </svg></div>
 <figcaption>{escape(caption)}</figcaption>
@@ -556,7 +635,7 @@ def compile_day_page(day_num: int, data: dict) -> None:
                 evidence_html = evidence_text
             else:
                 if not evidence_text.lower().startswith("**evidence:**") and not evidence_text.lower().startswith("evidence:"):
-                    evidence_html = render_code_blocks(f"**Evidence:** {evidence_text}")
+                    evidence_html = render_code_blocks(f"**Evidence:**\n\n{evidence_text}")
                 else:
                     evidence_html = render_code_blocks(evidence_text)
         else:

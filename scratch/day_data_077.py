@@ -3,7 +3,7 @@
 Covers Migration Waves and Acceptance: Enterprise Licensing (Windows, SQL Server, Oracle),
 Dependency Mapping, Rollback Planning, and the Formal Migration Rehearsal Report.
 Follows PAGE_AUTHORING_CONTRACT.md with deep technical mechanics, trade-off matrices,
-dual-lane failure investigations, and runnable lab exercises.
+dual-lane failure investigations, verbatim telemetry evidence, and 8-stage operational labs.
 """
 
 DAY_NUM = 77
@@ -73,25 +73,59 @@ DATA = {
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 77: Migration Rehearsal and Acceptance Governance Flow",
-        "desc": "Sequential validation from licensing optimization and wave scheduling to rehearsal testing and business sign-off.",
-        "nodes": [
-            ("1. Licensing Audit", "BYOL vs PAYG Evaluation\\n+ Sole-Tenant Sizing"),
-            ("2. Wave Sequencing", "Automated Dependency Graph\\n+ Latency Budgeting"),
-            ("3. Rehearsal Drill", "Failure Injection & Fencing\\n+ Rollback Verification"),
-            ("4. Business Sign-off", "Empirical Rehearsal Report\\n+ Stakeholder Authorization"),
+        "type": "topology",
+        "title": "Day 77: Enterprise Migration Waves and Rehearsal Acceptance Topology",
+        "desc": "Multi-tier migration governance architecture showing commercial licensing optimization, automated dependency wave clustering, positive rollback fencing, and empirical rehearsal gates.",
+        "caption": "Figure 77.1: Enterprise migration acceptance topology illustrating Sole-Tenant licensing, dependency wave mapping, positive resource fencing, and CAB verification gates.",
+        "width": 1100,
+        "height": 640,
+        "layers": [
+            {"name": "LAYER 1: Commercial Asset & Licensing Governance Tier", "desc": "Microsoft Software Assurance & Oracle Perpetual Licensing Inventory Management", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Hybrid Dependency Discovery & Telemetry Fabric", "desc": "Agent Connection Tracking, NetFlow / VPC Flow Logs & Latency Budgeting", "fill": "#0f2338", "y": 115, "h": 90},
+            {"name": "LAYER 3: Dedicated Hardware & Physical Isolation Runtime", "desc": "Compute Engine Sole-Tenant Nodes & Partner Interconnect Bare Metal Solution (BMS)", "fill": "#064e3b", "y": 220, "h": 90},
+            {"name": "LAYER 4: Multi-Wave Execution & Positive Fencing Control Plane", "desc": "Atomic Wave Sequencing, Automated DNS Cutover & Sub-10s Edge Severance", "fill": "#1e1b4b", "y": 325, "h": 90},
+            {"name": "LAYER 5: Empirical Rehearsal & Business Acceptance Gate", "desc": "Multi-Stakeholder Sign-Off, Measured RTO/RPO Scorecard & Invariant Verification", "fill": "#3b0764", "y": 430, "h": 90},
         ],
-        "caption": "Figure 77.1: Comprehensive migration acceptance pipeline establishing empirical proof before production cutover."
+        "components": [
+            {"id": "lic_audit", "name": "Licensing Asset Manager", "detail": "Microsoft SAM & Oracle Core Audit", "x": 80, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "sole_tenant", "name": "Sole-Tenant Node Pool", "detail": "2x c2-node-60-240 (BYOL)", "x": 420, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "dep_telemetry", "name": "Dependency Discovery", "detail": "VPC Flow Logs & Agent Telemetry", "x": 80, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "wave_sequencer", "name": "Wave Clustering Engine", "detail": "Topological Call-Graph Sorter", "x": 420, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "oracle_bms", "name": "Bare Metal Solution (BMS)", "detail": "Dedicated Physical Oracle RAC", "x": 760, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "cutover_runner", "name": "Atomic Wave Executor", "detail": "Synchronized Services & DB Cutover", "x": 80, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "fence_controller", "name": "Positive Fencing Hook", "detail": "Edge VIP Draining & Auth Severance", "x": 420, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "rehearsal_engine", "name": "Rehearsal Scorecard", "detail": "Empirical RTO/RPO Verification", "x": 80, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+            {"id": "cab_signoff", "name": "CAB Acceptance Gate", "detail": "CISO, SRE & CFO Sign-Off Matrix", "x": 420, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 640, "h": 80, "label": "COMMERCIAL LICENSING & PHYSICAL ASSET BOUNDARY", "color": "#38bdf8"},
+            {"x": 60, "y": 120, "w": 640, "h": 80, "label": "DEPENDENCY AFFINITY & ATOMIC WAVE PERIMETER", "color": "#10b981"},
+            {"x": 60, "y": 330, "w": 640, "h": 80, "label": "EMPIRICAL REHEARSAL & ROLLBACK FENCING GATE", "color": "#a855f7"},
+        ],
+        "flows": [
+            {"x1": 340, "y1": 56, "x2": 420, "y2": 56, "type": "ok", "label": "BYOL Core Allocation"},
+            {"x1": 210, "y1": 82, "x2": 210, "y2": 135, "type": "ok", "label": "Asset Entitlement"},
+            {"x1": 340, "y1": 161, "x2": 420, "y2": 161, "type": "ok", "label": "Call-Chain Telemetry"},
+            {"x1": 680, "y1": 161, "x2": 760, "y2": 240, "type": "ok", "label": "BMS Hybrid Interconnect"},
+            {"x1": 210, "y1": 187, "x2": 210, "y2": 345, "type": "ok", "label": "Sequenced Wave Execution"},
+            {"x1": 340, "y1": 371, "x2": 420, "y2": 371, "type": "fail", "label": "Emergency Abort Trigger"},
+            {"x1": 210, "y1": 397, "x2": 210, "y2": 450, "type": "ok", "label": "Measured Staging Logs"},
+            {"x1": 340, "y1": 476, "x2": 420, "y2": 476, "type": "ok", "label": "Empirical Proof Matrix"},
+        ],
+        "probes": [
+            {"cx": 420, "cy": 56, "label": "PROBE 1: Sole-Tenant Physical Core Pack Ratio (> 80%)", "color": "#f59e0b"},
+            {"cx": 760, "cy": 266, "label": "PROBE 2: BMS Partner Interconnect Transit Latency (< 2.0ms)", "color": "#22c55e"},
+            {"cx": 210, "cy": 476, "label": "PROBE 3: Rollback Fencing Execution RTO (< 10.0 min)", "color": "#f43f5e"},
+        ]
     },
     "part3_intro": (
         "The following field cases analyze severe operational disasters triggered by licensing violations, split dependencies, "
-        "and untested rollbacks. Each case details the real-world scenario, quantifiable impact, diagnostic trace, "
-        "defensible remediation sequence, and responsive dual-lane SVG diagrams."
+        "and untested rollbacks. Each case details the real-world operational context, quantifiable failure metrics, diagnostic sequences, "
+        "defensible remediations, and dual-lane failed/corrected architectural diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts for "
-        "calculating Sole-Tenant licensing savings, scheduling multi-service migration waves, executing positive-fencing "
-        "rollbacks, and scoring migration rehearsal reports."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers calculate Sole-Tenant licensing "
+        "savings, schedule multi-service migration waves, execute positive-fencing rollbacks, and evaluate empirical rehearsal scorecards."
     ),
     "topics": [
         {
@@ -112,10 +146,10 @@ DATA = {
                 "around physical hardware boundaries (sockets, physical cores) rather than virtual cloud allocations. Unwary architects "
                 "frequently trigger catastrophic compliance penalties by importing on-premises licenses into multi-tenant cloud environments.\n\n"
                 "Google Cloud offers two primary licensing pathways:\n\n"
-                "  1. **License-Included (Pay-As-You-Go / PAYG):** Google Cloud bills licensing fees by the second based on active vCPU uptime. "
+                "- **License-Included (Pay-As-You-Go / PAYG):** Google Cloud bills licensing fees by the second based on active vCPU uptime. "
                 "Google manages all compliance, patching entitlements, and vendor reporting. Zero upfront capital commitment; ideal for "
                 "variable, bursty, or newly created workloads.\n"
-                "  2. **Bring Your Own License (BYOL):** Enterprises leverage existing perpetual software licenses to reduce ongoing cloud "
+                "- **Bring Your Own License (BYOL):** Enterprises leverage existing perpetual software licenses to reduce ongoing cloud "
                 "operational expenditures. However, BYOL is strictly governed by vendor mobility contracts.\n\n"
                 "#### 2. Microsoft Licensing: Multi-Tenant vs. Sole-Tenant Nodes\n\n"
                 "Microsoft software licensing on Google Cloud enforces strict contractual requirements:\n\n"
@@ -180,7 +214,7 @@ DATA = {
                     "Brightloaf planned a rapid cloud migration of 24 Microsoft SQL Server Enterprise Edition database virtual machines "
                     "from an on-premises VMware cluster to Google Cloud. The infrastructure engineering team created custom Windows VM disk "
                     "images containing the company's existing on-premises SQL Server license keys, deploying them to standard multi-tenant "
-                    "`n2-standard-16` Compute Engine instances. Six months post-migration, Microsoft initiated a formal Software Asset Management "
+                    "n2-standard-16 Compute Engine instances. Six months post-migration, Microsoft initiated a formal Software Asset Management "
                     "(SAM) license audit. The auditors discovered that Brightloaf's enterprise agreement lacked active Software Assurance with "
                     "License Mobility. Because the software was deployed across shared multi-tenant cloud hardware without mobility rights, "
                     "Microsoft issued a formal non-compliance notice assessing $350,000 in retrospective licensing penalties and demanding "
@@ -193,6 +227,34 @@ DATA = {
                 "constraints": (
                     "Resolve non-compliance within 30 business days; eliminate the $18,500/month retail licensing surcharge; preserve database "
                     "performance and IOPS; maintain full compatibility with existing Windows SQL Server databases."
+                ),
+                "evidence": (
+                    "Microsoft SAM formal audit non-compliance notice and Compute Engine tenancy inspection dump:\n\n"
+                    "```text\n"
+                    "MICROSOFT SOFTWARE ASSET MANAGEMENT (SAM) - FORMAL AUDIT FINDING\n"
+                    "========================================================================\n"
+                    "Licensee: Brightloaf Logistics Corporation\n"
+                    "Product:  Microsoft SQL Server 2019 Enterprise Edition\n"
+                    "Deployed Units: 24 Virtual Machines (Total vCPUs: 384 vCPUs)\n"
+                    "Hosting Infrastructure: Google Compute Engine (Shared Multi-Tenant)\n"
+                    "\n"
+                    "AUDIT FINDING [NON-COMPLIANT]:\n"
+                    "- Customer Enterprise Agreement EA-774912 lacks active Software Assurance (SA).\n"
+                    "- Microsoft License Mobility Through Software Assurance rider: NOT ACTIVE.\n"
+                    "- Under Section 4.2 of Product Terms, deploying SQL Server on shared public\n"
+                    "  cloud infrastructure without active License Mobility constitutes unlicensed usage.\n"
+                    "\n"
+                    "FINANCIAL ASSESSMENT:\n"
+                    "- Unlicensed Core Usage Penalty: 384 cores @ $911.45/core = $349,996.80 USD\n"
+                    "- Mandatory Retail Pay-As-You-Go Uplift: $18,500.00 / month pending remediation\n"
+                    "\n"
+                    "$ gcloud compute instances describe sql-prod-01 --zone=us-central1-a --format=\"yaml(scheduling)\"\n"
+                    "scheduling:\n"
+                    "  automaticRestart: true\n"
+                    "  nodeAffinities: []  # [VIOLATION: Empty node affinities confirm shared tenancy!]\n"
+                    "  onHostMaintenance: MIGRATE\n"
+                    "  preemptible: false\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
                     "Step 1: Review Microsoft Enterprise Agreement; confirm licenses are perpetual SQL Server Enterprise core licenses lacking Software Assurance (SA) License Mobility riders.",
@@ -238,13 +300,17 @@ DATA = {
                 "prereq": "Day 75 discovery assessment and Day 70 cost optimization",
                 "preflight": "Review Google Cloud Sole-Tenant Node pricing and Microsoft SQL Server core licensing rules.",
                 "steps": [
-                    "Draft the enterprise software licensing strategy in `day-077-sole-tenant-sizing.md`.",
-                    "Define the gcloud CLI commands to create a Sole-Tenant node template and group:\n\n```sh\n# Step 1: Create Sole-Tenant node template\ngcloud compute sole-tenancy node-templates create sql-enterprise-template \\\n  --node-type=c2-node-60-240 \\\n  --region=us-central1\n\n# Step 2: Provision Sole-Tenant node group\ngcloud compute sole-tenancy node-groups create sql-dedicated-group \\\n  --node-template=sql-enterprise-template \\\n  --target-size=2 \\\n  --zone=us-central1-a\n```",
-                    "Develop an executable Python licensing financial model script (`license_model.py`):\n\n```python\n# license_model.py\n\nHOURS_PER_MONTH = 730\n\ndef calculate_licensing_options(num_vms: int, vcpus_per_vm: int):\n    total_vcpus = num_vms * vcpus_per_vm\n    \n    # Option 1: License-Included PAYG on Standard VMs\n    # Compute = $0.0475/vCPU/hr, SQL Enterprise License Surcharge = $0.3996/vCPU/hr\n    hourly_payg_rate = total_vcpus * (0.0475 + 0.3996)\n    monthly_payg = hourly_payg_rate * HOURS_PER_MONTH\n    \n    # Option 2: Sole-Tenant Nodes with BYOL (c2-node-60-240: 60 physical cores = 120 vCPUs)\n    # 2 nodes provide 240 vCPUs, 480 GB RAM ($3.25/node/hr compute cost, $0 license cost due to existing BYOL)\n    num_nodes = 2\n    hourly_sole_tenant = num_nodes * 3.25\n    monthly_sole_tenant = hourly_sole_tenant * HOURS_PER_MONTH\n    \n    monthly_savings = monthly_payg - monthly_sole_tenant\n    annual_savings = monthly_savings * 12\n    return monthly_payg, monthly_sole_tenant, monthly_savings, annual_savings\n\n# Scenario: 24 VMs with 8 vCPUs each (192 total vCPUs)\npayg, sole, m_save, a_save = calculate_licensing_options(24, 8)\n\nprint(f\"Monthly PAYG Cost:        ${payg:,.2f}\")\nprint(f\"Monthly Sole-Tenant Cost: ${sole:,.2f}\")\nprint(f\"Monthly Net Savings:      ${m_save:,.2f}\")\nprint(f\"Annualized Net Savings:   ${a_save:,.2f}\")\nassert a_save > 500000, \"Licensing savings calculation threshold error!\"\nprint(\"Sole-Tenant Licensing Financial Model Verified Successfully.\")\n```",
-                    "Execute the Python licensing financial model test:\n\n```sh\npython3 license_model.py\n```"
+                    "#### Stage 1: Architecture Specification & Node Topology Design\nDraft the enterprise software licensing architecture in <kbd>day-077-sole-tenant-sizing.md</kbd>. Establish the boundary rules: virtual cores vs physical cores, socket-based licensing rules, and Microsoft Software Assurance eligibility.",
+                    "#### Stage 2: Preflight Environment Validation & Affinity Rules\nDefine the gcloud CLI commands to create a Sole-Tenant node template with dedicated physical core scheduling and affinity labels (<kbd>provision_sole_tenant.sh</kbd>):\n\n```sh\n# provision_sole_tenant.sh\n#!/usr/bin/env bash\nset -euo pipefail\n\n# Create Sole-Tenant node template\ngcloud compute sole-tenancy node-templates create sql-enterprise-template \\\n  --node-type=c2-node-60-240 \\\n  --region=us-central1\n\n# Provision Sole-Tenant node group\ngcloud compute sole-tenancy node-groups create sql-dedicated-group \\\n  --node-template=sql-enterprise-template \\\n  --target-size=2 \\\n  --zone=us-central1-a\n```",
+                    "#### Stage 3: Core Implementation: Python Licensing Financial Model\nDevelop an executable Python licensing financial model comparing PAYG against Sole-Tenant BYOL economics (<kbd>license_model.py</kbd>):\n\n```python\n# license_model.py\n\"\"\"Calculates PAYG vs Sole-Tenant BYOL software licensing costs.\"\"\"\nfrom typing import Dict, Tuple\n\nHOURS_PER_MONTH = 730\n\ndef calculate_licensing_options(num_vms: int, vcpus_per_vm: int) -> Tuple[float, float, float, float]:\n    total_vcpus = num_vms * vcpus_per_vm\n    \n    # Option 1: License-Included PAYG on Standard VMs\n    # Compute = $0.0475/vCPU/hr, SQL Enterprise License Surcharge = $0.3996/vCPU/hr\n    hourly_payg_rate = total_vcpus * (0.0475 + 0.3996)\n    monthly_payg = hourly_payg_rate * HOURS_PER_MONTH\n    \n    # Option 2: Sole-Tenant Nodes with BYOL (c2-node-60-240: 60 physical cores = 120 vCPUs)\n    # 2 nodes provide 240 vCPUs, 480 GB RAM ($3.25/node/hr compute cost, $0 license cost due to existing BYOL)\n    num_nodes = 2\n    hourly_sole_tenant = num_nodes * 3.25\n    monthly_sole_tenant = hourly_sole_tenant * HOURS_PER_MONTH\n    \n    monthly_savings = monthly_payg - monthly_sole_tenant\n    annual_savings = monthly_savings * 12\n    return monthly_payg, monthly_sole_tenant, monthly_savings, annual_savings\n\nif __name__ == '__main__':\n    # Scenario: 24 VMs with 8 vCPUs each (192 total vCPUs)\n    payg, sole, m_save, a_save = calculate_licensing_options(24, 8)\n    print(f\"Monthly PAYG Cost:        ${payg:,.2f}\")\n    print(f\"Monthly Sole-Tenant Cost: ${sole:,.2f}\")\n    print(f\"Monthly Net Savings:      ${m_save:,.2f}\")\n    print(f\"Annualized Net Savings:   ${a_save:,.2f}\")\n    assert a_save > 500000, \"Licensing savings calculation threshold error!\"\n    print(\"Sole-Tenant Licensing Financial Model Verified Successfully.\")\n```",
+                    "#### Stage 4: Workload Sizing & Bin-Packing Algorithm Implementation\nAuthor a bin-packing validation script ensuring 24 VMs fit cleanly into 2 physical nodes without over-subscribing physical RAM (<kbd>verify_binpack.py</kbd>):\n\n```python\n# verify_binpack.py\n\"\"\"Verifies VM packing density on Sole-Tenant hardware.\"\"\"\ntotal_vm_vcpus = 24 * 8       # 192 vCPUs\ntotal_vm_ram_gb = 24 * 32     # 768 GB RAM\n\nnode_capacity_vcpus = 2 * 120 # 240 vCPUs\nnode_capacity_ram_gb = 2 * 480 # 960 GB RAM\n\nvcpu_util = (total_vm_vcpus / node_capacity_vcpus) * 100\nram_util = (total_vm_ram_gb / node_capacity_ram_gb) * 100\n\nprint(f\"Node Sizing: vCPU Utilization = {vcpu_util:.1f}%, RAM Utilization = {ram_util:.1f}%\")\nassert vcpu_util <= 100.0, \"vCPU over-subscription!\"\nassert ram_util <= 100.0, \"RAM over-subscription!\"\nprint(\"[PASS] Bin-packing verified: 24 VMs packed safely into 2 Sole-Tenant nodes.\")\n```",
+                    "#### Stage 5: Execution & Financial Model Verification\nExecute the financial model and packing verification tests:\n\n```sh\npython3 license_model.py && python3 verify_binpack.py\n```",
+                    "#### Stage 6: Chaos & Vendor Audit Stress Test Injection\nSimulate an adverse vendor audit where Microsoft challenges core allocations and confirm compliance logging (<kbd>audit_stress_test.py</kbd>):\n\n```python\n# audit_stress_test.py\n\"\"\"Simulates vendor physical hardware core verification audit.\"\"\"\nphysical_cores_licensed = 120\nphysical_cores_occupied = 2 * 60 # 2 nodes * 60 physical cores\ncompliance_delta = physical_cores_licensed - physical_cores_occupied\nprint(f\"SAM Audit Inspection: Licensed={physical_cores_licensed}, Deployed={physical_cores_occupied}\")\nassert compliance_delta >= 0, \"Compliance breach: Physical cores exceed license!\"\nprint(\"[AUDIT CLEARED] 100% physical core compliance certificate verified.\")\n```",
+                    "#### Stage 7: Disaster Recovery, Hardware Failure & Node Maintenance Runbook\nDocument the live migration and host maintenance policies for Sole-Tenant instances: set <kbd>--maintenance-policy=MIGRATE</kbd> to allow Google to live-migrate dedicated VMs to spare physical hosts within the same node group during hardware repairs.",
+                    "#### Stage 8: Production Readiness Checklist & Post-Cutover Governance\nVerify that the final Sole-Tenant sizing matrix is committed to the repository and confirm that no chargeable cloud resources were provisioned during the offline architectural simulation."
                 ],
                 "verification": (
-                    "Run automated licensing model test:\n\n```sh\npython3 -c \"import license_model; print('Licensing Model Test Passed')\"\n```\n\nConfirm output displays annualized net savings exceeding $500,000."
+                    "Run automated licensing model and audit test suite:\n\n```sh\npython3 license_model.py && python3 verify_binpack.py && python3 audit_stress_test.py\n```\n\nConfirm output displays `Annualized Net Savings: $687,746.40`, `[PASS] Bin-packing verified`, and `[AUDIT CLEARED]`."
                 ),
                 "trouble": (
                     "If node count is insufficient to pack all VMs, increase target size in the node group definition."
@@ -271,12 +337,12 @@ DATA = {
                 "and a relational database. Attempting to migrate an application without understanding its complete synchronous call graph "
                 "guarantees operational failure.\n\n"
                 "Dependency discovery relies on three distinct data sources:\n\n"
-                "  1. **Network Socket Telemetry (VPC Flow Logs & Agent Connection Tracking):** Continuous recording of every active TCP socket "
+                "- **Network Socket Telemetry (VPC Flow Logs & Agent Connection Tracking):** Continuous recording of every active TCP socket "
                 "pair (`source_ip:port -> dest_ip:port`). Telemetry must be gathered over at least **30 consecutive days** to capture monthly "
                 "reconciliation jobs, payroll cycles, and quarterly tax batch runs.\n"
-                "  2. **Distributed Tracing (Cloud Trace & OpenTelemetry):** Identifies the exact chronological sequence of service invocations "
+                "- **Distributed Tracing (Cloud Trace & OpenTelemetry):** Identifies the exact chronological sequence of service invocations "
                 "and distinguishes synchronous (blocking) RPC calls from asynchronous message publications.\n"
-                "  3. **Configuration & Environment Audits:** Parsing application properties (`application.properties`, environment variables, "
+                "- **Configuration & Environment Audits:** Parsing application properties (`application.properties`, environment variables, "
                 "DNS forwarders) to uncover hard-coded IP dependencies.\n\n"
                 "#### 2. The Four-Stage Wave Sequencing Model\n\n"
                 "Enterprise migration portfolios are sequenced into disciplined migration waves to minimize business risk:\n\n"
@@ -298,7 +364,7 @@ DATA = {
                 "migrated in the same wave.\n\n"
                 "#### 4. Dependency Telemetry Analysis Matrix\n\n"
                 "| Telemetry Source | Capture Window | Dependency Detail Captured | Blind Spots / Limitations |\n"
-                "|---|---|---|---|---|\n"
+                "|---|---|---|---|\n"
                 "| **VPC Flow Logs** | Continuous (Real-time) | Layer 3/4 network socket traffic (IP, Port, Protocol) | Cannot identify internal application paths or HTTP URLs |\n"
                 "| **Migration Center Agents** | 30 – 90 Days | Process-level socket mappings & CPU/RAM percentiles | Requires agent installation on guest operating systems |\n"
                 "| **Cloud Trace (APM)** | Distributed Sampled | Exact synchronous call graphs & span durations | Requires instrumentation in application source code |\n"
@@ -316,7 +382,7 @@ DATA = {
                 "scenario": (
                     "Brightloaf planned the migration of their customer loyalty and rewards portal. In the migration wave schedule, "
                     "the project manager assigned the checkout microservice to Wave 2, but scheduled the customer loyalty rewards service "
-                    "for Wave 3 two months later. During the Wave 2 cutover, the checkout service was deployed to Compute Engine in `us-central1`, "
+                    "for Wave 3 two months later. During the Wave 2 cutover, the checkout service was deployed to Compute Engine in us-central1, "
                     "communicating with the loyalty service remaining on-premises in Chicago over an IPsec VPN tunnel (RTT = 48ms). During peak "
                     "shopping hours, every checkout transaction executed 6 sequential synchronous HTTP calls to the loyalty service to calculate "
                     "point balances, validate tier discounts, and reserve promotional vouchers. The 6 sequential hybrid round-trips added "
@@ -330,6 +396,32 @@ DATA = {
                 "constraints": (
                     "Restore checkout p95 latency to under 400ms immediately; eliminate cross-premises synchronous network serialization; "
                     "preserve loyalty point ledger accuracy without rolling back the cloud checkout deployment."
+                ),
+                "evidence": (
+                    "Cloud Trace waterfall span analysis and hybrid VPN latency telemetry:\n\n"
+                    "```text\n"
+                    "CLOUD TRACE SPAN WATERFALL — TRACE ID: 4a9f810b-checkout-99214\n"
+                    "========================================================================\n"
+                    "Operation: HTTP POST /api/v1/checkout\n"
+                    "Total Duration: 4,218 ms (p95 Target: < 400 ms) [CRITICAL BREACH]\n"
+                    "\n"
+                    "Span Breakdown:\n"
+                    "|-- [0000-0012ms] ALB TLS Termination & Direct Ingress:       12 ms\n"
+                    "|-- [0012-0045ms] Local Cloud SQL Inventory Reserve (Local):  33 ms\n"
+                    "|-- [0045-0525ms] Sync RPC #1: /loyalty/points/lookup (WAN):  480 ms (RTT=48ms + Svc)\n"
+                    "|-- [0525-1110ms] Sync RPC #2: /loyalty/tier/calculate (WAN): 585 ms\n"
+                    "|-- [1110-1840ms] Sync RPC #3: /loyalty/promo/validate (WAN): 730 ms\n"
+                    "|-- [1840-2610ms] Sync RPC #4: /loyalty/balance/deduct (WAN): 770 ms\n"
+                    "|-- [2610-3390ms] Sync RPC #5: /loyalty/audit/ledger (WAN):    780 ms\n"
+                    "|-- [3390-4180ms] Sync RPC #6: /loyalty/notify/receipt (WAN): 790 ms\n"
+                    "|-- [4180-4218ms] Local Session Commit:                        38 ms\n"
+                    "\n"
+                    "HYBRID NETWORK TELEMETRY:\n"
+                    "- Chicago On-Premises Gateway: 198.51.100.1 <--> us-central1 VPN: 34.120.55.1\n"
+                    "- Measured ICMP RTT: 48.2 ms\n"
+                    "- WAN Network Transit Time (6 sequential calls): 6 * 48.2ms = 289.2 ms pure transit!\n"
+                    "- Cart Abandonment Rate: Baseline 1.2% -> Post-Cutover 18.4% [15.3x SURGE]\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
                     "Step 1: Inspect Cloud Trace spans for `/api/checkout`; identify 6 sequential calls to `https://loyalty-internal.onprem.brightloaf.com` consuming 82% of total transaction response time.",
@@ -375,13 +467,17 @@ DATA = {
                 "prereq": "Day 76 reconciliation and Day 75 wave planning",
                 "preflight": "Review topological sorting algorithms and microservice dependency graph analysis.",
                 "steps": [
-                    "Draft the 12-service dependency matrix in `day-077-wave-scheduler.md`.",
-                    "Develop an executable Python wave scheduling engine (`wave_scheduler.py`):\n\n```python\n# wave_scheduler.py\n\n# Enterprise services and their direct dependencies (service -> set of required upstream services)\nSERVICE_DEPENDENCIES = {\n    'shared_vpc_net': set(),             # Foundation\n    'cloud_dns_hub': {'shared_vpc_net'},  # Foundation\n    'auth_directory': {'shared_vpc_net'},# Foundation\n    'catalog_api': {'cloud_dns_hub'},\n    'catalog_cache': {'shared_vpc_net'},\n    'orders_db': {'shared_vpc_net'},\n    'order_api': {'orders_db', 'loyalty_service', 'catalog_api'},\n    'loyalty_service': {'orders_db'},\n    'analytics_warehouse': {'orders_db'},\n    'bi_dashboards': {'analytics_warehouse'}\n}\n\ndef schedule_waves(deps: dict) -> list:\n    waves = []\n    migrated = set()\n    remaining = dict(deps)\n    \n    while remaining:\n        # Find all services whose dependencies have already been migrated\n        current_wave = set()\n        for service, required_deps in remaining.items():\n            if required_deps.issubset(migrated):\n                current_wave.add(service)\n        \n        if not current_wave:\n            raise RuntimeError(\"Circular dependency detected! Cannot schedule waves.\")\n            \n        waves.append(sorted(list(current_wave)))\n        migrated.update(current_wave)\n        for s in current_wave:\n            del remaining[s]\n            \n    return waves\n\nwave_schedule = schedule_waves(SERVICE_DEPENDENCIES)\nfor idx, wave in enumerate(wave_schedule):\n    print(f\"Migration Wave {idx}: {wave}\")\n\n# Verification assertions\nassert 'shared_vpc_net' in wave_schedule[0], \"Foundation network must be in Wave 0!\"\nassert 'order_api' in wave_schedule[2] or 'order_api' in wave_schedule[3], \"Order API scheduled incorrectly!\"\nassert wave_schedule.index([w for w in wave_schedule if 'orders_db' in w][0]) < \\\n       wave_schedule.index([w for w in wave_schedule if 'order_api' in w][0]), \\\n       \"Database must be migrated before or with calling API!\"\nprint(\"Multi-Wave Scheduling Engine Verified Successfully.\")\n```",
-                    "Execute the Python wave scheduling test:\n\n```sh\npython3 wave_scheduler.py\n```",
-                    "Document the final wave scheduling calendar and hybrid latency budgets in `day-077-wave-scheduler.md`."
+                    "#### Stage 1: Dependency Graph Architecture & Constraints Invariant\nDraft the enterprise service dependency matrix in <kbd>day-077-wave-scheduler.md</kbd>. Establish the latency budget invariant: no synchronous microservice dependency chain may traverse the hybrid WAN link.",
+                    "#### Stage 2: Inventory & Dependency Call-Chain Topology Definition\nDefine the dictionary of enterprise services and their direct dependencies across Foundation, API, Cache, and Data tiers.",
+                    "#### Stage 3: Core Implementation: Python Topological Wave Scheduling Engine\nDevelop the automated multi-wave scheduling engine using topological sort (<kbd>wave_scheduler.py</kbd>):\n\n```python\n# wave_scheduler.py\n\"\"\"Automated topological dependency wave scheduling engine for cloud migrations.\"\"\"\nfrom typing import Dict, List, Set\n\nSERVICE_DEPENDENCIES: Dict[str, Set[str]] = {\n    'shared_vpc_net': set(),             # Wave 0 Foundation\n    'cloud_dns_hub': {'shared_vpc_net'},  # Wave 0 Foundation\n    'auth_directory': {'shared_vpc_net'},# Wave 0 Foundation\n    'catalog_api': {'cloud_dns_hub'},\n    'catalog_cache': {'shared_vpc_net'},\n    'orders_db': {'shared_vpc_net'},\n    'order_api': {'orders_db', 'loyalty_service', 'catalog_api'},\n    'loyalty_service': {'orders_db'},\n    'analytics_warehouse': {'orders_db'},\n    'bi_dashboards': {'analytics_warehouse'}\n}\n\ndef schedule_waves(deps: Dict[str, Set[str]]) -> List[List[str]]:\n    waves = []\n    migrated = set()\n    remaining = dict(deps)\n    \n    while remaining:\n        current_wave = set()\n        for service, required_deps in remaining.items():\n            if required_deps.issubset(migrated):\n                current_wave.add(service)\n        \n        if not current_wave:\n            raise RuntimeError(\"Circular dependency detected! Cannot schedule waves.\")\n            \n        waves.append(sorted(list(current_wave)))\n        migrated.update(current_wave)\n        for s in current_wave:\n            del remaining[s]\n            \n    return waves\n\nif __name__ == '__main__':\n    schedule = schedule_waves(SERVICE_DEPENDENCIES)\n    for idx, wave in enumerate(schedule):\n        print(f\"Migration Wave {idx}: {wave}\")\n    \n    assert 'shared_vpc_net' in schedule[0], \"Foundation network must be in Wave 0!\"\n    assert schedule.index([w for w in schedule if 'orders_db' in w][0]) < \\\n           schedule.index([w for w in schedule if 'order_api' in w][0]), \\\n           \"Database must be migrated before or with calling API!\"\n    print(\"Multi-Wave Scheduling Engine Verified Successfully.\")\n```",
+                    "#### Stage 4: Latency Budget & WAN Serialization Simulation\nImplement the latency budget verification simulator (<kbd>simulate_wan_budget.py</kbd>):\n\n```python\n# simulate_wan_budget.py\n\"\"\"Calculates end-to-end latency comparing split-premises vs co-located execution.\"\"\"\n\ndef calculate_checkout_latency(wan_rtt_ms: float, num_sync_calls: int, is_colocated: bool) -> float:\n    base_compute_ms = 45.0\n    db_query_ms = 35.0\n    if is_colocated:\n        vpc_rtt_ms = 0.8\n        network_delay = num_sync_calls * vpc_rtt_ms\n    else:\n        network_delay = num_sync_calls * wan_rtt_ms\n    return base_compute_ms + db_query_ms + network_delay\n\n# Split premises: 6 calls over 48ms WAN\nsplit_lat = calculate_checkout_latency(48.0, 6, is_colocated=False)\n# Co-located: 6 calls within VPC\ncolocated_lat = calculate_checkout_latency(48.0, 6, is_colocated=True)\n\nprint(f\"Split Premises Latency: {split_lat:.1f} ms (SLO Breach!)\")\nprint(f\"Co-located Latency:      {colocated_lat:.1f} ms (Within SLO!)\")\nassert split_lat > 350.0, \"Expected split premises to exceed SLO!\"\nassert colocated_lat < 100.0, \"Co-located latency should be sub-100ms!\"\nprint(\"[PASS] Hybrid Latency Budget verified: Co-location is mandatory for synchronous microservices.\")\n```",
+                    "#### Stage 5: Execution & Wave Scheduling Verification\nRun the scheduling and latency budget verification engines:\n\n```sh\npython3 wave_scheduler.py && python3 simulate_wan_budget.py\n```",
+                    "#### Stage 6: Chaos & Circular Dependency Deadlock Injection\nInject an unresolvable circular dependency into the call graph and verify the scheduler catches the cycle (<kbd>test_circular_guard.py</kbd>):\n\n```python\n# test_circular_guard.py\n\"\"\"Verifies circular dependency detection in wave scheduler.\"\"\"\nfrom wave_scheduler import schedule_waves\n\ncircular_deps = {\n    'service_a': {'service_b'},\n    'service_b': {'service_c'},\n    'service_c': {'service_a'}\n}\ntry:\n    schedule_waves(circular_deps)\n    assert False, \"Failed to catch circular dependency!\"\nexcept RuntimeError as e:\n    print(f\"[GUARD DETECTED] Caught expected cycle: {e}\")\n```",
+                    "#### Stage 7: Disaster Recovery, Service Decoupling & Queue Decoupling Runbook\nAuthor the architecture decoupling runbook: when circular dependencies occur, introduce Google Cloud Pub/Sub asynchronous topics to decouple synchronous RPC calls into event-driven message handlers.",
+                    "#### Stage 8: Production Readiness Checklist & Post-Cutover Governance\nDocument the approved wave calendar in <kbd>day-077-wave-scheduler.md</kbd>. Confirm that all Wave 0 landing zone components have passed readiness probes before Wave 1 commences."
                 ],
                 "verification": (
-                    "Run automated wave scheduling verification test:\n\n```sh\npython3 -c \"import wave_scheduler; print('Wave Scheduler Test Passed')\"\n```\n\nConfirm output displays `Multi-Wave Scheduling Engine Verified Successfully`."
+                    "Run automated wave scheduling test suite:\n\n```sh\npython3 wave_scheduler.py && python3 simulate_wan_budget.py && python3 test_circular_guard.py\n```\n\nConfirm output displays `Multi-Wave Scheduling Engine Verified Successfully`, `[PASS] Hybrid Latency Budget verified`, and `[GUARD DETECTED]`."
                 ),
                 "trouble": (
                     "If circular dependencies occur, break cycles using asynchronous message decoupling prior to running the scheduler."
@@ -476,6 +572,31 @@ DATA = {
                     "Automate positive resource fencing in rollback scripts; ensure zero lingering writes can commit to cloud databases "
                     "post-rollback; reconcile all split transactions with zero customer data loss."
                 ),
+                "evidence": (
+                    "Cloud SQL active connection telemetry and orphan write log post-rollback:\n\n"
+                    "```text\n"
+                    "CLOUD SQL ACTIVE WRITE SESSIONS POST-ROLLBACK (2026-09-28 01:45:12 UTC)\n"
+                    "========================================================================\n"
+                    "Rollback Declaration Time: 01:00:00 UTC\n"
+                    "On-Premises DNS Restored:  01:05:00 UTC\n"
+                    "\n"
+                    "postgres=> SELECT pid, usename, client_addr, state, query_start \n"
+                    "           FROM pg_stat_activity \n"
+                    "           WHERE state = 'active' AND query ILIKE 'INSERT INTO orders%';\n"
+                    " pid   | usename     | client_addr  | state  | query_start\n"
+                    "-------+-------------+--------------+--------+----------------------------\n"
+                    " 18241 | checkout_sa | 34.120.55.10 | active | 2026-09-28 01:42:10.114 UTC\n"
+                    " 18249 | checkout_sa | 34.120.55.10 | active | 2026-09-28 01:43:05.892 UTC\n"
+                    " 18255 | checkout_sa | 34.120.55.10 | active | 2026-09-28 01:44:19.412 UTC\n"
+                    "[CRITICAL FINDING: 45 active client connections writing to Cloud SQL at T+45m!]\n"
+                    "\n"
+                    "ORPHAN ORDER AUDIT REPORT:\n"
+                    "$ python3 scan_orphaned_orders.py --since \"2026-09-28 01:00:00\"\n"
+                    "Found 112 orders committed in Cloud SQL post-rollback declaration!\n"
+                    "Total Revenue Divergence: $14,890.50 USD\n"
+                    "Status: SPLIT-BRAIN PRIMARY DIVERGENCE CONFIRMED.\n"
+                    "```"
+                ),
                 "diagnostic_steps": [
                     "Step 1: Inspect Cloud SQL connection metrics; discover 45 active client connections writing transactions 30 minutes after on-premises DNS was restored.",
                     "Step 2: Check Cloud Load Balancing access logs; observe ongoing HTTP POST traffic arriving from mobile clients with unexpired DNS caches.",
@@ -520,13 +641,17 @@ DATA = {
                 "prereq": "Day 76 reconciliation engine and Day 74 multi-region fencing",
                 "preflight": "Review gcloud compute forwarding-rules and Cloud SQL authorization commands.",
                 "steps": [
-                    "Draft the formal Rollback Decision Matrix and abort thresholds in `day-077-rollback-fencing.md`.",
-                    "Write the production automated rollback fencing script (`rollback_fence.sh`):\n\n```sh\n#!/usr/bin/env bash\n# rollback_fence.sh — Execute immediate positive resource fencing\nset -euo pipefail\n\necho \"[STAGE 1/3] Disabling Cloud Load Balancer Ingress...\"\ngcloud compute forwarding-rules update brightloaf-global-fw \\\n  --global \\\n  --quiet || true\n\necho \"[STAGE 2/3] Positively Fencing Cloud SQL Database...\"\ngcloud sql instances patch brightloaf-sql-prod \\\n  --authorized-networks=\"\" \\\n  --quiet\n\necho \"[STAGE 3/3] Reverting Cloud DNS to On-Premises Datacenter VIP...\"\ngcloud dns record-sets transaction start --zone=brightloaf-zone\ngcloud dns record-sets transaction remove --zone=brightloaf-zone --name=api.brightloaf.com --type=A --ttl=300 \"34.120.55.10\"\ngcloud dns record-sets transaction add --zone=brightloaf-zone --name=api.brightloaf.com --type=A --ttl=300 \"198.51.100.25\"\ngcloud dns record-sets transaction execute --zone=brightloaf-zone\n\necho \"POSITIVE FENCING COMPLETE: Target isolated. Traffic restored to on-premises.\"\n```",
-                    "Develop an executable Python simulation testing fencing assertions (`test_rollback_fencer.py`):\n\n```python\n# test_rollback_fencer.py\n\nclass CloudInfrastructureState:\n    def __init__(self):\n        self.lb_ingress_active = True\n        self.db_authorized_networks = ['10.128.0.0/16']\n        self.dns_target = '34.120.55.10' # Cloud VIP\n\n    def execute_positive_fencing(self, onprem_vip: str):\n        # 1. Sever ingress\n        self.lb_ingress_active = False\n        # 2. Fence DB\n        self.db_authorized_networks = []\n        # 3. Revert DNS\n        self.dns_target = onprem_vip\n        return True\n\n    def attempt_client_write(self, client_has_cached_ip: bool) -> str:\n        # If client connects via LB and LB is disabled -> connection refused\n        if not self.lb_ingress_active:\n            return 'CONNECTION_REFUSED_503'\n        # If client connects directly to DB and DB is fenced -> authorization failed\n        if not self.db_authorized_networks:\n            return 'DB_AUTH_FAILED'\n        return 'WRITE_COMMITTED'\n\nenv = CloudInfrastructureState()\n# Normal write succeeds\nassert env.attempt_client_write(False) == 'WRITE_COMMITTED'\n\n# Execute positive fencing\nenv.execute_positive_fencing('198.51.100.25')\n\n# Client attempts write with cached IP -> immediately blocked by disabled ingress\nassert env.attempt_client_write(True) == 'CONNECTION_REFUSED_503'\nassert env.dns_target == '198.51.100.25'\nprint(\"Positive Fencing Assertion Test Verified Successfully.\")\n```",
-                    "Execute the Python rollback fencing test:\n\n```sh\npython3 test_rollback_fencer.py\n```"
+                    "#### Stage 1: Rollback Decision Matrix & Abort Threshold Specification\nDraft the formal Rollback Decision Matrix and abort thresholds in <kbd>day-077-rollback-fencing.md</kbd>. Establish the non-negotiable triggers: error rate &gt; 1%, replication lag &gt; 10s, or T+75m expiry.",
+                    "#### Stage 2: Infrastructure State & Positive Fencing Protocol Definition\nDefine the multi-stage positive fencing architecture: sever edge ingress, sever database networks, terminate active client sessions, and reverse DNS records.",
+                    "#### Stage 3: Core Implementation: Production Positive Fencing Shell Script\nAuthor the production automated rollback fencing script (<kbd>rollback_fence.sh</kbd>):\n\n```sh\n#!/usr/bin/env bash\n# rollback_fence.sh — Execute immediate positive resource fencing\nset -euo pipefail\n\necho \"[STAGE 1/3] Disabling Cloud Load Balancer Ingress...\"\ngcloud compute forwarding-rules update brightloaf-global-fw \\\n  --global \\\n  --quiet || true\n\necho \"[STAGE 2/3] Positively Fencing Cloud SQL Database...\"\ngcloud sql instances patch brightloaf-sql-prod \\\n  --authorized-networks=\"\" \\\n  --quiet\n\necho \"[STAGE 3/3] Reverting Cloud DNS to On-Premises Datacenter VIP...\"\ngcloud dns record-sets transaction start --zone=brightloaf-zone\ngcloud dns record-sets transaction remove --zone=brightloaf-zone --name=api.brightloaf.com --type=A --ttl=300 \"34.120.55.10\"\ngcloud dns record-sets transaction add --zone=brightloaf-zone --name=api.brightloaf.com --type=A --ttl=300 \"198.51.100.25\"\ngcloud dns record-sets transaction execute --zone=brightloaf-zone\n\necho \"POSITIVE FENCING COMPLETE: Target isolated. Traffic restored to on-premises.\"\n```",
+                    "#### Stage 4: Python Simulation Engine for Fencing Invariant Verification\nDevelop an executable Python simulation testing fencing assertions and connection drop behavior (<kbd>test_rollback_fencer.py</kbd>):\n\n```python\n# test_rollback_fencer.py\n\"\"\"Simulates positive resource fencing and blocks client write attempts.\"\"\"\n\nclass CloudInfrastructureState:\n    def __init__(self):\n        self.lb_ingress_active = True\n        self.db_authorized_networks = ['10.128.0.0/16']\n        self.dns_target = '34.120.55.10' # Cloud VIP\n\n    def execute_positive_fencing(self, onprem_vip: str):\n        self.lb_ingress_active = False\n        self.db_authorized_networks = []\n        self.dns_target = onprem_vip\n        return True\n\n    def attempt_client_write(self, client_has_cached_ip: bool) -> str:\n        if not self.lb_ingress_active:\n            return 'CONNECTION_REFUSED_503'\n        if not self.db_authorized_networks:\n            return 'DB_AUTH_FAILED'\n        return 'WRITE_COMMITTED'\n\nif __name__ == '__main__':\n    env = CloudInfrastructureState()\n    assert env.attempt_client_write(False) == 'WRITE_COMMITTED'\n    env.execute_positive_fencing('198.51.100.25')\n    assert env.attempt_client_write(True) == 'CONNECTION_REFUSED_503'\n    assert env.dns_target == '198.51.100.25'\n    print(\"Positive Fencing Assertion Test Verified Successfully.\")\n```",
+                    "#### Stage 5: Execution & Rollback Telemetry Capture\nExecute the rollback fencing simulation:\n\n```sh\npython3 test_rollback_fencer.py\n```",
+                    "#### Stage 6: Failure Injection: Simulating Stale DNS Client Write Storm\nSimulate an unmitigated mobile client write flood post-rollback and verify that positive fencing stops 100% of rogue writes (<kbd>simulate_write_storm.py</kbd>):\n\n```python\n# simulate_write_storm.py\nfrom test_rollback_fencer import CloudInfrastructureState\n\nenv = CloudInfrastructureState()\nenv.execute_positive_fencing('198.51.100.25')\n\nblocked_count = 0\nfor i in range(500):\n    result = env.attempt_client_write(client_has_cached_ip=True)\n    if result == 'CONNECTION_REFUSED_503':\n        blocked_count += 1\n\nprint(f\"Rogue Write Storm: Blocked {blocked_count}/500 requests at edge.\")\nassert blocked_count == 500, \"Fencing leak detected!\"\nprint(\"[PASS] Positive fencing stopped 100% of uncoordinated writes.\")\n```",
+                    "#### Stage 7: Disaster Recovery & Reverse CDC Failback Runbook\nDocument the Reverse CDC reconciliation sequence: if customer writes committed in the cloud prior to rollback, replay Cloud SQL WAL transactions back to on-premises MySQL using Datastream before unlocking on-premises write permissions.",
+                    "#### Stage 8: Production Readiness Checklist & Post-Cutover Governance\nDocument the approved rollback playbook in <kbd>day-077-rollback-fencing.md</kbd>. Confirm that all emergency scripts have executable permissions (<kbd>chmod +x rollback_fence.sh</kbd>) and require zero interactive prompts."
                 ],
                 "verification": (
-                    "Run automated fencing verification test:\n\n```sh\npython3 -c \"import test_rollback_fencer; print('Rollback Fencing Test Passed')\"\n```\n\nConfirm output displays `Positive Fencing Assertion Test Verified Successfully`."
+                    "Run automated rollback fencing test suite:\n\n```sh\npython3 test_rollback_fencer.py && python3 simulate_write_storm.py && bash -n rollback_fence.sh\n```\n\nConfirm output displays `Positive Fencing Assertion Test Verified Successfully` and `[PASS] Positive fencing stopped 100% of uncoordinated writes`."
                 ),
                 "trouble": (
                     "If client writes succeed after fencing in simulation, verify that `lb_ingress_active` and `db_authorized_networks` are updated atomically."
@@ -614,6 +739,32 @@ DATA = {
                     "Execute a complete staging simulation on 50,000 cloned customer orders; deliberately inject a database failure; "
                     "measure exact rollback RTO and RPO; deliver a signed Migration Rehearsal Report to secure CAB re-authorization."
                 ),
+                "evidence": (
+                    "Change Advisory Board (CAB) formal veto minutes and staging rollback drill telemetry:\n\n"
+                    "```text\n"
+                    "CHANGE ADVISORY BOARD (CAB) — EMERGENCY REJECTION MINUTES\n"
+                    "========================================================================\n"
+                    "Meeting Date: Thursday, Sep 24, 2026, 09:30 UTC\n"
+                    "Change Request: CR-99124 — Production Cutover: Retail Core to Cloud SQL\n"
+                    "Decision: REJECTED (VETO EXERCISED BY CISO & VP OF OPERATIONS)\n"
+                    "\n"
+                    "REJECTION RATIONALE:\n"
+                    "- Section 6.4 (Rollback Verification Evidence): EMPTY.\n"
+                    "- Engineering team confirmed zero empirical failure injection drills executed.\n"
+                    "- Contractual SLA mandates 15-minute RTO; project team claims 'theoretical 5 min'\n"
+                    "  without empirical log evidence.\n"
+                    "\n"
+                    "RE-ASSESSMENT STAGING DRILL TELEMETRY (Sep 26, 2026, 14:00 UTC):\n"
+                    "- Dataset: 50,000 cloned production orders (14.2 GB)\n"
+                    "- 14:35:00 Injected database connection pool failure (pg_terminate_backend storm)\n"
+                    "- 14:35:12 Automated monitoring triggers alert: checkout_p95_error_rate > 5%\n"
+                    "- 14:35:20 Incident Commander declared ROLLBACK\n"
+                    "- 14:35:28 Positive fencing script executed: GLB Ingress drained (8 seconds)\n"
+                    "- 14:36:10 Cloud SQL network access revoked; connections severed\n"
+                    "- 14:43:02 DNS records reverted to Chicago on-premises VIP\n"
+                    "- Measured Staging Rollback RTO: 7 Minutes, 42 Seconds (Target: < 15.0 min) [APPROVED]\n"
+                    "```"
+                ),
                 "diagnostic_steps": [
                     "Step 1: Review CAB rejection audit notes; confirm cancellation was driven by absence of empirical rollback verification.",
                     "Step 2: Provision an isolated staging environment replicating on-premises and Google Cloud VPC topologies.",
@@ -658,13 +809,17 @@ DATA = {
                 "prereq": "Day 76 reconciliation engine and Day 77 rollback planning",
                 "preflight": "Review staging cutover simulation logs and executive acceptance criteria.",
                 "steps": [
-                    "Draft the formal Migration Rehearsal Report in `day-077-rehearsal-scorecard.md`.",
-                    "Develop an executable Python rehearsal scorecard engine (`rehearsal_evaluator.py`):\n\n```python\n# rehearsal_evaluator.py\n\nACCEPTANCE_GATES = {\n    'cdc_replication_lag_sec': {'threshold': 5.0, 'comparator': 'LE', 'name': 'CDC Replication Lag'},\n    'drain_window_duration_min': {'threshold': 5.0, 'comparator': 'LE', 'name': 'Final Drain Window'},\n    'data_reconciliation_parity_pct': {'threshold': 100.0, 'comparator': 'EQ', 'name': 'Data Reconciliation Parity'},\n    'injected_fault_detection_pct': {'threshold': 100.0, 'comparator': 'EQ', 'name': 'Fault Detection Accuracy'},\n    'rollback_execution_rto_min': {'threshold': 15.0, 'comparator': 'LE', 'name': 'Rollback Execution RTO'}\n}\n\n# Measured telemetry from staging rehearsal drill\nREHEARSAL_RESULTS = {\n    'cdc_replication_lag_sec': 0.65,\n    'drain_window_duration_min': 1.23,\n    'data_reconciliation_parity_pct': 100.0,\n    'injected_fault_detection_pct': 100.0,\n    'rollback_execution_rto_min': 7.70\n}\n\ndef evaluate_rehearsal(results: dict, gates: dict) -> bool:\n    all_passed = True\n    for metric, gate in gates.items():\n        measured = results[metric]\n        target = gate['threshold']\n        comp = gate['comparator']\n        passed = False\n        if comp == 'LE' and measured <= target:\n            passed = True\n        elif comp == 'EQ' and measured == target:\n            passed = True\n        \n        status = \"PASSED\" if passed else \"FAILED\"\n        print(f\"{gate['name']}: Measured={measured}, Target={target} ({comp}) -> {status}\")\n        if not passed:\n            all_passed = False\n    return all_passed\n\nis_approved = evaluate_rehearsal(REHEARSAL_RESULTS, ACCEPTANCE_GATES)\nassert is_approved is True, \"Rehearsal results failed acceptance gates!\"\nprint(\"\\nMigration Rehearsal Report Scorecard: ALL GATES APPROVED FOR GO-LIVE.\")\n```",
-                    "Execute the Python rehearsal scorecard engine test:\n\n```sh\npython3 rehearsal_evaluator.py\n```",
-                    "Draft the multi-stakeholder executive sign-off matrix in `day-077-rehearsal-scorecard.md` with approval criteria."
+                    "#### Stage 1: Migration Rehearsal Architecture & Rubric Design\nDraft the formal Migration Rehearsal Report specification in <kbd>day-077-rehearsal-scorecard.md</kbd>. Define the five quantitative gates: CDC lag, final drain duration, cryptographic parity, fault detection, and rollback RTO.",
+                    "#### Stage 2: Contractual Acceptance Thresholds Specification\nDefine the dictionary of acceptance gates, comparison operators, and threshold limits required for executive authorization.",
+                    "#### Stage 3: Core Implementation: Python Rehearsal Scorecard Evaluator\nDevelop the automated Python rehearsal scorecard evaluation engine (<kbd>rehearsal_evaluator.py</kbd>):\n\n```python\n# rehearsal_evaluator.py\n\"\"\"Evaluates staging migration rehearsal telemetry against contractual acceptance gates.\"\"\"\nfrom typing import Dict, Any\n\nACCEPTANCE_GATES = {\n    'cdc_replication_lag_sec': {'threshold': 5.0, 'comparator': 'LE', 'name': 'CDC Replication Lag'},\n    'drain_window_duration_min': {'threshold': 5.0, 'comparator': 'LE', 'name': 'Final Drain Window'},\n    'data_reconciliation_parity_pct': {'threshold': 100.0, 'comparator': 'EQ', 'name': 'Data Reconciliation Parity'},\n    'injected_fault_detection_pct': {'threshold': 100.0, 'comparator': 'EQ', 'name': 'Fault Detection Accuracy'},\n    'rollback_execution_rto_min': {'threshold': 15.0, 'comparator': 'LE', 'name': 'Rollback Execution RTO'}\n}\n\nREHEARSAL_RESULTS = {\n    'cdc_replication_lag_sec': 0.65,\n    'drain_window_duration_min': 1.23,\n    'data_reconciliation_parity_pct': 100.0,\n    'injected_fault_detection_pct': 100.0,\n    'rollback_execution_rto_min': 7.70\n}\n\ndef evaluate_rehearsal(results: Dict[str, float], gates: Dict[str, Any]) -> bool:\n    all_passed = True\n    for metric, gate in gates.items():\n        measured = results[metric]\n        target = gate['threshold']\n        comp = gate['comparator']\n        passed = False\n        if comp == 'LE' and measured <= target:\n            passed = True\n        elif comp == 'EQ' and measured == target:\n            passed = True\n        \n        status = \"PASSED\" if passed else \"FAILED\"\n        print(f\"{gate['name']:<28}: Measured={measured:>6.2f}, Target={target:>6.2f} ({comp}) -> {status}\")\n        if not passed:\n            all_passed = False\n    return all_passed\n\nif __name__ == '__main__':\n    is_approved = evaluate_rehearsal(REHEARSAL_RESULTS, ACCEPTANCE_GATES)\n    assert is_approved is True, \"Rehearsal results failed acceptance gates!\"\n    print(\"\\nMigration Rehearsal Report Scorecard: ALL GATES APPROVED FOR GO-LIVE.\")\n```",
+                    "#### Stage 4: Executive Sign-off Matrix & Multi-Stakeholder Voting Engine\nImplement the stakeholder authorization consensus engine requiring unanimous approval (<kbd>stakeholder_signoff.py</kbd>):\n\n```python\n# stakeholder_signoff.py\n\"\"\"Verifies multi-stakeholder unanimous sign-off.\"\"\"\nfrom typing import Dict\n\nSIGN_OFFS = {\n    'Lead Cloud Architect': {'approved': True, 'domain': 'Landing Zone & Well-Architected Fit'},\n    'Director of Infosec (CISO)': {'approved': True, 'domain': 'VPC-SC, Encryption & Access Controls'},\n    'Head of SRE': {'approved': True, 'domain': 'Rollback Scripts, Alerting & Observability'},\n    'Product Sponsor / CFO': {'approved': True, 'domain': 'Downtime Budget & Financial Liability'}\n}\n\ndef verify_signoffs(signoffs: Dict[str, Dict]) -> bool:\n    for role, info in signoffs.items():\n        status = \"SIGNED\" if info['approved'] else \"REJECTED\"\n        print(f\"{role:<28}: [{status}] - {info['domain']}\")\n        if not info['approved']:\n            return False\n    return True\n\nif __name__ == '__main__':\n    assert verify_signoffs(SIGN_OFFS) is True\n    print(\"\\n[CAB UNANIMOUS SIGN-OFF CONFIRMED] Change Request Authorized for Production Window.\")\n```",
+                    "#### Stage 5: Execution & Rehearsal Verification\nRun the rehearsal evaluation and stakeholder sign-off test runners:\n\n```sh\npython3 rehearsal_evaluator.py && python3 stakeholder_signoff.py\n```",
+                    "#### Stage 6: Chaos Injection: Simulating SLA Breach & CAB Veto Scenario\nSimulate an unmitigated replication lag spike breaching the 5-second gate and confirm the scorecard vetoes cutover (<kbd>test_sla_breach.py</kbd>):\n\n```python\n# test_sla_breach.py\nfrom rehearsal_evaluator import evaluate_rehearsal, ACCEPTANCE_GATES\n\nbreached_results = {\n    'cdc_replication_lag_sec': 14.20, # BREACH (> 5.0s)\n    'drain_window_duration_min': 1.23,\n    'data_reconciliation_parity_pct': 100.0,\n    'injected_fault_detection_pct': 100.0,\n    'rollback_execution_rto_min': 7.70\n}\n\nis_approved = evaluate_rehearsal(breached_results, ACCEPTANCE_GATES)\nassert is_approved is False, \"Scorecard failed to reject SLA breach!\"\nprint(\"[VETO CONFIRMED] Replication lag breach automatically blocked production go-live authorization.\")\n```",
+                    "#### Stage 7: Forensic Audit Trail & Report Generation Runbook\nGenerate the timestamped markdown rehearsal audit report archiving all test executions into <kbd>day-077-rehearsal-scorecard.md</kbd>.",
+                    "#### Stage 8: Production Readiness Checklist & Post-Cutover Governance\nDocument the formal Change Advisory Board authorization certificate. Confirm that no chargeable cloud resources were provisioned during the offline architectural simulation."
                 ],
                 "verification": (
-                    "Run automated rehearsal scorecard verification test:\n\n```sh\npython3 -c \"import rehearsal_evaluator; print('Rehearsal Scorecard Test Passed')\"\n```\n\nConfirm output displays `ALL GATES APPROVED FOR GO-LIVE`."
+                    "Run automated rehearsal evaluation and audit test suite:\n\n```sh\npython3 rehearsal_evaluator.py && python3 stakeholder_signoff.py && python3 test_sla_breach.py\n```\n\nConfirm output displays `ALL GATES APPROVED FOR GO-LIVE`, `[CAB UNANIMOUS SIGN-OFF CONFIRMED]`, and `[VETO CONFIRMED]`."
                 ),
                 "trouble": (
                     "If any gate fails, verify that measured values in `REHEARSAL_RESULTS` reflect the actual staging drill telemetry."

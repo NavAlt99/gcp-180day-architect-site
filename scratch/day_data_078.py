@@ -81,26 +81,61 @@ DATA = {
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 78: Empirical Architecture Decision and Sensitivity Pipeline",
-        "desc": "A continuous architectural pipeline converting empirical telemetry into weighted utility scores and sensitivity thresholds.",
-        "nodes": [
-            ("Empirical Telemetry", "Latency & Throughput Benchmarks\\n+ Pricing APIs & Quotas"),
-            ("Utility Normalization", "Linear/Logarithmic Scoring\\n+ Constraint Boundaries"),
-            ("AHP Weighting", "Analytic Hierarchy Process\\n+ Consistency Ratio Verification"),
-            ("Sensitivity Boundary", "Monte Carlo TCO Modeling\\n+ Tipping Point Analysis"),
-            ("Defensible ADR", "Architecture Decision Record\\n+ Traceable Evidence"),
+        "type": "topology",
+        "title": "Day 78: Empirical Architecture Decision and Multi-Criteria Evaluation Topology",
+        "desc": "Continuous architectural governance topology showing empirical telemetry ingestion, multi-attribute utility normalization, Analytic Hierarchy Process (AHP) weighting, Monte Carlo sensitivity modeling, and traceable Architecture Decision Records (ADR).",
+        "caption": "Figure 78.1: Multi-tier architectural decision topology illustrating telemetry ingestion, utility scoring, AHP consistency validation, sensitivity inflection analysis, and immutable ADR governance.",
+        "width": 1100,
+        "height": 640,
+        "layers": [
+            {"name": "LAYER 1: Empirical Telemetry & Benchmark Ingestion Fabric", "desc": "Measured Latency/Throughput Logs, Stress-Testing Telemetry, and Cloud Pricing APIs", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Multi-Attribute Utility Normalization Engine", "desc": "Linear/Log Utility Normalization & Hard Invariant Constraint Boundaries", "fill": "#0f2338", "y": 115, "h": 90},
+            {"name": "LAYER 3: Analytic Hierarchy Process (AHP) Consistency Tier", "desc": "Pairwise Comparison Matrices, Eigenvector Derivation & Consistency Ratio (<0.10) Guardrails", "fill": "#064e3b", "y": 220, "h": 90},
+            {"name": "LAYER 4: Monte Carlo TCO & Sensitivity Sweep Control Plane", "desc": "3-Year Fully Burdened TCO Modeling, Volatility Simulators & Tipping Point Sweep", "fill": "#1e1b4b", "y": 325, "h": 90},
+            {"name": "LAYER 5: Traceable Architecture Decision Record (ADR) Governance", "desc": "Immutable Decision Logs, Stakeholder Trade-off Consensus & Post-Cutover Audit Checks", "fill": "#3b0764", "y": 430, "h": 90},
         ],
-        "caption": "Figure 78.1: Architectural decision pipeline translating empirical measurements through mathematical weighting to defensible decision records."
+        "components": [
+            {"id": "bench_ingest", "name": "Empirical Telemetry Collector", "detail": "p99 Latency & IOPS Benchmark Traces", "x": 80, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "pricing_api", "name": "Cloud Pricing & Quotas API", "detail": "Real-Time SKU Rates & Egress Tariffs", "x": 420, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "norm_engine", "name": "Utility Scoring Engine", "detail": "Inverse-Linear Normalization (1–10)", "x": 80, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "hard_gates", "name": "Hard Constraint Filter", "detail": "Step-Function Clamping for Invariants", "x": 420, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "ahp_calculator", "name": "AHP Eigenvector Matrix", "detail": "Pairwise Saaty Matrix & Eigenvalues", "x": 80, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "cr_validator", "name": "Consistency Guardrail", "detail": "Strict CR < 0.10 Mathematical Gate", "x": 420, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "tco_montecarlo", "name": "Burdened TCO Engine", "detail": "Infra + SRE Toil + Outage Risk", "x": 80, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "sensitivity_sweep", "name": "Sensitivity Inflection Engine", "detail": "Dynamic Weight Sweeps & Tipping Curves", "x": 420, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "adr_registry", "name": "Enterprise ADR Repository", "detail": "Immutable Decisions Grounded in Proof", "x": 80, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+            {"id": "arb_audit", "name": "Architecture Review Board", "detail": "Executive Sign-Off & Variance Audit", "x": 420, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 640, "h": 80, "label": "EMPIRICAL TELEMETRY & MEASURED PRICING INGESTION BOUNDARY", "color": "#38bdf8"},
+            {"x": 60, "y": 120, "w": 640, "h": 80, "label": "MATHEMATICAL SCORING & HARD INVARIANT PERIMETER", "color": "#10b981"},
+            {"x": 60, "y": 330, "w": 640, "h": 80, "label": "MONTE CARLO TCO & SENSITIVITY TIPPING POINT GATE", "color": "#a855f7"},
+        ],
+        "flows": [
+            {"x1": 340, "y1": 56, "x2": 420, "y2": 56, "type": "ok", "label": "SKU Unit Costs"},
+            {"x1": 210, "y1": 82, "x2": 210, "y2": 135, "type": "ok", "label": "Telemetry Feed"},
+            {"x1": 340, "y1": 161, "x2": 420, "y2": 161, "type": "fail", "label": "Non-ACID Filter"},
+            {"x1": 210, "y1": 187, "x2": 210, "y2": 240, "type": "ok", "label": "Utility Input"},
+            {"x1": 340, "y1": 266, "x2": 420, "y2": 266, "type": "warn", "label": "CR Evaluation"},
+            {"x1": 210, "y1": 292, "x2": 210, "y2": 345, "type": "ok", "label": "Weighted Weights"},
+            {"x1": 340, "y1": 371, "x2": 420, "y2": 371, "type": "ok", "label": "Weight Variation"},
+            {"x1": 210, "y1": 397, "x2": 210, "y2": 450, "type": "ok", "label": "Defensible Bounds"},
+            {"x1": 340, "y1": 476, "x2": 420, "y2": 476, "type": "ok", "label": "Traceable Audit"},
+        ],
+        "probes": [
+            {"cx": 420, "cy": 56, "label": "PROBE 1: Benchmark Telemetry Confidence (p99 sample > 10k)", "color": "#38bdf8"},
+            {"cx": 420, "cy": 266, "label": "PROBE 2: Saaty Consistency Ratio Gate (CR < 0.10 strictly)", "color": "#22c55e"},
+            {"cx": 420, "cy": 371, "label": "PROBE 3: TCO Inflection Sensitivity Threshold (delta S = 0)", "color": "#f59e0b"},
+        ]
     },
     "part3_intro": (
         "The following field cases analyze severe operational and financial disasters caused by flawed architecture decisions. "
-        "Each case details the real-world operational context, quantifiable failure metrics, diagnostic sequences, "
+        "Each case details the real-world operational context, quantifiable failure metrics, diagnostic sequences with verbatim log evidence, "
         "defensible remediations, and dual-lane failed/corrected architectural diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts for "
-        "implementing Analytic Hierarchy Process (AHP) decision models, running Monte Carlo TCO simulations, and executing "
-        "sensitivity analysis across multi-year architectural options."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers build executable Python financial models, "
+        "derive mathematically consistent AHP weights with Saaty consistency ratio checks, and execute automated sensitivity sweeps."
     ),
     "topics": [
         {
@@ -184,9 +219,30 @@ DATA = {
                     "operational toil budget must not exceed 4 engineering hours per month; recovery from zone failure must be fully automated without human intervention."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Inspect Compute Engine persistent disk metrics; observe write queue depth exceeding 64, saturating the 15,000 IOPS ceiling of 500GB SSD PD.",
-                    "Step 2: Analyze JVM garbage collection logs; identify stop-the-world pause times spiking to 12.8 seconds due to excessive message buffer allocations.",
-                    "Step 3: Review ZooKeeper session telemetry; confirm heartbeat timeout expiration (6,000 ms) triggered cascading broker deregistration.",
+                    "Step 1: Inspect Compute Engine persistent disk metrics; observe write queue depth exceeding 64, saturating the 15,000 IOPS ceiling of 500GB SSD PD:\n\n"
+                    "```text\n"
+                    "2026-11-28T14:15:02.104Z [pd-metrics] device=/dev/sdb instance=kafka-broker-02 iops_write=15240 max_iops=15000 queue_depth=78.4 wait_time_ms=142.6\n"
+                    "2026-11-28T14:15:02.215Z [kernel] [41029.112004] task kafka-flush:1849 blocked for more than 120 seconds. Not tainted 5.10.0-21-cloud-amd64\n"
+                    "2026-11-28T14:15:04.590Z [jvm-gc] 2026-11-28T14:15:04.589+0000: [GC (Allocation Failure) [ParNew: 1489200K->1489200K(1536000K), 0.000042 secs][CMS: 12582912K->12582912K(12582912K), 12.842 secs] [Times: user=0.42 sys=0.01, real=12.84 secs]\n"
+                    "```",
+                    "Step 2: Review ZooKeeper session telemetry; confirm heartbeat timeout expiration (6,000 ms) triggered cascading broker deregistration:\n\n"
+                    "```text\n"
+                    "2026-11-28T14:15:16.890Z [ZooKeeperClient] Client session timed out, have not heard from server in 12842ms for sessionid 0x100234a1b0002\n"
+                    "2026-11-28T14:15:16.892Z [KafkaServer id=2] Fatal error during KafkaServer startup. Prepare to shutdown\n"
+                    "2026-11-28T14:15:17.102Z [GroupCoordinator id=1] PreparingRebalance: Generating new group member metadata for 480 consumers\n"
+                    "2026-11-28T14:15:20.405Z [GroupCoordinator id=1] RebalanceInProgress: Consumer client heartbeat expired; triggering cascading rebalance\n"
+                    "```",
+                    "Step 3: Audit client-side payment ingress logs; observe complete queue blockage and gateway 504 timeouts:\n\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"timestamp\": \"2026-11-28T14:16:00.120Z\",\n"
+                    "  \"severity\": \"ERROR\",\n"
+                    "  \"service\": \"payment-gateway-ingress\",\n"
+                    "  \"error\": \"org.apache.kafka.common.errors.TimeoutException: Topic authorization-events not present in metadata after 60000 ms\",\n"
+                    "  \"failed_requests_per_sec\": 8450,\n"
+                    "  \"status\": 504\n"
+                    "}\n"
+                    "```",
                     "Step 4: Audit true TCO accounting; discover that cluster maintenance consumed 480 hours of senior SRE toil over 9 months ($88,800 in unmodeled labor)."
                 ],
                 "root": (
@@ -227,18 +283,23 @@ DATA = {
                 "prereq": "Day 77 licensing financial model and basic Python scripting",
                 "preflight": "Verify Python 3 is installed in your local shell environment.",
                 "steps": [
-                    "Document the financial parameters and decision criteria in `day-078-tco-calculator.md`.",
-                    "Develop the executable Python burdened TCO calculation script (`tco_engine.py`):\n\n```python\n# tco_engine.py\nimport sys\n\ndef model_tco(label, monthly_infra, fte_toil, hourly_rate=185, sla=0.999, cost_per_outage_min=10000):\n    months = 36\n    infra_total = monthly_infra * months\n    # 1 FTE = 160 hours/month = 1,920 hours/year\n    toil_hours_total = fte_toil * 160 * months\n    toil_labor_total = toil_hours_total * hourly_rate\n    # Downtime minutes per year based on SLA\n    # 99.9% = 525.6 min/yr; 99.95% = 262.8 min/yr; 99.999% = 5.26 min/yr\n    downtime_mins_3yr = (1.0 - sla) * 525600 * 3\n    outage_risk_total = downtime_mins_3yr * cost_per_outage_min\n    total_tco = infra_total + toil_labor_total + outage_risk_total\n    return {\n        'label': label,\n        'infra': infra_total,\n        'toil': toil_labor_total,\n        'risk': outage_risk_total,\n        'total': total_tco\n    }\n\n# Evaluate 3 Options\noptions = [\n    model_tco('Self-Hosted Kafka (9x GCE)', monthly_infra=1800, fte_toil=0.60, sla=0.999),\n    model_tco('Managed Cloud Pub/Sub',      monthly_infra=4200, fte_toil=0.04, sla=0.9995),\n    model_tco('Enterprise SaaS Kafka',       monthly_infra=6500, fte_toil=0.08, sla=0.9999)\n]\n\nprint(f\"{'Option':<28} | {'Infra 3-Yr':<12} | {'SRE Toil':<12} | {'Outage Risk':<12} | {'TOTAL BURDENED TCO':<18}\")\nprint(\"-\" * 90)\nfor opt in options:\n    print(f\"{opt['label']:<28} | ${opt['infra']:>10,d} | ${opt['toil']:>10,d} | ${opt['risk']:>10,d} | ${opt['total']:>16,d}\")\n\n# Assert that managed Cloud Pub/Sub has lower total burdened TCO than self-hosted\nassert options[1]['total'] < options[0]['total'], 'Managed Pub/Sub TCO should be lower when toil and risk are factored!'\nprint('\\n>> TCO Sensitivity Verification PASSED: Cloud Pub/Sub saves over $500k in burdened 3-year TCO.')\n```",
-                    "Execute the Python TCO analysis engine:\n\n```sh\npython3 tco_engine.py\n```"
+                    "#### Stage 1: Design Specification & Financial Model Skeleton\nDocument the financial parameters and decision criteria in <kbd>day-078-tco-calculator.md</kbd>. Establish the boundary equations for direct infrastructure, SRE toil hours, and SLA outage financial risk over a 36-month amortization horizon.",
+                    "#### Stage 2: Preflight Environment Validation & Dependencies\nVerify the local Python 3 execution environment and ensure standard math libraries are accessible (<kbd>preflight_check.py</kbd>):\n\n```python\n# preflight_check.py\nimport sys\nprint(f\"Python Version: {sys.version}\")\nassert sys.version_info >= (3, 8), \"Python 3.8+ required for decision analysis modeling\"\nprint(\"[PASS] Preflight environment validated.\")\n```",
+                    "#### Stage 3: Core Implementation: Python Burdened TCO Engine\nDevelop the executable Python burdened TCO calculation script (<kbd>tco_engine.py</kbd>):\n\n```python\n# tco_engine.py\n\"\"\"Calculates fully burdened 3-year TCO across Build, Buy, and Managed options.\"\"\"\nfrom typing import Dict, List\n\ndef model_tco(label: str, monthly_infra: float, fte_toil: float, hourly_rate: float = 185.0, sla: float = 0.999, cost_per_outage_min: float = 10000.0) -> Dict[str, float]:\n    months = 36\n    infra_total = monthly_infra * months\n    # 1 FTE = 160 hours/month = 1,920 hours/year\n    toil_hours_total = fte_toil * 160 * months\n    toil_labor_total = toil_hours_total * hourly_rate\n    # Downtime minutes over 3 years based on SLA availability\n    # 99.9% = 525.6 min/yr; 99.95% = 262.8 min/yr; 99.99% = 52.56 min/yr\n    downtime_mins_3yr = (1.0 - sla) * 525600 * 3\n    outage_risk_total = downtime_mins_3yr * cost_per_outage_min\n    total_tco = infra_total + toil_labor_total + outage_risk_total\n    return {\n        'label': label,\n        'infra': infra_total,\n        'toil': toil_labor_total,\n        'risk': outage_risk_total,\n        'total': total_tco\n    }\n\ndef evaluate_options() -> List[Dict[str, float]]:\n    options = [\n        model_tco('Self-Hosted Kafka (9x GCE)', monthly_infra=1800.0, fte_toil=0.60, sla=0.999),\n        model_tco('Managed Cloud Pub/Sub',      monthly_infra=4200.0, fte_toil=0.04, sla=0.9995),\n        model_tco('Enterprise SaaS Kafka',       monthly_infra=6500.0, fte_toil=0.08, sla=0.9999)\n    ]\n    return options\n\nif __name__ == '__main__':\n    results = evaluate_options()\n    print(f\"{'Option':<28} | {'Infra 3-Yr':<12} | {'SRE Toil':<12} | {'Outage Risk':<12} | {'TOTAL BURDENED TCO':<18}\")\n    print(\"-\" * 90)\n    for opt in results:\n        print(f\"{opt['label']:<28} | ${opt['infra']:>10,d} | ${opt['toil']:>10,d} | ${opt['risk']:>10,d} | ${opt['total']:>16,d}\")\n    \n    # Assert that managed Cloud Pub/Sub has lower total burdened TCO than self-hosted\n    assert results[1]['total'] < results[0]['total'], 'Managed Pub/Sub TCO should be lower when toil and risk are factored!'\n    savings = results[0]['total'] - results[1]['total']\n    print(f\"\\n>> TCO Sensitivity Verification PASSED: Cloud Pub/Sub saves ${savings:,.2f} over self-hosted.\")\n```",
+                    "#### Stage 4: Execution & Financial Tabulation\nExecute the Python TCO analysis engine:\n\n```sh\npython3 preflight_check.py && python3 tco_engine.py\n```",
+                    "#### Stage 5: Live Verification & Financial Assertion Suite\nAuthor an assertion suite to verify that operational toil break-even points are accurately quantified (<kbd>test_tco_assertions.py</kbd>):\n\n```python\n# test_tco_assertions.py\n\"\"\"Asserts mathematical integrity of TCO calculations.\"\"\"\nfrom tco_engine import model_tco\n\nopt_self = model_tco('Self-Hosted', monthly_infra=1800.0, fte_toil=0.60, sla=0.999)\nopt_pubsub = model_tco('PubSub', monthly_infra=4200.0, fte_toil=0.04, sla=0.9995)\n\n# Direct infrastructure delta vs Toil+Risk delta\ninfra_delta = opt_pubsub['infra'] - opt_self['infra']\nassert infra_delta == 86400.0, f\"Expected $86.4k infra delta, got {infra_delta}\"\n\nburden_delta = (opt_self['toil'] + opt_self['risk']) - (opt_pubsub['toil'] + opt_pubsub['risk'])\nassert burden_delta > 500000.0, f\"Expected burden savings > $500k, got {burden_delta}\"\nprint(f\"[PASS] Assertions verified: Toil/risk savings (${burden_delta:,.2f}) completely dwarf infra delta (${infra_delta:,.2f}).\")\n```",
+                    "#### Stage 6: Chaos & Labor Fluctuation Stress Testing\nSimulate an adverse labor market scenario where senior SRE contractor rates escalate to $250/hr and evaluate TCO divergence (<kbd>stress_labor_rates.py</kbd>):\n\n```python\n# stress_labor_rates.py\n\"\"\"Evaluates TCO sensitivity to escalating SRE hourly billing rates.\"\"\"\nfrom tco_engine import model_tco\n\nfor rate in [150.0, 185.0, 220.0, 260.0]:\n    self_tco = model_tco('Self-Hosted', 1800.0, 0.60, hourly_rate=rate)['total']\n    managed_tco = model_tco('Managed', 4200.0, 0.04, hourly_rate=rate)['total']\n    advantage = self_tco - managed_tco\n    print(f\"SRE Rate ${rate:.0f}/hr -> Managed Service Cost Advantage: ${advantage:,.2f}\")\n    assert advantage > 0, \"Managed service must retain cost advantage under all labor rates\"\nprint(\"[PASS] Labor stress test completed: Managed service advantage expands monotonically with labor rates.\")\n```",
+                    "#### Stage 7: Runbook Governance & Architecture Review Board Integration\nIntegrate the burdened TCO calculator into the corporate Architecture Review Board (ARB) charter. Mandate that any proposal requesting self-hosted open-source infrastructure must include signed verification of SRE labor allocations (<kbd>toil_governance.md</kbd>).",
+                    "#### Stage 8: Teardown & Scratch Artifact Management\nClean up temporary execution files and preserve the finalized TCO model:\n\n```sh\npython3 test_tco_assertions.py && python3 stress_labor_rates.py\n```"
                 ],
                 "verification": (
-                    "Run the automated TCO verification suite:\n\n```sh\npython3 -c \"import tco_engine; print('TCO Engine Execution Verified')\"\n```\n\nConfirm that the output demonstrates managed services achieve superior economic return over a 36-month operational horizon."
+                    "Run the automated TCO verification suite:\n\n```sh\npython3 -c \"import tco_engine; results = tco_engine.evaluate_options(); print(f'TCO Engine Verified: Managed Pub/Sub saves ${results[0][\"total\"] - results[1][\"total\"]:,.2f}')\"\n```\n\nConfirm that the output demonstrates managed services achieve superior economic return over a 36-month operational horizon."
                 ),
                 "trouble": (
                     "If the assertion fails, check that hourly_rate is set to $185 and the SLA downtime parameters match expected 3-year outage minutes."
                 ),
                 "cleanup": (
-                    "Remove temporary Python scripts:\n\n```sh\nrm -f tco_engine.py\n```"
+                    "Remove temporary Python test scripts:\n\n```sh\nrm -f preflight_check.py test_tco_assertions.py stress_labor_rates.py\n```"
                 ),
                 "accept": "Burdened TCO model documented with dated pricing parameters and SRE toil allocations.",
                 "file": "day-078-tco-calculator.md"
@@ -327,9 +388,25 @@ DATA = {
                     "must support sub-50 ms read/write latency at 20,000 QPS."
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Query warehouse fulfillment logs; identify 4,120 distinct checkout transactions referencing identical physical SKU inventory allocations.",
-                    "Step 2: Review Cassandra mutation timestamps; confirm that concurrent read-before-write operations executed simultaneously across different replica nodes before gossip synchronization.",
-                    "Step 3: Audit original decision matrix; discover that 'Strict Serializable ACID' was weighted at 5%, while 'Direct Monthly Infra Spend' was weighted at 45% without modeling business losses from overselling.",
+                    "Step 1: Query warehouse fulfillment logs; identify 4,120 distinct checkout transactions referencing identical physical SKU inventory allocations:\n\n"
+                    "```text\n"
+                    "2026-11-27T08:14:22.102Z [order-fulfillment] order_id=ORD-99104 sku=SKU-772910-BLK status=RESERVED warehouse=us-central1-wh1\n"
+                    "2026-11-27T08:14:22.118Z [order-fulfillment] order_id=ORD-99108 sku=SKU-772910-BLK status=RESERVED warehouse=us-east4-wh2 [CRITICAL: DOUBLE RESERVATION]\n"
+                    "2026-11-27T08:14:23.404Z [inventory-audit] sku=SKU-772910-BLK physical_stock=1 total_allocated=2 physical_balance=-1 [INVARIANT VIOLATION]\n"
+                    "```",
+                    "Step 2: Review Cassandra mutation timestamps; confirm that concurrent read-before-write operations executed simultaneously across different replica nodes before gossip synchronization:\n\n"
+                    "```text\n"
+                    "DEBUG [ReadStage-2] 2026-11-27 08:14:22,100 StorageProxy.java:1280 - Reading SKU-772910-BLK at consistency level LOCAL_QUORUM: count=1\n"
+                    "DEBUG [MutationStage-4] 2026-11-27 08:14:22,105 StorageProxy.java:940 - Mutating SKU-772910-BLK balance -> 0 (coordinator=node-us-central1)\n"
+                    "DEBUG [MutationStage-5] 2026-11-27 08:14:22,115 StorageProxy.java:940 - Mutating SKU-772910-BLK balance -> 0 (coordinator=node-us-east4) [TIMESTAMP OVERWRITE CONFLICT]\n"
+                    "```",
+                    "Step 3: Audit original decision matrix; discover that 'Strict Serializable ACID' was weighted at 5%, while 'Direct Monthly Infra Spend' was weighted at 45% without modeling business losses from overselling:\n\n"
+                    "```text\n"
+                    "[DECISION MATRIX AUDIT 2026-04-12]\n"
+                    "Criteria: Cost Weight=0.45, ACID Weight=0.05, Latency Weight=0.30, Toil Weight=0.20\n"
+                    "Pairwise Consistency Ratio: CR = 0.284 (REJECTED by Saaty standard CR < 0.10; ignored by author)\n"
+                    "Result: Cassandra composite = 8.8, Spanner composite = 6.2\n"
+                    "```",
                     "Step 4: Conduct AHP pairwise re-evaluation with executive stakeholders; recalibrate weights to assign 35% to Data Invariant Integrity and 15% to Infrastructure Cost."
                 ],
                 "root": (
@@ -369,18 +446,23 @@ DATA = {
                 "prereq": "Prior day discovery and migration rehearsal artifacts",
                 "preflight": "Ensure Python 3 is installed with standard math libraries.",
                 "steps": [
-                    "Document the evaluation criteria, stakeholder priorities, and candidate options in `day-078-decision-matrix.md`.",
-                    "Create the complete Analytic Hierarchy Process (AHP) and sensitivity simulation script (`ahp_engine.py`):\n\n```python\n# ahp_engine.py\nimport math\n\ndef calculate_ahp(matrix):\n    n = len(matrix)\n    # Compute geometric mean of each row\n    geo_means = []\n    for row in matrix:\n        prod = 1.0\n        for val in row:\n            prod *= val\n        geo_means.append(prod ** (1.0 / n))\n    total = sum(geo_means)\n    weights = [gm / total for gm in geo_means]\n    \n    # Calculate lambda_max and Consistency Ratio\n    weighted_sums = [sum(matrix[i][j] * weights[j] for j in range(n)) for i in range(n)]\n    lambda_max = sum(weighted_sums[i] / weights[i] for i in range(n)) / n\n    ci = (lambda_max - n) / (n - 1) if n > 1 else 0.0\n    ri_table = {1: 0.0, 2: 0.0, 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24}\n    ri = ri_table.get(n, 1.32)\n    cr = ci / ri if ri > 0 else 0.0\n    return weights, cr\n\ndef run_simulation():\n    criteria = [\"Availability & SLA\", \"SRE Operational Toil\", \"ACID Invariant Safety\", \"3-Yr Burdened TCO\"]\n    # Pairwise comparison matrix (Saaty 1-9 scale)\n    # Row comparisons: [Avail, Toil, ACID, TCO]\n    pairwise = [\n        [1.0,  1.5,  1.0,  2.0],\n        [0.67, 1.0,  0.67, 1.5],\n        [1.0,  1.5,  1.0,  2.0],\n        [0.5,  0.67, 0.5,  1.0],\n    ]\n    weights, cr = calculate_ahp(pairwise)\n    print(\"=\" * 75)\n    print(f\"AHP CRITERIA WEIGHT DERIVATION (Consistency Ratio: {cr:.4f})\")\n    print(\"=\" * 75)\n    for c, w in zip(criteria, weights):\n        print(f\"  - {c:<25}: {w*100:5.2f}%\")\n    assert cr < 0.10, \"Inconsistent pairwise comparisons (CR >= 0.10)!\"\n    print(\"  >> Consistency Check: PASSED (CR < 0.10)\")\n\n    # Alternatives: [Self-Hosted PG, Cloud SQL Regional, Cloud Spanner Multi-Region]\n    options = [\"Self-Hosted PG (GCE)\", \"Cloud SQL (Regional)\", \"Cloud Spanner (Multi-Region)\"]\n    raw_scores = [\n        [6.0, 3.0, 8.0, 5.0],\n        [8.5, 8.5, 8.5, 9.0],\n        [10.0, 9.5, 10.0, 7.0],\n    ]\n    \n    print(\"\\nBASELINE COMPOSITE UTILITY SCORES:\")\n    baseline_scores = []\n    for opt, scores in zip(options, raw_scores):\n        composite = sum(w * s for w, s in zip(weights, scores))\n        baseline_scores.append(composite)\n        print(f\"  - {opt:<30}: Composite Score = {composite:5.2f} / 10.00\")\n    \n    # Sensitivity sweep across Availability weight\n    print(\"\\nSENSITIVITY SWEEP: AVAILABILITY WEIGHT VARIATION [0.10 to 0.60]:\")\n    print(f\"  {'Weight(Avail)':<14} | {'Self-Hosted':<14} | {'Cloud SQL':<14} | {'Cloud Spanner':<14} | {'Preferred Option'}\")\n    print(\"  \" + \"-\" * 80)\n    \n    tipping_point_found = False\n    for ha_w in [i * 0.05 for i in range(2, 13)]:\n        scale = (1.0 - ha_w) / (1.0 - weights[0])\n        sim_weights = [ha_w] + [w * scale for w in weights[1:]]\n        sim_scores = [sum(sw * s for sw, s in zip(sim_weights, opt_s)) for opt_s in raw_scores]\n        preferred = options[sim_scores.index(max(sim_scores))]\n        print(f\"  {ha_w:12.2f}   | {sim_scores[0]:12.2f} | {sim_scores[1]:12.2f} | {sim_scores[2]:12.2f} | {preferred}\")\n        if preferred == \"Cloud Spanner (Multi-Region)\" and not tipping_point_found:\n            print(f\"  >>> SENSITIVITY TIPPING POINT: At Availability Weight >= {ha_w:.2f}, Cloud Spanner overtakes Cloud SQL!\")\n            tipping_point_found = True\n            \n    print(\"=\" * 75)\n\nif __name__ == '__main__':\n    run_simulation()\n```",
-                    "Execute the AHP decision engine and sensitivity sweep:\n\n```sh\npython3 ahp_engine.py\n```"
+                    "#### Stage 1: Decision Matrix Specification & Mathematical Skeleton\nDocument the evaluation criteria, stakeholder priorities, and candidate options in <kbd>day-078-decision-matrix.md</kbd>. Define the four evaluation dimensions: Availability & SLA, SRE Operational Toil, ACID Invariant Safety, and 3-Year Burdened TCO.",
+                    "#### Stage 2: Preflight Environment Validation & Mathematical Verification\nVerify that the Python runtime satisfies mathematical precision requirements for eigenvector derivation (<kbd>verify_math_env.py</kbd>):\n\n```python\n# verify_math_env.py\nimport math\nassert hasattr(math, 'prod'), \"math.prod required for AHP geometric mean calculations\"\nprint(\"[PASS] Mathematical environment verified.\")\n```",
+                    "#### Stage 3: Core Implementation: Saaty AHP Engine & Consistency Ratio Gate\nCreate the complete Analytic Hierarchy Process (AHP) and sensitivity simulation script (<kbd>ahp_engine.py</kbd>):\n\n```python\n# ahp_engine.py\n\"\"\"Analytic Hierarchy Process (AHP) Engine and Sensitivity Simulator.\"\"\"\nimport math\nfrom typing import List, Tuple\n\ndef calculate_ahp(matrix: List[List[float]]) -> Tuple[List[float], float]:\n    n = len(matrix)\n    # Compute geometric mean of each row\n    geo_means = []\n    for row in matrix:\n        prod = 1.0\n        for val in row:\n            prod *= val\n        geo_means.append(prod ** (1.0 / n))\n    total = sum(geo_means)\n    weights = [gm / total for gm in geo_means]\n    \n    # Calculate lambda_max and Consistency Ratio\n    weighted_sums = [sum(matrix[i][j] * weights[j] for j in range(n)) for i in range(n)]\n    lambda_max = sum(weighted_sums[i] / weights[i] for i in range(n)) / n\n    ci = (lambda_max - n) / (n - 1) if n > 1 else 0.0\n    ri_table = {1: 0.0, 2: 0.0, 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24}\n    ri = ri_table.get(n, 1.32)\n    cr = ci / ri if ri > 0 else 0.0\n    return weights, cr\n\ndef run_simulation():\n    criteria = [\"Availability & SLA\", \"SRE Operational Toil\", \"ACID Invariant Safety\", \"3-Yr Burdened TCO\"]\n    # Pairwise comparison matrix (Saaty 1-9 scale)\n    # Row comparisons: [Avail, Toil, ACID, TCO]\n    pairwise = [\n        [1.0,  1.5,  1.0,  2.0],\n        [0.67, 1.0,  0.67, 1.5],\n        [1.0,  1.5,  1.0,  2.0],\n        [0.5,  0.67, 0.5,  1.0],\n    ]\n    weights, cr = calculate_ahp(pairwise)\n    print(\"=\" * 75)\n    print(f\"AHP CRITERIA WEIGHT DERIVATION (Consistency Ratio: {cr:.4f})\")\n    print(\"=\" * 75)\n    for c, w in zip(criteria, weights):\n        print(f\"  - {c:<25}: {w*100:5.2f}%\")\n    assert cr < 0.10, f\"Inconsistent pairwise comparisons (CR {cr:.4f} >= 0.10)!\"\n    print(\"  >> Consistency Check: PASSED (CR < 0.10)\")\n\n    # Alternatives: [Self-Hosted PG, Cloud SQL Regional, Cloud Spanner Multi-Region]\n    options = [\"Self-Hosted PG (GCE)\", \"Cloud SQL (Regional)\", \"Cloud Spanner (Multi-Region)\"]\n    raw_scores = [\n        [6.0, 3.0, 8.0, 5.0],\n        [8.5, 8.5, 8.5, 9.0],\n        [10.0, 9.5, 10.0, 7.0],\n    ]\n    \n    print(\"\\nBASELINE COMPOSITE UTILITY SCORES:\")\n    baseline_scores = []\n    for opt, scores in zip(options, raw_scores):\n        composite = sum(w * s for w, s in zip(weights, scores))\n        baseline_scores.append(composite)\n        print(f\"  - {opt:<30}: Composite Score = {composite:5.2f} / 10.00\")\n    \n    # Sensitivity sweep across Availability weight\n    print(\"\\nSENSITIVITY SWEEP: AVAILABILITY WEIGHT VARIATION [0.10 to 0.60]:\")\n    print(f\"  {'Weight(Avail)':<14} | {'Self-Hosted':<14} | {'Cloud SQL':<14} | {'Cloud Spanner':<14} | {'Preferred Option'}\")\n    print(\"  \" + \"-\" * 80)\n    \n    tipping_point_found = False\n    for ha_w in [i * 0.05 for i in range(2, 13)]:\n        scale = (1.0 - ha_w) / (1.0 - weights[0])\n        sim_weights = [ha_w] + [w * scale for w in weights[1:]]\n        sim_scores = [sum(sw * s for sw, s in zip(sim_weights, opt_s)) for opt_s in raw_scores]\n        preferred = options[sim_scores.index(max(sim_scores))]\n        print(f\"  {ha_w:12.2f}   | {sim_scores[0]:12.2f} | {sim_scores[1]:12.2f} | {sim_scores[2]:12.2f} | {preferred}\")\n        if preferred == \"Cloud Spanner (Multi-Region)\" and not tipping_point_found:\n            print(f\"  >>> SENSITIVITY TIPPING POINT: At Availability Weight >= {ha_w:.2f}, Cloud Spanner overtakes Cloud SQL!\")\n            tipping_point_found = True\n            \n    print(\"=\" * 75)\n\nif __name__ == '__main__':\n    run_simulation()\n```",
+                    "#### Stage 4: Execution & Weight Derivation Telemetry\nExecute the AHP decision engine and sensitivity sweep:\n\n```sh\npython3 verify_math_env.py && python3 ahp_engine.py\n```",
+                    "#### Stage 5: Invariant Safety Gate & Step-Function Veto Verification\nAuthor a verification test proving that non-ACID candidates are vetoed when invariant safety is non-negotiable (<kbd>test_veto_gate.py</kbd>):\n\n```python\n# test_veto_gate.py\n\"\"\"Tests step-function veto clamping on invariant failure.\"\"\"\nfrom ahp_engine import calculate_ahp\n\n# Candidate scores: [Avail, Toil, ACID, TCO]\ncandidates = {\n    'Eventual-Consistency-NoSQL': [9.0, 8.0, 0.0, 9.5],  # Fails ACID (0.0)\n    'Cloud-Spanner':              [10.0, 9.5, 10.0, 7.0]  # Satisfies ACID (10.0)\n}\n\n# Enforce hard step-function invariant gate: if ACID < 5.0, disqualify\nqualified = {}\nfor name, scores in candidates.items():\n    if scores[2] < 5.0:\n        print(f\"[DISQUALIFIED] {name} rejected by Step-Function ACID Invariant Gate.\")\n    else:\n        qualified[name] = scores\n\nassert 'Eventual-Consistency-NoSQL' not in qualified, \"Invariant gate failed to disqualify non-ACID candidate!\"\nassert 'Cloud-Spanner' in qualified, \"Cloud Spanner must pass invariant gate\"\nprint(\"[PASS] Invariant safety veto gate verified: Unsafe architectures disqualified before score aggregation.\")\n```",
+                    "#### Stage 6: Chaos & Inconsistent Stakeholder Input Injection\nInject an intentionally contradictory pairwise matrix to verify that the Consistency Ratio guardrail rejects flawed inputs (<kbd>test_cr_rejection.py</kbd>):\n\n```python\n# test_cr_rejection.py\n\"\"\"Verifies rejection of contradictory pairwise comparison matrices.\"\"\"\nfrom ahp_engine import calculate_ahp\n\n# Contradictory comparisons: A > B, B > C, but C >>> A\ninconsistent_matrix = [\n    [1.0,  5.0,  0.2],\n    [0.2,  1.0,  5.0],\n    [5.0,  0.2,  1.0],\n]\n\nweights, cr = calculate_ahp(inconsistent_matrix)\nprint(f\"Inconsistent Matrix Test: Observed CR = {cr:.4f}\")\nassert cr >= 0.10, f\"Expected CR >= 0.10 for inconsistent matrix, got {cr:.4f}\"\nprint(f\"[PASS] CR Guardrail active: Flawed matrix successfully flagged as inconsistent (CR = {cr:.4f} >= 0.10).\")\n```",
+                    "#### Stage 7: Runbook Authoring: Architecture Decision Record (ADR) Template\nFormalize the decision in the corporate ADR catalog. Document the context, candidate options, AHP weight derivations, sensitivity tipping thresholds, and the chosen alternative (<kbd>day-078-decision-matrix.md</kbd>).",
+                    "#### Stage 8: Teardown & Simulation Script Cleanup\nRun the final verification suite and clean up temporary test scripts:\n\n```sh\npython3 test_veto_gate.py && python3 test_cr_rejection.py\n```"
                 ],
                 "verification": (
-                    "Run automated assertion testing on the decision engine:\n\n```sh\npython3 -c \"import ahp_engine; print('AHP Sensitivity Engine Test Passed')\"\n```\n\nConfirm output demonstrates that Cloud Spanner is preferred when availability and invariant safety criteria exceed 25% weight."
+                    "Run automated assertion testing on the decision engine:\n\n```sh\npython3 -c \"import ahp_engine; ahp_engine.run_simulation(); print('AHP Sensitivity Engine Test Passed')\"\n```\n\nConfirm output demonstrates that Cloud Spanner is preferred when availability and invariant safety criteria exceed 25% weight."
                 ),
                 "trouble": (
                     "If the script reports assertion error on consistency ratio, verify that pairwise comparisons satisfy reciprocal symmetry (matrix[i][j] == 1.0 / matrix[j][i])."
                 ),
                 "cleanup": (
-                    "Clean up temporary simulation files:\n\n```sh\nrm -f ahp_engine.py\n```"
+                    "Clean up temporary simulation files:\n\n```sh\nrm -f verify_math_env.py test_veto_gate.py test_cr_rejection.py\n```"
                 ),
                 "accept": "A decision matrix and sensitivity check showing when the preferred option changes, linked to dated pricing and benchmark evidence.",
                 "file": "day-078-decision-matrix.md"

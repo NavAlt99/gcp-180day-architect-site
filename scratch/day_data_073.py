@@ -81,25 +81,58 @@ DATA = {
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 73: End-to-End Enterprise Data Flow Topology",
-        "desc": "Separation of transactional operations from analytical lakehouse consumption via CDC and event streaming.",
-        "nodes": [
-            ("OLTP Operations", "Cloud SQL Transactions\\n+ PostgreSQL WAL Engine"),
-            ("CDC Ingestion", "Serverless Datastream\\n+ Pub/Sub Event Ingestion"),
-            ("Stream / Batch Engine", "Cloud Dataflow Pipeline\\n+ Watermark Windowing"),
-            ("Governed Lakehouse", "BigQuery & BigLake\\n+ Dataplex Data Contracts"),
+        "type": "topology",
+        "title": "Day 73: End-to-End Enterprise Data Flow & Lakehouse Governance Topology",
+        "desc": "Separation of transactional operations from analytical lakehouse consumption via CDC, event streaming, and federated governance.",
+        "caption": "Figure 73.1: Data lifecycle decoupling operational transactions from analytical lakehouse consumption via CDC, streaming watermarks, and Dataplex governance.",
+        "width": 1100,
+        "height": 620,
+        "layers": [
+            {"name": "LAYER 1: Operational Transactional Tier (OLTP)", "desc": "Cloud SQL PostgreSQL Primary + Async Read Replicas (Private VPC)", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Serverless Ingestion & CDC Decoupling Tier", "desc": "Datastream Logical Decoding (pgoutput) & Cloud Pub/Sub Topics", "fill": "#0f2338", "y": 115, "h": 90},
+            {"name": "LAYER 3: Distributed Stream & Batch Processing Tier", "desc": "Cloud Dataflow (Apache Beam) with Event-Time Watermarking & DLQ", "fill": "#064e3b", "y": 220, "h": 90},
+            {"name": "LAYER 4: Enterprise Analytical Lakehouse Tier (OLAP)", "desc": "BigLake / BigQuery Columnar Storage (Partitioned & Clustered)", "fill": "#1e1b4b", "y": 325, "h": 90},
+            {"name": "LAYER 5: Orchestration & Federated Governance Tier", "desc": "Cloud Composer (Airflow) DAGs & Dataplex Auto Data Quality Fabric", "fill": "#3b0764", "y": 430, "h": 90},
         ],
-        "caption": "Figure 73.1: Data lifecycle decoupling operational transactions from analytical lakehouse consumption."
+        "components": [
+            {"id": "csql", "name": "Cloud SQL Primary", "detail": "PostgreSQL Row-Store B-Tree", "x": 80, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "wal", "name": "PostgreSQL WAL", "detail": "Logical Decoding Replication Slot", "x": 420, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "dstream", "name": "Datastream CDC", "detail": "Serverless Log-Based Replication", "x": 420, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "pubsub", "name": "Cloud Pub/Sub", "detail": "Unbounded Edge Event Stream", "x": 760, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "dflow", "name": "Cloud Dataflow", "detail": "Beam Watermark & Window Engine", "x": 590, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "bqlake", "name": "BigQuery & BigLake", "detail": "Capacitor Columnar Storage", "x": 420, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "dplex", "name": "Dataplex Governance", "detail": "Auto Data Quality & Catalog", "x": 760, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "composer", "name": "Cloud Composer DAG", "detail": "Airflow SLA & Contract Audit", "x": 420, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 640, "h": 80, "label": "OPERATIONAL OLTP BOUNDARY", "color": "#38bdf8"},
+            {"x": 380, "y": 120, "w": 660, "h": 80, "label": "SERVERLESS CDC & INGESTION PERIMETER", "color": "#10b981"},
+            {"x": 380, "y": 330, "w": 660, "h": 80, "label": "GOVERNED LAKEHOUSE ANALYTICAL PERIMETER", "color": "#a855f7"},
+        ],
+        "flows": [
+            {"x1": 340, "y1": 56, "x2": 420, "y2": 56, "type": "ok", "label": "WAL Mutations"},
+            {"x1": 550, "y1": 82, "x2": 550, "y2": 135, "type": "ok", "label": "CDC Feed"},
+            {"x1": 550, "y1": 187, "x2": 550, "y2": 345, "type": "ok", "label": "CDC Table Sync"},
+            {"x1": 890, "y1": 187, "x2": 800, "y2": 240, "type": "ok", "label": "Pub/Sub Stream"},
+            {"x1": 720, "y1": 292, "x2": 550, "y2": 345, "type": "ok", "label": "Watermarked Writes"},
+            {"x1": 680, "y1": 371, "x2": 760, "y2": 371, "type": "ok", "label": "Policy Audit"},
+            {"x1": 550, "y1": 450, "x2": 550, "y2": 397, "type": "ok", "label": "DAG Orchestration"},
+        ],
+        "probes": [
+            {"cx": 550, "cy": 105, "label": "PROBE 1: Datastream WAL Replication Lag (< 30s)", "color": "#f59e0b"},
+            {"cx": 740, "cy": 220, "label": "PROBE 2: Beam Watermark Skew & Late DLQ Rate", "color": "#f43f5e"},
+            {"cx": 680, "cy": 371, "label": "PROBE 3: Dataplex Schema Contract Compliance", "color": "#22c55e"},
+        ]
     },
     "part3_intro": (
-        "The following field cases analyze real-world production outages caused by data architecture misconfigurations. "
-        "Each scenario includes quantitative failure metrics, diagnostic sequences, root cause postmortems, "
-        "defensible remediations, and dual-lane failed/corrected architectural diagrams."
+        "The following production field cases examine catastrophic data architecture failure modes encountered in enterprise "
+        "deployments. Each case details the operational context, verbatim incident telemetry and log evidence, deep root cause "
+        "analysis, defensible remediations, and dual-lane failed/corrected architectural diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts for "
-        "provisioning partitioned BigQuery tables, defining Datastream CDC architectures, modeling Apache Beam watermarks, "
-        "and implementing JSON Schema data contracts with automated test runners."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers author production DDL "
+        "specifications, configure serverless CDC pipelines, model Apache Beam streaming watermarks, author Airflow orchestration "
+        "DAGs with SLA callbacks, and implement automated JSON Schema contract validation runners."
     ),
     "topics": [
         {
@@ -177,45 +210,68 @@ DATA = {
                     "transaction commit queue. Night-shift online shoppers attempting to checkout encounter HTTP 504 Gateway Timeout errors."
                 ),
                 "impact": (
-                    "P1 recurring production outage occurring every midnight. 2,400 checkout transactions dropped nightly during the 30-minute "
-                    "batch window. Estimated lost revenue: $165,000 over a two-week period. Customer complaints escalated to the executive team. "
-                    "Cloud SQL replication to read replicas desynchronized by over 400 seconds, threatening regional disaster recovery."
+                    "P1 recurring production outage occurring every midnight. 2,400 checkout transactions dropped nightly during the 28-minute "
+                    "batch window. Estimated lost revenue: $165,000 over a two-week period. Customer complaints escalated to executive leadership. "
+                    "Cloud SQL replication to regional read replicas desynchronized by over 480 seconds, triggering failover alerts."
                 ),
                 "constraints": (
                     "Eliminate all analytical query load from the production transactional database; ensure inventory reconciliation reports "
-                    "complete in under 15 minutes; maintain near real-time data freshness (< 60 seconds) in analytics datasets."
+                    "complete in under 5 minutes; maintain near real-time data freshness (< 60 seconds) in analytics datasets; zero checkout latency impact."
+                ),
+                "evidence": (
+                    "```text\n"
+                    "$ gcloud sql connect brightloaf-prod-pg --user=postgres --quiet\n"
+                    "psql (15.4)\n"
+                    "brightloaf_prod=> SELECT pid, usename, client_addr, state, wait_event_type, wait_event, query_start, left(query, 65) AS query_snip \n"
+                    "FROM pg_stat_activity \n"
+                    "WHERE state != 'idle' ORDER BY query_start ASC LIMIT 5;\n"
+                    "\n"
+                    " pid  |    usename    |  client_addr   | state  | wait_event_type |     wait_event      |         query_start          |                           query_snip                            \n"
+                    "------+---------------+----------------+--------+-----------------+---------------------+------------------------------+-----------------------------------------------------------------\n"
+                    " 8142 | bi_reporter   | 10.142.10.45   | active | IO              | DataFileRead        | 2026-09-28 00:00:14.21854+00 | SELECT o.customer_id, count(oi.id), sum(oi.unit_price * oi.qua \n"
+                    " 8310 | checkout_svc  | 10.142.20.11   | active | Lock            | relation            | 2026-09-28 00:01:02.81234+00 | INSERT INTO orders (order_id, customer_id, total_amount, status \n"
+                    " 8314 | checkout_svc  | 10.142.20.12   | active | Lock            | relation            | 2026-09-28 00:01:03.11928+00 | INSERT INTO orders (order_id, customer_id, total_amount, status \n"
+                    " 8319 | checkout_svc  | 10.142.20.13   | active | Lock            | relation            | 2026-09-28 00:01:03.49102+00 | INSERT INTO orders (order_id, customer_id, total_amount, status \n"
+                    " 8322 | checkout_svc  | 10.142.20.14   | active | Lock            | relation            | 2026-09-28 00:01:03.90184+00 | UPDATE inventory_ledger SET reserved_qty = reserved_qty + 1 WH\n"
+                    "(5 rows)\n"
+                    "\n"
+                    "$ gcloud monitoring dashboards query --sql=\"FETCH cloudsql_database | metric 'cloudsql.googleapis.com/database/cpu/utilization' | filter resource.database_id == 'brightloaf-prod-pg' | within 30m\"\n"
+                    "Timestamp: 2026-09-28T00:15:00Z | MetricValue: 0.9982 (99.82% CPU Saturation)\n"
+                    "Timestamp: 2026-09-28T00:15:00Z | DiskReadBytes: 184,549,376 B/s (Maximum IOPS Throttled)\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Inspect Cloud SQL Query Insights in Cloud Console; identify slow analytical query `SELECT ... FROM orders JOIN order_items ...` responsible for 88% of total database CPU consumption between 00:00 and 00:28 UTC.",
-                    "Step 2: Check database lock contention using `pg_stat_activity`; observe 140 transactional `INSERT INTO orders` statements blocked in `waiting` state behind shared read table locks held by the BI reporting user.",
-                    "Step 3: Review the BI tool connection configuration; discover JDBC string points directly to the Cloud SQL primary instance private IP rather than an analytical warehouse.",
-                    "Step 4: Audit table partitioning; confirm Cloud SQL tables contain 18 million rows in single monolithic tables without partitioning or archive separation."
+                    "Step 1: Inspect Cloud SQL Query Insights in Cloud Console; identify slow analytical query `SELECT ... FROM orders JOIN order_items ...` responsible for 89% of total database CPU consumption and 100% buffer thrashing between 00:00 and 00:28 UTC.",
+                    "Step 2: Check database lock contention using `pg_stat_activity`; observe 140+ transactional `INSERT INTO orders` statements blocked in `Lock:relation` waiting state behind shared read table locks held by PID 8142 (`bi_reporter`).",
+                    "Step 3: Review the BI tool connection configuration; discover JDBC string points directly to the Cloud SQL primary instance private IP rather than an analytical warehouse or replica.",
+                    "Step 4: Audit table partitioning and storage metrics; confirm Cloud SQL tables contain 18 million rows in monolithic unpartitioned tables, forcing the query planner to execute sequential table scans across 14 GB of data on disk."
                 ],
                 "root": (
                     "Executing complex OLAP analytical queries directly against an OLTP production database couples analytical compute "
-                    "demands to transactional order processing. The row-oriented database engine was forced to execute massive full table scans, "
-                    "exhausting CPU and memory buffers and blocking transactional writes."
+                    "demands to transactional order processing. The row-oriented B-Tree storage engine was forced to execute massive full table "
+                    "scans across 8KB pages, exhausting CPU and disk I/O bandwidth while holding shared relation locks that blocked transactional "
+                    "checkouts."
                 ),
                 "remediation_steps": [
-                    "Step 1: Immediately deploy Google Cloud Datastream for serverless Change Data Capture (CDC), replicating the PostgreSQL WAL directly into BigQuery without query overhead.",
-                    "Step 2: Create a curated BigQuery dataset (`brightloaf_analytics`) with date-partitioned and customer-clustered tables (`PARTITION BY DATE(order_timestamp) CLUSTER BY status, customer_id`).",
-                    "Step 3: Repoint the midnight inventory valuation report to execute in BigQuery, leveraging Dremel's columnar query execution.",
-                    "Step 4: Revoke read access permissions on the Cloud SQL primary instance from the BI reporting service account, enforcing strict workload separation."
+                    "Step 1: Deploy Google Cloud Datastream for serverless Change Data Capture (CDC), streaming PostgreSQL Write-Ahead Log (WAL) records directly into BigQuery without query overhead.",
+                    "Step 2: Provision a curated BigQuery analytics dataset with date-partitioned and clustered fact tables (`PARTITION BY DATE(event_timestamp) CLUSTER BY status, customer_id`).",
+                    "Step 3: Migrate the midnight inventory valuation report to execute directly in BigQuery, taking advantage of Capacitor columnar compression and Dremel parallel execution.",
+                    "Step 4: Revoke analytical query permissions on the primary Cloud SQL instance from the BI reporting service account, enforcing strict network and IAM workload separation."
                 ],
                 "verify": (
-                    "Execute the midnight inventory reconciliation report against BigQuery. Confirm query completes in 18 seconds (down from "
-                    "28 minutes), scans only 420 MB of data due to partition pruning, and primary Cloud SQL CPU remains below 20% throughout midnight."
+                    "Execute the midnight inventory reconciliation report against BigQuery. Confirm query completes in 14.2 seconds (down from "
+                    "28 minutes), scans only 412 MB of pruned columnar data (99.8% reduction), and primary Cloud SQL CPU remains below 18% throughout midnight."
                 ),
                 "residual": (
                     "Datastream CDC introduces an asynchronous replication lag of 15 to 45 seconds between transactional commits and warehouse "
                     "visibility; operational alerts requiring sub-second transaction validation must not query BigQuery."
                 ),
                 "diagram": (
-                    "Midnight BI report queries Cloud SQL",
-                    "Full table scan pins CPU at 100%",
-                    "Checkout freezes, 504 timeouts ($165k lost)",
-                    "Deploy Datastream CDC to BigQuery",
-                    "Query runs in BigQuery (18s), OLTP untouched"
+                    "Midnight BI report queries Cloud SQL primary",
+                    "Full table scan pins CPU at 100% & locks relations",
+                    "Checkout freezes, 504 timeouts ($165k revenue loss)",
+                    "Deploy Datastream CDC to BigQuery lakehouse",
+                    "Query runs in BigQuery (14s), OLTP CPU stays < 18%"
                 ),
                 "facts": "Midnight BI query ran against Cloud SQL primary; CPU hit 100% for 28 min; 2,400 checkouts timed out; $165k lost revenue.",
                 "inference": "OLTP database engines are structurally unsuited for OLAP workloads; decoupling via CDC guarantees operational stability.",
@@ -230,16 +286,20 @@ DATA = {
                 "prereq": "Day 72 event streaming fundamentals and Day 29 BigQuery DDL notes",
                 "preflight": "Review BigQuery table partitioning documentation and Apache Beam streaming window semantics.",
                 "steps": [
-                    "Draft the end-to-end data pipeline architecture in `day-073-lakehouse-design.md`.",
-                    "Write the production BigQuery DDL table specification with date-partitioning and clustering (`create_orders_fact.sql`):\n\n```sql\n-- create_orders_fact.sql\nCREATE TABLE `brightloaf_analytics.fact_orders` (\n  order_id STRING OPTIONS(description=\"Unique order UUID\"),\n  customer_id STRING OPTIONS(description=\"Customer UUID\"),\n  order_total NUMERIC OPTIONS(description=\"Total order price in USD\"),\n  status STRING OPTIONS(description=\"Order lifecycle state\"),\n  payment_method STRING OPTIONS(description=\"Payment token provider\"),\n  event_timestamp TIMESTAMP OPTIONS(description=\"Client event time\"),\n  ingestion_timestamp TIMESTAMP OPTIONS(description=\"Streaming ingestion time\")\n)\nPARTITION BY DATE(event_timestamp)\nCLUSTER BY status, customer_id\nOPTIONS(\n  partition_expiration_days=730,\n  description=\"Curated order analytics fact table partitioned by event date\"\n);\n```",
-                    "Write an executable Python simulation modeling Apache Beam event-time watermarking and late-data handling (`watermark_sim.py`):\n\n```python\n# watermark_sim.py\n\nclass StreamingWindowProcessor:\n    def __init__(self, window_size_sec: int, allowed_lateness_sec: int):\n        self.window_size = window_size_sec\n        self.allowed_lateness = allowed_lateness_sec\n        self.windows = {}\n        self.late_dlq = []\n\n    def process_event(self, event_id: str, event_time: int, current_watermark: int):\n        # Check if event is too late to be incorporated\n        if event_time < (current_watermark - self.allowed_lateness):\n            self.late_dlq.append((event_id, event_time, 'EXCEEDED_ALLOWED_LATENESS'))\n            return 'DROPPED_TO_DLQ'\n        \n        # Assign to 10-second tumbling window\n        window_start = (event_time // self.window_size) * self.window_size\n        window_end = window_start + self.window_size\n        window_key = f\"[{window_start}-{window_end}]\"\n        \n        if window_key not in self.windows:\n            self.windows[window_key] = []\n        self.windows[window_key].append(event_id)\n        \n        if event_time < current_watermark:\n            return f'ACCEPTED_LATE_UPDATE_{window_key}'\n        return f'ACCEPTED_ON_TIME_{window_key}'\n\n# Configure processor: 10s windows, 5s allowed lateness\nprocessor = StreamingWindowProcessor(window_size_sec=10, allowed_lateness_sec=5)\n\n# Event 1: Event time 12, watermark 10 -> On-time for window [10-20]\nassert processor.process_event('evt_1', event_time=12, current_watermark=10) == 'ACCEPTED_ON_TIME_[10-20]'\n\n# Event 2: Watermark advances to 22. Event arrives with event time 18 -> Late for window [10-20], but within allowed lateness (22 - 5 = 17 <= 18)\nassert processor.process_event('evt_2', event_time=18, current_watermark=22) == 'ACCEPTED_LATE_UPDATE_[10-20]'\n\n# Event 3: Event arrives with event time 14, watermark is 22 -> Late and outside allowed lateness (14 < 17) -> Dropped to DLQ\nassert processor.process_event('evt_3', event_time=14, current_watermark=22) == 'DROPPED_TO_DLQ'\nassert len(processor.late_dlq) == 1\nprint('Streaming Watermark and Allowed Lateness Simulation Verified Successfully.')\n```",
-                    "Execute the Python watermark verification test:\n\n```sh\npython3 watermark_sim.py\n```"
+                    "#### Stage 1: Pre-Flight Invariants & Architecture Scope\nDefine schema requirements, retention boundaries, and partition limits for the Brightloaf analytical data platform. Document column definitions, partition keys, and data retention policies in <kbd>day-073-lakehouse-design.md</kbd>.",
+                    "#### Stage 2: Provisioning Declarative BigQuery Table with Date-Partitioning and Clustering DDL\nCreate the production BigQuery DDL table specification (<kbd>create_orders_fact.sql</kbd>) enforcing date-partitioning on event timestamp, clustering on query filters, and automatic partition expiration:\n\n```sql\n-- create_orders_fact.sql\n-- Brightloaf Analytical Platform: Curated Fact Orders Table\nCREATE OR REPLACE TABLE `brightloaf_analytics.fact_orders` (\n  order_id STRING NOT NULL OPTIONS(description=\"Unique order UUID v4\"),\n  customer_id STRING NOT NULL OPTIONS(description=\"Customer UUID reference\"),\n  order_total NUMERIC NOT NULL OPTIONS(description=\"Total order price in USD net of discounts\"),\n  currency STRING NOT NULL OPTIONS(description=\"ISO 4217 3-letter currency code\"),\n  status STRING NOT NULL OPTIONS(description=\"Order lifecycle state: PENDING, COMPLETED, CANCELLED\"),\n  payment_method STRING NOT NULL OPTIONS(description=\"Payment token provider: STRIPE, PAYPAL, GOOGLE_PAY\"),\n  customer_zip STRING OPTIONS(description=\"Customer billing/delivery postal code\"),\n  event_timestamp TIMESTAMP NOT NULL OPTIONS(description=\"Client-generated event time at checkout\"),\n  ingestion_timestamp TIMESTAMP NOT NULL OPTIONS(description=\"Datastream / Dataflow ingestion timestamp\")\n)\nPARTITION BY DATE(event_timestamp)\nCLUSTER BY status, customer_id\nOPTIONS(\n  partition_expiration_days=730,\n  description=\"Curated order analytics fact table partitioned by event date with 2-year retention\",\n  require_partition_filter=true\n);\n```",
+                    "#### Stage 3: Setting Up Datastream CDC Pipeline & WAL Ingestion Architecture\nAuthor the PostgreSQL replication configuration and Datastream stream specification (<kbd>datastream_cdc_config.json</kbd>) configuring logical decoding via `pgoutput`:\n\n```json\n{\n  \"stream_name\": \"brightloaf-orders-cdc\",\n  \"source_config\": {\n    \"postgresql_source_config\": {\n      \"replication_slot\": \"datastream_slot\",\n      \"publication\": \"datastream_pub\",\n      \"include_objects\": {\n        \"schemas\": [\"public\"],\n        \"tables\": [\"orders\", \"order_items\"]\n      }\n    }\n  },\n  \"destination_config\": {\n    \"bigquery_destination_config\": {\n      \"dataset_id\": \"brightloaf_analytics\",\n      \"merge_mode\": \"MERGE_ON_PRIMARY_KEY\",\n      \"primary_keys\": [\"order_id\"]\n    }\n  },\n  \"backfill_all\": {\n    \"historical_backfill\": true\n  }\n}\n```",
+                    "#### Stage 4: Modeling Stream Processing with Apache Beam Watermarks & Allowed Lateness\nImplement an executable stream processor (<kbd>watermark_sim.py</kbd>) that models event-time processing, watermark tracking, tumbling windows, and late event routing:\n\n```python\n# watermark_sim.py\n\"\"\"Models Apache Beam event-time windowing, watermarks, and allowed lateness.\"\"\"\nfrom typing import Dict, List, Tuple\n\nclass StreamingWindowProcessor:\n    def __init__(self, window_size_sec: int, allowed_lateness_sec: int):\n        self.window_size = window_size_sec\n        self.allowed_lateness = allowed_lateness_sec\n        self.windows: Dict[str, List[str]] = {}\n        self.late_dlq: List[Tuple[str, int, str]] = []\n\n    def process_event(self, event_id: str, event_time: int, current_watermark: int) -> str:\n        # Check if event arrived past the allowed lateness boundary\n        if event_time < (current_watermark - self.allowed_lateness):\n            self.late_dlq.append((event_id, event_time, 'EXCEEDED_ALLOWED_LATENESS'))\n            return 'DROPPED_TO_DLQ'\n        \n        # Assign event to fixed tumbling window\n        window_start = (event_time // self.window_size) * self.window_size\n        window_end = window_start + self.window_size\n        window_key = f\"[{window_start}-{window_end}]\"\n        \n        if window_key not in self.windows:\n            self.windows[window_key] = []\n        self.windows[window_key].append(event_id)\n        \n        if event_time < current_watermark:\n            return f'ACCEPTED_LATE_UPDATE_{window_key}'\n        return f'ACCEPTED_ON_TIME_{window_key}'\n\nif __name__ == '__main__':\n    # Window: 10 seconds, Allowed Lateness: 5 seconds\n    proc = StreamingWindowProcessor(window_size_sec=10, allowed_lateness_sec=5)\n    \n    # Event 1: Arrives on time\n    r1 = proc.process_event('evt_001', event_time=12, current_watermark=10)\n    print(f\"Event 1 Result: {r1}\")\n    \n    # Event 2: Watermark at 22; event time 18 (late, but within 5s lateness)\n    r2 = proc.process_event('evt_002', event_time=18, current_watermark=22)\n    print(f\"Event 2 Result: {r2}\")\n    \n    # Event 3: Watermark at 22; event time 14 (late, exceeds 5s lateness: 14 < 17)\n    r3 = proc.process_event('evt_003', event_time=14, current_watermark=22)\n    print(f\"Event 3 Result: {r3}\")\n```",
+                    "#### Stage 5: Simulating Out-of-Order Events & Dead-Letter Queue (DLQ) Routing\nExecute the watermark simulation and inspect window assignments and dead-letter queue records:\n\n```sh\npython3 watermark_sim.py\n```\n\nExpected console output:\n```text\nEvent 1 Result: ACCEPTED_ON_TIME_[10-20]\nEvent 2 Result: ACCEPTED_LATE_UPDATE_[10-20]\nEvent 3 Result: DROPPED_TO_DLQ\n```",
+                    "#### Stage 6: Implementing Verification Test Harness in Python\nAuthor a comprehensive automated test runner (<kbd>test_watermark_engine.py</kbd>) that validates partition calculation, watermark monotonicity, and DLQ retention:\n\n```python\n# test_watermark_engine.py\nimport unittest\nfrom watermark_sim import StreamingWindowProcessor\n\nclass TestWatermarkEngine(unittest.TestCase):\n    def setUp(self):\n        self.processor = StreamingWindowProcessor(window_size_sec=60, allowed_lateness_sec=30)\n\n    def test_on_time_event(self):\n        res = self.processor.process_event('ord_101', event_time=150, current_watermark=120)\n        self.assertEqual(res, 'ACCEPTED_ON_TIME_[120-180]')\n        self.assertIn('ord_101', self.processor.windows['[120-180]'])\n\n    def test_acceptable_late_arrival(self):\n        res = self.processor.process_event('ord_102', event_time=135, current_watermark=160)\n        self.assertEqual(res, 'ACCEPTED_LATE_UPDATE_[120-180]')\n\n    def test_poison_pill_exceeded_lateness(self):\n        res = self.processor.process_event('ord_103', event_time=110, current_watermark=160)\n        self.assertEqual(res, 'DROPPED_TO_DLQ')\n        self.assertEqual(len(self.processor.late_dlq), 1)\n        self.assertEqual(self.processor.late_dlq[0][0], 'ord_103')\n\nif __name__ == '__main__':\n    unittest.main()\n```",
+                    "#### Stage 7: Chaos Drill & Production Failure Injection (Simulating Watermark Skew & Late Data Floods)\nSimulate an edge mobile offline sync scenario where 10,000 late records flood the pipeline after a 6-hour cellular outage. Run the stress validation script:\n\n```sh\npython3 -c \"\nfrom watermark_sim import StreamingWindowProcessor\np = StreamingWindowProcessor(window_size_sec=3600, allowed_lateness_sec=1800)\n# Simulate 500 records arriving past 30-min allowed lateness\nfor i in range(500):\n    p.process_event(f'burst_{i}', event_time=1000, current_watermark=5000)\nassert len(p.late_dlq) == 500\nprint(f'Stress Test Passed: Successfully quarantined {len(p.late_dlq)} late records to DLQ.')\n\"\n```",
+                    "#### Stage 8: Operational Teardown & Invariant Verification Checklist\nVerify that all SQL DDL specifications enforce <kbd>require_partition_filter=true</kbd> to eliminate accidental full table scans. Confirm that no chargeable cloud resources were provisioned during the offline architectural simulation."
                 ],
                 "verification": (
-                    "Run automated watermark verification:\n\n```sh\npython3 -c \"import watermark_sim; print('Watermark Simulation Test Passed')\"\n```\n\nConfirm output displays `Streaming Watermark and Allowed Lateness Simulation Verified Successfully`."
+                    "Run automated watermark verification harness:\n\n```sh\npython3 test_watermark_engine.py\n```\n\nConfirm all unit tests pass with output `Ran 3 tests in ... OK`."
                 ),
                 "trouble": (
-                    "If events are dropped unexpectedly, verify that allowed lateness window accommodates expected network jitter."
+                    "If late events are dropped unexpectedly, verify that <kbd>allowed_lateness_sec</kbd> accounts for maximum expected mobile offline client buffering windows."
                 ),
                 "cleanup": "No remote cloud resources created; retain SQL schemas and simulation scripts in repository.",
                 "accept": "A validated BigQuery DDL schema with partitioning and clustering, and a verified Python streaming watermark simulation."
@@ -327,7 +387,25 @@ DATA = {
                 ),
                 "constraints": (
                     "Prevent unannounced breaking schema changes from ever reaching production; enforce automated schema validation in "
-                    "CI/CD; alert data engineers within 10 minutes of any pipeline failure."
+                    "CI/CD; alert data engineers within 5 minutes of any pipeline failure; zero manual schema audits."
+                ),
+                "evidence": (
+                    "```text\n"
+                    "*** Reading remote log from gs://composer-brightloaf-logs/dags/order_etl_nightly/2026-09-28T02:00:00+00:00/load_orders/1.log.\n"
+                    "[2026-09-28, 02:04:12 UTC] {taskinstance.py:1165} INFO - Starting attempt 1 of 1\n"
+                    "[2026-09-28, 02:04:12 UTC] {taskinstance.py:1186} INFO - Executing: <Task(PythonOperator): load_orders>\n"
+                    "[2026-09-28, 02:04:15 UTC] {order_etl.py:84} INFO - Extracting 42,910 raw order records from Cloud Storage staging bucket...\n"
+                    "[2026-09-28, 02:04:18 UTC] {order_etl.py:91} INFO - Transforming batch record ID: 9481023...\n"
+                    "[2026-09-28, 02:04:18 UTC] {taskinstance.py:1898} ERROR - Task failed with exception\n"
+                    "Traceback (most recent call last):\n"
+                    "  File \"/opt/python3.10/site-packages/airflow/operators/python.py\", line 175, in execute\n"
+                    "    return_value = self.execute_callable()\n"
+                    "  File \"/home/airflow/gcs/dags/scripts/order_etl.py\", line 98, in transform_orders\n"
+                    "    zip_code = raw_record[\"customer_zip\"].strip()\n"
+                    "KeyError: 'customer_zip'\n"
+                    "[2026-09-28, 02:04:18 UTC] {taskinstance.py:1400} INFO - Marking task as FAILED. dag_id=order_etl_nightly, task_id=load_orders\n"
+                    "[2026-09-28, 02:04:18 UTC] {email.py:72} ERROR - Failed to send email to alerts-legacy@brightloaf.internal: [Errno 111] Connection refused\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
                     "Step 1: Inspect Cloud Composer task execution logs; identify task failure with traceback `KeyError: 'customer_zip'` in `load_orders_to_warehouse`.",
@@ -374,17 +452,20 @@ DATA = {
                 "prereq": "Day 72 microservices and Day 14 Git/JSON practices",
                 "preflight": "Review JSON Schema Draft 7 specifications and Apache Airflow DAG authoring best practices.",
                 "steps": [
-                    "Draft the Data Contract specification in `day-073-data-contracts.md` defining ownership, SLA, and schema requirements.",
-                    "Create the production JSON Schema Data Contract (`order_placed_contract.json`):\n\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"OrderPlacedContract\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_id\": {\"type\": \"string\", \"pattern\": \"^[a-f0-9\\\\-]{36}$\"},\n    \"customer_id\": {\"type\": \"string\"},\n    \"order_total\": {\"type\": \"number\", \"minimum\": 0.01},\n    \"currency\": {\"type\": \"string\", \"enum\": [\"USD\", \"EUR\", \"GBP\"]},\n    \"customer_zip\": {\"type\": \"string\", \"minLength\": 3},\n    \"timestamp\": {\"type\": \"string\", \"format\": \"date-time\"}\n  },\n  \"required\": [\"order_id\", \"customer_id\", \"order_total\", \"currency\", \"customer_zip\", \"timestamp\"],\n  \"additionalProperties\": true\n}\n```",
-                    "Write an Apache Airflow DAG specification with task dependencies and SLA callbacks (`order_pipeline_dag.py`):\n\n```python\n# order_pipeline_dag.py\nfrom datetime import datetime, timedelta\n\n# Emulated Airflow DAG specification for architectural validation\nclass DummyDAG:\n    def __init__(self, dag_id, schedule_interval, default_args):\n        self.dag_id = dag_id\n        self.schedule_interval = schedule_interval\n        self.default_args = default_args\n        self.tasks = []\n\n    def add_task(self, name, downstream=None):\n        self.tasks.append(name)\n\ndef on_sla_miss_callback(dag, task_list, blocking_task_list, slas, blocking_slas):\n    print(f\"[P1 ALERT] SLA Missed on DAG {dag}! Route to PagerDuty.\")\n\ndefault_args = {\n    'owner': 'data_platform_team',\n    'depends_on_past': False,\n    'retries': 3,\n    'retry_delay': timedelta(minutes=5),\n    'sla': timedelta(minutes=30)\n}\n\ndag = DummyDAG('brightloaf_order_reconciliation', '@daily', default_args)\nprint(f\"Airflow DAG {dag.dag_id} Initialized with 30-Minute SLA Guarantee.\")\n```",
-                    "Write an automated Python schema contract verification script (`contract_validator.py`):\n\n```python\n# contract_validator.py\nimport json\n\ndef validate_order_payload(payload: dict, required_fields: list):\n    missing = [f for f in required_fields if f not in payload]\n    if missing:\n        raise ValueError(f\"Contract Violation! Missing required fields: {missing}\")\n    return True\n\nrequired = [\"order_id\", \"customer_id\", \"order_total\", \"currency\", \"customer_zip\", \"timestamp\"]\n\n# Test 1: Valid payload\nvalid_order = {\n    \"order_id\": \"d3b07384-d113-4632-a52d-8924194883ef\",\n    \"customer_id\": \"cust_9812\",\n    \"order_total\": 48.50,\n    \"currency\": \"USD\",\n    \"customer_zip\": \"94105\",\n    \"timestamp\": \"2026-09-28T12:00:00Z\"\n}\nassert validate_order_payload(valid_order, required) is True\n\n# Test 2: Breaking payload missing customer_zip\ninvalid_order = {\n    \"order_id\": \"d3b07384-d113-4632-a52d-8924194883ef\",\n    \"customer_id\": \"cust_9812\",\n    \"order_total\": 48.50,\n    \"currency\": \"USD\",\n    \"postal_code\": \"94105\", # Renamed field violates contract!\n    \"timestamp\": \"2026-09-28T12:00:00Z\"\n}\n\ntry:\n    validate_order_payload(invalid_order, required)\n    assert False, \"Validator should have rejected breaking change!\"\nexcept ValueError as e:\n    print(f\"Expected Contract Rejection: {e}\")\n\nprint(\"Data Contract Validation Logic Verified Successfully.\")\n```",
-                    "Execute the Python contract validation test:\n\n```sh\npython3 contract_validator.py\n```"
+                    "#### Stage 1: Pre-Flight Governance Specification & Contract Hierarchy\nDefine domain boundaries, SLA requirements, and versioning semantics in <kbd>day-073-data-contracts.md</kbd>. Establish the contract metadata format and specify backwards-compatibility evolution policies.",
+                    "#### Stage 2: Defining Formal JSON Schema v7 Data Contract with Strict Type Constraints\nCreate the production JSON Schema Data Contract (<kbd>order_placed_contract.json</kbd>) enforcing required fields, regex UUID validations, numeric bounds, and currency enums:\n\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"OrderPlacedContract\",\n  \"version\": \"1.0.0\",\n  \"domain\": \"checkout\",\n  \"owner\": \"checkout-team@brightloaf.internal\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_id\": {\n      \"type\": \"string\",\n      \"pattern\": \"^[a-f0-9\\\\-]{36}$\",\n      \"description\": \"RFC 4122 compliant UUID v4\"\n    },\n    \"customer_id\": {\n      \"type\": \"string\",\n      \"description\": \"Registered customer UUID\"\n    },\n    \"order_total\": {\n      \"type\": \"number\",\n      \"minimum\": 0.01,\n      \"description\": \"Total transactional amount in local currency\"\n    },\n    \"currency\": {\n      \"type\": \"string\",\n      \"enum\": [\"USD\", \"EUR\", \"GBP\"],\n      \"description\": \"ISO 4217 standard currency\"\n    },\n    \"customer_zip\": {\n      \"type\": \"string\",\n      \"minLength\": 3,\n      \"maxLength\": 10,\n      \"description\": \"Billing postal code\"\n    },\n    \"timestamp\": {\n      \"type\": \"string\",\n      \"format\": \"date-time\",\n      \"description\": \"ISO 8601 UTC timestamp\"\n    }\n  },\n  \"required\": [\n    \"order_id\",\n    \"customer_id\",\n    \"order_total\",\n    \"currency\",\n    \"customer_zip\",\n    \"timestamp\"\n  ],\n  \"additionalProperties\": true\n}\n```",
+                    "#### Stage 3: Authoring Production Apache Airflow DAG with Task Flow, Lineage Tracking & SLA Callbacks\nAuthor the Cloud Composer DAG specification (<kbd>order_pipeline_dag.py</kbd>) with SLA miss callbacks, retry backoff, and PagerDuty webhook alerting:\n\n```python\n# order_pipeline_dag.py\n\"\"\"Production Airflow DAG specification with SLA alerting and contract enforcement.\"\"\"\nfrom datetime import datetime, timedelta\n\ndef on_sla_miss_callback(dag, task_list, blocking_task_list, slas, blocking_slas):\n    \"\"\"Invoked automatically when any pipeline step misses its SLA threshold.\"\"\"\n    alert_payload = {\n        \"severity\": \"P1\",\n        \"dag\": str(dag),\n        \"tasks\": [t.task_id for t in task_list] if task_list else [],\n        \"message\": \"Data pipeline SLA violated! Route immediately to PagerDuty.\"\n    }\n    print(f\"[P1 ALERT] PagerDuty Triggered: {alert_payload}\")\n\ndefault_args = {\n    'owner': 'data_platform_team',\n    'depends_on_past': False,\n    'email_on_failure': False,\n    'retries': 3,\n    'retry_delay': timedelta(minutes=5),\n    'sla': timedelta(minutes=30)\n}\n\nclass ProductionPipelineDAG:\n    def __init__(self, dag_id: str, schedule: str, default_args: dict):\n        self.dag_id = dag_id\n        self.schedule = schedule\n        self.default_args = default_args\n        self.tasks = []\n\n    def register_task(self, task_id: str):\n        self.tasks.append(task_id)\n        return self\n\ndag = ProductionPipelineDAG('brightloaf_order_reconciliation', '@daily', default_args)\ndag.register_task('extract_cdc_events')\ndag.register_task('validate_schema_contracts')\ndag.register_task('merge_into_fact_orders')\n\nprint(f\"Airflow DAG {dag.dag_id} compiled successfully with {len(dag.tasks)} tasks.\")\n```",
+                    "#### Stage 4: Deploying Dataplex Auto Data Quality Scan Rules Declaratively\nAuthor the declarative Dataplex data quality rule definition (<kbd>dataplex_dq_rules.yaml</kbd>) monitoring column nullability, value ranges, and freshness:\n\n```yaml\n# dataplex_dq_rules.yaml\n# Dataplex Auto Data Quality Specification for Brightloaf Lakehouse\nmetadata:\n  lake: \"brightloaf-ecommerce\"\n  zone: \"curated-orders\"\n  asset: \"fact_orders\"\n\nrules:\n  - ruleId: \"assert_order_id_unique\"\n    dimension: \"Uniqueness\"\n    rowFilters:\n      sqlFilter: \"event_timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY)\"\n    uniqueness:\n      column: \"order_id\"\n\n  - ruleId: \"assert_customer_zip_present\"\n    dimension: \"Completeness\"\n    nullValue:\n      column: \"customer_zip\"\n      threshold: 0.00  # Zero percent null tolerated under contract\n\n  - ruleId: \"assert_positive_revenue\"\n    dimension: \"Validity\"\n    rangeExpectation:\n      column: \"order_total\"\n      minValue: 0.01\n      maxValue: 100000.00\n```",
+                    "#### Stage 5: Building Pre-Commit & CI/CD Schema Contract Validation Test Harness\nImplement the automated contract verification script (<kbd>contract_validator.py</kbd>) that parses JSON payloads against the contract schema:\n\n```python\n# contract_validator.py\n\"\"\"Automated Data Contract validator for CI/CD pull request enforcement.\"\"\"\nimport json\nimport sys\n\ndef validate_order_payload(payload: dict, contract: dict) -> bool:\n    required_fields = contract.get(\"required\", [])\n    missing = [f for f in required_fields if f not in payload]\n    if missing:\n        raise ValueError(f\"Contract Violation! Missing required fields: {missing}\")\n    \n    # Validate data types\n    properties = contract.get(\"properties\", {})\n    for field, val in payload.items():\n        if field in properties:\n            expected_type = properties[field].get(\"type\")\n            if expected_type == \"string\" and not isinstance(val, str):\n                raise TypeError(f\"Field '{field}' expected string, got {type(val).__name__}\")\n            elif expected_type == \"number\" and not isinstance(val, (int, float)):\n                raise TypeError(f\"Field '{field}' expected number, got {type(val).__name__}\")\n    return True\n\nif __name__ == '__main__':\n    with open('order_placed_contract.json', 'r') as f:\n        contract = json.load(f)\n    print(f\"Loaded Data Contract: {contract.get('title')} v{contract.get('version')}\")\n```",
+                    "#### Stage 6: Simulating Upstream Schema Drift & Contract Enforcement Execution\nAuthor an executable test script (<kbd>test_schema_drift.py</kbd>) simulating both compliant payloads and breaking PR modifications:\n\n```python\n# test_schema_drift.py\nimport json\nfrom contract_validator import validate_order_payload\n\nwith open('order_placed_contract.json', 'r') as f:\n    contract = json.load(f)\n\n# Test 1: Valid Checkout Payload\nvalid_order = {\n    \"order_id\": \"d3b07384-d113-4632-a52d-8924194883ef\",\n    \"customer_id\": \"cust_9812\",\n    \"order_total\": 48.50,\n    \"currency\": \"USD\",\n    \"customer_zip\": \"94105\",\n    \"timestamp\": \"2026-09-28T12:00:00Z\"\n}\nassert validate_order_payload(valid_order, contract) is True\nprint(\"[PASS] Valid payload conforms to contract v1.0.0\")\n\n# Test 2: Breaking Payload (Renamed customer_zip -> postal_code)\nbreaking_order = {\n    \"order_id\": \"d3b07384-d113-4632-a52d-8924194883ef\",\n    \"customer_id\": \"cust_9812\",\n    \"order_total\": 48.50,\n    \"currency\": \"USD\",\n    \"postal_code\": \"94105\",  # Contract violation!\n    \"timestamp\": \"2026-09-28T12:00:00Z\"\n}\n\ntry:\n    validate_order_payload(breaking_order, contract)\n    assert False, \"Validator should have failed!\"\nexcept ValueError as err:\n    print(f\"[BLOCKED] CI/CD Contract Violation Detected: {err}\")\n\nprint(\"Contract Drift Simulation Verified Successfully.\")\n```",
+                    "#### Stage 7: Disaster Recovery & Dual-Field Schema Migration Rehearsal\nDemonstrate how the checkout team safely introduces `postal_code` via dual-emission without breaking existing v1.0.0 consumers:\n\n```python\n# test_dual_emission.py\n\"\"\"Simulates backwards-compatible dual emission during 60-day migration window.\"\"\"\nimport json\nfrom contract_validator import validate_order_payload\n\nwith open('order_placed_contract.json', 'r') as f:\n    contract = json.load(f)\n\n# Dual-emission payload includes BOTH old and new field during grace period\ndual_emission_order = {\n    \"order_id\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n    \"customer_id\": \"cust_4421\",\n    \"order_total\": 129.99,\n    \"currency\": \"USD\",\n    \"customer_zip\": \"94105\",   # Retained for legacy v1 contract consumers\n    \"postal_code\": \"94105\",    # Introduced for new international service\n    \"timestamp\": \"2026-09-28T12:05:00Z\"\n}\n\nassert validate_order_payload(dual_emission_order, contract) is True\nprint(\"[SUCCESS] Dual-emission payload passed contract validation without breaking legacy consumers.\")\n```",
+                    "#### Stage 8: Pipeline Audit, Operational Teardown & Contract Invariant Checklist\nReview the pipeline alerting and schema validation rules. Run the end-to-end verification harness across all contract test scripts to confirm 100% test pass rate."
                 ],
                 "verification": (
-                    "Run automated contract validation test:\n\n```sh\npython3 -c \"import contract_validator; print('Contract Test Runner Passed')\"\n```\n\nConfirm output displays `Data Contract Validation Logic Verified Successfully`."
+                    "Run automated contract test suite:\n\n```sh\npython3 test_schema_drift.py && python3 test_dual_emission.py\n```\n\nConfirm output displays `[PASS] Valid payload conforms`, `[BLOCKED] CI/CD Contract Violation Detected`, and `Contract Drift Simulation Verified Successfully`."
                 ),
                 "trouble": (
-                    "If schema validation fails on valid payloads, verify that datetime strings follow ISO 8601 UTC format."
+                    "If schema validation rejects valid payloads, verify that datetime strings follow ISO 8601 UTC format (`YYYY-MM-DDTHH:MM:SSZ`)."
                 ),
                 "cleanup": "No remote cloud resources created; retain contract JSON files and validation scripts in repository.",
                 "accept": "A validated JSON Schema Data Contract, Airflow DAG definition with SLA callbacks, and working Python contract validator."

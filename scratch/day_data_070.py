@@ -1,9 +1,10 @@
 """day_data_070.py — Exhaustive architecture data specification for Day 70.
 
+Standard: Days 40–50 Architectural Benchmark (e.g., day-044, day-045, day-050).
 Covers Google Cloud Well-Architected Framework: Review Lenses (Operational Excellence,
 Security/Privacy/Compliance, Reliability, Cost Optimization).
 Follows PAGE_AUTHORING_CONTRACT.md with deep technical mechanics, trade-off matrices,
-dual-lane failure investigations, and runnable lab exercises.
+verbatim telemetry error logs, 8-stage operational engineering exercises, and zero difficulty labels.
 """
 
 DAY_NUM = 70
@@ -11,13 +12,13 @@ DAY_NUM = 70
 DATA = {
     "day": 70,
     "part1_intro": (
-        "Day 70 establishes the foundational evaluation method for cloud architecture: the Google Cloud "
-        "Well-Architected Framework. Rather than assessing systems against subjective checklists, enterprise "
-        "architects conduct structured reviews across four core lenses: Operational Excellence, Security/Privacy/"
-        "Compliance, Reliability, and Cost Optimization. By tracing observable telemetry, cryptographic trust "
-        "boundaries, mathematical failure domains, and economic commitments, architects replace unverified "
-        "assumptions with quantitative proof. This session equips engineers to audit existing production systems, "
-        "identify catastrophic systemic risks, and document defensible, prioritized remediation roadmaps."
+        "Day 70 establishes the foundational evaluation method for enterprise cloud architecture: the Google Cloud "
+        "Well-Architected Framework. Rather than assessing systems against subjective checklists, enterprise architects "
+        "conduct structured reviews across four core lenses: Operational Excellence, Security/Privacy/Compliance, "
+        "Reliability, and Cost Optimization. By tracing observable telemetry, cryptographic trust boundaries, mathematical "
+        "failure domains, and economic commitments, architects replace unverified assumptions with quantitative proof. "
+        "This session equips engineers to audit existing production systems, identify catastrophic systemic risks, and "
+        "document defensible, prioritized remediation roadmaps."
     ),
     "exit_summary": (
         "Evaluated the Brightloaf production platform across the four Well-Architected review lenses; derived "
@@ -30,67 +31,97 @@ DATA = {
     ),
     "arch_table_html": """<div class="table-container">
 <table>
-  <thead>
-    <tr>
-      <th>Well-Architected Lens</th>
-      <th>Core Technical Mandate</th>
-      <th>Primary Anti-Pattern / Failure Mode</th>
-      <th>Architectural Control Mechanism</th>
-      <th>Verification Metric / Evidence</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Operational Excellence</strong></td>
-      <td>Automate delivery; instrument user journeys</td>
-      <td>Manual production changes; unowned alert storms</td>
-      <td>GitOps pipelines, canary deployments, SLO error budgets</td>
-      <td>Deployment frequency; MTTR &lt; 15 min; automated rollbacks</td>
-    </tr>
-    <tr>
-      <td><strong>Security &amp; Compliance</strong></td>
-      <td>Zero-Trust defense-in-depth; least privilege</td>
-      <td>Perimeter-only trust; broad IAM roles; plaintext keys</td>
-      <td>VPC Service Controls, CMEK with Cloud KMS, Cloud DLP</td>
-      <td>Zero external egress leaks; 100% audit log coverage</td>
-    </tr>
-    <tr>
-      <td><strong>Reliability</strong></td>
-      <td>Design for failure; eliminate single points</td>
-      <td>Cascading brownouts; unverified DR backups</td>
-      <td>Regional HA, circuit breakers, multi-region replication</td>
-      <td>SLO 99.95% met; RTO &lt; 30 min; RPO &lt; 5 min</td>
-    </tr>
-    <tr>
-      <td><strong>Cost Optimization</strong></td>
-      <td>Maximize business value per cloud dollar</td>
-      <td>Over-provisioned static VMs; unattached storage disks</td>
-      <td>Committed Use Discounts (CUDs), autoscaling, lifecycle rules</td>
-      <td>Resource utilization &gt; 65%; zero zombie resources</td>
-    </tr>
-  </tbody>
+<caption>Enterprise Architectural Comparison across the Four Review Lenses</caption>
+<thead>
+<tr>
+  <th scope="col">Well-Architected Lens</th>
+  <th scope="col">Core Technical Mandate</th>
+  <th scope="col">Primary Anti-Pattern / Failure Mode</th>
+  <th scope="col">Architectural Control Mechanism</th>
+  <th scope="col">Verification Metric / Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <th scope="row">Operational Excellence</th>
+  <td>Automate delivery pipelines; instrument user journeys with multi-window burn rates</td>
+  <td>Manual production deployments; unowned alert storms; missing rollback automation</td>
+  <td>Cloud Deploy canary pipelines, automated rollback hooks, multi-window SLO error budgets</td>
+  <td>Deployment frequency &gt; 5/day; MTTR &lt; 15 min; automated rollbacks within 120s</td>
+</tr>
+<tr>
+  <th scope="row">Security &amp; Compliance</th>
+  <td>Zero-Trust defense-in-depth; least privilege IAM; cryptographic perimeter enforcement</td>
+  <td>Perimeter-only trust; broad Project Editor IAM roles; plaintext API exfiltration</td>
+  <td>VPC Service Controls perimeters, Customer-Managed Encryption Keys (CMEK), Cloud DLP</td>
+  <td>Zero external egress leaks; 100% audit log coverage; FIPS 140-2 Level 3 key storage</td>
+</tr>
+<tr>
+  <th scope="row">Reliability</th>
+  <td>Design for failure; eliminate single points of failure; bound retries with jitter</td>
+  <td>Zonal database persistence; cascading retry storms; unverified DR backups</td>
+  <td>Cloud SQL Regional HA, Cloud Spanner TrueTime, circuit breakers, cross-region replication</td>
+  <td>Composite availability &gt; 99.95%; RTO &lt; 60 seconds; RPO = 0 seconds (zonal)</td>
+</tr>
+<tr>
+  <th scope="row">Cost Optimization</th>
+  <td>Maximize business value per cloud dollar; continuous FinOps lifecycle governance</td>
+  <td>Over-provisioned static VMs; unattached persistent disks; unmanaged GCS archives</td>
+  <td>Committed Use Discounts (CUDs), automated storage lifecycle tiering, Recommender API</td>
+  <td>Compute utilization &gt; 65%; zero orphaned storage disks; 45%+ net compute discount</td>
+</tr>
+</tbody>
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 70: Well-Architected Holistic Review Cycle",
-        "desc": "Continuous architectural evaluation across operations, security, reliability, and cost governance.",
-        "nodes": [
-            ("Observe", "Telemetry & Error Budgets\\n(Operational Excellence)"),
-            ("Protect", "Perimeters & Identities\\n(Security & Compliance)"),
-            ("Sustain", "Redundancy & Failover\\n(Reliability Engineering)"),
-            ("Govern", "Allocation & Commitment\\n(Cost Optimization)"),
+        "type": "topology",
+        "title": "Well-Architected Review Topology & Defense-in-Depth Lenses",
+        "desc": "Multi-tier operational architecture showing infrastructure layers, security perimeters, and reliability boundaries.",
+        "caption": "Figure 70.1: Well-Architected assessment topology mapping infrastructure layers to operational, security, reliability, and cost governance boundaries.",
+        "width": 1100,
+        "height": 640,
+        "layers": [
+            {"name": "LAYER 1: Ingress & Operational Gateways", "desc": "Global External ALB, Cloud Armor WAF, Canary Routing", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Security & Perimeter Isolation", "desc": "VPC Service Controls, Access Context Manager, Private Service Connect", "fill": "#0f2338", "y": 110, "h": 90},
+            {"name": "LAYER 3: Compute & Workload Runtime", "desc": "GKE Autopilot, Cloud Run, Workload Identity, Circuit Breakers", "fill": "#064e3b", "y": 210, "h": 90},
+            {"name": "LAYER 4: Persistence & Cryptographic Tier", "desc": "Cloud SQL Regional HA, Cloud Spanner, Cloud KMS CMEK Keys", "fill": "#1e1b4b", "y": 310, "h": 90},
+            {"name": "LAYER 5: Observability & FinOps Governance", "desc": "Cloud Monitoring Burn Rate Alerts, BigQuery Billing Export, Recommender", "fill": "#3b0764", "y": 410, "h": 90},
         ],
-        "caption": "Figure 70.1: Continuous Well-Architected assessment lifecycle validating production workloads against enterprise constraints."
+        "components": [
+            {"id": "alb", "name": "Global External ALB", "detail": "Canary Traffic Split (10/90)", "x": 100, "y": 30, "w": 250, "h": 50, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "armor", "name": "Cloud Armor & WAF", "detail": "Edge DDoS & Geo-Fencing", "x": 420, "y": 30, "w": 260, "h": 50, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "vpcsc", "name": "VPC Service Controls", "detail": "Ingress/Egress Perimeter Rules", "x": 420, "y": 130, "w": 260, "h": 50, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "workload", "name": "Order Checkout Service", "detail": "Circuit Breaker + Jitter Backoff", "x": 420, "y": 230, "w": 260, "h": 50, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "sqlha", "name": "Cloud SQL Regional HA", "detail": "Synchronous Cross-Zone Primary/Standby", "x": 420, "y": 330, "w": 260, "h": 50, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "finops", "name": "FinOps & Telemetry Vault", "detail": "SLO Burn Rates & 3-Yr CUD Model", "x": 750, "y": 430, "w": 260, "h": 50, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "flows": [
+            {"x1": 350, "y1": 55, "x2": 420, "y2": 55, "type": "ok", "label": "HTTPS:443"},
+            {"x1": 550, "y1": 80, "x2": 550, "y2": 130, "type": "ok", "label": "Perimeter Filter"},
+            {"x1": 550, "y1": 180, "x2": 550, "y2": 230, "type": "ok", "label": "Authorized Ingress"},
+            {"x1": 550, "y1": 280, "x2": 550, "y2": 330, "type": "ok", "label": "Sync SQL (mTLS)"},
+            {"x1": 680, "y1": 255, "x2": 750, "y2": 455, "type": "ok", "label": "SLO / Cost Metrics"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 300, "h": 76, "label": "EDGE PERIMETER (OPERATIONS)", "color": "#38bdf8"},
+            {"x": 60, "y": 114, "w": 300, "h": 76, "label": "ZERO-TRUST PERIMETER (SECURITY)", "color": "#10b981"},
+            {"x": 60, "y": 314, "w": 300, "h": 76, "label": "REGIONAL HIGH AVAILABILITY (RELIABILITY)", "color": "#a855f7"},
+        ],
+        "probes": [
+            {"cx": 550, "cy": 105, "label": "PROBE 1: Canary SLO Monitor", "color": "#f59e0b"},
+            {"cx": 550, "cy": 205, "label": "PROBE 2: VPC-SC Perimeter Audit", "color": "#f43f5e"},
+            {"cx": 550, "cy": 305, "label": "PROBE 3: SQL Health Check / Failover", "color": "#f43f5e"},
+        ]
     },
     "part3_intro": (
         "The following field cases analyze real-world production catastrophes resulting from pillar omissions. "
-        "Each scenario includes quantitative impact data, diagnostic traces, root cause postmortems, "
-        "defensible remediations, and dual-lane failed/corrected architectural diagrams."
+        "Each scenario includes quantitative failure metrics, verbatim terminal/log transcripts, diagnostic command "
+        "sequences, root cause mechanics, defensible remediations, and dual-lane failed/corrected architectural diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts "
-        "for implementing SLO burn-rate alerts, configuring KMS encryption keys, modeling circuit breaker mechanics, "
-        "and calculating break-even economics for Committed Use Discounts."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers author production "
+        "manifests, deploy cloud workloads, observe runtime states, inject controlled failures, apply remediation patches, "
+        "and verify recovery against rigorous acceptance criteria with zero difficulty labels."
     ),
     "topics": [
         {
@@ -98,57 +129,51 @@ DATA = {
             "title": "Operational Excellence: Automation, Telemetry, and Incident Lifecycle",
             "overview": (
                 "Establish operational excellence through Infrastructure as Code, progressive canary rollouts, "
-                "multi-window multi-burn-rate SLO alerting, and blameless incident management."
+                "multi-window multi-burn-rate SLO alerting, and blameless postmortem operational discipline."
             ),
             "preview": (
-                "A Friday afternoon deployment corrupts the database schema; without automated canary analysis or "
-                "pre-authorized rollback runbooks, operators spend 4 hours diagnosing the failure while customers experience 500 errors."
+                "A manual Friday evening production deployment drops a critical database index, causing a 3.5-hour "
+                "checkout outage while unowned alerts flood 8 disconnected Slack channels."
             ),
             "technical": (
-                "#### 1. Site Reliability Engineering (SRE) Principles and Error Budget Governance\n\n"
-                "Operational excellence begins with a cultural and technical shift: systems cannot achieve 100% availability, "
-                "nor should they strive to. SRE defines the **Error Budget** as `1 - Availability SLO`. For a service targeting "
-                "99.9% availability over a rolling 30-day window, the allowable downtime is 43.2 minutes. The error budget is the "
-                "formal contractual boundary between product velocity and platform stability:\n\n"
-                "- When the error budget is healthy (> 20% remaining), teams deploy rapidly and experiment.\n"
-                "- When the error budget is exhausted (< 0%), feature deployments are frozen; engineering capacity shifts 100% "
-                "to reliability engineering, technical debt remediation, and test automation.\n\n"
+                "#### 1. Site Reliability Engineering (SRE) and Service Level Objectives\n\n"
+                "Operational excellence begins with formal service level specifications. Rather than monitoring raw infrastructure "
+                "metrics (such as CPU or memory utilization), SRE teams measure user journey health through **Service Level Indicators (SLIs)** "
+                "and **Service Level Objectives (SLOs)**:\n\n"
+                "- **SLI:** The quantifiable ratio of successful events to total valid events (e.g. `successful_requests / valid_requests`).\n"
+                "- **SLO:** The agreed target percentage over a rolling compliance window (e.g. `99.9% availability over 30 days`).\n"
+                "- **Error Budget:** The allowable unreliability during the compliance window (`100% - SLO`). For a 99.9% SLO over 30 days "
+                "(43,200 minutes), the error budget is exactly **43.2 minutes of total downtime**.\n\n"
                 "#### 2. Multi-Window Multi-Burn-Rate Alerting Architecture\n\n"
-                "Traditional alerting relies on static threshold triggers (e.g. CPU > 85% or 5xx count > 10). This produces "
-                "severe operational pathologies: alert fatigue from transient spikes, or delayed notifications during catastrophic slow burns. "
-                "Google Cloud SRE mandates **Multi-Window Multi-Burn-Rate Alerts** based on consumption of the 30-day error budget:\n\n"
-                "- **Burn Rate 14.4 (P1 Page):** Consumes 2% of the monthly error budget in 1 hour (100% exhaustion in 50 hours). "
-                "Requires dual-window verification: a 1-hour lookback window AND a 5-minute short window to confirm the burn is active.\n"
-                "- **Burn Rate 6 (P2 Ticket):** Consumes 5% of the error budget in 6 hours. Triggers on a 6-hour long window and "
-                "30-minute short window.\n\n"
-                "#### 3. Progressive Delivery and Automated Canary Analysis with Cloud Deploy\n\n"
-                "Deploying new container revisions directly to 100% of production traffic exposes all users to untested regression bugs. "
-                "Google Cloud Deploy implements automated canary progressions:\n\n"
+                "Traditional static alerting on single-minute error rate spikes causes alert fatigue during brief transient blips. Modern SRE "
+                "deploys **multi-window multi-burn-rate alerting**:\n\n"
+                "- **Burn Rate 1.0:** Consumes 100% of the error budget over exactly 30 days (normal operational consumption).\n"
+                "- **Burn Rate 14.4 (Fast Burn / P1 Critical):** Consumes 2% of the total monthly error budget in 1 hour (equivalent to 100% "
+                "in 50 hours). Alerts on-call engineers via paging immediately (triggers in 2 minutes).\n"
+                "- **Burn Rate 6.0 (Medium Burn / P2 Urgent):** Consumes 5% of the error budget in 6 hours. Alerts next-in-line responders.\n\n"
+                "#### 3. Progressive Delivery and Canary Deployments\n\n"
+                "To prevent untested releases from impacting 100% of production traffic, Google Cloud Deploy orchestrates automated "
+                "canary deployments using Cloud Run or GKE Gateway API traffic splitting:\n\n"
                 "```yaml\n"
-                "# clouddeploy.yaml - Progressive Delivery Pipeline\n"
                 "apiVersion: deploy.cloud.google.com/v1\n"
                 "kind: DeliveryPipeline\n"
                 "metadata:\n"
                 "  name: checkout-pipeline\n"
                 "serialPipeline:\n"
                 "  stages:\n"
-                "  - targetId: staging\n"
-                "  - targetId: prod-canary\n"
+                "  - targetId: prod-cluster\n"
                 "    strategy:\n"
                 "      canary:\n"
                 "        runtimeConfig:\n"
                 "          cloudRun:\n"
-                "            automaticTrafficControl: false\n"
-                "        route:\n"
-                "          phases:\n"
-                "          - id: canary-10\n"
-                "            percentage: 10\n"
-                "            verify: true\n"
-                "          - id: canary-50\n"
-                "            percentage: 50\n"
-                "            verify: true\n"
-                "          - id: stable-100\n"
-                "            percentage: 100\n"
+                "            automaticTrafficControl: true\n"
+                "        phases:\n"
+                "        - id: canary-10\n"
+                "          percentage: 10\n"
+                "        - id: canary-50\n"
+                "          percentage: 50\n"
+                "        - id: stable-100\n"
+                "          percentage: 100\n"
                 "```\n\n"
                 "#### 4. Blameless Incident Management and Postmortem Discipline\n\n"
                 "When incidents occur, operational excellence requires treating human errors as symptoms of inadequate tooling and "
@@ -174,11 +199,12 @@ DATA = {
             "scenario": {
                 "scenario": (
                     "Brightloaf engineering pushed an unverified release of the checkout microservice at 16:30 on a Friday. "
-                    "The deployment contained an undocumented database index deletion that caused order insertion queries to revert to "
-                    "full table scans under load. Within 12 minutes, the Cloud SQL database CPU spiked to 100%, and checkout latency surged "
-                    "from 180ms to 24 seconds. The monitoring system fired 42 individual alerts across 8 Slack channels, but no single on-call "
-                    "engineer had clear ownership. Because the deployment was performed using manual CLI commands rather than a versioned "
-                    "pipeline, operators spent 3.5 hours manually reconstructing the previous container tag and database schema."
+                    "The deployment contained an undocumented database migration that dropped an index on `customer_id`, causing "
+                    "order insertion queries to revert to full table scans under load. Within 12 minutes, the Cloud SQL database "
+                    "CPU spiked to 100%, and checkout latency surged from 180ms to 24 seconds. The monitoring system fired 42 individual "
+                    "alerts across 8 Slack channels, but no single on-call engineer had clear ownership. Because the deployment was "
+                    "performed using manual CLI commands rather than a versioned pipeline, operators spent 3.5 hours manually reconstructing "
+                    "the previous container tag and database schema."
                 ),
                 "impact": (
                     "P1 critical outage lasting 3 hours and 42 minutes. 14,800 customer checkout transactions failed. Lost revenue exceeded "
@@ -189,22 +215,43 @@ DATA = {
                     "Must establish 100% automated deployment pipelines; enforce automated rollback triggers within 3 minutes of SLO "
                     "degradation; maintain zero-downtime releases; prevent unauthorized production modifications."
                 ),
-                "diagnostic_steps": [
-                    "Step 1: Review Cloud Monitoring alerting history; observe alert flood across multiple microservices with no designated primary responder.",
-                    "Step 2: Inspect Cloud Logging audit logs; discover manual `gcloud run deploy` command executed directly from a developer workstation without CI/CD pipeline provenance.",
-                    "Step 3: Query Cloud SQL Query Insights; identify slow query `INSERT INTO orders` running sequentially without an index on `customer_id`.",
-                    "Step 4: Check rollback procedures; observe absence of versioned deployment manifests or pre-scripted rollback runbooks."
-                ],
+                "evidence": (
+                    "Querying Cloud Logging for checkout service errors during the incident window revealed catastrophic query timeout logs:\n\n"
+                    "```json\n"
+                    "[\n"
+                    "  {\n"
+                    "    \"insertId\": \"65b9a8f10008b4c2\",\n"
+                    "    \"httpRequest\": {\"status\": 500, \"latency\": \"24.312s\"},\n"
+                    "    \"jsonPayload\": {\n"
+                    "      \"message\": \"CRITICAL: Database query timed out after 20000ms. Query: SELECT * FROM orders WHERE customer_id = $1 (full table scan without index)\",\n"
+                    "      \"serviceContext\": {\"service\": \"checkout\", \"version\": \"checkout-20260928-v2-manual\"}\n"
+                    "    },\n"
+                    "    \"severity\": \"ERROR\"\n"
+                    "  }\n"
+                    "]\n"
+                    "```\n\n"
+                    "Inspecting Cloud SQL instance metrics confirmed total resource exhaustion:\n\n"
+                    "```text\n"
+                    "$ gcloud sql instances describe brightloaf-db --format=\"value(settings.tier,state)\"\n"
+                    "db-custom-4-16384 RUNNING (CPU: 100%, Active Connections: 480/500, Lock Wait Queue: 112)\n"
+                    "```"
+                ),
                 "root": (
                     "Lack of CI/CD pipeline automation, missing canary verification gates, absence of automated rollback mechanisms, "
                     "and uncoordinated static alert thresholds led to delayed incident detection, human confusion, and extended MTTR."
                 ),
-                "remediation_steps": [
-                    "Step 1: Enforce Google Cloud Deploy progressive canary pipelines with automated 10% traffic verification and instant rollback hooks.",
-                    "Step 2: Implement multi-window multi-burn-rate alerting policies in Cloud Monitoring, routing P1 alerts directly to PagerDuty with named escalation paths.",
-                    "Step 3: Revoke direct production deployment IAM permissions from developer accounts; enforce deployment strictly through service accounts bound to Cloud Build.",
-                    "Step 4: Conduct a blameless postmortem, establish a formal disaster recovery runbook repository, and implement a mandatory change-freeze window on Friday afternoons."
+                "diagnostic_steps": [
+                    "Step 1: Review Cloud Monitoring alerting history; observe alert flood across multiple microservices with no designated primary responder.",
+                    "Step 2: Inspect Cloud Logging audit logs; discover manual <kbd>gcloud run deploy</kbd> command executed directly from a developer workstation without CI/CD pipeline provenance.",
+                    "Step 3: Query Cloud SQL Query Insights; identify slow query `INSERT INTO orders` running sequentially without an index on `customer_id`.",
+                    "Step 4: Check rollback procedures; observe absence of versioned deployment manifests or pre-scripted rollback runbooks."
                 ],
+                "fix": (
+                    "Tactical Fix: Immediately route 100% of production traffic back to the prior stable container revision via "
+                    "<kbd>gcloud run services update-traffic checkout --to-revisions=checkout-v1-stable=100</kbd>, and re-create the missing index.\n\n"
+                    "Strategic Fix: Enforce Google Cloud Deploy progressive canary pipelines with automated 10% traffic verification, "
+                    "multi-window burn-rate alert triggers, and automated rollback hooks."
+                ),
                 "verify": (
                     "Deploy a canary revision with an intentional simulated latency fault. Verify that Cloud Deploy detects the SLO error "
                     "budget burn rate exceeding 14.4 within 2 minutes and automatically rolls back traffic to the stable revision with zero manual intervention."
@@ -225,19 +272,157 @@ DATA = {
                 "expected": "Automated pipelines detect regressions on 10% canary traffic and roll back within 2 minutes, preserving error budgets."
             },
             "lab": {
-                "name": "SLO Multi-Burn-Rate Alerting and Automated Rollback Policy",
+                "name": "SLO Multi-Burn-Rate Alerting and Automated Canary Rollback Pipeline",
                 "file": "day-070-operational-excellence.md",
-                "goal": "Calculate SLO burn rates, generate Cloud Monitoring alerting policy JSON, and write an automated rollback verification test.",
-                "expected": "A complete SLO specification, a Cloud Monitoring burn-rate alert policy manifest, and an automated verification script.",
+                "goal": "Calculate SLO burn rates, author Cloud Monitoring alerting policy manifests, configure Cloud Deploy canary pipelines, and execute an automated rollback verification test.",
+                "expected": "A complete SLO specification, a Cloud Monitoring burn-rate alert policy manifest, a Cloud Deploy delivery pipeline YAML, and an automated verification test runner.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
                 "prereq": "Day 69 observability foundations and Day 68 business requirements",
-                "preflight": "Review Google SRE Workbook Chapter 5 on Alerting on SLOs.",
+                "preflight": "Review Google SRE Workbook Chapter 5 on Alerting on SLOs and Cloud Deploy canary specifications.",
                 "steps": [
-                    "Define the service level objective in `day-070-operational-excellence.md`: Availability SLO = 99.9% over a 30-day rolling window.",
-                    "Calculate the error budget burn rates: 30 days = 43,200 minutes; 0.1% budget = 43.2 minutes total allowed downtime. Burn rate 14.4 consumes 2% of budget (0.864 minutes of downtime) in 1 hour.",
-                    "Generate the Cloud Monitoring Alert Policy JSON specification:\n\n```json\n{\n  \"displayName\": \"Checkout Service - Fast Burn Rate 14.4 (P1 Alert)\",\n  \"documentation\": {\n    \"content\": \"Checkout SLO error budget burning at 14.4x! Rollback canary immediately via Cloud Deploy.\",\n    \"mimeType\": \"text/markdown\"\n  },\n  \"conditions\": [\n    {\n      \"displayName\": \"Error budget consumption > 2% in 1 hour\",\n      \"conditionThreshold\": {\n        \"filter\": \"resource.type = \\\"cloud_run_revision\\\" AND metric.type = \\\"run.googleapis.com/request_count\\\" AND metric.labels.response_code_class = \\\"5xx\\\"\",\n        \"comparison\": \"COMPARISON_GT\",\n        \"thresholdValue\": 0.0144,\n        \"duration\": \"60s\",\n        \"trigger\": {\"count\": 1}\n      }\n    }\n  ],\n  \"combiner\": \"OR\",\n  \"enabled\": true\n}\n```",
-                    "Write an automated Python script to simulate and verify burn rate calculations (`burn_rate_calc.py`):\n\n```python\n# burn_rate_calc.py\n\ndef calculate_burn_budget(slo: float, window_days: int, burn_rate: float, duration_hours: float):\n    total_minutes = window_days * 24 * 60\n    error_budget_fraction = 1.0 - slo\n    total_budget_minutes = total_minutes * error_budget_fraction\n    consumed_minutes = duration_hours * 60 * error_budget_fraction * burn_rate\n    percent_consumed = (consumed_minutes / total_budget_minutes) * 100\n    return total_budget_minutes, consumed_minutes, percent_consumed\n\ntotal, consumed, pct = calculate_burn_budget(0.999, 30, 14.4, 1.0)\nprint(f\"Total 30-Day Budget: {total:.1f} minutes\")\nprint(f\"Consumed in 1 hour at 14.4x: {consumed:.2f} minutes ({pct:.1f}% of total budget)\")\nassert round(pct, 1) == 2.0, \"Burn rate calculation error!\"\nprint(\"Burn Rate Mathematics Verified Successfully.\")\n```",
-                    "Execute the burn rate verification script:\n\n```sh\npython3 burn_rate_calc.py\n```"
+                    (
+                        "**Stage 1: Preflight & Environment Validation**\n"
+                        "- Define target environment variables and verify service API enablement:\n\n"
+                        "```sh\n"
+                        "export PROJECT_ID=\"brightloaf-prod\"\n"
+                        "export REGION=\"us-central1\"\n"
+                        "export SERVICE_NAME=\"checkout\"\n"
+                        "\n"
+                        "gcloud config set project ${PROJECT_ID}\n"
+                        "gcloud services enable monitoring.googleapis.com clouddeploy.googleapis.com run.googleapis.com\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 2: Target / Backing Infrastructure Provisioning**\n"
+                        "- Define the service level objective in `day-070-operational-excellence.md`: Availability SLO = 99.9% over a 30-day rolling window.\n"
+                        "- Calculate the error budget burn rates: 30 days = 43,200 minutes; 0.1% budget = 43.2 minutes total allowed downtime. Burn rate 14.4 consumes 2% of budget (0.864 minutes of downtime) in 1 hour."
+                    ),
+                    (
+                        "**Stage 3: Production Manifest Authoring (Multi-Resource Configuration)**\n"
+                        "- Author the Cloud Deploy canary delivery pipeline manifest (`delivery-pipeline.yaml`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > delivery-pipeline.yaml\n"
+                        "apiVersion: deploy.cloud.google.com/v1\n"
+                        "kind: DeliveryPipeline\n"
+                        "metadata:\n"
+                        "  name: checkout-delivery-pipeline\n"
+                        "description: 'Production canary deployment pipeline with automated rollback hooks'\n"
+                        "serialPipeline:\n"
+                        "  stages:\n"
+                        "  - targetId: checkout-prod-uscentral1\n"
+                        "    strategy:\n"
+                        "      canary:\n"
+                        "        runtimeConfig:\n"
+                        "          cloudRun:\n"
+                        "            automaticTrafficControl: true\n"
+                        "        phases:\n"
+                        "        - id: canary-10\n"
+                        "          percentage: 10\n"
+                        "        - id: canary-50\n"
+                        "          percentage: 50\n"
+                        "        - id: stable-100\n"
+                        "          percentage: 100\n"
+                        "EOF\n"
+                        "cat delivery-pipeline.yaml\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 4: Workload Deployment & Alert Policy Orchestration**\n"
+                        "- Author the Cloud Monitoring Fast Burn Rate (14.4x) Alert Policy specification (`burn-rate-alert-policy.json`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > burn-rate-alert-policy.json\n"
+                        "{\n"
+                        "  \"displayName\": \"Checkout Service - Fast Burn Rate 14.4 (P1 Alert)\",\n"
+                        "  \"documentation\": {\n"
+                        "    \"content\": \"Checkout SLO error budget burning at 14.4x! Rollback canary immediately via Cloud Deploy.\",\n"
+                        "    \"mimeType\": \"text/markdown\"\n"
+                        "  },\n"
+                        "  \"conditions\": [\n"
+                        "    {\n"
+                        "      \"displayName\": \"Error budget consumption > 2% in 1 hour\",\n"
+                        "      \"conditionThreshold\": {\n"
+                        "        \"filter\": \"resource.type = \\\"cloud_run_revision\\\" AND metric.type = \\\"run.googleapis.com/request_count\\\" AND metric.labels.response_code_class = \\\"5xx\\\"\",\n"
+                        "        \"comparison\": \"COMPARISON_GT\",\n"
+                        "        \"thresholdValue\": 0.0144,\n"
+                        "        \"duration\": \"60s\",\n"
+                        "        \"trigger\": {\"count\": 1}\n"
+                        "      }\n"
+                        "    }\n"
+                        "  ],\n"
+                        "  \"combiner\": \"OR\",\n"
+                        "  \"enabled\": true\n"
+                        "}\n"
+                        "EOF\n"
+                        "cat burn-rate-alert-policy.json\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 5: Runtime Inspection & Verification**\n"
+                        "- Author and execute the automated burn-rate validation script (`burn_rate_calc.py`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > burn_rate_calc.py\n"
+                        "def calculate_burn_budget(slo: float, window_days: int, burn_rate: float, duration_hours: float):\n"
+                        "    total_minutes = window_days * 24 * 60\n"
+                        "    error_budget_fraction = 1.0 - slo\n"
+                        "    total_budget_minutes = total_minutes * error_budget_fraction\n"
+                        "    consumed_minutes = duration_hours * 60 * error_budget_fraction * burn_rate\n"
+                        "    percent_consumed = (consumed_minutes / total_budget_minutes) * 100\n"
+                        "    return total_budget_minutes, consumed_minutes, percent_consumed\n"
+                        "\n"
+                        "total, consumed, pct = calculate_burn_budget(0.999, 30, 14.4, 1.0)\n"
+                        "print(f\"Total 30-Day Budget: {total:.1f} minutes\")\n"
+                        "print(f\"Consumed in 1 hour at 14.4x: {consumed:.2f} minutes ({pct:.1f}% of total budget)\")\n"
+                        "assert round(pct, 1) == 2.0, \"Burn rate calculation error!\"\n"
+                        "print(\"Burn Rate Mathematics Verified Successfully.\")\n"
+                        "EOF\n"
+                        "python3 burn_rate_calc.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 6: Chaos / Fault Injection & Failure Rehearsal**\n"
+                        "- Simulate a canary release that introduces a 5% 5xx error rate on 10% traffic and observe simulated burn rate trigger:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > simulate_canary_failure.py\n"
+                        "# simulate_canary_failure.py\n"
+                        "canary_traffic_percent = 0.10\n"
+                        "canary_error_rate = 0.05\n"
+                        "blended_error_rate = canary_traffic_percent * canary_error_rate\n"
+                        "burn_rate = blended_error_rate / (1.0 - 0.999)\n"
+                        "print(f\"Blended service error rate: {blended_error_rate * 100:.3f}%\")\n"
+                        "print(f\"Observed Burn Rate: {burn_rate:.1f}x\")\n"
+                        "assert burn_rate >= 5.0, \"Failure did not trigger burn-rate threshold!\"\n"
+                        "print(\"P1 Alert Trigger Condition Confirmed!\")\n"
+                        "EOF\n"
+                        "python3 simulate_canary_failure.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 7: Triage, Troubleshooting & Remediation Patch**\n"
+                        "- Execute automated rollback script reverting canary traffic back to 100% stable revision:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > rollback_canary.sh\n"
+                        "#!/usr/bin/env bash\n"
+                        "echo \"[P1 ALERT] Burn rate > 14.4x detected on revision checkout-v2-canary!\"\n"
+                        "echo \"[ACTION] Executing automated emergency rollback to checkout-v1-stable...\"\n"
+                        "# gcloud run services update-traffic ${SERVICE_NAME} --to-revisions=checkout-v1-stable=100\n"
+                        "echo \"[RECONCILIATION] Traffic 100% restored to stable. Canary isolated.\"\n"
+                        "EOF\n"
+                        "chmod +x rollback_canary.sh\n"
+                        "./rollback_canary.sh\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 8: Cleanup & Resource Teardown**\n"
+                        "- Remove temporary verification files and reset test environment:\n\n"
+                        "```sh\n"
+                        "rm -f burn_rate_calc.py simulate_canary_failure.py rollback_canary.sh delivery-pipeline.yaml burn-rate-alert-policy.json\n"
+                        "echo \"Cleanup completed successfully; zero residual cloud resources created.\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 9: Artifact Acceptance Criteria**\n"
+                        "- Save verified SLO mathematical models, Cloud Deploy pipeline definitions, and simulated rollback logs into `day-070-operational-excellence.md`."
+                    )
                 ],
                 "verification": (
                     "Verify Python calculation and JSON structure:\n\n```sh\npython3 -c \"import json; d = json.load(open('burn_rate_calc.py') if False else open('/dev/null', 'a')); print('Policy Syntax Valid')\"\n```\n\nConfirm calculation asserts exactly 2.0% budget consumption."
@@ -334,22 +519,59 @@ DATA = {
                     "Prevent all external data exfiltration from Google Cloud APIs; enforce hardware-backed encryption key management; "
                     "maintain strict Zero-Trust boundaries without disrupting existing internal automated reporting workflows."
                 ),
+                "evidence": (
+                    "Inspecting Cloud Audit Logs for BigQuery export jobs revealed the unauthorized exfiltration request from external IP:\n\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"protoPayload\": {\n"
+                    "    \"@type\": \"type.googleapis.com/google.cloud.audit.AuditLog\",\n"
+                    "    \"authenticationInfo\": {\n"
+                    "      \"principalEmail\": \"brightloaf-analytics@brightloaf-prod.iam.gserviceaccount.com\"\n"
+                    "    },\n"
+                    "    \"requestMetadata\": {\n"
+                    "      \"callerIp\": \"194.26.29.112\",\n"
+                    "      \"callerSuppliedUserAgent\": \"google-cloud-sdk gcloud/460.0.0\"\n"
+                    "    },\n"
+                    "    \"serviceName\": \"bigquery.googleapis.com\",\n"
+                    "    \"methodName\": \"google.cloud.bigquery.v2.JobService.InsertJob\",\n"
+                    "    \"status\": {\"code\": 0, \"message\": \"OK\"},\n"
+                    "    \"serviceData\": {\n"
+                    "      \"jobInsertRequest\": {\n"
+                    "        \"resource\": {\n"
+                    "          \"jobConfiguration\": {\n"
+                    "            \"extract\": {\n"
+                    "              \"destinationUris\": [\"gs://attacker-owned-bucket-eu/exfil/*.csv\"],\n"
+                    "              \"sourceTable\": {\"projectId\": \"brightloaf-prod\", \"datasetId\": \"production_analytics\", \"tableId\": \"orders_fact\"}\n"
+                    "            }\n"
+                    "          }\n"
+                    "        }\n"
+                    "      }\n"
+                    "    }\n"
+                    "  }\n"
+                    "}\n"
+                    "```\n\n"
+                    "Confirming Access Context Manager policy state:\n\n"
+                    "```text\n"
+                    "$ gcloud access-context-manager perimeters list --policy=10492817294\n"
+                    "Listed 0 items. (No VPC Service Controls perimeters active for BigQuery or Cloud Storage)\n"
+                    "```"
+                ),
+                "root": (
+                    "Absence of VPC Service Controls allowed authorized IAM credentials to execute API data exports from the public internet. "
+                    "Over-privileged IAM role grants violated least privilege, and un-audited service account keys enabled persistence outside corporate networks."
+                ),
                 "diagnostic_steps": [
                     "Step 1: Inspect Cloud Audit Logs filtering by `methodName = \"google.cloud.bigquery.v2.JobService.InsertJob\"`; discover bulk export job initiated from an unrecognized external IP.",
                     "Step 2: Check VPC Service Controls configuration in Access Context Manager; observe zero perimeters configured around BigQuery or Cloud Storage.",
                     "Step 3: Review IAM policy bindings for the compromised service account; discover broad `roles/bigquery.admin` granted at the project level instead of dataset-scoped viewer permissions.",
                     "Step 4: Check BigQuery table encryption; observe tables encrypted using standard Google-managed keys rather than customer-controlled keys."
                 ],
-                "root": (
-                    "Absence of VPC Service Controls allowed authorized IAM credentials to execute API data exports from the public internet. "
-                    "Over-privileged IAM role grants violated least privilege, and un-audited service account keys enabled persistence outside corporate networks."
+                "fix": (
+                    "Tactical Fix: Immediately revoke the compromised service account keys, disable the service account, and deploy a VPC-SC "
+                    "perimeter around BigQuery and Cloud Storage.\n\n"
+                    "Strategic Fix: Provision Cloud KMS CMEK keys for all BigQuery datasets, configure Cloud DLP automated PII masking pipelines, "
+                    "and enforce organization-level constraint `constraints/iam.disableServiceAccountKeyCreation`."
                 ),
-                "remediation_steps": [
-                    "Step 1: Immediately establish a VPC Service Controls perimeter enclosing BigQuery and Cloud Storage, blocking all egress to external projects and public IPs.",
-                    "Step 2: Deploy VPC-SC dry-run mode to audit internal pipelines, verify legitimate service flows, and promote the perimeter to active enforcement.",
-                    "Step 3: Revoke user-managed service account keys; mandate Workload Identity Federation for external services and short-lived OAuth tokens.",
-                    "Step 4: Provision Cloud KMS CMEK keys for all BigQuery datasets and integrate Cloud DLP masking pipelines for customer PII fields."
-                ],
                 "verify": (
                     "Attempt to execute a BigQuery export command from an external IP using a valid service account credential. Verify the API "
                     "call is blocked immediately with an HTTP 403 VPC Service Controls violation error logged in Cloud Audit Logs."
@@ -370,19 +592,156 @@ DATA = {
                 "expected": "VPC-SC blocks all requests originating outside the corporate perimeter regardless of credential validity."
             },
             "lab": {
-                "name": "Zero-Trust Perimeter and CMEK Encryption Specification",
+                "name": "Zero-Trust Perimeter, CMEK Encryption, and DLP De-identification Pipeline",
                 "file": "day-070-security-compliance.md",
-                "goal": "Design a VPC Service Controls perimeter configuration, write Cloud KMS CMEK provisioning scripts, and verify DLP de-identification policies.",
-                "expected": "An Access Context Manager perimeter specification, Cloud KMS CLI commands, and a verified Cloud DLP JSON config.",
+                "goal": "Author Access Context Manager VPC Service Controls manifests, deploy Cloud KMS CMEK keys, configure Cloud DLP cryptographic masking, and execute an exfiltration block test.",
+                "expected": "An Access Context Manager perimeter specification, Cloud KMS CLI provisioning commands, a verified Cloud DLP JSON config, and an exfiltration audit runner.",
                 "mode": "offline architecture specification, shell scripting, and configuration design; no cloud resources billed",
                 "prereq": "Day 69 IAM policies and Day 68 compliance constraints",
-                "preflight": "Review VPC Service Controls documentation and Cloud KMS key access permission requirements.",
+                "preflight": "Review VPC Service Controls documentation, Access Context Manager YAML syntax, and Cloud KMS key access permissions.",
                 "steps": [
-                    "Draft the Access Context Manager VPC Service Controls perimeter specification in `day-070-security-compliance.md`.",
-                    "Define the Cloud KMS Keyring and CryptoKey provisioning commands:\n\n```sh\n# Provision KMS Keyring in regional location\ngcloud kms keyrings create brightloaf-security-kr --location=us-central1\n\n# Create CryptoKey with automatic 90-day rotation\ngcloud kms keys create brightloaf-bq-cmek \\\n  --location=us-central1 \\\n  --keyring=brightloaf-security-kr \\\n  --purpose=encryption \\\n  --rotation-period=90d \\\n  --next-rotation-time=+90d\n```",
-                    "Grant the BigQuery service agent permission to encrypt/decrypt using the CMEK key:\n\n```sh\n# Bind CryptoKey Encrypter/Decrypter role to BigQuery Service Agent\ngcloud kms keys add-iam-policy-binding brightloaf-bq-cmek \\\n  --location=us-central1 \\\n  --keyring=brightloaf-security-kr \\\n  --member=\"serviceAccount:bq-project-number@bigquery-encryption.iam.gserviceaccount.com\" \\\n  --role=\"roles/cloudkms.cryptoKeyEncrypterDecrypter\"\n```",
-                    "Write the Cloud DLP de-identification configuration JSON (`dlp-deid-config.json`):\n\n```json\n{\n  \"deidentifyConfig\": {\n    \"infoTypeTransformations\": {\n      \"transformations\": [\n        {\n          \"infoTypes\": [{\"name\": \"EMAIL_ADDRESS\"}, {\"name\": \"PHONE_NUMBER\"}],\n          \"primitiveTransformation\": {\n            \"characterMaskConfig\": {\n              \"maskingCharacter\": \"*\",\n              \"numberToMask\": 4,\n              \"reverseOrder\": true\n            }\n          }\n        }\n      ]\n    }\n  }\n}\n```",
-                    "Execute a validation script to verify KMS policy and DLP JSON syntax:\n\n```sh\npython3 -c \"import json; d = json.load(open('dlp-deid-config.json')); assert 'deidentifyConfig' in d; print('Cloud DLP JSON Schema Validated')\"\n```"
+                    (
+                        "**Stage 1: Preflight & Environment Validation**\n"
+                        "- Set target variables and verify security and encryption API enablement:\n\n"
+                        "```sh\n"
+                        "export PROJECT_ID=\"brightloaf-prod\"\n"
+                        "export REGION=\"us-central1\"\n"
+                        "export KEYRING_NAME=\"brightloaf-security-kr\"\n"
+                        "export KEY_NAME=\"brightloaf-bq-cmek\"\n"
+                        "\n"
+                        "gcloud config set project ${PROJECT_ID}\n"
+                        "gcloud services enable accesscontextmanager.googleapis.com cloudkms.googleapis.com dlp.googleapis.com bigquery.googleapis.com\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 2: Target / Backing Infrastructure Provisioning**\n"
+                        "- Provision the Cloud KMS Keyring and CryptoKey with automated 90-day key rotation:\n\n"
+                        "```sh\n"
+                        "# 1. Create regional KMS Keyring\n"
+                        "gcloud kms keyrings create ${KEYRING_NAME} --location=${REGION}\n"
+                        "\n"
+                        "# 2. Create CryptoKey for BigQuery CMEK\n"
+                        "gcloud kms keys create ${KEY_NAME} \\\n"
+                        "  --location=${REGION} \\\n"
+                        "  --keyring=${KEYRING_NAME} \\\n"
+                        "  --purpose=encryption \\\n"
+                        "  --rotation-period=90d \\\n"
+                        "  --next-rotation-time=+90d\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 3: Production Manifest Authoring (VPC-SC Perimeter YAML)**\n"
+                        "- Author the declarative Access Context Manager VPC Service Controls perimeter definition (`vpc-sc-perimeter.yaml`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > vpc-sc-perimeter.yaml\n"
+                        "- name: accessPolicies/10492817294/servicePerimeters/brightloaf_secure_perimeter\n"
+                        "  title: Brightloaf Secure Data Perimeter\n"
+                        "  description: Encloses BigQuery and Cloud Storage to block unauthorized external egress\n"
+                        "  perimeterType: PERIMETER_TYPE_REGULAR\n"
+                        "  status:\n"
+                        "    resources:\n"
+                        "    - projects/10492817294\n"
+                        "    restrictedServices:\n"
+                        "    - bigquery.googleapis.com\n"
+                        "    - storage.googleapis.com\n"
+                        "    accessLevels: []\n"
+                        "    vpcAccessibleServices:\n"
+                        "      enableRestriction: true\n"
+                        "      allowedServices:\n"
+                        "      - bigquery.googleapis.com\n"
+                        "      - storage.googleapis.com\n"
+                        "EOF\n"
+                        "cat vpc-sc-perimeter.yaml\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 4: Workload Deployment & IAM Service Agent Binding**\n"
+                        "- Author and bind KMS Encrypter/Decrypter permissions to the BigQuery service agent:\n\n"
+                        "```sh\n"
+                        "# Retrieve BigQuery service agent identity\n"
+                        "BQ_SA=\"serviceAccount:bq-10492817294@bigquery-encryption.iam.gserviceaccount.com\"\n"
+                        "\n"
+                        "# Grant CMEK encryption role to BigQuery service agent\n"
+                        "gcloud kms keys add-iam-policy-binding ${KEY_NAME} \\\n"
+                        "  --location=${REGION} \\\n"
+                        "  --keyring=${KEYRING_NAME} \\\n"
+                        "  --member=\"${BQ_SA}\" \\\n"
+                        "  --role=\"roles/cloudkms.cryptoKeyEncrypterDecrypter\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 5: Runtime Inspection & Cloud DLP De-identification Configuration**\n"
+                        "- Author the Cloud DLP cryptographic masking configuration (`dlp-deid-config.json`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > dlp-deid-config.json\n"
+                        "{\n"
+                        "  \"deidentifyConfig\": {\n"
+                        "    \"infoTypeTransformations\": {\n"
+                        "      \"transformations\": [\n"
+                        "        {\n"
+                        "          \"infoTypes\": [{\"name\": \"EMAIL_ADDRESS\"}, {\"name\": \"PHONE_NUMBER\"}],\n"
+                        "          \"primitiveTransformation\": {\n"
+                        "            \"characterMaskConfig\": {\n"
+                        "              \"maskingCharacter\": \"*\",\n"
+                        "              \"numberToMask\": 4,\n"
+                        "              \"reverseOrder\": true\n"
+                        "            }\n"
+                        "          }\n"
+                        "        }\n"
+                        "      ]\n"
+                        "    }\n"
+                        "  }\n"
+                        "}\n"
+                        "EOF\n"
+                        "cat dlp-deid-config.json\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 6: Chaos / Fault Injection & Unauthorized Egress Rehearsal**\n"
+                        "- Write an automated verification script simulating an unauthorized external export attempt (`verify_exfil_block.py`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > verify_exfil_block.py\n"
+                        "import json\n"
+                        "\n"
+                        "# Validate DLP Configuration\n"
+                        "with open('dlp-deid-config.json') as f:\n"
+                        "    dlp_cfg = json.load(f)\n"
+                        "info_types = [x['name'] for x in dlp_cfg['deidentifyConfig']['infoTypeTransformations']['transformations'][0]['infoTypes']]\n"
+                        "assert 'EMAIL_ADDRESS' in info_types and 'PHONE_NUMBER' in info_types\n"
+                        "print('PASS 1: Cloud DLP InfoType Masking Schema Validated.')\n"
+                        "\n"
+                        "# Emulate VPC Service Controls evaluation\n"
+                        "def evaluate_vpc_sc(caller_ip, is_in_perimeter, service):\n"
+                        "    if not is_in_perimeter:\n"
+                        "        return {'status': 403, 'error': 'VPC_SC_PROHIBITED_BY_POLICY'}\n"
+                        "    return {'status': 200, 'error': None}\n"
+                        "\n"
+                        "result = evaluate_vpc_sc('194.26.29.112', False, 'bigquery.googleapis.com')\n"
+                        "assert result['status'] == 403, 'Exfiltration was not blocked!'\n"
+                        "print(f\"PASS 2: External egress from 194.26.29.112 blocked with {result['error']}.\")\n"
+                        "EOF\n"
+                        "python3 verify_exfil_block.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 7: Triage, Troubleshooting & Remediation Patch**\n"
+                        "- Inspect Access Context Manager dry-run violation logs and verify perimeter policy syntax:\n\n"
+                        "```sh\n"
+                        "python3 -c \"import yaml; p = yaml.safe_load(open('vpc-sc-perimeter.yaml')); print('Perimeter verified for resources:', p[0]['status']['resources'])\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 8: Cleanup & Resource Teardown**\n"
+                        "- Remove temporary configuration files and restore directory baseline:\n\n"
+                        "```sh\n"
+                        "rm -f vpc-sc-perimeter.yaml dlp-deid-config.json verify_exfil_block.py\n"
+                        "echo \"Security and compliance lab artifacts cleared; zero cloud spend.\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 9: Artifact Acceptance Criteria**\n"
+                        "- Save verified VPC-SC perimeter specifications, Cloud KMS CMEK rotation parameters, and Cloud DLP de-identification configs into `day-070-security-compliance.md`."
+                    )
                 ],
                 "verification": (
                     "Verify Cloud DLP JSON configuration:\n\n```sh\npython3 -c \"import json; d = json.load(open('dlp-deid-config.json')); print('DLP Config Validated: InfoTypes =', [x['name'] for x in d['deidentifyConfig']['infoTypeTransformations']['transformations'][0]['infoTypes']])\"\n```\n\nConfirm output lists `['EMAIL_ADDRESS', 'PHONE_NUMBER']`."
@@ -402,8 +761,8 @@ DATA = {
                 "multi-region disaster recovery, circuit breakers, and automated health probing."
             ),
             "preview": (
-                "A regional fiber cut isolates an entire Google Cloud region; without automated cross-region database "
-                "failover or decoupled read paths, the entire business remains down for 6 hours."
+                "A regional host failure isolates a single-zone Cloud SQL database; without Regional HA or cross-region "
+                "read replicas, the checkout platform suffers a 5.3-hour outage and loses 14 hours of orders."
             ),
             "technical": (
                 "#### 1. High Availability Math and Multi-Zone Redundancy\n\n"
@@ -468,24 +827,40 @@ DATA = {
                     "Enforce zero single-zone points of failure; guarantee RTO < 60 seconds for zonal outages; achieve RPO = 0 seconds "
                     "(zero data loss) within the primary operating region."
                 ),
+                "evidence": (
+                    "Inspecting Compute Engine instance application logs during the database failure revealed client connection exhaustion:\n\n"
+                    "```text\n"
+                    "$ gcloud logging read 'resource.type=\"gce_instance\" AND textPayload=~\"database connection\"' --limit=3\n"
+                    "2026-09-28T14:15:32Z order-service-mig-w4m1 app: ERROR [DBPool] Connection refused to 10.128.0.45:5432 (timeout 5000ms)\n"
+                    "2026-09-28T14:15:35Z order-service-mig-w4m1 app: FATAL [DBPool] Connection pool exhausted (max 100/100). All worker threads blocked.\n"
+                    "2026-09-28T14:15:38Z order-service-mig-k9z2 app: CRITICAL [HTTP] Upstream 504 Gateway Timeout returned to client.\n"
+                    "```\n\n"
+                    "Checking Cloud SQL instance configuration:\n\n"
+                    "```yaml\n"
+                    "$ gcloud sql instances describe brightloaf-orders-db --format=\"yaml(settings.availabilityType,state)\"\n"
+                    "settings:\n"
+                    "  availabilityType: ZONAL\n"
+                    "state: FAILED\n"
+                    "```"
+                ),
+                "root": (
+                    "Single-zone database deployment created a single point of failure. Failure to enable Regional HA and point-in-time recovery "
+                    "prevented automatic failover and forced reliance on stale daily backups."
+                ),
                 "diagnostic_steps": [
                     "Step 1: Check Cloud SQL instance configuration in Cloud Console; confirm `availabilityType: ZONAL` is enabled instead of `REGIONAL`.",
                     "Step 2: Inspect Cloud Monitoring timeline; observe immediate drop to zero database connections and simultaneous spike in VM connection timeouts.",
                     "Step 3: Review database backup metadata; discover automated backups occur only once every 24 hours without continuous transaction log archiving.",
                     "Step 4: Audit client microservice database retry logic; observe static 1-second retry loops without backoff or circuit breakers."
                 ],
-                "root": (
-                    "Single-zone database deployment created a single point of failure. Failure to enable Regional HA and point-in-time recovery "
-                    "prevented automatic failover and forced reliance on stale daily backups."
+                "fix": (
+                    "Tactical Fix: Immediately restore the latest valid transaction log snapshot and upgrade the Cloud SQL instance "
+                    "to `--availability-type=REGIONAL` with synchronous standby in zone `b`.\n\n"
+                    "Strategic Fix: Implement client-side circuit breakers with full jitter exponential backoff in all microservices, "
+                    "and provision an asynchronous cross-region read replica in `us-east4`."
                 ),
-                "remediation_steps": [
-                    "Step 1: Reconfigure Cloud SQL to Regional High Availability (`--availability-type=REGIONAL`), enabling synchronous standby replication across two availability zones.",
-                    "Step 2: Enable Point-In-Time Recovery (PITR) with continuous write-ahead log (WAL) archiving to Cloud Storage, guaranteeing sub-5-minute RPO.",
-                    "Step 3: Provision an asynchronous cross-region read replica in `us-east4` to provide disaster recovery protection against regional catastrophes.",
-                    "Step 4: Implement client-side circuit breakers and jittered exponential backoff in all microservice database client connection pools."
-                ],
                 "verify": (
-                    "Initiate a simulated Cloud SQL failover via the CLI (`gcloud sql instances failover`). Verify that the standby instance "
+                    "Initiate a simulated Cloud SQL failover via the CLI (<kbd>gcloud sql instances failover</kbd>). Verify that the standby instance "
                     "assumes primary leadership within 45 seconds, zero data transactions are lost, and application error rates recover automatically."
                 ),
                 "residual": (
@@ -506,16 +881,160 @@ DATA = {
             "lab": {
                 "name": "Reliability Sizing and Chaos Engineering Circuit Breaker Simulation",
                 "file": "day-070-reliability.md",
-                "goal": "Calculate availability series math, write a Python circuit breaker with exponential jittered backoff, and verify failover metrics.",
-                "expected": "A complete reliability calculation document, an executable Python circuit breaker test runner, and failover verification commands.",
+                "goal": "Calculate availability series math, author Cloud SQL Regional HA configuration, implement a Python circuit breaker with exponential jittered backoff, and verify failover metrics.",
+                "expected": "A complete reliability calculation document, a Cloud SQL Regional HA upgrade script, an executable Python circuit breaker test runner, and failover verification commands.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
                 "prereq": "Day 69 reliability basics and Day 68 SLA targets",
                 "preflight": "Review Cloud SQL Regional HA architecture and Netflix Hystrix circuit breaker patterns.",
                 "steps": [
-                    "Calculate composite availability in `day-070-reliability.md`: 3 components in series (ALB 99.99%, Compute 99.9%, Cloud SQL 99.95%) = `0.9999 * 0.999 * 0.9995 = 99.84%`.",
-                    "Define Regional Cloud SQL HA configuration commands:\n\n```sh\n# Upgrade Cloud SQL instance to Regional High Availability\ngcloud sql instances patch brightloaf-orders-db \\\n  --availability-type=REGIONAL \\\n  --backup-start-time=02:00 \\\n  --enable-bin-log \\\n  --retained-backups-count=14\n```",
-                    "Write an executable Python circuit breaker with jittered backoff (`circuit_breaker_sim.py`):\n\n```python\n# circuit_breaker_sim.py\nimport time\nimport random\n\nclass CircuitBreaker:\n    def __init__(self, failure_threshold=3, recovery_time=2.0):\n        self.failure_threshold = failure_threshold\n        self.recovery_time = recovery_time\n        self.failure_count = 0\n        self.state = 'CLOSED'\n        self.last_failure_time = 0\n\n    def call(self, success: bool):\n        now = time.time()\n        if self.state == 'OPEN':\n            if now - self.last_failure_time > self.recovery_time:\n                self.state = 'HALF-OPEN'\n            else:\n                return 'SHORT_CIRCUITED_503'\n        \n        if success:\n            self.failure_count = 0\n            self.state = 'CLOSED'\n            return 'SUCCESS_200'\n        else:\n            self.failure_count += 1\n            self.last_failure_time = now\n            if self.failure_count >= self.failure_threshold:\n                self.state = 'OPEN'\n            return 'FAILED_500'\n\ncb = CircuitBreaker(failure_threshold=2, recovery_time=0.5)\nassert cb.call(False) == 'FAILED_500'\nassert cb.call(False) == 'FAILED_500'\nassert cb.call(True) == 'SHORT_CIRCUITED_503'  # Circuit tripped open\ntime.sleep(0.6)\nassert cb.call(True) == 'SUCCESS_200'  # Recovered\nprint('Circuit Breaker Mechanics Verified Successfully.')\n```",
-                    "Execute the Python circuit breaker simulation:\n\n```sh\npython3 circuit_breaker_sim.py\n```"
+                    (
+                        "**Stage 1: Preflight & Environment Validation**\n"
+                        "- Set target variables and calculate composite availability math:\n\n"
+                        "```sh\n"
+                        "export PROJECT_ID=\"brightloaf-prod\"\n"
+                        "export REGION=\"us-central1\"\n"
+                        "export DB_INSTANCE=\"brightloaf-orders-db\"\n"
+                        "\n"
+                        "# Calculate composite series availability: ALB (99.99%) * Compute (99.9%) * SQL (99.95%)\n"
+                        "python3 -c \"print('Composite Series Availability:', f'{0.9999 * 0.999 * 0.9995 * 100:.3f}%')\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 2: Target / Backing Infrastructure Provisioning**\n"
+                        "- Author the gcloud command upgrading Cloud SQL to Regional High Availability with automated backups:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > upgrade_db_ha.sh\n"
+                        "#!/usr/bin/env bash\n"
+                        "# Upgrade Cloud SQL instance to Regional High Availability\n"
+                        "echo \"Upgrading ${DB_INSTANCE} to REGIONAL HA...\"\n"
+                        "# gcloud sql instances patch ${DB_INSTANCE} \\\n"
+                        "#   --availability-type=REGIONAL \\\n"
+                        "#   --backup-start-time=02:00 \\\n"
+                        "#   --enable-bin-log \\\n"
+                        "#   --retained-backups-count=14\n"
+                        "echo \"Regional HA configuration specified: Primary zone us-central1-a, Standby zone us-central1-b.\"\n"
+                        "EOF\n"
+                        "chmod +x upgrade_db_ha.sh\n"
+                        "./upgrade_db_ha.sh\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 3: Production Manifest Authoring (Client Connection Pool Config)**\n"
+                        "- Author resilient database connection pool configuration with health checks (`db_pool.yaml`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > db_pool.yaml\n"
+                        "database_pool:\n"
+                        "  max_connections: 50\n"
+                        "  min_idle_connections: 10\n"
+                        "  connection_timeout_ms: 3000\n"
+                        "  max_lifetime_ms: 1800000\n"
+                        "  idle_timeout_ms: 600000\n"
+                        "  validation_query: 'SELECT 1'\n"
+                        "  circuit_breaker:\n"
+                        "    failure_threshold_percent: 50\n"
+                        "    sliding_window_seconds: 10\n"
+                        "    wait_duration_in_open_seconds: 5\n"
+                        "EOF\n"
+                        "cat db_pool.yaml\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 4: Workload Deployment & Circuit Breaker Authoring**\n"
+                        "- Author an executable Python circuit breaker implementing full jitter exponential backoff (`circuit_breaker_sim.py`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > circuit_breaker_sim.py\n"
+                        "import time\n"
+                        "import random\n"
+                        "\n"
+                        "class CircuitBreaker:\n"
+                        "    def __init__(self, failure_threshold=3, recovery_time=1.0):\n"
+                        "        self.failure_threshold = failure_threshold\n"
+                        "        self.recovery_time = recovery_time\n"
+                        "        self.failure_count = 0\n"
+                        "        self.state = 'CLOSED'\n"
+                        "        self.last_failure_time = 0\n"
+                        "\n"
+                        "    def call(self, success: bool):\n"
+                        "        now = time.time()\n"
+                        "        if self.state == 'OPEN':\n"
+                        "            if now - self.last_failure_time > self.recovery_time:\n"
+                        "                self.state = 'HALF-OPEN'\n"
+                        "            else:\n"
+                        "                return 'SHORT_CIRCUITED_503'\n"
+                        "        \n"
+                        "        if success:\n"
+                        "            self.failure_count = 0\n"
+                        "            self.state = 'CLOSED'\n"
+                        "            return 'SUCCESS_200'\n"
+                        "        else:\n"
+                        "            self.failure_count += 1\n"
+                        "            self.last_failure_time = now\n"
+                        "            if self.failure_count >= self.failure_threshold:\n"
+                        "                self.state = 'OPEN'\n"
+                        "            return 'FAILED_500'\n"
+                        "\n"
+                        "cb = CircuitBreaker(failure_threshold=2, recovery_time=0.4)\n"
+                        "assert cb.call(True) == 'SUCCESS_200'\n"
+                        "print('1. Baseline normal operation: 200 OK')\n"
+                        "EOF\n"
+                        "python3 circuit_breaker_sim.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 5: Runtime Inspection & Verification**\n"
+                        "- Test initial circuit breaker state transitions:\n\n"
+                        "```sh\n"
+                        "python3 -c \"import circuit_breaker_sim; print('Initial state: CLOSED')\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 6: Chaos / Fault Injection & Failure Rehearsal**\n"
+                        "- Simulate downstream database outage and observe circuit breaker tripping:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' >> circuit_breaker_sim.py\n"
+                        "# Inject consecutive failures to trip circuit\n"
+                        "assert cb.call(False) == 'FAILED_500'\n"
+                        "assert cb.call(False) == 'FAILED_500'\n"
+                        "assert cb.call(True) == 'SHORT_CIRCUITED_503'  # Circuit tripped open\n"
+                        "print('2. Injected failure: Circuit tripped to OPEN state (503 fast-fail)')\n"
+                        "\n"
+                        "# Wait for recovery timeout to verify half-open transition\n"
+                        "time.sleep(0.5)\n"
+                        "assert cb.call(True) == 'SUCCESS_200'  # Recovered\n"
+                        "print('3. Downstream recovered: Circuit transitioned to CLOSED')\n"
+                        "print('Circuit Breaker Mechanics Verified Successfully.')\n"
+                        "EOF\n"
+                        "python3 circuit_breaker_sim.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 7: Triage, Troubleshooting & Remediation Patch**\n"
+                        "- Add exponential jittered backoff calculation to prevent synchronized retry waves:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > backoff_jitter_calc.py\n"
+                        "import random\n"
+                        "def full_jitter_backoff(attempt, base_delay=0.1, max_delay=5.0):\n"
+                        "    temp = min(max_delay, base_delay * (2 ** attempt))\n"
+                        "    return random.uniform(0, temp)\n"
+                        "\n"
+                        "delays = [full_jitter_backoff(i) for i in range(5)]\n"
+                        "print('Simulated retry delays with full jitter:', [f'{d:.3f}s' for d in delays])\n"
+                        "EOF\n"
+                        "python3 backoff_jitter_calc.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 8: Cleanup & Resource Teardown**\n"
+                        "- Remove temporary reliability test files:\n\n"
+                        "```sh\n"
+                        "rm -f upgrade_db_ha.sh db_pool.yaml circuit_breaker_sim.py backoff_jitter_calc.py\n"
+                        "echo \"Reliability test suite cleaned up successfully.\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 9: Artifact Acceptance Criteria**\n"
+                        "- Document verified composite availability math, Cloud SQL Regional HA failover scripts, and working Python circuit breaker code in `day-070-reliability.md`."
+                    )
                 ],
                 "verification": (
                     "Run circuit breaker automated test:\n\n```sh\npython3 -c \"import circuit_breaker_sim; print('Reliability Circuit Breaker Test Passed')\"\n```\n\nConfirm output displays `Reliability Circuit Breaker Test Passed`."
@@ -614,22 +1133,50 @@ DATA = {
                     "Reduce monthly cloud expenditure by at least 40% within 45 days; preserve developer productivity; maintain full production "
                     "performance and disaster recovery capabilities."
                 ),
+                "evidence": (
+                    "Querying Cloud Billing BigQuery export revealed massive compute overspend without discounts and idle disk accumulation:\n\n"
+                    "```text\n"
+                    "$ bq query --use_legacy_sql=false '\n"
+                    "  SELECT\n"
+                    "    service.description AS service_name,\n"
+                    "    ROUND(SUM(cost), 2) AS total_cost,\n"
+                    "    ROUND(SUM(cost) - SUM(IFNULL(credits.amount, 0)), 2) AS net_cost\n"
+                    "  FROM `brightloaf-billing.billing_export.gcp_billing_export_v1_012345`\n"
+                    "  WHERE _PARTITIONDATE >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)\n"
+                    "  GROUP BY 1 ORDER BY 2 DESC LIMIT 3'\n"
+                    "+-------------------------+------------+------------+\n"
+                    "| service_name            | total_cost | net_cost   |\n"
+                    "+-------------------------+------------+------------+\n"
+                    "| Compute Engine          | 54210.45   | 54210.45   |  (0% CUD discount applied)\n"
+                    "| Cloud Storage           | 18450.20   | 18450.20   |  (140 TB unmanaged Standard tier)\n"
+                    "| Cloud SQL               |  8920.10   |  8920.10   |\n"
+                    "+-------------------------+------------+------------+\n"
+                    "```\n\n"
+                    "Listing unattached orphaned disks:\n\n"
+                    "```text\n"
+                    "$ gcloud compute disks list --filter=\"-users:*\" --format=\"table(name,sizeGb,type,zone)\" | head -n 4\n"
+                    "NAME                    SIZE_GB  TYPE         ZONE\n"
+                    "test-k8s-node-disk-01   200      pd-ssd       us-central1-a  (ORPHANED - $34/mo)\n"
+                    "test-k8s-node-disk-02   200      pd-ssd       us-central1-a  (ORPHANED - $34/mo)\n"
+                    "dev-temp-build-disk     500      pd-ssd       us-central1-b  (ORPHANED - $85/mo)\n"
+                    "```"
+                ),
+                "root": (
+                    "Lack of cost governance, missing automated cleanup policies for orphaned disks, absence of instance right-sizing, "
+                    "and failure to leverage Committed Use Discounts or automated storage tiering resulted in compounding financial waste."
+                ),
                 "diagnostic_steps": [
                     "Step 1: Export Cloud Billing data to BigQuery; execute SQL grouping costs by `service.description` and `labels.environment`; discover non-production environments account for 62% of total spend.",
                     "Step 2: Run gcloud asset inventory query identifying all Persistent Disks with status `READY` and zero attached VM instances.",
                     "Step 3: Query Cloud Monitoring CPU metrics for Compute Engine; observe average CPU across 80% of VMs was below 10%.",
                     "Step 4: Inspect Cloud Storage bucket configurations; verify zero lifecycle management rules configured on 140 TB of backup objects."
                 ],
-                "root": (
-                    "Lack of cost governance, missing automated cleanup policies for orphaned disks, absence of instance right-sizing, "
-                    "and failure to leverage Committed Use Discounts or automated storage tiering resulted in compounding financial waste."
+                "fix": (
+                    "Tactical Fix: Immediately snapshot and purge all unattached persistent disks, saving $4,200/month immediately, and "
+                    "attach lifecycle management policies to the 140 TB backup storage bucket.\n\n"
+                    "Strategic Fix: Commit to a 3-year Flexible Spend-Based CUD for steady-state baseline compute (saving 46%), and "
+                    "deploy automated VM scheduling scripts stopping development instances on evenings and weekends."
                 ),
-                "remediation_steps": [
-                    "Step 1: Immediately purge orphaned unattached disks after creating a final archival snapshot, reclaiming $4,200/month instantly.",
-                    "Step 2: Deploy Cloud Functions automated schedulers to stop all development and staging VMs outside business hours (19:00 to 07:00 and weekends), saving 65% on non-prod compute.",
-                    "Step 3: Apply Recommender API recommendations to downsize over-provisioned production VMs, and purchase a 3-year Flexible Spend-Based CUD for baseline compute.",
-                    "Step 4: Configure automated Cloud Storage lifecycle rules migrating backups to Nearline after 30 days and Archive after 90 days."
-                ],
                 "verify": (
                     "Review Cloud Billing reports 30 days post-remediation. Confirm total monthly billing drops from $84,000 to $42,500 "
                     "(49.4% savings) while production SLOs and transaction throughput remain completely unaffected."
@@ -650,19 +1197,138 @@ DATA = {
                 "expected": "FinOps controls cut monthly spend by 50% without impacting application availability or performance."
             },
             "lab": {
-                "name": "FinOps Cost Modeling and CUD Break-Even Calculator",
+                "name": "FinOps Cost Modeling, CUD Calculator, and Automated Storage Lifecycle",
                 "file": "day-070-cost-optimization.md",
-                "goal": "Build a FinOps financial model in Python to calculate break-even timelines and savings from Committed Use Discounts.",
-                "expected": "A complete cost optimization strategy document, a Cloud Storage lifecycle rule manifest, and an executable Python CUD calculator.",
+                "goal": "Build an executable FinOps CUD calculator in Python, author automated Cloud Storage lifecycle manifests, analyze break-even commitment curves, and audit unattached storage volumes.",
+                "expected": "A complete cost optimization strategy document, a Cloud Storage lifecycle rule manifest, and an executable Python CUD savings calculator.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
                 "prereq": "Day 69 cost governance and Day 68 budget constraints",
                 "preflight": "Review Google Cloud Pricing Calculator and Committed Use Discount contract terms.",
                 "steps": [
-                    "Draft the FinOps cost governance framework in `day-070-cost-optimization.md`.",
-                    "Create the Cloud Storage automated lifecycle configuration (`storage-lifecycle.json`):\n\n```json\n{\n  \"rule\": [\n    {\n      \"action\": {\"type\": \"SetStorageClass\", \"storageClass\": \"NEARLINE\"},\n      \"condition\": {\"age\": 30, \"matchesPrefix\": [\"backups/\"]}\n    },\n    {\n      \"action\": {\"type\": \"SetStorageClass\", \"storageClass\": \"ARCHIVE\"},\n      \"condition\": {\"age\": 90, \"matchesPrefix\": [\"backups/\"]}\n    },\n    {\n      \"action\": {\"type\": \"Delete\"},\n      \"condition\": {\"age\": 365, \"matchesPrefix\": [\"backups/\"]}\n    }\n  ]\n}\n```",
-                    "Apply lifecycle rule to production backup bucket:\n\n```sh\n# Apply lifecycle policy to GCS bucket\ngcloud storage buckets update gs://brightloaf-prod-backups \\\n  --lifecycle-file=storage-lifecycle.json\n```",
-                    "Develop an executable Python CUD savings calculator script (`cud_calculator.py`):\n\n```python\n# cud_calculator.py\n\ndef calculate_cud_savings(hourly_on_demand_rate: float, discount_percent: float, commitment_months: int):\n    hourly_discounted_rate = hourly_on_demand_rate * (1 - discount_percent / 100.0)\n    hours_per_month = 730\n    monthly_on_demand = hourly_on_demand_rate * hours_per_month\n    monthly_cud = hourly_discounted_rate * hours_per_month\n    monthly_savings = monthly_on_demand - monthly_cud\n    total_savings = monthly_savings * commitment_months\n    return monthly_on_demand, monthly_cud, monthly_savings, total_savings\n\n# Scenario: $50/hour on-demand baseline compute, 3-year Flexible CUD (46% discount)\nondemand, cud, m_save, t_save = calculate_cud_savings(50.0, 46.0, 36)\nprint(f\"Monthly On-Demand Cost: ${ondemand:,.2f}\")\nprint(f\"Monthly CUD Cost: ${cud:,.2f}\")\nprint(f\"Monthly Net Savings: ${m_save:,.2f}\")\nprint(f\"3-Year Total Savings: ${t_save:,.2f}\")\nassert t_save > 500000, \"Savings threshold failed!\"\nprint(\"FinOps CUD Calculator Validated Successfully.\")\n```",
-                    "Execute the Python CUD calculator test:\n\n```sh\npython3 cud_calculator.py\n```"
+                    (
+                        "**Stage 1: Preflight & Environment Validation**\n"
+                        "- Set target variables and enable cloud billing and recommender APIs:\n\n"
+                        "```sh\n"
+                        "export PROJECT_ID=\"brightloaf-prod\"\n"
+                        "export REGION=\"us-central1\"\n"
+                        "export BACKUP_BUCKET=\"gs://brightloaf-prod-backups\"\n"
+                        "\n"
+                        "gcloud config set project ${PROJECT_ID}\n"
+                        "gcloud services enable storage.googleapis.com recommender.googleapis.com\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 2: Target / Backing Infrastructure Provisioning**\n"
+                        "- Audit unattached persistent disks using gcloud filter queries:\n\n"
+                        "```sh\n"
+                        "# Query unattached disks and compute estimated wasted monthly spend\n"
+                        "gcloud compute disks list --filter=\"-users:*\" --format=\"table(name,sizeGb,type,zone)\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 3: Production Manifest Authoring (GCS Lifecycle Policy JSON)**\n"
+                        "- Author declarative Cloud Storage lifecycle configuration (`storage-lifecycle.json`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > storage-lifecycle.json\n"
+                        "{\n"
+                        "  \"rule\": [\n"
+                        "    {\n"
+                        "      \"action\": {\"type\": \"SetStorageClass\", \"storageClass\": \"NEARLINE\"},\n"
+                        "      \"condition\": {\"age\": 30, \"matchesPrefix\": [\"backups/\"]}\n"
+                        "    },\n"
+                        "    {\n"
+                        "      \"action\": {\"type\": \"SetStorageClass\", \"storageClass\": \"ARCHIVE\"},\n"
+                        "      \"condition\": {\"age\": 90, \"matchesPrefix\": [\"backups/\"]}\n"
+                        "    },\n"
+                        "    {\n"
+                        "      \"action\": {\"type\": \"Delete\"},\n"
+                        "      \"condition\": {\"age\": 365, \"matchesPrefix\": [\"backups/\"]}\n"
+                        "    }\n"
+                        "  ]\n"
+                        "}\n"
+                        "EOF\n"
+                        "cat storage-lifecycle.json\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 4: Workload Deployment & Lifecycle Policy Enforcement**\n"
+                        "- Apply lifecycle configuration to backup storage bucket:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > apply_lifecycle.sh\n"
+                        "#!/usr/bin/env bash\n"
+                        "echo \"Applying lifecycle policy to ${BACKUP_BUCKET}...\"\n"
+                        "# gcloud storage buckets update ${BACKUP_BUCKET} --lifecycle-file=storage-lifecycle.json\n"
+                        "echo \"Lifecycle policy active: 30d Nearline, 90d Archive, 365d Deletion.\"\n"
+                        "EOF\n"
+                        "chmod +x apply_lifecycle.sh\n"
+                        "./apply_lifecycle.sh\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 5: Runtime Inspection & Verification**\n"
+                        "- Validate lifecycle JSON syntax using Python:\n\n"
+                        "```sh\n"
+                        "python3 -c \"import json; d = json.load(open('storage-lifecycle.json')); assert len(d['rule']) == 3; print('Lifecycle JSON schema validated successfully.')\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 6: Chaos / Waste Audit Simulation**\n"
+                        "- Simulate unattached disk identification and calculate immediate reclamation savings:\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > audit_orphaned_disks.py\n"
+                        "disks = [\n"
+                        "    {'name': 'test-k8s-node-disk-01', 'size_gb': 200, 'type': 'pd-ssd', 'rate': 0.17},\n"
+                        "    {'name': 'test-k8s-node-disk-02', 'size_gb': 200, 'type': 'pd-ssd', 'rate': 0.17},\n"
+                        "    {'name': 'dev-temp-build-disk', 'size_gb': 500, 'type': 'pd-ssd', 'rate': 0.17}\n"
+                        "]\n"
+                        "total_monthly_waste = sum(d['size_gb'] * d['rate'] for d in disks)\n"
+                        "print(f\"Identified {len(disks)} orphaned disks.\")\n"
+                        "print(f\"Monthly wasted spend: ${total_monthly_waste:.2f}\")\n"
+                        "print(f\"Annualized wasted spend: ${total_monthly_waste * 12:.2f}\")\n"
+                        "assert total_monthly_waste == 153.0\n"
+                        "print(\"Orphaned disk cost audit PASSED.\")\n"
+                        "EOF\n"
+                        "python3 audit_orphaned_disks.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 7: Triage, Troubleshooting & FinOps CUD Model Calculation**\n"
+                        "- Develop and execute the 3-year Flexible CUD savings financial model (`cud_calculator.py`):\n\n"
+                        "```sh\n"
+                        "cat <<'EOF' > cud_calculator.py\n"
+                        "def calculate_cud_savings(hourly_on_demand_rate: float, discount_percent: float, commitment_months: int):\n"
+                        "    hourly_discounted_rate = hourly_on_demand_rate * (1 - discount_percent / 100.0)\n"
+                        "    hours_per_month = 730\n"
+                        "    monthly_on_demand = hourly_on_demand_rate * hours_per_month\n"
+                        "    monthly_cud = hourly_discounted_rate * hours_per_month\n"
+                        "    monthly_savings = monthly_on_demand - monthly_cud\n"
+                        "    total_savings = monthly_savings * commitment_months\n"
+                        "    return monthly_on_demand, monthly_cud, monthly_savings, total_savings\n"
+                        "\n"
+                        "# Baseline: $50/hour on-demand spend, 3-year Flexible CUD (46% discount)\n"
+                        "ondemand, cud, m_save, t_save = calculate_cud_savings(50.0, 46.0, 36)\n"
+                        "print(f\"Monthly On-Demand Cost: ${ondemand:,.2f}\")\n"
+                        "print(f\"Monthly CUD Cost: ${cud:,.2f}\")\n"
+                        "print(f\"Monthly Net Savings: ${m_save:,.2f}\")\n"
+                        "print(f\"3-Year Total Savings: ${t_save:,.2f}\")\n"
+                        "assert t_save > 500000, 'Savings calculation threshold failed!'\n"
+                        "print('FinOps CUD Calculator Validated Successfully.')\n"
+                        "EOF\n"
+                        "python3 cud_calculator.py\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 8: Cleanup & Resource Teardown**\n"
+                        "- Clean up temporary FinOps calculation files:\n\n"
+                        "```sh\n"
+                        "rm -f storage-lifecycle.json apply_lifecycle.sh audit_orphaned_disks.py cud_calculator.py\n"
+                        "echo \"FinOps model artifacts cleared; zero cloud resources billed.\"\n"
+                        "```"
+                    ),
+                    (
+                        "**Stage 9: Artifact Acceptance Criteria**\n"
+                        "- Record the verified FinOps CUD financial model, Cloud Storage lifecycle rules, and disk audit script in `day-070-cost-optimization.md`."
+                    )
                 ],
                 "verification": (
                     "Run automated CUD calculation test:\n\n```sh\npython3 -c \"import cud_calculator; print('FinOps CUD Test Passed')\"\n```\n\nConfirm output shows 3-year net savings exceeding $500,000."

@@ -1,9 +1,13 @@
 """day_data_075.py — Exhaustive architecture data specification for Day 75.
 
-Covers Migration Assessment and VMware Fit: The 6 Rs, Migration Lifecycle Phases,
-Discovery Tools (Migration Center, StratoZone, mFit), and Google Cloud VMware Engine (GCVE).
+Covers Migration Assessment and VMware Fit:
+- The 6 Rs Decision Taxonomy (Rehost, Replatform, Refactor, Repurchase, Retain, Retire)
+- Migration Lifecycle Phases (Assess, Plan, Deploy, Optimize)
+- Discovery & Assessment Tools (Migration Center, StratoZone-style rightsizing)
+- Google Cloud VMware Engine (GCVE, vSAN storage physics, HCX L2 network extensions, TCO)
+
 Follows PAGE_AUTHORING_CONTRACT.md with deep technical mechanics, trade-off matrices,
-dual-lane failure investigations, and runnable lab exercises.
+dual-lane failure investigations, and 8-stage operational lab exercises.
 """
 
 DAY_NUM = 75
@@ -81,15 +85,49 @@ DATA = {
 </table>
 </div>""",
     "arch_diagram": {
-        "title": "Day 75: Enterprise Migration Lifecycle and Tooling Pipeline",
-        "desc": "Sequential migration execution flow from automated discovery through wave planning, cutover, and optimization.",
-        "nodes": [
-            ("1. Assess & Discover", "Migration Center & StratoZone\\n+ Utilization Sizing"),
-            ("2. Plan & Cluster", "Wave Dependency Mapping\\n+ Landing Zone Preparation"),
-            ("3. Cutover & Rehost", "Migrate to VMs / GCVE HCX\\n+ Asynchronous Block Sync"),
-            ("4. Modernize & Optimize", "Right-Sizing & CUDs\\n+ Staged Containerization"),
+        "type": "topology",
+        "title": "Day 75: Enterprise Migration Lifecycle and Hybrid GCVE Topology",
+        "desc": "End-to-end migration pipeline showing discovery, wave clustering, Dedicated Interconnect, HCX L2 extension, and target compute.",
+        "caption": "Figure 75.1: Enterprise migration architecture illustrating on-premises discovery, HCX network extension, GCVE bare metal, and Google Cloud target compute.",
+        "width": 1100,
+        "height": 640,
+        "layers": [
+            {"name": "LAYER 1: Source Enterprise Datacenter (On-Premises)", "desc": "VMware vSphere Clusters, SAN/NAS Storage, On-Prem Core Routing", "fill": "#1e3a5f", "y": 10, "h": 90},
+            {"name": "LAYER 2: Dedicated Hybrid Connectivity & Migration Fabric", "desc": "10Gbps Dedicated Cloud Interconnect + VMware HCX Layer 2 Network Extension", "fill": "#0f2338", "y": 115, "h": 90},
+            {"name": "LAYER 3: Discovery, Assessment & Sizing Control Plane", "desc": "Google Cloud Migration Center, StratoZone Discovery Agents, mFit Sizing", "fill": "#064e3b", "y": 220, "h": 90},
+            {"name": "LAYER 4: Target Infrastructure: GCVE & Compute Engine", "desc": "Google Cloud VMware Engine (ve1-standard-72) & Compute Engine Workload Fleet", "fill": "#1e1b4b", "y": 325, "h": 90},
+            {"name": "LAYER 5: Modernized Cloud Services & Optimization Fabric", "desc": "Cloud SQL Managed Databases, GKE Enterprise, BigQuery Analytics, FinOps CUDs", "fill": "#3b0764", "y": 430, "h": 90},
         ],
-        "caption": "Figure 75.1: Phased enterprise migration framework ensuring observable dependency mapping before cutover."
+        "components": [
+            {"id": "onprem_vc", "name": "On-Prem vCenter", "detail": "350 Virtual Machines (vSphere 7)", "x": 80, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "onprem_san", "name": "Enterprise SAN / NAS", "detail": "Raw Storage (Over-allocated 4x)", "x": 420, "y": 30, "w": 260, "h": 52, "fill": "#0f283d", "stroke": "#38bdf8"},
+            {"id": "interconnect", "name": "Dedicated Interconnect", "detail": "10 Gbps Cloud Interconnect Pair", "x": 80, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "hcx_mesh", "name": "VMware HCX L2 Mesh", "detail": "Warm & Live vMotion Transport", "x": 420, "y": 135, "w": 260, "h": 52, "fill": "#092e28", "stroke": "#10b981"},
+            {"id": "mig_center", "name": "Migration Center", "detail": "StratoZone Telemetry & Rightsizing", "x": 760, "y": 240, "w": 260, "h": 52, "fill": "#093322", "stroke": "#22c55e"},
+            {"id": "gcve_sddc", "name": "GCVE Private Cloud", "detail": "Bare-Metal ESXi + vSAN Datastore", "x": 80, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "gce_vms", "name": "Compute Engine Fleet", "detail": "Rightsized VMs (p95 CPU/RAM)", "x": 420, "y": 345, "w": 260, "h": 52, "fill": "#1b143a", "stroke": "#a855f7"},
+            {"id": "csql_target", "name": "Cloud SQL Database", "detail": "Replatformed Relational Data", "x": 80, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+            {"id": "finops_opt", "name": "FinOps Optimizer", "detail": "3-Year Flexible CUD Coverage", "x": 420, "y": 450, "w": 260, "h": 52, "fill": "#280a3c", "stroke": "#c084fc"},
+        ],
+        "boundaries": [
+            {"x": 60, "y": 14, "w": 640, "h": 80, "label": "ON-PREMISES DATACENTER PERIMETER", "color": "#38bdf8"},
+            {"x": 380, "y": 120, "w": 660, "h": 80, "label": "L2 EXTENDED HYBRID MIGRATION FABRIC", "color": "#10b981"},
+            {"x": 60, "y": 330, "w": 640, "h": 80, "label": "TARGET GOOGLE CLOUD SDDC & IaaS PERIMETER", "color": "#a855f7"},
+        ],
+        "flows": [
+            {"x1": 210, "y1": 82, "x2": 210, "y2": 135, "type": "ok", "label": "Interconnect Pipe"},
+            {"x1": 420, "y1": 161, "x2": 340, "y2": 161, "type": "ok", "label": "HCX Encapsulation"},
+            {"x1": 550, "y1": 187, "x2": 760, "y2": 240, "type": "ok", "label": "Inventory Telemetry"},
+            {"x1": 210, "y1": 187, "x2": 210, "y2": 345, "type": "ok", "label": "HCX Live vMotion"},
+            {"x1": 550, "y1": 187, "x2": 550, "y2": 345, "type": "ok", "label": "Migrate for Compute"},
+            {"x1": 210, "y1": 397, "x2": 210, "y2": 450, "type": "ok", "label": "DB Replatforming"},
+            {"x1": 550, "y1": 397, "x2": 550, "y2": 450, "type": "ok", "label": "Rightsized Billing"},
+        ],
+        "probes": [
+            {"cx": 210, "cy": 161, "label": "PROBE 1: Interconnect Throughput & HCX Sync Lag", "color": "#f59e0b"},
+            {"cx": 760, "cy": 240, "label": "PROBE 2: VM Rightsizing Utilization Drift (p95)", "color": "#22c55e"},
+            {"cx": 210, "cy": 371, "label": "PROBE 3: GCVE vSAN Storage Watermark (> 75%)", "color": "#f43f5e"},
+        ]
     },
     "part3_intro": (
         "The following field cases analyze real-world migration failures triggered by flawed assessments, missing dependency "
@@ -97,9 +135,9 @@ DATA = {
         "defensible remediations, and dual-lane failed/corrected architectural diagrams."
     ),
     "part4_intro": (
-        "These hands-on exercises provide production-grade, executable configurations and verification scripts for "
-        "scoring the 6 Rs, modeling migration wave dependencies, calculating rightsized compute TCO, and "
-        "sizing Google Cloud VMware Engine clusters."
+        "These hands-on exercises follow the 8-stage operational engineering lifecycle. Engineers author multi-attribute 6 Rs "
+        "scoring engines, graph-based migration wave clustering scripts, StratoZone-style compute rightsizing algorithms, and "
+        "GCVE vSAN storage physics calculators."
     ),
     "topics": [
         {
@@ -114,537 +152,590 @@ DATA = {
                 "lease deadline; development stalls, budgets collapse, and the landlord assesses $15,000/day overstay penalties."
             ),
             "technical": (
-                "#### 1. Strategic Rationalization of the 6 Rs\n\n"
-                "Enterprise IT portfolios contain hundreds of heterogeneous workloads accumulated over decades. Successful cloud migration "
-                "requires categorizing every application into one of the **6 Rs** based on clear business constraints:\n\n"
-                "- **Rehost (Lift-and-Shift):** Moving virtual machine disk blocks directly to Compute Engine using **Migrate to Virtual Machines** "
-                "(m4vm). Zero code changes, fastest time-to-value, ideal for fixed datacenter lease terminations. However, it preserves legacy "
-                "technical debt, unpatched OS configurations, and oversized VM provisioning.\n\n"
-                "- **Replatform (Lift-and-Reshape):** Introducing targeted cloud-managed services without modifying core business code. Examples "
-                "include replacing self-hosted MySQL VMs with **Cloud SQL**, migrating containerized apps to **Cloud Run**, or wrapping legacy "
-                "binaries using **Migrate to Containers**. Delivers immediate operational cost savings by offloading OS patching, automated HA, "
-                "and backups to Google Cloud.\n\n"
-                "- **Refactor (Cloud-Native Re-architecture):** Decomposing monolithic applications into microservices, event-driven pipelines "
-                "(Pub/Sub, Eventarc), and horizontally scalable databases (Cloud Spanner). Maximizes long-term agility, elastic scale, and "
-                "resilience, but requires months of engineering effort and carries the highest delivery risk.\n\n"
-                "- **Repurchase (Drop-and-Shop):** Decommissioning custom bespoke software in favor of commercial SaaS solutions (e.g. migrating "
-                "custom ticket systems to Jira/ServiceNow, or self-hosted email to Google Workspace).\n\n"
-                "- **Retire:** Permanently turning off redundant, un-utilized, or obsolete systems. In enterprise assessments, typically 10% to 20% "
-                "of inventoried servers can be retired immediately, eliminating license and hosting costs with zero migration effort.\n\n"
-                "- **Retain (Do Nothing / Revisit Later):** Keeping workloads on-premises due to recent hardware capital depreciation, strict "
-                "sovereignty regulations, or latency-sensitive factory floor industrial equipment.\n\n"
-                "#### 2. The Pragmatic Migration Sequence\n\n"
-                "A pervasive architectural anti-pattern is **Ideological Purism**—insisting that every workload must be refactored into "
-                "cloud-native microservices before migrating. Pragmatic architects separate the **Datacenter Exit** from **Application Modernization**:\n\n"
-                "$$\\text{Phase 1: Fast Exit (Rehost / GCVE)} \\longrightarrow \\text{Phase 2: In-Cloud Replatform} \\longrightarrow \\text{Phase 3: Targeted Refactor}$$\n\n"
-                "By moving workloads into Google Cloud first via Rehost or Google Cloud VMware Engine, the enterprise stops bleeding co-location "
-                "penalties, gains software-defined telemetry, and modernizes applications iteratively in the cloud.\n\n"
-                "#### 3. Technical Constraints Influencing the 6 Rs Decision\n\n"
-                "Workload rationalization evaluates five hard gating constraints:\n\n"
-                "  1. **OS Kernel & Architecture:** Compute Engine supports standard x86-64 Linux and Windows versions. Legacy 32-bit OSs, custom "
-                "UNIX kernels (AIX, HP-UX, Solaris), or non-standard kernel drivers cannot be rehosted directly on Compute Engine and require GCVE, "
-                "Bare Metal Solution (BMS), or emulation.\n"
-                "  2. **Software Licensing:** Proprietary software (Oracle Database, Microsoft Windows Server, SQL Server) requires evaluating "
-                "Bring Your Own License (BYOL) on Sole-Tenant Nodes versus Google Cloud pay-as-you-go licenses.\n"
-                "  3. **Network Latency Boundaries:** If an application tier is separated from its database by more than 2ms, Rehosting the app "
-                "alone will degrade performance; both tiers must move together.\n"
-                "  4. **Data Gravity & Volume:** Databases with petabyte-scale storage require high-speed Cloud Interconnect links (10 Gbps / 100 Gbps) "
-                "to replicate data within maintenance cutover windows.\n"
-                "  5. **Team Skills & Maturity:** Refactoring to Kubernetes requires container, service mesh, and GitOps expertise; teams lacking "
-                "these skills should replatform to Cloud Run or Cloud SQL first.\n\n"
-                "#### 4. The 6 Rs Evaluation Decision Matrix\n\n"
-                "| Migration Pathway | Implementation Tooling | Mean Time to Migrate | Architectural Risk | Modernization Value | Best Workload Profile |\n"
+                "#### 1. The 6 Rs Decision Framework Taxonomy\n\n"
+                "Enterprise application portfolio rationalization categorizes every workload into one of six canonical paths:\n\n"
+                "- **Rehost (Lift & Shift):** Moving virtual machines directly to Google Compute Engine (or GCVE) without architectural or "
+                "code modifications. Best when driven by fixed datacenter lease expirations, hardware end-of-life, or rapid datacenter evacuation.\n"
+                "- **Replatform (Lift & Reshape):** Making targeted infrastructure-level optimizations without changing core business logic "
+                "(e.g. migrating self-hosted PostgreSQL to Cloud SQL, or running containerized workloads on GKE via Migrate to Containers). "
+                "Reduces operational management overhead while preserving codebase stability.\n"
+                "- **Refactor (Cloud-Native Re-architecting):** Deconstructing monolithic applications into microservices, serverless Cloud Run "
+                "functions, and globally distributed databases (Cloud Spanner). Yields maximum elasticity, high agility, and global scale, but "
+                "requires extensive engineering investment, long delivery timelines (6–18 months), and rigorous integration testing.\n"
+                "- **Repurchase (Drop & Shop):** Retiring a legacy custom-built or licensed application in favor of an off-the-shelf Software-as-a-Service "
+                "(SaaS) product (e.g. replacing a legacy CRM VM with Salesforce, or self-hosted email with Google Workspace).\n"
+                "- **Retain (Revisit / Do Nothing):** Keeping workloads in on-premises datacenters due to un-amortized hardware depreciation, "
+                "extreme low-latency factory robotics requirements, or sovereign data residency constraints.\n"
+                "- **Retire (Decommission):** Identifying and shutting down zombie workloads. Up to 15–20% of enterprise server estates run legacy "
+                "reporting or test environments that serve zero active users and can be powered off immediately.\n\n"
+                "#### 2. The Trap of Premature Refactoring\n\n"
+                "The most catastrophic migration error is attempting to refactor complex applications while simultaneously racing against a "
+                "hard datacenter lease deadline. Refactoring introduces code regressions, architectural unknowns, and prolonged QA cycles. "
+                "When deadlines approach, partially refactored workloads cannot be deployed, trapping the organization in the datacenter.\n\n"
+                "**The Two-Phase Modernization Mandate:** First, achieve datacenter exit velocity via **Rehost** or **GCVE** to eliminate "
+                "lease liabilities. Once workloads run stably in Google Cloud, execute iterative **Refactoring** projects prioritized by business ROI.\n\n"
+                "#### 3. Architectural Trade-offs: The 6 Rs Strategic Spectrum\n\n"
+                "| 6 Rs Strategy | Velocity to Cloud | Engineering Effort | Upfront Cost | Post-Migration Operating Cost | Architectural Agility |\n"
                 "|---|---|---|---|---|---|\n"
-                "| **Rehost (Lift & Shift)** | Migrate to Virtual Machines (m4vm) | 1 – 4 Weeks | Low (Replication clone) | Low (Retains VM debt) | Fixed lease exit, COTS packaged applications, legacy VMs |\n"
-                "| **Replatform** | Cloud SQL, Cloud Run, mFit | 1 – 3 Months | Low – Moderate | Moderate (Managed ops) | Standard LAMP stacks, self-hosted databases, stateless web apps |\n"
-                "| **Refactor** | Cloud Spanner, GKE, Pub/Sub | 6 – 18 Months | High (Code rewrite) | Highest (Elasticity & scale) | Core business differentiators, revenue-generating e-commerce |\n"
-                "| **Repurchase** | Commercial SaaS (Workspace, CRM) | 1 – 6 Months | Moderate (Data export) | High (Zero infrastructure) | Peripheral business tools, ERP, CRM, identity providers |\n"
-                "| **Retain** | On-Prem Private Cloud / Colocation | Zero (No change) | Zero | None (Maintains status quo) | Mainframes, industrial robotics, un-amortized hardware |\n"
-                "| **Retire** | Decommission / Storage Snapshot | 1 – 2 Weeks | Lowest (Post-backup) | High (Direct cost savings) | Stale staging environments, obsolete reporting batch jobs |\n"
+                "| **Rehost** | Highest (Days to Weeks) | Minimal (Ops only) | Lowest ($) | Moderate (Unoptimized VMs) | Baseline (Same as on-prem) |\n"
+                "| **Replatform** | Moderate (1 – 3 Months) | Low to Medium | Low ($$) | Optimized (Managed services) | Moderate (PaaS benefits) |\n"
+                "| **Refactor** | Lowest (6 – 18 Months) | Extreme (Full Dev rewrite) | Highest ($$$$) | Lowest per unit (True serverless) | Maximum (Elastic cloud-native) |\n"
+                "| **Repurchase** | Fast (Vendor dependent) | Data migration only | Variable (SaaS licensing) | Predictable per-seat | High (Vendor roadmap) |\n"
+                "| **Retire** | Immediate (Hours) | Zero (Shutdown script) | Negative (Instant savings) | $0.00 | N/A (Eliminated debt) |\n"
             ),
             "questions": [
-                "Under what business conditions should an enterprise choose Rehosting over Refactoring?",
-                "How does separating the datacenter exit from application modernization protect business timelines?",
-                "Why must software licensing models (e.g. Oracle, Windows) be evaluated before selecting Compute Engine VM types?",
-                "What percentage of an average enterprise IT portfolio can typically be Retired during assessment?",
+                "Under what operational conditions should an architect mandate Rehost over Refactor?",
+                "What architectural risks emerge from attempting portfolio-wide refactoring during a lease exit?",
+                "How does Replatforming (e.g., Cloud SQL) bridge the gap between Rehost speed and Refactor agility?",
+                "What discovery techniques uncover zombie workloads eligible for immediate Retirement?",
             ],
-            "reference": "https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started",
-            "reference_label": "Google Cloud Architecture Center: Migrate to Google Cloud - Getting started",
+            "reference": "https://docs.cloud.google.com/architecture/migration-to-google-cloud",
+            "reference_label": "Google Cloud Architecture Center: Migration to Google Cloud: Choosing your migration path",
             "scenario": {
                 "scenario": (
-                    "Brightloaf operated 140 virtual machines in an on-premises co-location datacenter whose commercial lease was terminating "
-                    "in exactly 4 months. The executive leadership team decreed that all applications must be modernized into cloud-native "
-                    "microservices on Google Kubernetes Engine (GKE) and Cloud Spanner. Two months into the initiative, the software engineering "
-                    "team had successfully containerized and rewritten only 2 out of 140 services. The monolithic warehouse picking and inventory "
-                    "tracking system proved far too entangled with legacy stored procedures to refactor quickly. The landlord issued a formal "
-                    "legal notice stating that holding over past the lease expiration would trigger an immediate $15,000/day penalty fee."
+                    "Faced with an immovable 4-month datacenter lease expiration, the Chief Technology Officer of a retail logistics company "
+                    "mandated that all 45 internal logistics applications must be fully refactored into microservices running on GKE and Cloud Spanner "
+                    "prior to cloud deployment. Three months into the migration schedule, 38 of the 45 development teams were bogged down in "
+                    "unresolved distributed transaction bugs, broken ORM mappings, and database schema migrations. With 18 days remaining on the "
+                    "datacenter lease, only 3 services had passed staging integration tests. The commercial landlord issued an official notice that "
+                    "failure to vacate on schedule would trigger a holdover penalty of $15,000 per day plus mandatory 12-month lease renewal."
                 ),
                 "impact": (
-                    "P1 existential business deadline crisis. Projected holdover penalty fees exceeded $450,000 per month. Engineering "
-                    "burnout reached critical levels; key senior developers threatened resignation. Risk of sudden physical eviction from "
-                    "the co-location facility threatening all warehouse fulfillment operations."
+                    "P1 existential operational crisis. 42 critical logistics applications remained stuck on on-premises hardware. Commercial "
+                    "lease holdover penalties accrued to $315,000 over 21 days of overstay. The emergency migration bridge consumed 100% of "
+                    "engineering capacity, halting all customer-facing product development for an entire quarter."
                 ),
                 "constraints": (
-                    "Vacate the physical datacenter within 60 remaining days; eliminate all holdover lease penalties; ensure zero inventory "
-                    "tracking downtime; defer application code rewrites until safely landed in Google Cloud."
+                    "Vacate on-premises datacenter within 30 days; achieve zero downtime for warehouse scanning APIs; preserve existing database "
+                    "transactional consistency; minimize throwaway engineering effort."
+                ),
+                "evidence": (
+                    "Project milestone burn-down telemetry and landlord penalty notice:\n\n"
+                    "```text\n"
+                    "MIGRATION PROGRAM STATUS DASHBOARD - DAY T-18 BEFORE LEASE EXPIRATION\n"
+                    "========================================================================\n"
+                    "Target Workloads: 45 Enterprise Applications\n"
+                    "Workloads in Production on GKE / Spanner:  3 ( 6.7% - Refactor Stalled)\n"
+                    "Workloads Blocked in Distributed QA:       38 (84.4% - ORM/2PC Regressions)\n"
+                    "Workloads Unstarted:                        4 ( 8.9%)\n"
+                    "Burn-down Velocity: 0.8 apps/month (Required: 15.0 apps/month to hit deadline)\n"
+                    "\n"
+                    "COMMERCIAL LEASE OVERSTAY INVOICE (Datacenter Facility Metro-West):\n"
+                    "Invoice #: INV-2026-0928-OVERSTAY\n"
+                    "Daily Holdover Penalty Rate: $15,000.00 / day\n"
+                    "Days Accrued Post-Expiration: 21 Days\n"
+                    "Total Penalty Assessed: $315,000.00 USD\n"
+                    "Mandatory 12-Month Lease Renewal Penalty Pending Trigger at Day 30!\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Review the project velocity burndown chart; calculate current velocity (1 service/month) will require 138 additional months to complete refactoring.",
-                    "Step 2: Inspect lease contract terms; confirm firm termination date with non-negotiable $15,000 daily overstay penalties.",
-                    "Step 3: Analyze workload inventory; identify that 82% of VMs run standard x86-64 Linux and Windows Server OSs compatible with Compute Engine.",
-                    "Step 4: Check hybrid network connectivity; confirm dedicated 10 Gbps Cloud Interconnect is established and operating with sub-5ms latency."
+                    "Step 1: Audit project velocity metrics; confirm refactoring velocity of 0.8 applications per month makes meeting the datacenter exit deadline mathematically impossible.",
+                    "Step 2: Inspect code repositories and pull requests; observe hundreds of stalled PRs wrestling with distributed transaction sagas and cross-service joins.",
+                    "Step 3: Review on-premises hypervisor telemetry; confirm the remaining 42 applications run on standard VMware ESXi virtual machines with compatible Linux/Windows OS kernels.",
+                    "Step 4: Check network interconnect; verify a 10 Gbps Dedicated Cloud Interconnect is already provisioned and operational between the datacenter and Google Cloud `us-central1`."
                 ],
                 "root": (
-                    "Conflating a hard datacenter exit deadline with deep application refactoring. Demanding full cloud-native rewrites under "
-                    "a fixed timeline created an unachievable scope that guaranteed lease default."
+                    "Conflating a fixed timeline datacenter lease exit with architectural application refactoring. The enterprise attempted "
+                    "high-friction software re-engineering while under a severe time constraint, causing milestone collapse and catastrophic financial penalties."
                 ),
                 "remediation_steps": [
-                    "Step 1: Immediately halt all in-flight refactoring efforts; pivot the entire migration strategy to Rehost using Google Cloud Migrate to Virtual Machines (m4vm).",
-                    "Step 2: Deploy m4vm replication connectors to the on-prem VMware vSphere cluster, initiating background asynchronous block replication for all 138 remaining VMs over Cloud Interconnect.",
-                    "Step 3: Execute non-disruptive test clones in isolated Google Cloud VPC subnets to validate that guest OSs, network interfaces, and database binaries boot cleanly.",
-                    "Step 4: Schedule weekend cutover windows across three migration waves, executing cutovers with sub-10-minute VM downtime, vacating the facility 12 days ahead of lease termination."
+                    "Step 1: Immediately halt all active refactoring development; freeze application source code branches to stabilize binaries.",
+                    "Step 2: Pivot the migration program to a two-phase strategy: execute an immediate **Rehost** of all 42 remaining VMs to Google Compute Engine using Migrate to Virtual Machines (m4vm).",
+                    "Step 3: Replicate VM block storage continuously over the 10 Gbps Interconnect; conduct cutover waves over two successive weekends.",
+                    "Step 4: Once all workloads are running in Google Cloud and the on-premises datacenter is decommissioned, resume iterative refactoring on high-ROI services using cloud-native managed services."
                 ],
                 "verify": (
-                    "Confirm all 140 VMs are running successfully on Compute Engine. Inspect the co-location datacenter; verify all physical "
-                    "racks are powered down and decommissioned, and secure written confirmation from the landlord confirming zero lease penalty liabilities."
+                    "Execute test cutover wave of 10 VMs using Migrate to Virtual Machines. Verify block replication completes in under 4 hours, "
+                    "cutover downtime is under 12 minutes per VM, and logistics scanning services resume normal operations in Compute Engine."
                 ),
                 "residual": (
-                    "Rehosted VMs retain legacy OS maintenance debt and static sizing; a secondary optimization phase must be scheduled to "
-                    "downsize over-provisioned VMs and refactor priority workloads in the cloud."
+                    "Rehosting applications directly to Compute Engine preserves existing software technical debt and operating inefficiencies; "
+                    "teams must enforce FinOps governance and committed use discounts until workloads can be replatformed."
                 ),
                 "diagram": (
-                    "Refactor 140 apps stalls (lease expires in 60d)",
-                    "Landlord threatens $15k/day penalty",
-                    "Scope paralysis, imminent lease default",
-                    "Pivot to Rehost via Migrate to VMs (m4vm)",
-                    "140 VMs migrated in 45 days, $0 penalties"
+                    "Enforce 100% Refactor under 4-month lease",
+                    "38/45 apps blocked; velocity collapses",
+                    "Lease expires, $315k overstay penalty",
+                    "Pivot to m4vm Rehost; migrate in 14 days",
+                    "Datacenter exited; refactor staged in cloud"
                 ),
-                "facts": "Lease ended in 4 months; only 2 of 140 apps refactored in 2 months; $15k/day penalty threatened; 10 Gbps Interconnect existed.",
-                "inference": "When time is the binding constraint, Rehost or GCVE is the only viable path to eliminate datacenter liability.",
-                "expected": "Migrate to VMs replicates disk blocks in the background, enabling low-risk cutover and meeting strict exit deadlines."
+                "facts": "Refactor attempted for 45 apps in 4 months; only 3 finished; lease expired; $315k holdover penalties accrued.",
+                "inference": "Fixed datacenter deadlines demand low-friction Rehost; architectural Refactoring must occur post-migration.",
+                "expected": "Migrate to VMs completes lift-and-shift in 14 days, exiting the datacenter and eliminating overstay liabilities."
             },
             "lab": {
-                "name": "6 Rs Portfolio Rationalization and Migration Scoring Model",
-                "file": "day-075-rationalization.md",
-                "goal": "Build an automated Python 6 Rs decision scoring engine to evaluate workloads across timeline, complexity, and business value.",
-                "expected": "A complete 6 Rs rationalization document, an executable Python scoring model, and verified migration pathway outputs.",
+                "name": "6 Rs Portfolio Scoring Engine & Rationalization Matrix",
+                "file": "day-075-6r-matrix.md",
+                "goal": "Author a quantitative 6 Rs decision matrix and build an executable Python scoring engine to classify enterprise workloads.",
+                "expected": "A complete 6 Rs decision rubric, an executable Python rationalization script, and classified workload portfolio output.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
-                "prereq": "Day 74 landing zone and Day 68 business requirements",
-                "preflight": "Review Google Cloud migration assessment best practices and workload scoring dimensions.",
+                "prereq": "Day 74 architecture boundaries and Day 71 performance sizing",
+                "preflight": "Review Google Cloud Migration Center workload classification guidelines.",
                 "steps": [
-                    "Draft the enterprise 6 Rs portfolio evaluation framework in `day-075-rationalization.md`.",
-                    "Develop an executable Python rationalization scoring script (`score_6r.py`):\n\n```python\n# score_6r.py\n\nWORKLOADS = [\n    {\n        'name': 'Warehouse Inventory Monolith',\n        'time_critical': True,     # Lease ending soon\n        'legacy_os': True,\n        'business_differentiator': True,\n        'db_coupled': True\n    },\n    {\n        'name': 'Customer Support Chatbot',\n        'time_critical': False,\n        'legacy_os': False,\n        'business_differentiator': False, # Commodity tool\n        'db_coupled': False\n    },\n    {\n        'name': 'Core Checkout API',\n        'time_critical': False,\n        'legacy_os': False,\n        'business_differentiator': True,  # High revenue driver\n        'db_coupled': False\n    },\n    {\n        'name': 'Obsolete 2019 Marketing Analytics',\n        'time_critical': False,\n        'legacy_os': True,\n        'business_differentiator': False,\n        'db_coupled': False\n    }\n]\n\ndef assign_6r_pathway(app: dict) -> str:\n    if app['name'].startswith('Obsolete'):\n        return 'RETIRE'\n    if not app['business_differentiator'] and not app['legacy_os']:\n        return 'REPURCHASE (SaaS)'\n    if app['time_critical']:\n        return 'REHOST (Migrate to VMs / GCVE)'\n    if app['business_differentiator'] and not app['time_critical']:\n        return 'REFACTOR (GKE / Cloud Run / Spanner)'\n    return 'REPLATFORM (Cloud SQL / Managed Services)'\n\nfor w in WORKLOADS:\n    strategy = assign_6r_pathway(w)\n    print(f\"{w['name']} -> Assigned Strategy: {strategy}\")\n    w['strategy'] = strategy\n\nassert WORKLOADS[0]['strategy'].startswith('REHOST')\nassert WORKLOADS[1]['strategy'].startswith('REPURCHASE')\nassert WORKLOADS[2]['strategy'].startswith('REFACTOR')\nassert WORKLOADS[3]['strategy'] == 'RETIRE'\nprint(\"6 Rs Workload Rationalization Logic Verified Successfully.\")\n```",
-                    "Execute the Python workload scoring script:\n\n```sh\npython3 score_6r.py\n```",
-                    "Document the rationalization matrix and post-migration modernization roadmap in `day-075-rationalization.md`."
+                    "#### Stage 1: Pre-Flight Application Portfolio & Constraint Invariants\nDraft the enterprise application inventory in <kbd>day-075-6r-matrix.md</kbd>. Define quantitative criteria: business criticality, remaining hardware lifespan, software licensing constraints, and developer capacity.",
+                    "#### Stage 2: Authoring the Multi-Attribute 6 Rs Decision Schema\nDefine the scoring criteria and weighting parameters for evaluating migration pathways:\n\n```text\nEVALUATION DIMENSIONS:\n1. Timeline Urgency (1 = No deadline, 10 = Immediate lease exit)\n2. Architectural Fit (1 = Tightly coupled legacy, 10 = 12-factor cloud-ready)\n3. Business Value / ROI (1 = Commoditized utility, 10 = Core competitive differentiator)\n4. Licensing Portability (1 = Locked to proprietary hardware, 10 = Open source / BYOL)\n```",
+                    "#### Stage 3: Developing the Automated Python 6 Rs Rationalization Engine\nImplement the decision classifier in Python (<kbd>score_portfolio_6r.py</kbd>):\n\n```python\n# score_portfolio_6r.py\n\"\"\"Automated 6 Rs migration decision engine evaluating enterprise workloads.\"\"\"\nfrom typing import Dict, List, Tuple\n\nclass PortfolioScorer:\n    def classify_workload(self, name: str, timeline_urgency: int, cloud_readiness: int, business_roi: int, is_active: bool) -> str:\n        if not is_active:\n            return 'RETIRE'\n        if timeline_urgency >= 8:\n            if cloud_readiness <= 4:\n                return 'REHOST'  # Urgency forces lift & shift\n            else:\n                return 'REPLATFORM'  # Quick containerization or managed DB\n        if business_roi >= 8 and cloud_readiness >= 6:\n            return 'REFACTOR'  # High-value candidate for cloud-native rewrite\n        if cloud_readiness <= 3 and business_roi <= 4:\n            return 'RETAIN'  # Keep on-prem until hardware amortized\n        return 'REPLATFORM'\n\nif __name__ == '__main__':\n    scorer = PortfolioScorer()\n    portfolio = [\n        (\"warehouse_scanner_api\", 9, 3, 9, True),   # High urgency, low readiness -> REHOST\n        (\"customer_loyalty_svc\", 4, 8, 9, True),    # Low urgency, high readiness -> REFACTOR\n        (\"legacy_crystal_reports\", 2, 1, 2, False), # Unused -> RETIRE\n        (\"inventory_relational_db\", 8, 5, 8, True), # High urgency, moderate -> REPLATFORM\n    ]\n    for app, urg, fit, roi, active in portfolio:\n        decision = scorer.classify_workload(app, urg, fit, roi, active)\n        print(f\"{app:<25} -> DECISION: {decision}\")\n```",
+                    "#### Stage 4: Workload Assessment Execution & Candidate Classification\nRun the scoring engine to evaluate the candidate workloads:\n\n```sh\npython3 score_portfolio_6r.py\n```",
+                    "#### Stage 5: Simulating Tight Datacenter Lease Deadline Constraint Override\nVerify that the engine properly overrides Refactor decisions when timeline urgency hits maximum:\n\n```python\n# test_urgency_override.py\nfrom score_portfolio_6r import PortfolioScorer\n\nscorer = PortfolioScorer()\n# Even high ROI apps must be Rehosted if deadline is immediate (urgency = 10, readiness = 3)\ndecision = scorer.classify_workload('core_billing', timeline_urgency=10, cloud_readiness=3, business_roi=10, is_active=True)\nassert decision == 'REHOST', f\"Urgency override failed! Got {decision}\"\nprint(\"[PASS] Urgency override successfully redirected core_billing to REHOST to prevent deadline breach.\")\n```",
+                    "#### Stage 6: Chaos Injection (Simulating Refactor Timeline Slippage & Cost Spillover)\nSimulate financial cost modeling comparing immediate Rehost vs stalled Refactor with holdover penalties:\n\n```sh\npython3 -c \"\nrehost_cost = 14 * 2500 # 14 days migration\nrefactor_cost = (90 * 2500) + (21 * 15000) # 90 days dev + 21 days penalty\nprint(f'Rehost Total: ${rehost_cost:,} vs Refactor Total: ${refactor_cost:,}')\nassert refactor_cost > rehost_cost * 10\nprint('Financial Stress Test Confirmed: Refactor under lease deadline is 15x more expensive!')\n\"\n```",
+                    "#### Stage 7: Triage, Troubleshooting & Portfolio Rebalancing Runner\nAuthor an inventory export script (<kbd>export_decisions.py</kbd>) that formats migration waves based on the classified decisions:\n\n```python\n# export_decisions.py\n\"\"\"Groups classified applications into phased execution waves.\"\"\"\nwaves = {'Wave 1 (Rehost)': ['warehouse_scanner_api'], 'Wave 2 (Replatform)': ['inventory_relational_db'], 'Decommission': ['legacy_crystal_reports']}\nfor wave, apps in waves.items():\n    print(f\"{wave}: {', '.join(apps)}\")\n```",
+                    "#### Stage 8: Operational Teardown & Migration Governance Checklist\nVerify that all workloads classified as Rehost include a post-migration optimization milestone in the project roadmap. Confirm that no chargeable cloud resources were provisioned during the offline architectural simulation."
                 ],
                 "verification": (
-                    "Run automated rationalization model test:\n\n```sh\npython3 -c \"import score_6r; print('6 Rs Rationalization Test Passed')\"\n```\n\nConfirm output displays `6 Rs Workload Rationalization Logic Verified Successfully`."
+                    "Run automated portfolio classification test suite:\n\n```sh\npython3 score_portfolio_6r.py && python3 -c \"import test_urgency_override\" && python3 export_decisions.py\n```\n\nConfirm output displays `[PASS] Urgency override successfully redirected` and correct wave groupings."
                 ),
                 "trouble": (
-                    "If time-critical workloads are misclassified, verify conditional evaluation order in `score_6r.py`."
+                    "If active workloads are classified as RETIRE, verify that <kbd>is_active</kbd> boolean properly reflects production traffic."
                 ),
-                "cleanup": "No remote cloud resources created; retain scripts and rationalization matrices in repository.",
-                "accept": "A validated 6 Rs rationalization document, an executable Python decision model, and verified pathway classifications."
+                "cleanup": "No remote cloud resources created; retain scoring scripts and classification rubrics in local repository.",
+                "accept": "A validated 6 Rs decision rubric, an executable Python rationalization script, and classified workload portfolio output."
             }
         },
         {
             "key": "topic-02",
-            "title": "The Four Migration Phases: Assess, Plan, Deploy, and Optimize",
+            "title": "Migration Lifecycle Phases: Assess, Plan, Deploy, and Optimize",
             "overview": (
-                "Structure enterprise migrations into four disciplined phases. Master wave planning, dependency clustering, "
-                "cutover methodologies (Big Bang vs Strangler), and explicit Go/No-Go rollback criteria."
+                "Architect enterprise migration programs across four disciplined phases: Assess (discovery & TCO), "
+                "Plan (wave grouping & landing zones), Deploy (replication & cutover), and Optimize (rightsizing & modernizing)."
             ),
             "preview": (
-                "A project team splits an application frontend and its backend database into separate migration waves, migrating the web app "
-                "to the cloud while leaving the database on-premises, causing 45ms cross-connect latency that destroys checkout performance."
+                "Wave 2 cutover migrates an ERP database VM without discovering an undocumented SMB file share dependency on-prem; "
+                "Monday morning warehouse shipping labels fail to print, halting physical distribution for 8 hours."
             ),
             "technical": (
                 "#### 1. The Four-Phase Migration Lifecycle\n\n"
-                "Enterprise migrations cannot be treated as a single monolithic event. Google Cloud defines a four-phase lifecycle:\n\n"
-                "- **Phase 1: Assess:** Complete automated discovery of all server instances, CPU/RAM utilization percentiles, storage IOPs, "
-                "and network port dependencies. Establish Total Cost of Ownership (TCO) benchmarks and identify migration blockers.\n"
-                "- **Phase 2: Plan:** Group discovered workloads into logical **Migration Waves** based on dependency clusters. Design the Google "
-                "Cloud Landing Zone (Shared VPC, IAM, Organization Policies), configure hybrid network connectivity (Cloud Interconnect), and "
-                "author explicit Cutover and Rollback Runbooks.\n"
-                "- **Phase 3: Deploy:** Execute pilot migrations to validate tooling. Replicate storage volumes continuously in the background. "
-                "Perform user acceptance testing (UAT) on isolated test clones. Execute cutovers during maintenance windows.\n"
-                "- **Phase 4: Optimize:** Move from 'running in the cloud' to 'optimizing for the cloud'. Apply Recommender API rightsizing, "
-                "purchase Committed Use Discounts (CUDs), configure autohealing and autoscaling, and implement Cloud Monitoring SLO dashboards.\n\n"
-                "#### 2. Wave Planning and Dependency Clustering Mathematics\n\n"
-                "A critical failure point in migration planning is **Splitting Distributed Dependencies across the Hybrid Link**:\n\n"
-                "- If an application executes 15 serial SQL queries per page load, running on-premises over 0.2ms local LAN latency requires "
-                "$15 \\times 0.2\\text{ms} = 3.0\\text{ms}$ of network time.\n"
-                "- If the application is migrated to Google Cloud in Wave 1 while leaving the database on-premises over a 40ms hybrid interconnect, "
-                "the network latency explodes to $15 \\times 40\\text{ms} = 600\\text{ms}$, collapsing user performance.\n\n"
-                "**Dependency Clustering Rule:** Applications and their tightly coupled, synchronous dependencies (databases, local caching "
-                "clusters, authentication directories) MUST be grouped into the same migration wave and cut over simultaneously.\n\n"
-                "#### 3. Cutover Runbooks and Go/No-Go Decision Gates\n\n"
-                "Every migration wave cutover must follow a strict, minute-by-minute runbook with explicit **Go / No-Go Decision Gates**:\n\n"
-                "- **T - 24 Hours:** Pre-cutover verification. Full data replication sync complete; replication lag < 1 minute; test clone UAT passed.\n"
-                "- **T - 0 Hours (Cutover Window Begins):** Stop application services on-premises; set on-premises database to read-only.\n"
-                "- **T + 30 Minutes:** Replicate delta storage blocks to Google Cloud; start database and compute instances in GCP.\n"
-                "- **T + 60 Minutes (The Go/No-Go Gate):** Smoke test synthetic transactions. If tests pass: redirect DNS / Load Balancer VIPs (Go). "
-                "If critical errors occur or replication failed: abort, revert DNS, and re-enable on-premises database (No-Go Rollback).\n"
-                "- **Point of No Return:** Once live customer transactions commit in Google Cloud, rollback requires reverse CDC data replication "
-                "back to on-premises to prevent data loss.\n\n"
-                "#### 4. Architectural Trade-offs: Cutover Methodologies\n\n"
-                "| Cutover Strategy | Business Downtime Window | Rollback Complexity | Hybrid Infrastructure Cost | State Synchronization Requirement |\n"
-                "|---|---|---|---|---|\n"
-                "| **Big Bang Cutover** | Moderate (2 – 6 Hours Maintenance Window) | Low (Revert DNS before Point of No Return) | Lowest (Single-day switchover) | Replicate delta blocks during shutdown |\n"
-                "| **Parallel Run (Dual-Write)** | Zero Downtime | Lowest (Instant switchback to on-prem) | Highest (200% compute running concurrently) | Complex bidirectional CDC / dual-write queue |\n"
-                "| **Phased Wave Strangler** | Minimal (Per-domain maintenance) | Moderate (Per-service routing control) | Moderate | API Gateway URL routing / strangler facade |\n"
-                "| **Canary Traffic Shift** | Zero Downtime | Sub-minute (Shift traffic back to on-prem) | Moderate | Global Load Balancer weighting (requires hybrid backend) |\n"
+                "Successful enterprise cloud migrations execute across four structured, sequential phases:\n\n"
+                "- **Phase 1: Assess (Discovery & Feasibility):** Deploy agentless discovery tooling across the infrastructure estate. "
+                "Catalog all physical hosts, virtual machines, database instances, OS versions, installed software packages, and network traffic flows. "
+                "Compute rightsized total cost of ownership (TCO) baselines.\n\n"
+                "- **Phase 2: Plan (Wave Grouping & Landing Zone Foundation):** Deconstruct the portfolio into migration waves based on "
+                "network affinity clustering. Applications with tight, low-latency inter-service dependencies must migrate in the same cutover "
+                "wave. Concurrently, build and validate the enterprise Landing Zone (Resource Hierarchy, Shared VPC, Cloud Interconnect, IAM baselines).\n\n"
+                "- **Phase 3: Deploy (Replication, Rehearsal, & Cutover):** Establish continuous data replication pipelines (Migrate to VMs block "
+                "replication, Datastream CDC, or VMware HCX). Conduct non-disruptive cutover rehearsals in isolated VPC test environments. "
+                "Execute the production cutover during scheduled maintenance windows with explicit rollback triggers.\n\n"
+                "- **Phase 4: Optimize (FinOps Rightsizing & Modernization):** Analyze post-migration telemetry using Cloud Monitoring and Cost "
+                "Optimization recommendations. Downsize idle CPU/RAM allocations, purchase 1-year and 3-year Committed Use Discounts (CUDs), "
+                "and begin replatforming workloads into managed databases and containers.\n\n"
+                "#### 2. Network Affinity Clustering and Wave Planning\n\n"
+                "Migrating enterprise applications individually almost always results in failure due to hidden cross-server network dependencies. "
+                "If Server A is migrated to Google Cloud while its tightly coupled database Server B remains on-premises, inter-service calls "
+                "suddenly traverse the hybrid WAN link, incurring a 20x latency penalty.\n\n"
+                "Architects utilize **Affinity Grouping** based on NetFlow and VPC Flow Logs: any pair of servers communicating with high bandwidth "
+                "or sub-5ms sensitivity are bound into an **Atomic Migration Wave**. They migrate together, or they do not migrate at all.\n\n"
+                "#### 3. Architectural Trade-offs: Migration Phase Gates\n\n"
+                "| Phase Gate | Mandatory Entry Deliverables | Success Criteria & Exit Sign-off | Common Risk / Failure Mode |\n"
+                "|---|---|---|---|\n"
+                "| **Phase 1: Assess** | Complete CMDB export, NetFlow telemetry | Validated TCO model, 6 Rs categorization | Incomplete asset discovery; missing zombie VMs |\n"
+                "| **Phase 2: Plan** | Landing Zone deployed, Shared VPC active | Affinity-mapped migration waves, DR runbook | Splitting tightly coupled apps across waves |\n"
+                "| **Phase 3: Deploy** | Block replication in sync (< 5 min lag) | Cutover rehearsal passed; business sign-off | Overrunning maintenance window; broken rollback |\n"
+                "| **Phase 4: Optimize** | 30 days of Cloud Monitoring telemetry | Rightsized VM shapes; CUDs purchased | Leaving over-provisioned VMs running indefinitely |\n"
             ),
             "questions": [
-                "Why does splitting an application and its database across a hybrid link cause exponential latency degradation?",
-                "What defines the 'Point of No Return' during an enterprise database migration cutover?",
-                "How does continuous asynchronous block replication minimize maintenance downtime windows?",
-                "What specific telemetry must be verified during a migration Go/No-Go decision gate?",
+                "Why must network dependency affinity mapping occur prior to wave grouping in Phase 2?",
+                "What exact deliverables are required to pass the Phase 3 Deploy gate into production cutover?",
+                "How does Phase 4 Optimize systematically reduce cloud infrastructure spend post-cutover?",
+                "What operational criteria dictate an immediate cutover rollback during Phase 3?",
             ],
-            "reference": "https://docs.cloud.google.com/architecture/migration-to-google-cloud-architecture-and-tools",
-            "reference_label": "Google Cloud Architecture Center: Migration phases and tooling framework",
+            "reference": "https://docs.cloud.google.com/architecture/migration-to-google-cloud/planning",
+            "reference_label": "Google Cloud Architecture Center: Migration planning and execution guide",
             "scenario": {
                 "scenario": (
-                    "Brightloaf planned a weekend migration of their customer loyalty portal. The project manager scheduled the web frontend "
-                    "for Wave 1 on Saturday, and the PostgreSQL database for Wave 2 two weeks later. During the Saturday cutover, the web application "
-                    "was deployed to Compute Engine in `us-central1`, communicating with the on-premises database in Chicago over an IPsec VPN "
-                    "tunnel (RTT = 48ms). When customer traffic surged on Sunday morning, every user profile load executed 16 sequential SQL queries "
-                    "across the VPN, accumulating over 760ms of network latency per request. Compute Engine VM threads exhausted rapidly, "
-                    "database connection pools saturated, and customer login requests timed out with HTTP 504 Gateway Timeouts."
+                    "During Wave 2 of Brightloaf's datacenter migration, engineers migrated the core ERP billing engine virtual machine to "
+                    "Google Compute Engine using Migrate to Virtual Machines. The VM cutover succeeded, database connectivity was established, "
+                    "and the VM passed internal health checks. However, when the automated morning shipping batch ran at 06:00, 14 warehouse "
+                    "thermal label printers threw unhandled I/O exceptions. The billing engine had a hardcoded UNC path dependency "
+                    "(`\\\\192.168.10.45\\shipping_labels`) to an un-migrated Windows legacy file share on-premises. Because the on-premises subnet "
+                    "lacked a return route to the new Google Cloud VPC subnet, SMB file writes timed out after 120 seconds. Pallet staging "
+                    "halted across 4 major distribution centers, backing up 8,500 customer shipments."
                 ),
                 "impact": (
-                    "P1 migration cutover failure. Customer loyalty portal was unusable for 18 hours. 8,400 loyalty point redemptions failed. "
-                    "Emergency rollback executed Sunday afternoon under stress, incurring $45,000 in diverted engineering overtime."
+                    "P1 logistics shutdown. 8,500 customer delivery shipments stalled for 8 hours. Warehouse workers idled across 4 distribution "
+                    "centers. Estimated supply chain delay penalty: $185,000. Executive emergency bridge convened to evaluate rollback."
                 ),
                 "constraints": (
-                    "Eliminate hybrid latency compounding; ensure cutover completes within a 3-hour maintenance window; establish explicit "
-                    "automated Go/No-Go verification gates with sub-15 minute rollback capability."
+                    "Restore shipping label generation within 60 minutes; identify all cross-premises network dependencies; establish an automated "
+                    "pre-cutover dependency verification checklist."
+                ),
+                "evidence": (
+                    "ERP application exception stack trace and TCP network routing failure dump:\n\n"
+                    "```text\n"
+                    "2026-09-28 06:02:14 UTC [Thread-14] ERROR com.brightloaf.erp.LabelDispatcher - Failed to dispatch batch 98124\n"
+                    "java.io.IOException: The network name cannot be found\n"
+                    "    at jcifs.smb.SmbTransport.send(SmbTransport.java:622)\n"
+                    "    at jcifs.smb.SmbSession.send(SmbSession.java:238)\n"
+                    "    at jcifs.smb.SmbFile.createNewFile(SmbFile.java:1381)\n"
+                    "    at com.brightloaf.erp.LabelDispatcher.writeLabel(LabelDispatcher.java:88)\n"
+                    "Caused by: java.net.ConnectException: Connection timed out: //192.168.10.45/shipping_labels\n"
+                    "\n"
+                    "$ gcloud compute ssh erp-billing-vm --zone=us-central1-a --command=\"traceroute 192.168.10.45\"\n"
+                    "traceroute to 192.168.10.45 (192.168.10.45), 30 hops max, 60 byte packets\n"
+                    " 1  10.142.0.1 (10.142.0.1)  0.312 ms  0.285 ms  0.270 ms\n"
+                    " 2  * * * (Request Timed Out - No Return Route in On-Prem Firewall)\n"
+                    " 3  * * * (Destination Net Unreachable)\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Inspect application trace spans in Cloud Trace; identify that 94% of total transaction duration is spent in `SocketInputStream.socketRead0()` traversing the on-premises VPN link.",
-                    "Step 2: Calculate network compounding: 16 sequential SQL queries × 48ms VPN round-trip time = 768ms of pure network transit latency.",
-                    "Step 3: Review migration project plan; discover that wave planning was organized by technical tier (web vs database) rather than business dependency clusters.",
-                    "Step 4: Check rollback runbook; observe lack of documented rollback triggers, causing 4 hours of indecision before aborting."
+                    "Step 1: Inspect application error logs on the newly migrated `erp-billing-vm`; locate repeated `ConnectException` to on-premises IP `192.168.10.45`.",
+                    "Step 2: Check on-premises firewall logs; observe TCP port 445 (SMB) traffic arriving from Google Cloud VPC subnet `10.142.0.0/20` dropped due to missing routing rules.",
+                    "Step 3: Review Phase 1 and 2 migration assessment documentation; discover `192.168.10.45` was omitted from the dependency discovery inventory because it was configured via NetBIOS name rather than DNS.",
+                    "Step 4: Audit active network connections; confirm 14 warehouse label dispatchers rely on synchronous SMB writes before marking orders as dispatched."
                 ],
                 "root": (
-                    "Flawed wave planning decoupled tightly coupled tiers across a high-latency hybrid link. Organizing migration waves by "
-                    "infrastructure layers rather than dependency clusters violated distributed latency boundaries."
+                    "Flawed Phase 1 discovery and Phase 2 wave planning failed to detect a legacy hardcoded SMB file share dependency. Migrating "
+                    "the ERP compute node without migrating its dependent file server or configuring bidirectional hybrid routing caused catastrophic I/O timeouts."
                 ),
                 "remediation_steps": [
-                    "Step 1: Re-architect the migration plan to group the web frontend and database into a single, atomic migration wave.",
-                    "Step 2: Pre-seed database data to Cloud SQL for PostgreSQL using Database Migration Service (DMS) continuous CDC replication, keeping replication lag under 2 seconds.",
-                    "Step 3: Establish a formal Go/No-Go checklist: if synthetic checkout latency exceeds 250ms at T+45 minutes, immediately execute automated DNS rollback to on-premises.",
-                    "Step 4: Execute the combined cutover during a Sunday 02:00 UTC window; complete database final sync in 4 minutes, point web tier locally, and switch DNS."
+                    "Step 1: Tactical Fix: Immediately establish a temporary static route on the on-premises core router directing return traffic for `10.142.0.0/20` through the Dedicated Interconnect, unblocking SMB writes.",
+                    "Step 2: Strategic Fix: Migrate the legacy on-premises file share into Google Cloud Filestore or Cloud Storage using Cloud Storage FUSE.",
+                    "Step 3: Mandate automated NetFlow / VPC Flow Logs dependency discovery for all future migration waves, enforcing atomic cutover of all coupled nodes.",
+                    "Step 4: Implement a mandatory 24-hour pre-cutover rehearsal in an isolated VPC test subnet to validate all external service integrations."
                 ],
                 "verify": (
-                    "Execute post-cutover synthetic login tests in staging. Confirm inter-tier latency between web VMs and Cloud SQL drops to "
-                    "0.8ms (local VPC), customer login completes in 140ms, and zero cross-premises network hops occur."
+                    "Trigger synthetic label generation test from `erp-billing-vm` to `\\\\192.168.10.45\\shipping_labels`. Confirm SMB file write "
+                    "completes in 18ms and warehouse printers resume processing at full line-rate."
                 ),
                 "residual": (
-                    "Migrating both tiers concurrently requires testing database failover procedures and verifying that Cloud SQL connection "
-                    "pooling can absorb peak morning connection spikes."
+                    "Cross-premises SMB writes over Dedicated Interconnect incur a 12ms RTT latency penalty; the file share must be migrated to "
+                    "Google Cloud Filestore to restore sub-millisecond local performance."
                 ),
                 "diagram": (
-                    "Web on Cloud; DB on-prem across VPN (48ms)",
-                    "16 serial queries compound to 768ms",
-                    "Thread exhaustion, 504 gateway timeouts",
-                    "Group Web & DB into atomic migration wave",
-                    "Local VPC latency (0.8ms), login completes in 140ms"
+                    "Migrate ERP billing VM in Wave 2",
+                    "Hardcoded on-prem SMB share unreachable",
+                    "Label printers stall; 8,500 orders backed up",
+                    "Add hybrid route; plan Filestore migration",
+                    "Shipping resumes; mandate flow log analysis"
                 ),
-                "facts": "Web in cloud, DB on-prem over 48ms VPN; 16 serial queries caused 768ms network lag; 18h outage; rollback cost $45k.",
-                "inference": "Organizing migration waves by tier splits synchronous call graphs across WAN links; dependency clustering is mandatory.",
-                "expected": "Clustering dependent tiers into atomic waves eliminates cross-premises latency, achieving sub-200ms page load times."
+                "facts": "ERP VM migrated without SMB file share; warehouse label printers timed out; 8,500 shipments stalled for 8 hours; $185k penalty.",
+                "inference": "Isolated VM migrations without network flow dependency mapping trigger critical runtime disconnections.",
+                "expected": "Dependency discovery binds coupled services into atomic migration waves, preventing hybrid connection breaks."
             },
             "lab": {
-                "name": "Migration Wave Planning and Dependency Clustering Engine",
-                "file": "day-075-wave-planning.md",
-                "goal": "Build an executable Python dependency clustering engine to group enterprise applications into atomic migration waves.",
-                "expected": "A complete wave planning strategy document, an executable Python clustering script, and verified wave assignment outputs.",
+                "name": "Migration Wave Planning & Dependency Clustering Engine",
+                "file": "day-075-wave-planner.md",
+                "goal": "Build a network dependency clustering engine in Python that maps communication telemetry into atomic migration waves.",
+                "expected": "A complete wave planning specification, an executable Python graph clustering script, and verified wave assignment output.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
-                "prereq": "Day 74 anti-patterns and Day 71 performance sizing",
-                "preflight": "Review network dependency mapping methodologies and cutover runbook structures.",
+                "prereq": "Day 74 enterprise foundation and Day 72 networking",
+                "preflight": "Review Google Cloud Migration Center group planning concepts and graph clustering algorithms.",
                 "steps": [
-                    "Draft the migration wave planning methodology in `day-075-wave-planning.md`.",
-                    "Develop an executable Python dependency clustering script (`wave_planner.py`):\n\n```python\n# wave_planner.py\n\n# Enterprise application dependency graph (service -> set of synchronous dependencies)\nDEPENDENCIES = {\n    'web_frontend': {'order_api', 'auth_service'},\n    'order_api': {'orders_db', 'inventory_service'},\n    'orders_db': set(),\n    'auth_service': {'auth_ldap'},\n    'auth_ldap': set(),\n    'inventory_service': {'inventory_db'},\n    'inventory_db': set(),\n    'standalone_reporting': set() # Independent batch job\n}\n\ndef cluster_wave(start_node: str, graph: dict, visited: set = None):\n    if visited is None:\n        visited = set()\n    visited.add(start_node)\n    for dep in graph.get(start_node, set()):\n        if dep not in visited:\n            cluster_wave(dep, graph, visited)\n    return visited\n\n# Calculate atomic wave for web_frontend\nwave_1 = cluster_wave('web_frontend', DEPENDENCIES)\nprint(\"Atomic Migration Wave 1 Cluster:\", sorted(list(wave_1)))\n\n# Ensure tightly coupled database is inside the wave cluster\nassert 'orders_db' in wave_1, \"Database was decoupled from frontend!\"\nassert 'auth_ldap' in wave_1, \"Authentication was decoupled!\"\nassert 'standalone_reporting' not in wave_1, \"Independent app incorrectly bundled!\"\nprint(\"Migration Wave Dependency Clustering Logic Verified Successfully.\")\n```",
-                    "Execute the Python wave planning test:\n\n```sh\npython3 wave_planner.py\n```",
-                    "Author the Go/No-Go decision matrix and rollback runbook template in `day-075-wave-planning.md`."
+                    "#### Stage 1: Pre-Flight Dependency Graph & Network Flow Invariants\nDraft the enterprise network flow criteria in <kbd>day-075-wave-planner.md</kbd>. Establish the boundary thresholds: any pair of servers exchanging > 10,000 packets/day or requiring < 5ms RTT must belong to the same atomic wave.",
+                    "#### Stage 2: Defining the Application Network Flow Specification\nCreate the synthetic network communication dataset (<kbd>network_flows.json</kbd>) modeling server inter-connections:\n\n```json\n[\n  {\"source\": \"web_frontend_01\", \"target\": \"app_server_01\", \"packet_rate_per_sec\": 450, \"latency_sensitive\": true},\n  {\"source\": \"app_server_01\", \"target\": \"erp_billing_db\", \"packet_rate_per_sec\": 1200, \"latency_sensitive\": true},\n  {\"source\": \"app_server_01\", \"target\": \"smb_label_share\", \"packet_rate_per_sec\": 85, \"latency_sensitive\": true},\n  {\"source\": \"analytics_worker\", \"target\": \"erp_billing_db\", \"packet_rate_per_sec\": 12, \"latency_sensitive\": false},\n  {\"source\": \"inventory_api\", \"target\": \"inventory_db\", \"packet_rate_per_sec\": 600, \"latency_sensitive\": true}\n]\n```",
+                    "#### Stage 3: Developing the Graph-Based Wave Clustering Script in Python\nImplement the graph traversal clustering algorithm (<kbd>cluster_migration_waves.py</kbd>):\n\n```python\n# cluster_migration_waves.py\n\"\"\"Clusters interconnected enterprise servers into atomic migration waves.\"\"\"\nimport json\nfrom collections import defaultdict\nfrom typing import Dict, Set, List\n\nclass MigrationWaveClusterer:\n    def __init__(self):\n        self.adj = defaultdict(set)\n\n    def add_flow(self, src: str, dst: str, is_atomic: bool):\n        if is_atomic:\n            self.adj[src].add(dst)\n            self.adj[dst].add(src)\n\n    def compute_atomic_waves(self) -> List[Set[str]]:\n        visited = set()\n        waves = []\n        for node in list(self.adj.keys()):\n            if node not in visited:\n                wave = set()\n                queue = [node]\n                visited.add(node)\n                while queue:\n                    curr = queue.pop(0)\n                    wave.add(curr)\n                    for neighbor in self.adj[curr]:\n                        if neighbor not in visited:\n                            visited.add(neighbor)\n                            queue.append(neighbor)\n                waves.append(wave)\n        return waves\n\nif __name__ == '__main__':\n    with open('network_flows.json', 'r') as f:\n        flows = json.load(f)\n    clusterer = MigrationWaveClusterer()\n    for f in flows:\n        clusterer.add_flow(f['source'], f['target'], f['latency_sensitive'])\n    waves = clusterer.compute_atomic_waves()\n    for i, w in enumerate(waves, 1):\n        print(f\"ATOMIC MIGRATION WAVE {i}: {sorted(list(w))}\")\n```",
+                    "#### Stage 4: Executing Wave Segmentation & Dependency Boundary Validation\nRun the dependency clustering engine to identify atomic migration waves:\n\n```sh\npython3 cluster_migration_waves.py\n```",
+                    "#### Stage 5: Simulating Hidden Inter-Service Dependency Insertion\nAdd an unmapped legacy dependency to the flow definition and verify that the clustering algorithm automatically binds it into Wave 1:\n\n```python\n# test_dependency_injection.py\nfrom cluster_migration_waves import MigrationWaveClusterer\n\nclusterer = MigrationWaveClusterer()\nclusterer.add_flow('app_server_01', 'erp_billing_db', True)\nclusterer.add_flow('app_server_01', 'smb_label_share', True)\n\nwaves = clusterer.compute_atomic_waves()\nassert len(waves) == 1\nassert 'smb_label_share' in waves[0]\nprint(\"[PASS] Dependency clustering bound smb_label_share into the same atomic wave as app_server_01.\")\n```",
+                    "#### Stage 6: Chaos Injection (Network Latency Spike on Cutover Rollback)\nSimulate what happens if an atomic wave is split across regions by calculating added round-trip network transit latency:\n\n```sh\npython3 -c \"\npacket_rate = 1200 # packets per sec\nwan_latency_penalty_ms = 18.0\nadded_delay_sec = (packet_rate * wan_latency_penalty_ms) / 1000.0\nprint(f'Cumulative WAN delay if split: {added_delay_sec:.1f} seconds per second of execution!')\nassert added_delay_sec > 10.0\nprint('Chaos Validation Passed: Splitting atomic wave collapses throughput!')\n\"\n```",
+                    "#### Stage 7: Triage, Troubleshooting & Wave Decoupling Runbook\nDocument the wave cutover runbook in <kbd>day-075-wave-planner.md</kbd>. Specify that any wave execution that exceeds its cutover maintenance window by more than 25% triggers an immediate, automated rollback.",
+                    "#### Stage 8: Operational Teardown & Cutover Readiness Invariant Checklist\nVerify that all migration wave manifests declare explicit rollback validation commands. Confirm that no chargeable cloud resources were provisioned during the offline architectural simulation."
                 ],
                 "verification": (
-                    "Run automated wave planning test:\n\n```sh\npython3 -c \"import wave_planner; print('Wave Planning Engine Test Passed')\"\n```\n\nConfirm output displays `Migration Wave Dependency Clustering Logic Verified Successfully`."
+                    "Run automated wave planning test suite:\n\n```sh\npython3 cluster_migration_waves.py && python3 -c \"import test_dependency_injection\"\n```\n\nConfirm output displays `ATOMIC MIGRATION WAVE 1: ['app_server_01', 'erp_billing_db', 'smb_label_share', 'web_frontend_01']`."
                 ),
                 "trouble": (
-                    "If cyclic dependencies cause infinite loops, verify graph traversal uses visited set guards."
+                    "If servers are incorrectly split across waves, verify that <kbd>latency_sensitive</kbd> flag is set to True in the flow configuration."
                 ),
-                "cleanup": "No remote cloud resources created; retain scripts and wave planning artifacts in repository.",
-                "accept": "A validated wave planning document, an executable Python dependency clustering script, and a verified cutover runbook."
+                "cleanup": "No remote cloud resources created; retain flow specifications and clustering scripts in local repository.",
+                "accept": "A validated wave planning specification, an executable Python graph clustering script, and verified wave assignment output."
             }
         },
         {
             "key": "topic-03",
-            "title": "Discovery and Assessment Tools: Migration Center, StratoZone, and mFit",
+            "title": "Discovery and Assessment Tools: Migration Center, StratoZone-Style Rightsizing",
             "overview": (
-                "Leverage automated cloud discovery and assessment tooling. Use Google Cloud Migration Center and StratoZone for "
-                "utilization-based rightsizing, and evaluate containerization readiness with Migrate to Containers (mFit)."
+                "Deploy automated enterprise discovery tools. Master Google Cloud Migration Center, StratoZone inventory collectors, "
+                "mFit assessment heuristics, and empirical utilization-based compute rightsizing."
             ),
             "preview": (
-                "An enterprise migrates on-premises VMs based on allocated virtual specs (vCPUs/RAM) rather than actual utilization telemetry, "
-                "over-provisioning cloud compute by 320% and inflating the monthly bill by $65,000."
+                "Direct 1:1 lift-and-shift of 350 on-prem VMs using provisioned hardware specs (e.g. 16 vCPU, 64 GB RAM) runs up a "
+                "$145,000 monthly cloud bill; actual p95 CPU load across the fleet was under 4%."
             ),
             "technical": (
-                "#### 1. Automated Discovery Mechanics: Agents vs. Agentless Collectors\n\n"
-                "Enterprise infrastructure discovery establishes the factual baseline for migration. Google Cloud provides two discovery modes:\n\n"
-                "- **Agentless Discovery (VMware vCenter Integration):** The **Migration Center Discovery Client** deploys as an Open Virtualization "
-                "Appliance (OVA) on-premises. It connects directly to VMware vCenter APIs, collecting inventory, CPU/RAM allocation, disk storage, "
-                "and operating system versions across thousands of VMs in minutes without installing software on guest OSs.\n"
-                "- **Agent-Based Discovery:** For physical bare-metal servers or non-VMware hypervisors, lightweight OS agents collect fine-grained "
-                "guest telemetry: per-process resource utilization, local network listening ports, and active TCP socket connections to map dependencies.\n\n"
-                "#### 2. The Allocated vs. Utilized Sizing Dilemma (StratoZone)\n\n"
-                "In traditional on-premises virtualization, system administrators habitually over-allocate resources:\n\n"
-                "- A system administrator requests a VM with 16 vCPUs and 64 GB of RAM 'just in case' for future growth.\n"
-                "- In reality, the guest workload runs at an average CPU utilization of 6% and consumes 8 GB of RAM.\n"
-                "- If an architect maps this VM 1:1 into Compute Engine (`n2-standard-16`), the enterprise pays for 16 vCPUs of cloud compute 24/7.\n\n"
-                "**StratoZone / Migration Center Telemetry:** Analyzes 30 to 90 days of peak and percentile utilization metrics (P95 / P99). It "
-                "recommends **Rightsized Compute Sizing** (e.g. mapping the 16-vCPU VM to an `n2-standard-4` or `e2-standard-4`), instantly "
-                "slashing projected cloud infrastructure costs by 50% to 70% without sacrificing performance.\n\n"
-                "#### 3. Containerization Fitness Assessment with mFit\n\n"
-                "Not all workloads should remain VMs. Google Cloud **mFit** (Migrate to Containers CLI) inspects Linux and Windows VMs to determine "
-                "their containerization readiness:\n\n"
-                "- Identifies installed software packages (Apache, Tomcat, Node.js, IIS).\n"
-                "- Evaluates kernel modules, local storage dependencies, and Windows registry requirements.\n"
-                "- Categorizes workloads into: **Fit for Cloud Run**, **Fit for GKE**, or **Requires VM (Compute Engine / GCVE)**.\n\n"
-                "#### 4. Total Cost of Ownership (TCO) Modeling\n\n"
-                "A comprehensive cloud business case compares on-premises Total Cost of Ownership (TCO) against Google Cloud spend:\n\n"
-                "$$\\text{On-Prem TCO} = \\text{Hardware Depreciation} + \\text{Datacenter Real Estate} + \\text{Power/Cooling} + \\text{Hypervisor Licensing} + \\text{SysAdmin Staff}$$\n\n"
-                "Migration Center exports financial models factoring in **3-Year Committed Use Discounts (CUDs)** and storage lifecycle savings, "
-                "providing defensible financial projections for executive leadership.\n\n"
-                "#### 5. Architectural Trade-offs: Discovery & Assessment Tooling\n\n"
-                "| Discovery Tool | Deployment Model | Primary Data Collected | Sizing Philosophy | Output Deliverable |\n"
+                "#### 1. Automated Discovery Tooling: Migration Center and StratoZone\n\n"
+                "Manual discovery using spreadsheets fails in enterprise environments due to un-updated CMDB records, shadow IT VMs, and hidden "
+                "network dependencies. Google Cloud provides unified discovery and assessment platforms:\n\n"
+                "- **Google Cloud Migration Center:** The unified migration hub in Cloud Console. Integrates asset discovery (importing from VMware vCenter, "
+                "AWS, Azure, or CSV), performance data collection, automated grouping, and TCO financial estimations.\n"
+                "- **StratoZone Discovery Engine:** Deploys an agentless collector appliance (OVA / Hyper-V) into on-premises subnets. Queries vCenter "
+                "APIs and WMI/SSH to sample real-time CPU, RAM, disk I/O, and network telemetry every 15 minutes for 30 days.\n"
+                "- **mFit (Migrate to Containers Assessment):** Evaluates Linux and Windows virtual machines to determine containerization suitability, "
+                "flagging kernel dependencies, filesystem locks, and service daemons.\n\n"
+                "#### 2. The Provisioned vs. Observed Rightsizing Math\n\n"
+                "In traditional on-premises datacenters, system administrators over-allocate hardware to avoid procurement friction. A typical "
+                "VM is allocated 16 vCPUs and 64 GB RAM, but operates at an average CPU utilization of 3.2% with peak p95 utilization of 7.5%.\n\n"
+                "If an enterprise lifts-and-shifts 1:1 to Google Compute Engine based on **allocated** specs, they provision expensive `n2-standard-16` "
+                "instances ($388/month each). By analyzing **observed** telemetry (p95 CPU and memory working set), Migration Center rightsizes "
+                "the workload to `e2-standard-4` ($97/month) or `e2-custom` shapes, achieving an immediate **60% to 75% baseline cost reduction**.\n\n"
+                "#### 3. Financial Modeling: As-Is vs. Optimized TCO\n\n"
+                "A defensible cloud business case models four cost dimensions:\n\n"
+                "  1. **Compute Rightsizing:** Downsizing VM shapes to p95 utilization + 20% safety headroom.\n"
+                "  2. **Committed Use Discounts (CUDs):** Purchasing 1-year or 3-year Flexible or Resource-Based CUDs (saving 37% to 57%).\n"
+                "  3. **Storage Tiering:** Moving unattached or cold VMDK volumes to balanced persistent disk and Cloud Storage coldline archive.\n"
+                "  4. **Software Licensing (BYOL vs License-Included):** Migrating Windows/SQL Server licenses under Microsoft Azure Hybrid Benefit "
+                "or Sole-Tenant Nodes to avoid dual-licensing penalties.\n\n"
+                "#### 4. Architectural Trade-offs: Discovery Paradigms\n\n"
+                "| Discovery Mechanism | Deployment Effort | Telemetry Granularity | Network Dependency Mapping | Best Suited For |\n"
                 "|---|---|---|---|---|\n"
-                "| **Migration Center** | Agentless OVA / Agent | Comprehensive inventory & performance telemetry | Percentile-based rightsizing (P95) | Unified GCP console assessment & TCO export |\n"
-                "| **StratoZone** | Agentless Appliance | Deep financial modeling, hardware depreciation | Strategic CUD & licensing optimization | Executive financial presentation & wave groupings |\n"
-                "| **mFit Assessment** | Standalone Linux/Win CLI | OS kernel, installed runtimes, storage paths | Containerization fit for Cloud Run/GKE | Automated container fitness report & Dockerfile suggestions |\n"
-                "| **Database Migration Service (DMS)** | Cloud-managed network pairing | Database schemas, stored procs, data volume | Direct managed database mapping | Automated schema conversion & replication pipeline |\n"
+                "| **Static CMDB Export** | Lowest (CSV upload) | Static (Allocated CPU/RAM only) | None (Blind to network) | High-level feasibility & ballpark budgeting |\n"
+                "| **StratoZone Agentless OVA** | Moderate (Appliance on vCenter) | High (15-min sampling of CPU/RAM/IOPS) | High (NetFlow / TCP connection tables) | Comprehensive datacenter assessment & TCO |\n"
+                "| **OS-Level Discovery Agents** | Highest (Agent on every VM) | Deepest (Process tables, config files) | Deepest (Full packet-level payload) | High-risk legacy applications & security audits |\n"
             ),
             "questions": [
-                "Why does sizing cloud VMs based on allocated on-premises vCPUs cause severe financial waste?",
-                "What is the difference between agentless vCenter discovery and agent-based guest OS discovery?",
-                "How does mFit evaluate whether a legacy virtual machine is suitable for containerization on Cloud Run?",
-                "What cost factors are included in on-premises TCO beyond raw server hardware purchase costs?",
+                "Why does sizing cloud virtual machines based on allocated on-premises hardware cause severe budget overruns?",
+                "What is the mathematical definition of p95 utilization in StratoZone rightsizing algorithms?",
+                "How does Google Cloud Migration Center unify discovery across VMware, physical servers, and multicloud?",
+                "Under what operational conditions are Sole-Tenant Nodes required for BYOL licensing optimization?",
             ],
-            "reference": "https://docs.cloud.google.com/migration-center/docs/overview",
-            "reference_label": "Google Cloud Migration Center Documentation: Overview and discovery methods",
+            "reference": "https://docs.cloud.google.com/migration-center/docs",
+            "reference_label": "Google Cloud Migration Center Documentation: Discovery and assessment guide",
             "scenario": {
                 "scenario": (
-                    "Brightloaf planned a migration of 85 back-office application and reporting VMs to Compute Engine. The procurement team "
-                    "reviewed the VMware vCenter inventory spreadsheet and provisioned matching Compute Engine instances based on allocated "
-                    "virtual specifications: provisioning 85 instances of `n2-standard-16` (1,360 total vCPUs and 5,440 GB of RAM). During the first "
-                    "full billing cycle, the CFO received an unexpected cloud compute invoice for $92,000—more than $65,000 over budget. A subsequent "
-                    "audit revealed that 72 of the 85 VMs were running at an average CPU utilization of less than 7%, with memory consumption "
-                    "hovering under 12%. The enterprise was paying for 1,100 completely idle vCPUs."
+                    "Brightloaf engaged a third-party systems integrator to execute an accelerated lift-and-shift of 350 enterprise virtual machines "
+                    "from an on-premises VMware cluster to Google Compute Engine. The integrator mapped every VM 1:1 based on provisioned vCenter "
+                    "specs: 350 VMs allocated an average of 16 vCPUs and 64 GB RAM were provisioned as `n2-standard-16` instances with 500 GB "
+                    "Extreme Persistent Disks. When the first monthly Google Cloud invoice arrived, the compute and storage bill totaled $148,200 "
+                    "(compared to a projected budget of $45,000). Upon auditing Cloud Monitoring metrics, the internal infrastructure team "
+                    "discovered that 310 of the 350 instances were running at less than 3% average CPU utilization, with p95 peak utilization "
+                    "never exceeding 8%."
                 ),
                 "impact": (
-                    "Catastrophic financial budget overrun. $65,000/month in wasted cloud expenditure ($780,000 annualized loss). Project "
-                    "credibility damaged; board demanded an immediate audit of all cloud engineering spending."
+                    "Severe financial budget overrun. Monthly cloud infrastructure costs ran $103,200 over budget (a 230% cost overrun). CFO "
+                    "placed an immediate freeze on all cloud migration initiatives. Cloud ROI business case was discredited at the board level."
                 ),
                 "constraints": (
-                    "Downsize over-provisioned infrastructure within 30 days; reduce monthly compute spend by at least 60%; ensure zero "
-                    "workload performance degradation or CPU throttling during month-end batch peaks."
+                    "Reduce monthly compute spend to under $45,000 within 30 days; ensure zero application performance degradation; maintain "
+                    "a minimum 25% CPU/memory buffer for peak traffic surges."
+                ),
+                "evidence": (
+                    "Cloud Monitoring fleet utilization audit and billing SKU report:\n\n"
+                    "```text\n"
+                    "$ gcloud monitoring dashboards query --sql=\"FETCH gce_instance | metric 'compute.googleapis.com/instance/cpu/utilization' | group_by 30d, [mean: mean(value.utilization), p95: percentile(value.utilization, 95)] | top_hosts 10\"\n"
+                    "INSTANCE_NAME          MEAN_CPU    P95_CPU     PROVISIONED_SHAPE    RECOMMENDED_SHAPE\n"
+                    "prod-billing-worker-01   0.024       0.052      n2-standard-16       e2-standard-4\n"
+                    "prod-catalog-app-04      0.018       0.041      n2-standard-16       e2-standard-2\n"
+                    "prod-auth-node-12        0.031       0.068      n2-standard-16       e2-standard-4\n"
+                    "FLEET SUMMARY: 350 VMs | Mean Fleet CPU: 2.8% | Mean Fleet p95: 6.4% | OVER-PROVISION FACTOR: 4.8x\n"
+                    "\n"
+                    "$ gcloud beta billing accounts get-spending-report 01A2B3-C4D5E6-F7G8H9 --month=2026-09\n"
+                    "SKU: Compute Engine N2 Custom / Standard Instances -> Cost: $118,450.00\n"
+                    "SKU: Extreme Persistent Disk (Provisioned IOPS)   -> Cost:  $29,750.00\n"
+                    "TOTAL INVOICE AMOUNT: $148,200.00 (BUDGET: $45,000.00 | VARIANCE: +$103,200.00)\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Export Compute Engine utilization metrics from Cloud Monitoring; discover 78% of VMs have P99 CPU utilization below 18%.",
-                    "Step 2: Inspect StratoZone assessment telemetry; observe that StratoZone had originally recommended `e2-standard-4` instances, but the procurement team ignored the recommendations and provisioned allocated specs.",
-                    "Step 3: Analyze workload characteristics; identify that back-office workloads are non-critical and burst only during daytime business hours.",
-                    "Step 4: Check billing account; confirm instances were running on full On-Demand pricing without Committed Use Discounts."
+                    "Step 1: Export Cloud Monitoring utilization telemetry across all 350 Compute Engine instances for the preceding 30 days.",
+                    "Step 2: Calculate p95 CPU and memory utilization percentiles; confirm 88% of instances require fewer than 4 vCPUs and 16 GB RAM.",
+                    "Step 3: Review Persistent Disk provisioning; discover 350 instances were provisioned with Extreme Persistent Disk (PD-Extreme) with 10,000 provisioned IOPS each, despite actual disk I/O averaging under 80 IOPS.",
+                    "Step 4: Check Committed Use Discount (CUD) coverage; observe 0% CUD coverage (100% of fleet running on on-demand hourly pricing)."
                 ],
                 "root": (
-                    "Provisioning cloud VMs based on on-premises allocated specifications rather than actual utilization telemetry. "
-                    "Ignoring StratoZone rightsizing data led to severe over-provisioning and massive financial waste."
+                    "Sizing cloud virtual machines and storage based on statically allocated on-premises hardware limits rather than empirical, "
+                    "observed p95 telemetry. Over-provisioning compute and storage by nearly 5x, combined with zero Committed Use Discounts, "
+                    "created massive budget inflation."
                 ),
                 "remediation_steps": [
-                    "Step 1: Execute automated rightsizing: resize the 72 underutilized VMs from `n2-standard-16` down to `e2-standard-4` during scheduled rolling maintenance windows.",
-                    "Step 2: Migrate 8 stateless background reporting VMs to Cloud Run using mFit containerization recommendations, enabling scale-to-zero when jobs complete.",
-                    "Step 3: Purchase a 3-Year Flexible Spend-Based Committed Use Discount (CUD) covering the newly rightsized baseline compute capacity, securing an additional 46% discount.",
-                    "Step 4: Establish automated budget alerts and implement mandatory Recommender API review gates in the Terraform CI/CD deployment pipeline."
+                    "Step 1: Execute automated rightsizing script: downsize 310 instances from `n2-standard-16` to `e2-standard-4` or `e2-standard-2` based on p95 metrics + 25% safety headroom.",
+                    "Step 2: Convert all non-database storage volumes from PD-Extreme to Balanced Persistent Disk (PD-Balanced), reducing disk cost by 72%.",
+                    "Step 3: Purchase 3-Year Flexible Committed Use Discounts (CUDs) covering the baseline rightsized compute footprint (55% discount).",
+                    "Step 4: Implement Google Cloud Active Assist Recommender API monitoring in CI/CD to continuously flag idle or oversized VMs."
                 ],
                 "verify": (
-                    "Review Cloud Billing reports 30 days post-downsizing. Confirm monthly compute spend drops from $92,000 to $27,400 (a 70.2% "
-                    "savings) while P99 CPU utilization stabilizes comfortably at 55% during peak business hours."
+                    "Execute rightsizing across a pilot batch of 50 instances. Verify application p99 response times remain completely unchanged, "
+                    "CPU utilization stabilizes in the optimal 35–50% range, and monthly projected spend drops from $148,200 to $39,400."
                 ),
                 "residual": (
-                    "Downsizing VMs reduces peak burst headroom; Cloud Monitoring alerts must be configured on CPU utilization (`cpu/utilization > 80%` "
-                    "for 10 minutes) to dynamically trigger vertical scaling if business volumes expand."
+                    "Downsized E2 machine types utilize dynamic shared host resource scheduling; ultra-latency-sensitive workloads must remain "
+                    "on dedicated N2 or C2 machine types with pinned vCPUs."
                 ),
                 "diagram": (
-                    "Provisioned allocated specs (85x n2-16)",
-                    "VMs idle at 7% CPU utilization",
-                    "$92k/month bill ($65k budget blowout)",
-                    "Apply StratoZone rightsizing + 3-Yr CUD",
-                    "Bill drops to $27.4k (70% savings), healthy 55% CPU"
+                    "1:1 Lift & Shift based on allocated specs",
+                    "Fleet operates at 3% CPU; $148k/mo bill",
+                    "Budget overrun (+230%); CFO freezes migration",
+                    "Rightsize to p95 (e2-std-4) + PD-Balanced + CUDs",
+                    "Bill drops to $39.4k/mo (73% savings); SLA intact"
                 ),
-                "facts": "85 VMs provisioned as n2-16 based on allocated specs; average CPU was 7%; $92k/month bill; $65k/month waste.",
-                "inference": "On-prem virtualization encourages over-allocation; cloud economics requires utilization-based rightsizing.",
-                "expected": "StratoZone rightsizing aligns cloud provisioning with actual consumption, cutting costs by over 60%."
+                "facts": "350 VMs migrated 1:1 on allocated specs; mean CPU was 2.8%; bill reached $148.2k (budget $45k); 0% CUD coverage.",
+                "inference": "On-prem allocated hardware is massively bloated; rightsizing to observed p95 metrics is required to achieve cloud TCO.",
+                "expected": "Rightsizing to observed utilization and applying 3-year CUDs reduces monthly spend to $39.4k while preserving performance."
             },
             "lab": {
-                "name": "StratoZone-Style Rightsizing Analysis and TCO Modeling",
+                "name": "Migration Center / StratoZone Rightsizing & TCO Modeling Engine",
                 "file": "day-075-rightsizing-tco.md",
-                "goal": "Build an executable Python TCO rightsizing engine comparing allocated vs utilized compute costs and CUD savings.",
-                "expected": "A complete TCO financial analysis document, an executable Python sizing calculator, and verified cost savings output.",
+                "goal": "Build an empirical compute rightsizing and TCO calculation algorithm in Python based on observed p95 telemetry.",
+                "expected": "A complete rightsizing methodology document, an executable Python TCO calculator, and verified rightsizing output.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
-                "prereq": "Day 70 cost optimization and Day 74 landing zone",
-                "preflight": "Review Google Cloud Compute Engine machine type pricing and StratoZone sizing methodologies.",
+                "prereq": "Day 71 performance optimization and Day 70 reliability",
+                "preflight": "Review Google Cloud Compute Engine machine types and Committed Use Discount pricing models.",
                 "steps": [
-                    "Draft the cloud financial assessment methodology in `day-075-rightsizing-tco.md`.",
-                    "Develop an executable Python rightsizing and TCO calculation script (`tco_calc.py`):\n\n```python\n# tco_calc.py\n\n# Hourly On-Demand Rates (us-central1 reference)\nRATES = {\n    'n2-standard-16': 0.7776,  # 16 vCPU, 64 GB RAM\n    'n2-standard-4': 0.1944,   # 4 vCPU, 16 GB RAM\n    'e2-standard-4': 0.1340    # 4 vCPU, 16 GB RAM (Cost-optimized)\n}\nHOURS_PER_MONTH = 730\n\ndef calculate_portfolio_cost(num_vms: int, machine_type: str, cud_discount_pct: float = 0.0):\n    monthly_base = num_vms * RATES[machine_type] * HOURS_PER_MONTH\n    monthly_discounted = monthly_base * (1.0 - cud_discount_pct / 100.0)\n    return monthly_base, monthly_discounted\n\n# Scenario: 85 VMs\n# 1. Unoptimized Allocated Sizing: n2-standard-16 on-demand\nbase_cost, _ = calculate_portfolio_cost(85, 'n2-standard-16', 0.0)\n\n# 2. Rightsized Sizing: e2-standard-4 on-demand\nrightsized_cost, _ = calculate_portfolio_cost(85, 'e2-standard-4', 0.0)\n\n# 3. Rightsized + 3-Year Flexible CUD (46% discount)\n_, optimized_cost = calculate_portfolio_cost(85, 'e2-standard-4', 46.0)\n\nsavings_monthly = base_cost - optimized_cost\nsavings_pct = (savings_monthly / base_cost) * 100.0\n\nprint(f\"Unoptimized Allocated Cost: ${base_cost:,.2f} / month\")\nprint(f\"Rightsized Sizing Cost:     ${rightsized_cost:,.2f} / month\")\nprint(f\"Optimized (Rightsized+CUD): ${optimized_cost:,.2f} / month\")\nprint(f\"Net Monthly Savings:        ${savings_monthly:,.2f} / month ({savings_pct:.1f}% savings)\")\nassert savings_pct > 80.0, \"TCO savings threshold calculation error!\"\nprint(\"StratoZone Rightsizing and TCO Model Verified Successfully.\")\n```",
-                    "Execute the Python TCO calculation test:\n\n```sh\npython3 tco_calc.py\n```",
-                    "Document the financial findings and executive business case in `day-075-rightsizing-tco.md`."
+                    "#### Stage 1: Pre-Flight Telemetry Invariants & Collection Scope\nDraft the rightsizing methodology in <kbd>day-075-rightsizing-tco.md</kbd>. Establish the mathematical boundaries: rightsized target vCPU must equal ceil(observed_p95_vcpu * 1.25) to provide a 25% traffic surge buffer.",
+                    "#### Stage 2: Creating Synthetic On-Premises Inventory Dump\nAuthor the raw telemetry inventory file (<kbd>onprem_inventory.json</kbd>) containing allocated and observed metrics for 5 representative virtual machines:\n\n```json\n[\n  {\"vm_name\": \"billing_app_01\", \"allocated_vcpu\": 16, \"allocated_ram_gb\": 64, \"p95_cpu_util\": 0.06, \"p95_ram_util\": 0.18},\n  {\"vm_name\": \"catalog_api_02\", \"allocated_vcpu\": 8,  \"allocated_ram_gb\": 32, \"p95_cpu_util\": 0.04, \"p95_ram_util\": 0.22},\n  {\"vm_name\": \"auth_service_01\", \"allocated_vcpu\": 16, \"allocated_ram_gb\": 64, \"p95_cpu_util\": 0.08, \"p95_ram_util\": 0.15},\n  {\"vm_name\": \"batch_worker_04\", \"allocated_vcpu\": 32, \"allocated_ram_gb\": 128, \"p95_cpu_util\": 0.03, \"p95_ram_util\": 0.10},\n  {\"vm_name\": \"core_database_01\", \"allocated_vcpu\": 32, \"allocated_ram_gb\": 128, \"p95_cpu_util\": 0.65, \"p95_ram_util\": 0.75}\n]\n```",
+                    "#### Stage 3: Developing the Rightsizing Optimization Algorithm in Python\nImplement the rightsizing and financial TCO calculator (<kbd>rightsizing_optimizer.py</kbd>):\n\n```python\n# rightsizing_optimizer.py\n\"\"\"Calculates empirical rightsized shapes and cloud TCO savings.\"\"\"\nimport json\nimport math\n\ndef calculate_rightsized_cost(inventory_file: str):\n    with open(inventory_file, 'r') as f:\n        vms = json.load(f)\n    \n    n2_vcpu_month = 24.25\n    n2_ram_month = 3.25\n    e2_vcpu_month = 16.50\n    e2_ram_month = 2.20\n    cud_discount = 0.45  # 55% discount on 3-year Flexible CUD\n    \n    as_is_cost = 0.0\n    optimized_cost = 0.0\n    \n    print(f\"{'VM NAME':<20} {'AS-IS SHAPE':<15} {'RIGHTSIZED':<15} {'MONTHLY SAVINGS'}\")\n    print(\"-\" * 65)\n    \n    for vm in vms:\n        # As-is cost on allocated specs (N2)\n        v_alloc = vm['allocated_vcpu']\n        r_alloc = vm['allocated_ram_gb']\n        vm_as_is = (v_alloc * n2_vcpu_month) + (r_alloc * n2_ram_month)\n        as_is_cost += vm_as_is\n        \n        # Rightsized specs based on p95 + 25% buffer\n        v_needed = max(2, math.ceil(v_alloc * vm['p95_cpu_util'] * 1.25))\n        r_needed = max(4, math.ceil(r_alloc * vm['p95_ram_util'] * 1.25))\n        # Use E2 machine type with CUD\n        vm_opt = ((v_needed * e2_vcpu_month) + (r_needed * e2_ram_month)) * (1.0 - cud_discount)\n        optimized_cost += vm_opt\n        \n        savings = vm_as_is - vm_opt\n        print(f\"{vm['vm_name']:<20} {f'{v_alloc}v/{r_alloc}G':<15} {f'{v_needed}v/{r_needed}G':<15} ${savings:.2f}\")\n        \n    print(\"-\" * 65)\n    print(f\"TOTAL AS-IS MONTHLY SPEND:    ${as_is_cost:.2f}\")\n    print(f\"TOTAL OPTIMIZED MONTHLY SPEND: ${optimized_cost:.2f}\")\n    pct_savings = ((as_is_cost - optimized_cost) / as_is_cost) * 100\n    print(f\"NET FINANCIAL SAVINGS:        {pct_savings:.1f}%\")\n    return as_is_cost, optimized_cost, pct_savings\n\nif __name__ == '__main__':\n    calculate_rightsized_cost('onprem_inventory.json')\n```",
+                    "#### Stage 4: Running Utilization-Based Sizing & TCO Comparison\nExecute the rightsizing optimization calculator to determine portfolio savings:\n\n```sh\npython3 rightsizing_optimizer.py\n```",
+                    "#### Stage 5: Evaluating Committed Use Discount (CUD) Multipliers\nVerify that the calculator correctly asserts over 60% savings across the sample portfolio:\n\n```python\n# test_tco_assertions.py\nfrom rightsizing_optimizer import calculate_rightsized_cost\n\nas_is, opt, pct = calculate_rightsized_cost('onprem_inventory.json')\nassert pct > 60.0, f\"Expected >60% savings, got {pct:.1f}%\"\nprint(f\"[PASS] Rightsizing optimization verified: {pct:.1f}% reduction achieved.\")\n```",
+                    "#### Stage 6: Chaos Injection (Simulating Sudden p99 Compute Spike)\nSimulate what happens if an under-sized VM encounters a sudden 5x traffic surge. Verify that the 25% safety headroom prevents saturation:\n\n```sh\npython3 -c \"\nbase_load = 0.08\nsurge_load = base_load * 5 # 40% CPU\nallocated_capacity = 0.50 # e2-standard-4 capacity equivalent\nassert surge_load < allocated_capacity\nprint('Safety Headroom Test Passed: 25% buffer absorbed 5x traffic surge without throttling.')\n\"\n```",
+                    "#### Stage 7: Triage, Troubleshooting & Custom Machine Type Tuning\nDocument in <kbd>day-075-rightsizing-tco.md</kbd> when custom machine types (`e2-custom-6-20480`) should be preferred over standard shapes to prevent paying for unused RAM.",
+                    "#### Stage 8: Operational Teardown & FinOps Invariant Checklist\nVerify that the rightsizing runbook enforces monthly Active Assist audits. Confirm that no chargeable cloud resources were provisioned during the offline architectural simulation."
                 ],
                 "verification": (
-                    "Run automated TCO verification test:\n\n```sh\npython3 -c \"import tco_calc; print('TCO Calculation Test Passed')\"\n```\n\nConfirm output demonstrates monthly savings exceeding 80%."
+                    "Run automated rightsizing test suite:\n\n```sh\npython3 rightsizing_optimizer.py && python3 -c \"import test_tco_assertions\"\n```\n\nConfirm output displays `NET FINANCIAL SAVINGS:` greater than 60% and all unit assertions pass."
                 ),
                 "trouble": (
-                    "If savings calculation fails threshold assertion, verify discount percentage formula in `tco_calc.py`."
+                    "If savings are below 50%, verify that CUD discount factor and E2 unit pricing are correctly applied."
                 ),
-                "cleanup": "No remote cloud resources created; retain calculation scripts and financial models in repository.",
-                "accept": "A validated rightsizing TCO analysis document, an executable Python financial model, and verified cost savings output."
+                "cleanup": "No remote cloud resources created; retain inventory files and calculator scripts in local repository.",
+                "accept": "A validated rightsizing methodology document, an executable Python TCO calculator, and verified rightsizing output."
             }
         },
         {
             "key": "topic-04",
-            "title": "Google Cloud VMware Engine (GCVE): Architecture, Sizing, and HCX Migration",
+            "title": "Google Cloud VMware Engine (GCVE): Architecture, HCX Networking, and Trade-offs",
             "overview": (
-                "Architect dedicated VMware environments on Google Cloud VMware Engine (GCVE). Master bare-metal node sizing, "
-                "vSphere/vSAN/NSX-T integration, and seamless live vMotion migrations using VMware HCX."
+                "Design Google Cloud VMware Engine (GCVE) private clouds. Architect bare-metal ESXi clusters, vSAN storage "
+                "capacity physics, VMware HCX Layer 2 network extensions, and total cost of ownership (TCO) trade-offs."
             ),
             "preview": (
-                "An enterprise attempts a live cross-cloud vMotion migration without configuring MTU sizing on Cloud Interconnect, "
-                "causing packet fragmentation that aborts virtual machine migrations midway through a weekend cutover."
+                "An enterprise deploys GCVE to meet a 30-day datacenter exit, but fails to model vSAN FTT-1 storage mirroring and slack space; "
+                "the datastore hits 84% capacity on day 3, triggering emergency node additions costing $9,000/month."
             ),
             "technical": (
                 "#### 1. Google Cloud VMware Engine (GCVE) Architecture\n\n"
-                "For enterprises with deep operational investments in VMware vSphere or tight datacenter evacuation deadlines, refactoring "
-                "or rehosting to Compute Engine may carry unacceptable operational friction. **Google Cloud VMware Engine (GCVE)** provides "
-                "a fully managed VMware Software-Defined Datacenter (SDDC) running on bare-metal Google Cloud infrastructure:\n\n"
-                "- **Dedicated Bare-Metal Nodes:** Nodes run on isolated, single-tenant physical servers (e.g. `ve1-standard-72`: 72 vCPUs, "
-                "768 GB RAM, 19.2 TB NVMe raw storage). Hardware is dedicated 100% to the enterprise with zero hypervisor sharing.\n"
-                "- **Full VMware SDDC Stack:** Includes **VMware vSphere** (ESXi), **vCenter Server**, **vSAN** (software-defined storage), "
-                "and **NSX-T** (software-defined networking).\n"
-                "- **Operational Continuity:** IT administrators manage the cluster using their existing vSphere Client, PowerCLI scripts, "
-                "and enterprise backup tools (Veeam, Commvault) without retraining staff.\n\n"
-                "#### 2. Hybrid Connectivity and Private Service Access\n\n"
-                "GCVE operates in a dedicated, high-speed private networking environment connected directly to Google Cloud VPCs:\n\n"
-                "- Connects via **Private Service Access (PSA)** or direct VPC Peering with sub-millisecond network latency to Google Cloud "
-                "services (BigQuery, Cloud Storage, Cloud SQL).\n"
-                "- Connects to on-premises datacenters via **Cloud Interconnect** or Partner Interconnect, establishing high-bandwidth "
-                "hybrid connectivity.\n\n"
-                "#### 3. VMware HCX (Hybrid Cloud Extension) Migration Mechanics\n\n"
-                "The primary migration engine for GCVE is **VMware HCX**, which abstracts on-premises and cloud vSphere environments:\n\n"
-                "- **Layer 2 Network Extension:** HCX establishes an encrypted network bridge between on-premises VLANs and GCVE NSX-T overlays. "
-                "This allows virtual machines to migrate to Google Cloud **without changing their IP addresses, subnet masks, or default gateways**.\n"
-                "- **Live vMotion:** Enables zero-downtime live migration of running VMs over Cloud Interconnect. Applications continue processing "
-                "user transactions while memory pages are mirrored across WAN links.\n"
-                "- **Cold & Warm (Bulk) Migration:** Replicates disk blocks in the background, scheduling a coordinated reboot to cut over "
-                "hundreds of non-critical VMs simultaneously.\n\n"
-                "#### 4. The MTU Sizing Trap and Packet Fragmentation\n\n"
-                "A catastrophic operational failure in HCX migrations occurs due to **Maximum Transmission Unit (MTU)** mismatches:\n\n"
-                "- Standard on-premises Ethernet uses an MTU of 1500 bytes. Jumbo frames use an MTU of 9000 bytes.\n"
-                "- HCX encapsulates traffic inside IPsec / Geneve tunnels, adding a 50 to 100-byte encapsulation header.\n"
-                "- If Cloud Interconnect or intermediate firewalls are configured with an MTU of 1500 bytes, encapsulated HCX packets exceed "
-                "the MTU limit. If network devices drop fragmented packets (DF bit set), live vMotion transfers stall, time out, and abort midway.\n"
-                "- **Best Practice:** Configure Cloud Interconnect and Google Cloud VPC with Jumbo Frames (MTU 8896 or 9000 bytes) to accommodate "
-                "HCX encapsulation overhead seamlessly.\n\n"
-                "#### 5. Architectural Trade-offs: GCVE vs. Native Compute Engine\n\n"
-                "| Dimension | Google Cloud VMware Engine (GCVE) | Native Compute Engine (M4VM) | Modernized Cloud Run / GKE |\n"
-                "|---|---|---|---|---|\n"
-                "| **Minimum Commitment** | Minimum 3 nodes per cluster (~$15k/mo) | Single VM (hourly on-demand / CUD) | $0 baseline (scales to zero) |\n"
-                "| **Live Migration (Zero Downtime)** | Native vMotion (No VM reboot required) | Requires brief reboot cutover | Zero-downtime rolling deployment |\n"
-                "| **IP Address Preservation** | Built-in via HCX L2 Network Extension | Complex (requires network overlays/NAT) | Native cloud SDN IP addressing |\n"
-                "| **Operational Skillset** | Existing VMware vSphere / vCenter staff | Cloud Ops / Linux & Windows sysadmin | Modern DevOps, Kubernetes, GitOps |\n"
-                "| **Long-Term Modernization** | Retains hypervisor virtualization | Native cloud APIs and infrastructure | Fully decoupled microservices |\n"
+                "Google Cloud VMware Engine provides a fully managed, hardware-isolated VMware Software-Defined Datacenter (SDDC) running directly "
+                "on Google Cloud's bare-metal infrastructure:\n\n"
+                "- **Dedicated Bare-Metal Nodes:** Nodes (e.g. `ve1-standard-72`) feature 72 hyperthreaded vCPUs, 768 GB RAM, and local NVMe storage, "
+                "with zero hypervisor virtualization layer beneath ESXi (no nested virtualization).\n"
+                "- **Software Stack:** Fully licensed VMware vSphere, vCenter Server, vSAN Enterprise, NSX-T Software-Defined Networking, and VMware HCX.\n"
+                "- **VPC Interconnect:** GCVE connects directly to the customer's Google Cloud VPC via an ultra-low-latency (< 2ms) private peering link, "
+                "allowing VMware virtual machines to access Cloud SQL, BigQuery, and Google Cloud APIs at line-rate line speeds without egress transit fees.\n\n"
+                "#### 2. Hybrid Migration Fabric: VMware HCX and Layer 2 Network Extension\n\n"
+                "VMware **HCX (Hybrid Cloud Extension)** provides the transport layer that enables seamless workload migration from on-premises vSphere:\n\n"
+                "- **Layer 2 Network Extension:** HCX establishes an encrypted IPsec or Direct Connect tunnel that extends on-premises VLAN subnets "
+                "(e.g. `192.168.20.0/24`) directly into GCVE NSX-T overlay segments.\n"
+                "- **Zero IP Changes:** Virtual machines migrate from on-premises ESXi hosts to GCVE without changing their IP addresses, MAC addresses, "
+                "or DNS records.\n"
+                "- **Live vMotion & Warm Replication:** HCX supports live vMotion across the hybrid link with zero application downtime, as well as "
+                "bulk replication (asynchronously syncing disk blocks and scheduling cutover during off-peak hours).\n\n"
+                "#### 3. vSAN Storage Thermodynamics: FTT and Slack Space Physics\n\n"
+                "The most critical architectural pitfall in GCVE design is failing to understand **vSAN storage physics**:\n\n"
+                "- **Failures to Tolerate (FTT):** vSAN distributes data across bare-metal nodes. Under `FTT=1 (RAID-1 Mirroring)`, every gigabyte of "
+                "provisioned VMDK requires **2.0 GB of raw physical NVMe storage**. Under `FTT=1 (RAID-5 Erasure Coding)` (requires 4+ nodes), "
+                "storage overhead is reduced to 1.33 GB per 1 GB of data.\n"
+                "- **Mandatory Slack Space:** vSAN requires a minimum of **20% to 25% unallocated slack space** to perform internal object rebalancing, "
+                "garbage collection, snapshot consolidation, and host rebuild operations if a physical node fails.\n"
+                "- **Effective Usable Capacity Formula:**\n\n"
+                "$$\\text{Usable Storage} = \\frac{\\text{Raw NVMe Storage} \\times (1 - \\text{Slack Fraction})}{\\text{FTT Overhead Multiplier}}$$\n\n"
+                "In a 3-node cluster with 57.6 TB raw NVMe storage and FTT=1 (Mirroring), usable capacity is only $\\frac{57.6 \\times 0.75}{2.0} = 21.6\\text{ TB}$. "
+                "Attempting to write 30 TB of virtual machines will violently exhaust the cluster.\n\n"
+                "#### 4. Architectural Trade-offs: GCVE vs. Native Compute Engine\n\n"
+                "| Dimension | Google Cloud VMware Engine (GCVE) | Native Google Compute Engine (GCE) |\n"
+                "|---|---|---|\n"
+                "| **Minimum Infrastructure Commitment** | 3 Dedicated Bare-Metal Nodes (~$13,500/mo) | 1 Virtual Machine ($15/mo) |\n"
+                "| **Migration Speed & Friction** | Highest (Live vMotion; zero IP/VM changes) | Moderate (Requires block conversion via m4vm) |\n"
+                "| **Operational Model** | Identical to on-premises vCenter / vSphere tooling | Google Cloud native (Cloud Console, gcloud, APIs) |\n"
+                "| **Storage Elasticity** | Coarse-grained (Must add 72-vCPU node to get storage) | Highly granular (Expand Persistent Disk by 1 GB online) |\n"
+                "| **Cloud-Native Integration** | High (Sub-2ms VPC peering to BigQuery/Cloud SQL) | Native (Internal SDN fabric) |\n"
             ),
             "questions": [
-                "What minimum cluster node count is required to deploy a production Google Cloud VMware Engine private cloud?",
-                "How does VMware HCX Layer 2 network extension eliminate the need to re-IP virtual machines during migration?",
-                "Why does packet fragmentation on Cloud Interconnect cause VMware HCX live vMotion transfers to fail?",
-                "Under what strategic enterprise conditions is GCVE financially preferable to refactoring on Compute Engine?",
+                "How does VMware HCX Layer 2 network extension eliminate IP re-addressing during cloud migrations?",
+                "What is the mathematical impact of vSAN FTT=1 RAID-1 mirroring on effective usable storage capacity?",
+                "Why must a GCVE cluster maintain a minimum of 20–25% vSAN slack space at all times?",
+                "Under what enterprise constraints is GCVE a superior architectural choice to native Compute Engine?",
             ],
             "reference": "https://docs.cloud.google.com/vmware-engine/docs/overview",
-            "reference_label": "Google Cloud VMware Engine Documentation: Architecture and deployment overview",
+            "reference_label": "Google Cloud VMware Engine Documentation: Architecture and private cloud guide",
             "scenario": {
                 "scenario": (
-                    "Brightloaf initiated a high-velocity migration of 60 legacy Windows enterprise resource planning (ERP) virtual machines "
-                    "from their on-premises vSphere cluster to Google Cloud VMware Engine (GCVE). Because the ERP software utilized hard-coded "
-                    "legacy IP addresses across 200 client endpoints, the team deployed VMware HCX with Layer 2 Network Extension over a 10 Gbps "
-                    "Cloud Interconnect. During the scheduled Saturday night cutover, engineers initiated bulk live vMotion of the first 20 VMs. "
-                    "At 42% completion, every vMotion transfer stalled simultaneously, threw timeout errors, and aborted. The Cloud Interconnect "
-                    "router had been provisioned with standard MTU (1500 bytes), while HCX Geneve tunnel encapsulation expanded packet sizes "
-                    "to 1550 bytes. Network routers silently dropped the oversized packets, breaking the vMotion memory synchronization stream."
+                    "To execute an urgent 30-day datacenter evacuation, Brightloaf procured a baseline 3-node Google Cloud VMware Engine (GCVE) "
+                    "cluster using `ve1-standard-72` nodes (57.6 TB raw NVMe storage total). The infrastructure manager calculated that their "
+                    "280 on-premises VMs occupied 28 TB of raw disk space in vCenter, concluding that 28 TB would fit comfortably inside the "
+                    "57.6 TB cluster with plenty of room to spare. On Day 3 of bulk HCX migration, with 190 VMs migrated, the vCenter web client "
+                    "flashed severe red alerts: the vSAN datastore reached 84.6% capacity. vSAN deduplication and compression background tasks "
+                    "pegged cluster CPU, I/O latency spiked to 350ms, and automated host alerts triggered an emergency addition of two extra "
+                    "`ve1-standard-72` bare-metal nodes, inflating monthly cloud spend by an unplanned $9,000/month."
                 ),
                 "impact": (
-                    "P1 migration cutover failure. Cutover window missed. 14 critical ERP database virtual machines left in an inconsistent "
-                    "split state between on-prem and cloud. Weekend rollout aborted; business resumed on-premises with emergency failback."
+                    "P1 storage capacity emergency and budget shock. vSAN I/O throttling degraded performance across 190 migrated virtual machines. "
+                    "Unbudgeted infrastructure expense of $9,000/month ($108,000 annualized). Migration waves were frozen for 5 days while "
+                    "architects reassessed storage physics."
                 ),
                 "constraints": (
-                    "Preserve existing guest IP addresses; ensure live vMotion completes without packet loss; complete migration within "
-                    "the next scheduled 4-hour weekend window."
+                    "Maintain vSAN datastore utilization strictly below 75%; optimize storage policies across the VM estate; avoid adding "
+                    "unnecessary bare-metal compute nodes purely to satisfy raw storage demand."
+                ),
+                "evidence": (
+                    "vCenter vSAN datastore capacity alarm and ESXi host kernel error logs:\n\n"
+                    "```text\n"
+                    "ALERT [vsan-cluster-01] [Event ID: 94812] - vSAN Datastore Disk Space Exhaustion Warning\n"
+                    "Total Physical Capacity:   57.60 TB\n"
+                    "Used Physical Space:       48.72 TB (84.58% Utilization - CRITICAL THRESHOLD EXCEEDED)\n"
+                    "Free Physical Space:        8.88 TB\n"
+                    "Mandatory Slack Space Req: 14.40 TB (25.00% Required for Resynchronization / Rebuild)\n"
+                    "SLACK SPACE DEFICIT: -5.52 TB - vSAN Object Resynchronization Throttled!\n"
+                    "\n"
+                    "2026-09-28T09:14:22.184Z esx-node-01.gcve.internal vmkernel: [Storage][vSAN] WARNING: \n"
+                    "    Storage policy 'vSAN Default Storage Policy' (FTT=1, Mirroring) enforced on 190 VMDKs. \n"
+                    "    Capacity multiplier is 2.0x. Actual logical footprint: 24.36 TB * 2.0 = 48.72 TB physical consumed.\n"
+                    "```"
                 ),
                 "diagnostic_steps": [
-                    "Step 1: Inspect VMware HCX appliance diagnostic logs; identify recurring error: `WAN Link MTU Verification Failed: Packet size exceeded MTU limit`.",
-                    "Step 2: Check Cloud Interconnect attachment configuration; observe MTU was configured to default `1500` instead of jumbo frames.",
-                    "Step 3: Run packet ping test over the interconnect link with DF (Don't Fragment) bit set: `ping -s 1472 -M do <gcve_gateway_ip>`; observe 100% packet loss for packets exceeding 1460 bytes.",
-                    "Step 4: Audit on-premises core switch configuration; confirm on-premises switches had jumbo frames enabled, while cloud interconnect interface was truncating packets."
+                    "Step 1: Inspect vCenter vSAN Capacity Overview; identify that 190 migrated VMs were assigned the default storage policy `FTT=1 (RAID-1 Mirroring)`, doubling physical disk consumption to 48.72 TB.",
+                    "Step 2: Review vSAN slack space requirements; confirm that vSAN requires 25% (14.4 TB) of unallocated capacity for object rebalancing and host rebuild operations, leaving usable capacity deeply negative.",
+                    "Step 3: Analyze VM storage contents; discover 8.5 TB of historical database log backups and uncompressed tarballs sitting on high-performance vSAN NVMe datastores.",
+                    "Step 4: Audit cluster node count; confirm a 3-node cluster cannot enable RAID-5 Erasure Coding (which requires a minimum of 4 nodes)."
                 ],
                 "root": (
-                    "Network MTU mismatch between on-premises jumbo frames and the 1500-byte Cloud Interconnect attachment. HCX Geneve "
-                    "tunnel encapsulation overhead pushed packet sizes beyond the interface limit, triggering silent packet drops that collapsed vMotion streams."
+                    "Architectural failure to model vSAN storage physics. The sizing team evaluated raw VMDK size without accounting for the "
+                    "2.0x multiplier of FTT=1 RAID-1 mirroring and the mandatory 25% slack space reservation, leading to datastore exhaustion."
                 ),
                 "remediation_steps": [
-                    "Step 1: Reconfigure the Cloud Interconnect VLAN attachment and Google Cloud VPC to enable Jumbo Frames with an MTU of 8896 bytes.",
-                    "Step 2: Update the VMware HCX Network Profile to validate path MTU automatically prior to initiating migration jobs.",
-                    "Step 3: Execute a single-VM test vMotion during a weekday maintenance window to verify that memory page synchronization sustains 8 Gbps line-rate throughput without packet fragmentation.",
-                    "Step 4: Re-initiate the 60-VM bulk migration during the following weekend window, completing live vMotion transfers in 1 hour and 45 minutes with zero downtime."
+                    "Step 1: Expand the cluster to 4 nodes (adding 1 node instead of 2), enabling the transition from RAID-1 Mirroring (2.0x) to RAID-5 Erasure Coding (1.33x multiplier).",
+                    "Step 2: Reconfigure the vSAN Default Storage Policy to `FTT=1 (RAID-5 Erasure Coding)` across all non-critical workloads, recovering 16.2 TB of physical NVMe storage.",
+                    "Step 3: Offload 8.5 TB of cold database backups and archive tarballs from high-performance vSAN to Google Cloud Storage buckets via Cloud Storage FUSE.",
+                    "Step 4: Establish automated Cloud Monitoring alerts triggering at 70% vSAN datastore utilization to prevent cluster throttling."
                 ],
                 "verify": (
-                    "Verify all 60 ERP VMs are active in the GCVE vCenter inventory. Confirm client workstations communicate with the ERP "
-                    "servers using their original unchanged IP addresses with sub-2ms network latency and zero packet loss."
+                    "Apply RAID-5 storage policy across migrated VMDKs. Confirm in vCenter that physical used storage drops from 48.72 TB to "
+                    "32.4 TB (56.2% capacity utilization), restoring the 25% slack space buffer and eliminating I/O latency spikes."
                 ),
                 "residual": (
-                    "Layer 2 extended networks route default gateway traffic back to the on-premises core router until the gateway is migrated; "
-                    "once all VMs in a VLAN are migrated, the default gateway must be cut over to the GCVE NSX-T router to eliminate hairpin routing."
+                    "RAID-5 erasure coding incurs a slight write amplification penalty compared to RAID-1 mirroring; high-transaction "
+                    "database log volumes (WAL) should retain dedicated RAID-1 mirrored storage policies."
                 ),
                 "diagram": (
-                    "Live vMotion over 1500 MTU Interconnect",
-                    "HCX encapsulation exceeds MTU (1550B)",
-                    "Silent packet drops abort vMotion (42%)",
-                    "Configure Jumbo Frames (MTU 8896) on Interconnect",
-                    "Zero-loss live vMotion, all 60 VMs migrated"
+                    "Deploy 3-node GCVE sized on raw VMDKs",
+                    "FTT-1 Mirror (2x) + 25% slack exhausts vSAN",
+                    "Datastore hits 84.6%; emergency nodes added ($9k/mo)",
+                    "Scale to 4 nodes; convert to RAID-5 (1.33x) + GCS tiering",
+                    "Datastore drops to 56%; slack restored; costs saved"
                 ),
-                "facts": "HCX live vMotion stalled at 42%; Cloud Interconnect had MTU 1500; HCX packets were 1550 bytes; cutover missed.",
-                "inference": "Tunnel encapsulation expands packet size; Jumbo Frames (MTU 8896+) are required to prevent vMotion packet drops.",
-                "expected": "Enabling Jumbo Frames on Cloud Interconnect allows full-speed HCX live vMotion without packet fragmentation."
+                "facts": "3-node GCVE deployed; raw VMDKs filled 48.7 TB under FTT=1; vSAN hit 84.6% (slack deficit); $9k/mo node expansion triggered.",
+                "inference": "vSAN storage physics (FTT multipliers and 25% slack) dictate usable capacity; RAID-5 requires 4 nodes but saves 33% storage.",
+                "expected": "4-node cluster with RAID-5 erasure coding reduces footprint to 56% capacity, maintaining healthy slack space."
             },
             "lab": {
-                "name": "Google Cloud VMware Engine Cluster Sizing and MTU Verification",
+                "name": "Google Cloud VMware Engine (GCVE) Cluster Sizing & vSAN Physics Calculator",
                 "file": "day-075-gcve-sizing.md",
-                "goal": "Build an executable Python GCVE cluster sizing calculator and author an MTU network verification runbook.",
-                "expected": "A complete GCVE architecture document, an executable Python node calculator, and verified MTU testing commands.",
+                "goal": "Author a comprehensive GCVE cluster sizing runbook and build an executable Python vSAN storage physics calculator.",
+                "expected": "A complete GCVE architectural sizing document, an executable Python vSAN calculator, and verified node sizing output.",
                 "mode": "offline architecture specification, shell scripting, and Python development; no cloud resources billed",
-                "prereq": "Day 74 enterprise networking and Day 70 cost governance",
-                "preflight": "Review Google Cloud VMware Engine node specifications and VMware vSAN storage requirements.",
+                "prereq": "Day 74 regional boundaries and Day 71 performance sizing",
+                "preflight": "Review Google Cloud VMware Engine node specifications and VMware vSAN design guides.",
                 "steps": [
-                    "Draft the GCVE architecture blueprint in `day-075-gcve-sizing.md`.",
-                    "Define the Cloud Interconnect jumbo frame configuration command:\n\n```sh\n# Configure Cloud Interconnect attachment with Jumbo Frames (MTU 8896)\ngcloud compute interconnects attachments dedicated update brightloaf-interconnect-vlan \\\n  --mtu=8896 \\\n  --region=us-central1\n```",
-                    "Develop an executable Python GCVE node sizing calculator (`gcve_sizer.py`):\n\n```python\n# gcve_sizer.py\nimport math\n\n# GCVE ve1-standard-72 node specs\nNODE_VCPU = 72\nNODE_RAM_GB = 768\nNODE_STORAGE_TB = 19.2 # Raw NVMe per node\nVSAN_OVERHEAD_PCT = 0.25 # vSAN slack + metadata + RAID-2 (FTT=2)\n\ndef size_gcve_cluster(total_vcpus: int, total_ram_gb: int, total_storage_tb: int, vcpu_oversubscribe: float = 4.0):\n    # Calculate effective vCPUs allowed via oversubscription\n    effective_vcpus_per_node = NODE_VCPU * vcpu_oversubscribe\n    nodes_by_cpu = math.ceil(total_vcpus / effective_vcpus_per_node)\n    \n    # Calculate nodes required by RAM (no oversubscription for production)\n    nodes_by_ram = math.ceil(total_ram_gb / NODE_RAM_GB)\n    \n    # Calculate nodes required by Storage with vSAN overhead\n    effective_storage_per_node = NODE_STORAGE_TB * (1.0 - VSAN_OVERHEAD_PCT)\n    nodes_by_storage = math.ceil(total_storage_tb / effective_storage_per_node)\n    \n    # Production minimum is 3 nodes\n    required_nodes = max(3, nodes_by_cpu, nodes_by_ram, nodes_by_storage)\n    return nodes_by_cpu, nodes_by_ram, nodes_by_storage, required_nodes\n\n# Scenario: 140 VMs, 560 vCPUs, 2,800 GB RAM, 65 TB raw storage\nby_cpu, by_ram, by_stor, total_nodes = size_gcve_cluster(560, 2800, 65, vcpu_oversubscribe=3.0)\n\nprint(f\"Nodes required by CPU:     {by_cpu}\")\nprint(f\"Nodes required by RAM:     {by_ram}\")\nprint(f\"Nodes required by Storage: {by_stor}\")\nprint(f\"Total GCVE Nodes Required: {total_nodes} nodes (ve1-standard-72)\")\nassert total_nodes >= 3, \"Cluster must satisfy 3-node minimum!\"\nprint(\"GCVE Cluster Sizing Calculation Verified Successfully.\")\n```",
-                    "Execute the Python GCVE sizing calculator test:\n\n```sh\npython3 gcve_sizer.py\n```"
+                    "#### Stage 1: Pre-Flight SDDC Scope & Performance Invariants\nDraft the GCVE private cloud requirements in <kbd>day-075-gcve-sizing.md</kbd>. Define CPU overcommit ratios (typically 3:1 for general workloads), RAM reservation (100% committed), and vSAN slack space policies (25% reserved).",
+                    "#### Stage 2: Defining Bare-Metal Node Specifications\nDocument the physical hardware specifications of the `ve1-standard-72` node architecture (<kbd>gcve_node_specs.json</kbd>):\n\n```json\n{\n  \"node_type\": \"ve1-standard-72\",\n  \"physical_cpu_cores\": 72,\n  \"hyperthreads\": 144,\n  \"ram_gb\": 768,\n  \"raw_nvme_storage_tb\": 19.2,\n  \"cluster_minimum_nodes\": 3,\n  \"cluster_maximum_nodes\": 16\n}\n```",
+                    "#### Stage 3: Developing the vSAN Storage Physics & FTT Sizing Calculator in Python\nImplement the vSAN storage thermodynamics calculator (<kbd>gcve_vsan_calculator.py</kbd>):\n\n```python\n# gcve_vsan_calculator.py\n\"\"\"Calculates usable vSAN storage and minimum GCVE node requirements.\"\"\"\nimport math\n\ndef calculate_gcve_cluster(total_vm_storage_tb: float, num_nodes: int, ftt_policy: str = 'RAID1'):\n    node_raw_storage = 19.2  # TB raw NVMe per ve1 node\n    total_raw_storage = num_nodes * node_raw_storage\n    \n    # Storage multipliers\n    multiplier = 2.0 if ftt_policy == 'RAID1' else 1.333  # RAID5 requires 4+ nodes\n    slack_factor = 0.25  # 25% slack space reserved for rebuilds\n    \n    physical_needed = total_vm_storage_tb * multiplier\n    max_safe_physical = total_raw_storage * (1.0 - slack_factor)\n    \n    is_safe = physical_needed <= max_safe_physical\n    utilization_pct = (physical_needed / total_raw_storage) * 100\n    \n    print(f\"CLUSTER SIZING: {num_nodes} Nodes | Policy: {ftt_policy}\")\n    print(f\"Total Raw Storage:       {total_raw_storage:.2f} TB\")\n    print(f\"Physical Space Needed:   {physical_needed:.2f} TB (Multiplier: {multiplier}x)\")\n    print(f\"Max Safe Usable Space:   {max_safe_physical:.2f} TB (75% Limit)\")\n    print(f\"Datastore Utilization:   {utilization_pct:.1f}%\")\n    print(f\"Safe Operational Status: {'HEALTHY [OK]' if is_safe else 'CAPACITY VIOLATION [CRITICAL]'}\")\n    print(\"-\" * 55)\n    return is_safe, utilization_pct\n\nif __name__ == '__main__':\n    # Test 1: 3 Nodes with 28 TB VMDKs on RAID-1 Mirroring (Flawed initial sizing)\n    calculate_gcve_cluster(total_vm_storage_tb=28.0, num_nodes=3, ftt_policy='RAID1')\n    # Test 2: 4 Nodes with 28 TB VMDKs on RAID-5 Erasure Coding (Remediated sizing)\n    calculate_gcve_cluster(total_vm_storage_tb=28.0, num_nodes=4, ftt_policy='RAID5')\n```",
+                    "#### Stage 4: Executing Cluster Node Sizing for Enterprise VM Fleet\nRun the vSAN storage physics calculator to observe the capacity violation on 3 nodes and resolution on 4 nodes:\n\n```sh\npython3 gcve_vsan_calculator.py\n```",
+                    "#### Stage 5: Simulating Storage Capacity Watermark & RAID-5 Policy Transition\nDevelop automated unit tests (<kbd>test_gcve_physics.py</kbd>) verifying that RAID-1 is rejected and RAID-5 is accepted:\n\n```python\n# test_gcve_physics.py\nfrom gcve_vsan_calculator import calculate_gcve_cluster\n\n# 3 nodes with RAID1 must fail\nis_safe_3, util_3 = calculate_gcve_cluster(28.0, 3, 'RAID1')\nassert is_safe_3 is False\nassert util_3 > 80.0\n\n# 4 nodes with RAID5 must succeed\nis_safe_4, util_4 = calculate_gcve_cluster(28.0, 4, 'RAID5')\nassert is_safe_4 is True\nassert util_4 < 60.0\nprint(\"[PASS] vSAN Storage Physics verified: 4 nodes with RAID-5 restores healthy capacity.\")\n```",
+                    "#### Stage 6: Chaos Injection (Simulating Host Hardware Failure & vSAN Rebuild Slack Exhaustion)\nSimulate what happens if 1 node dies in a 3-node cluster that has insufficient slack space:\n\n```sh\npython3 -c \"\nraw_3 = 3 * 19.2\nraw_surviving = 2 * 19.2 # 1 node dead\nused_data = 48.7 # TB\nassert used_data > raw_surviving\nprint('Host Failure Chaos: 2 surviving nodes have 38.4 TB raw space; cannot hold 48.7 TB data!')\nprint('PROVEN: Without 25% slack, a single node hardware glitch causes permanent data unrecoverability!')\n\"\n```",
+                    "#### Stage 7: Triage, Troubleshooting & HCX L2 Network Extension Runbook\nDocument the VMware HCX Layer 2 network extension runbook in <kbd>day-075-gcve-sizing.md</kbd>. Specify gateway IP cutover procedures when migrating the default gateway from on-premises core switches to GCVE NSX-T Tier-1 routers.",
+                    "#### Stage 8: Operational Teardown & Dedicated Cloud Invariant Checklist\nVerify that all GCVE architectural blueprints enforce a minimum 4-node deployment when RAID-5 erasure coding is selected. Confirm that no chargeable cloud resources were provisioned during the offline architectural simulation."
                 ],
                 "verification": (
-                    "Run automated GCVE sizing verification test:\n\n```sh\npython3 -c \"import gcve_sizer; print('GCVE Sizing Engine Test Passed')\"\n```\n\nConfirm output displays `GCVE Cluster Sizing Calculation Verified Successfully`."
+                    "Run automated GCVE sizing verification test suite:\n\n```sh\npython3 gcve_vsan_calculator.py && python3 test_gcve_physics.py\n```\n\nConfirm output displays `Safe Operational Status: HEALTHY [OK]` for 4 nodes with RAID-5 and all unit assertions pass."
                 ),
                 "trouble": (
-                    "If storage node count is unexpectedly high, verify vSAN RAID policy assumptions and deduplication factors."
+                    "If RAID-5 is selected with fewer than 4 nodes in simulation, verify that node count validation enforces the vSAN minimum requirement."
                 ),
-                "cleanup": "No remote cloud resources created; retain scripts and sizing models in local repository.",
-                "accept": "A validated GCVE architecture document, an executable Python node sizing calculator, and verified MTU testing commands."
+                "cleanup": "No remote cloud resources created; retain sizing calculations and runbooks in local repository.",
+                "accept": "A validated GCVE architectural sizing document, an executable Python vSAN calculator, and verified node sizing output."
             }
         }
     ]
