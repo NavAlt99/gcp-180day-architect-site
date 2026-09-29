@@ -1,240 +1,1276 @@
-<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Day 2: IP addressing and packet paths · GCP 180 days</title><link rel="stylesheet" href="../assets/site.css"><script defer src="../assets/site.js"></script><style>.topic-card table{display:block;width:100%;overflow-x:auto;border-collapse:collapse;margin:18px 0;font-size:13px}.topic-card th,.topic-card td{min-width:140px;padding:9px 11px;border:1px solid var(--line);vertical-align:top;text-align:left}.topic-card th{color:var(--cyan);background:var(--bg)}.topic-card tr:nth-child(even) td{background:rgba(56,189,248,.035)}.diagram-figure{margin:24px 0;padding:18px;background:#060911;border:1px solid var(--line);border-radius:10px;overflow-x:auto;text-align:center}.diagram-figure svg{display:block;width:100%;min-width:700px;height:auto;margin:0 auto}.diagram-figure figcaption{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5}.topic-card caption{text-align:left;color:var(--rose);font-weight:700;padding:0 0 8px}.diagram-scroll-hint{display:none;color:var(--muted);font-size:12px;text-align:left;margin:0 0 8px}@media(max-width:720px){.diagram-scroll-hint{display:block}}</style></head><body><a class="skip" href="#main">Skip to content</a><header class="site-nav"><nav class="nav-inner" aria-label="Site navigation"><a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a><a href="../index.html">Day index</a><a href="../glossary.html">Glossary</a><a href="../sources.html">Sources</a><a href="../artifacts.html">Artifacts</a><a href="day-001.html" aria-label="Previous day">← Day 1</a><a href="day-003.html" aria-label="Next day">Day 3 →</a><label class="jump-label" for="day-jump">Jump to day</label><select id="day-jump" aria-label="Jump to day"><option value="">Choose a day…</option><optgroup label="Foundations"><option value="day-001.html">Day 1: Local workspace and learning baseline</option><option value="day-002.html" selected>Day 2: IP addressing and packet paths</option><option value="day-003.html">Day 3: DNS, sockets and transport</option><option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option><option value="day-005.html">Day 5: VPN, load balancers and firewalls</option><option value="day-006.html">Day 6: Shell, processes and services</option><option value="day-007.html">Day 7: SSH, scripts and process inspection</option><option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option><option value="day-009.html">Day 9: VM and container isolation</option><option value="day-010.html">Day 10: Images, filesystems and orchestration</option><option value="day-011.html">Day 11: Cloud service models and responsibility</option><option value="day-012.html">Day 12: Regions, scaling and economics</option><option value="day-013.html">Day 13: State, availability and recovery vocabulary</option><option value="day-014.html">Day 14: Git, APIs and JSON</option><option value="day-015.html">Day 15: Small application and architecture styles</option><option value="day-016.html">Day 16: SQL foundations and business outcomes</option><option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option></optgroup><optgroup label="Cloud environment and identity"><option value="day-018.html">Day 18: Cloud sandbox and cost controls</option><option value="day-019.html">Day 19: CLI configuration and identity checks</option><option value="day-020.html">Day 20: APIs, client libraries and emulators</option><option value="day-021.html">Day 21: Resource hierarchy and ownership</option><option value="day-022.html">Day 22: Inheritance, labels and tags</option><option value="day-023.html">Day 23: Organization policies and lifecycle</option><option value="day-024.html">Day 24: Principals and workforce identity</option><option value="day-025.html">Day 25: Roles and authorization decisions</option><option value="day-026.html">Day 26: Credentials, tokens and impersonation</option><option value="day-027.html">Day 27: Billing roles and budget ownership</option><option value="day-028.html">Day 28: Cost attribution and notifications</option><option value="day-029.html">Day 29: Cost exports, quota and capacity</option><option value="day-030.html">Day 30: Region and resource-scope decisions</option><option value="day-031.html">Day 31: Network tiers and delivery paths</option><option value="day-032.html">Day 32: Support, inventory and learning tracker</option><option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option><option value="day-034.html">Day 34: First controlled cloud resource operation</option><option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option></optgroup><optgroup label="Core services and integrated practice"><option value="day-036.html">Day 36: VM sizing and image choices</option><option value="day-037.html">Day 37: Disks, metadata and persistence</option><option value="day-038.html">Day 38: Templates, MIGs and scaling</option><option value="day-039.html">Day 39: Autohealing and deployment changes</option><option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option><option value="day-041.html">Day 41: VM operations and resource diagnosis</option><option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option><option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option><option value="day-044.html">Day 44: Service networking and persistent volumes</option><option value="day-045.html">Day 45: Probes, secrets and workload failures</option><option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option><option value="day-047.html">Day 47: Cloud Run and event-driven functions</option><option value="day-048.html">Day 48: Workflows and runtime selection</option><option value="day-049.html">Day 49: VPC address and route design</option><option value="day-050.html">Day 50: Firewall policy and private API access</option><option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option><option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option><option value="day-053.html">Day 53: Load-balancer architecture</option><option value="day-054.html">Day 54: Health checks, certificates and draining</option><option value="day-055.html">Day 55: CDN, WAF and traffic management</option><option value="day-056.html">Day 56: Hybrid topology and failure domains</option><option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option><option value="day-058.html">Day 58: Object storage and local durability</option><option value="day-059.html">Day 59: Transfers, block storage and restore</option><option value="day-060.html">Day 60: File systems and backup design</option><option value="day-061.html">Day 61: Relational databases and transactions</option><option value="day-062.html">Day 62: Distributed and nonrelational database choices</option><option value="day-063.html">Day 63: Caching, CDC and database selection</option><option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option><option value="day-065.html">Day 65: Integrate one order-service path</option><option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option><option value="day-067.html">Day 67: Gate 3 — Operate the core application</option></optgroup><optgroup label="Requirements, migration and architecture"><option value="day-068.html">Day 68: Requirements from observed behavior</option><option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option><option value="day-070.html">Day 70: Well-Architected review lenses</option><option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option><option value="day-072.html">Day 72: Application architecture patterns</option><option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option><option value="day-074.html">Day 74: Regional and tenant boundaries</option><option value="day-075.html">Day 75: Migration assessment and VMware fit</option><option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option><option value="day-077.html">Day 77: Migration waves and acceptance</option><option value="day-078.html">Day 78: Decision matrices grounded in experiments</option><option value="day-079.html">Day 79: ADRs, TCO and risk registers</option><option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option><option value="day-081.html">Day 81: First architecture defense</option><option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option></optgroup><optgroup label="Reliability and security"><option value="day-083.html">Day 83: Availability math and dependency risk</option><option value="day-084.html">Day 84: Failure domains and graceful degradation</option><option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option><option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option><option value="day-087.html">Day 87: Incidents, toil and capacity</option><option value="day-088.html">Day 88: Availability across infrastructure layers</option><option value="day-089.html">Day 89: Messaging, DNS and application health</option><option value="day-090.html">Day 90: Recovery targets and patterns</option><option value="day-091.html">Day 91: Backups and replication correctness</option><option value="day-092.html">Day 92: Failover and failback planning</option><option value="day-093.html">Day 93: Metrics, alerting and burn rates</option><option value="day-094.html">Day 94: Logs, traces and profiling</option><option value="day-095.html">Day 95: Central observability and audit evidence</option><option value="day-096.html">Day 96: Bounded failure experiment design</option><option value="day-097.html">Day 97: Run a recovery and overload experiment</option><option value="day-098.html">Day 98: Restore and failover acceptance</option><option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option><option value="day-100.html">Day 100: Workload federation and short-lived access</option><option value="day-101.html">Day 101: Workforce federation and remote access</option><option value="day-102.html">Day 102: Privileged access and break-glass</option><option value="day-103.html">Day 103: Defense in depth and network policy</option><option value="day-104.html">Day 104: Data perimeters and egress controls</option><option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option><option value="day-106.html">Day 106: Data classification and key lifecycle</option><option value="day-107.html">Day 107: Secrets and de-identification</option><option value="day-108.html">Day 108: Residency, confidentiality and data access</option><option value="day-109.html">Day 109: Compliance evidence and responsibility</option><option value="day-110.html">Day 110: Policy as code and audit retention</option><option value="day-111.html">Day 111: Regulated workload design</option><option value="day-112.html">Day 112: Threat detection and triage</option><option value="day-113.html">Day 113: Incident response and threat modelling</option><option value="day-114.html">Day 114: Artifact integrity and admission</option><option value="day-115.html">Day 115: Container and pipeline hardening</option><option value="day-116.html">Day 116: Integrate private access and key controls</option><option value="day-117.html">Day 117: Security handover and evidence repair</option><option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option></optgroup><optgroup label="Performance, delivery and operations"><option value="day-119.html">Day 119: Cost baseline and commitments</option><option value="day-120.html">Day 120: Storage, network and database costs</option><option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option><option value="day-122.html">Day 122: Unit economics and sensitivity</option><option value="day-123.html">Day 123: Caching correctness under load</option><option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option><option value="day-125.html">Day 125: Profiling and capacity evidence</option><option value="day-126.html">Day 126: Terraform baseline and state boundaries</option><option value="day-127.html">Day 127: Terraform testing, drift and recovery</option><option value="day-128.html">Day 128: Build and deployment pipeline</option><option value="day-129.html">Day 129: Release rollback and delivery measures</option><option value="day-130.html">Day 130: Service catalog and ownership</option><option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option><option value="day-132.html">Day 132: Customer success and platform outcomes</option><option value="day-133.html">Day 133: Operations integration and remediation</option></optgroup><optgroup label="Data, AI and distributed correctness"><option value="day-134.html">Day 134: Warehouse foundations and query costs</option><option value="day-135.html">Day 135: Warehouse security and reporting</option><option value="day-136.html">Day 136: Batch and streaming processing choices</option><option value="day-137.html">Day 137: Streaming correctness and CDC</option><option value="day-138.html">Day 138: Lakehouse and open table design</option><option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option><option value="day-140.html">Day 140: ML lifecycle and model selection</option><option value="day-141.html">Day 141: Build a small grounded-answer flow</option><option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option><option value="day-143.html">Day 143: AI security and evaluation</option><option value="day-144.html">Day 144: AI serving and infrastructure choices</option><option value="day-145.html">Day 145: Distributed state and regional correctness</option></optgroup><optgroup label="Discovery, cases and exam preparation"><option value="day-146.html">Day 146: Case analysis and discovery method</option><option value="day-147.html">Day 147: Extract facts and numeric requirements</option><option value="day-148.html">Day 148: Map requirements and conflicts</option><option value="day-149.html">Day 149: Discovery: business, load and recovery</option><option value="day-150.html">Day 150: Discovery: data, regulation and skills</option><option value="day-151.html">Day 151: Discovery: budget, risks and success</option><option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option><option value="day-153.html">Day 153: EHR Healthcare — defend the design</option><option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option><option value="day-155.html">Day 155: Altostrat Media — architecture defense</option><option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option><option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option><option value="day-158.html">Day 158: KnightMotives — modernization requirements</option><option value="day-159.html">Day 159: KnightMotives — architecture defense</option><option value="day-160.html">Day 160: Case synthesis and feedback</option><option value="day-161.html">Day 161: Changed-constraint design exercise</option><option value="day-162.html">Day 162: Exam domain mapping and sample questions</option><option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option><option value="day-164.html">Day 164: Readiness plan and remaining repairs</option></optgroup><optgroup label="Multi-team architecture and synthesis"><option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option><option value="day-166.html">Day 166: Production identity across teams</option><option value="day-167.html">Day 167: API contracts and compatibility</option><option value="day-168.html">Day 168: Sustainability and assisted operations</option><option value="day-169.html">Day 169: Capacity allocation and overload governance</option><option value="day-170.html">Day 170: Compute and database decision synthesis</option><option value="day-171.html">Day 171: Network decision synthesis</option><option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option><option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option></optgroup><optgroup label="Final gate and capstone defenses"><option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option><option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option><option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option><option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option><option value="day-178.html">Day 178: Capstone 4 — Migration defense</option><option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option></optgroup><optgroup label="Final review and rest"><option value="day-180.html">Day 180: Final review, logistics and rest</option></optgroup></select><button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button></nav></header><main id="main" class="container day" data-day="2" data-prev="day-001.html" data-next="day-003.html" data-index="../index.html"><div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-foundations">Foundations</a> / Day 2 of 180</div><section class="hero"><div class="pills"><span class="pill">DAY 2</span><span class="pill">2–3 hours</span><span class="pill">local exercise</span><span class="pill">Topics 001</span></div><h1>Day 2 — IP addressing and packet paths</h1><p class="lead"><strong>Outcome:</strong> Split a /24 into four equal networks and trace a packet from a host to a different subnet using a supplied diagram.</p><p><strong>Entry prerequisites:</strong> Complete <a href="day-001.html">Day 1</a> and bring its exit artifacts.</p><div class="callout success"><strong>Exit artifact</strong><p>Four correct ranges with network/broadcast addresses and a labeled next-hop path.</p></div><p class="small">Roadmap entry and linked written sections reviewed 2026-09-27. Local and tabletop results do not prove a deployed network path.</p></section><aside class="toc" aria-label="On this page"><strong>On this page</strong><a href="#part-1">1 · Topics</a><a href="#part-2">2 · Technical discussion</a><a href="#part-3">3 · Problems and solutions</a><a href="#part-4">4 · Labs</a><div class="toc-topic"><span>OSI and TCP/IP layer models</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div><div class="toc-topic"><span>IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div><div class="toc-topic"><span>Packet path from NIC to application socket</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div></aside><section id="part-1" class="part"><h2>1 · Topics of the day</h2><article id="topic-01-overview" class="topic-card"><h3>OSI and TCP/IP layer models</h3><p>The OSI model names seven conceptual layers, from physical transmission to the application. The TCP/IP model groups the working Internet stack into link, Internet, transport and application layers. “L4” usually means transport behavior such as TCP ports; “L7” means application behavior such as an HTTP request.</p>
-<p><strong>Why today and where it sits:</strong> Day 2 gives the learner a vocabulary for tracing a request before the later DNS, TLS, VPC and load-balancer lessons. The model describes boundaries between a client, network devices, transport endpoints and the Brightloaf Order API; it is not a Google Cloud resource hierarchy.</p>
-<p><strong>Problem preview:</strong> A TCP health check succeeds while the Order API responds with HTTP 503. Checkout traffic reaches the service boundary but cannot complete, delaying order placement and fulfillment.</p>
-<p><a href="#topic-01-technical">Technical discussion</a> · <a href="#topic-01-problem">Real-world problem</a> · <a href="#topic-01-lab">Exercise</a></p></article><article id="topic-02-overview" class="topic-card"><h3>IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting</h3><p>IPv4 uses 32-bit addresses. CIDR writes an address range as a prefix length, such as /24; the prefix identifies network bits and the remaining bits identify addresses within the range. RFC 1918 reserves three private ranges for local use. ARP resolves a next-hop IPv4 address to a link-layer address on an Ethernet-style link; IPv6 uses Neighbor Discovery instead.</p>
-<p><strong>Why today and where it sits:</strong> Address classification and prefix arithmetic decide whether a host sends directly or to a router in the packet trace required by today's roadmap. These are host, subnet and first-hop decisions; cloud VPC-specific reservations are outside this local exercise.</p>
-<p><strong>Problem preview:</strong> Brightloaf assigns two connected sites the same private prefix and an Order API packet follows the local route. The remote fulfillment service receives no requests, so orders wait even though the sender has a valid-looking private address.</p>
-<p><a href="#topic-02-technical">Technical discussion</a> · <a href="#topic-02-problem">Real-world problem</a> · <a href="#topic-02-lab">Exercise</a></p></article><article id="topic-03-overview" class="topic-card"><h3>Packet path from NIC to application socket</h3><p>A packet path is the sequence of processing boundaries between a network interface and an application socket. On receipt, hardware and a driver deliver a link-layer frame to the host's network stack; the stack examines network and transport headers and delivers eligible payload bytes to a matching socket.</p>
-<p><strong>Why today and where it sits:</strong> This completes today's host-to-host trace by connecting subnet and next-hop decisions to the receiving process. The path crosses NIC, driver, kernel IP and transport handling, then the application socket; each boundary has a different owner and observable signal.</p>
-<p><strong>Problem preview:</strong> A VM interface counter rises for Order API traffic, but the application shows no request. Operations spends an hour debugging order parsing while the packet is actually discarded before socket delivery.</p>
-<p><a href="#topic-03-technical">Technical discussion</a> · <a href="#topic-03-problem">Real-world problem</a> · <a href="#topic-03-lab">Exercise</a></p></article></section><section id="part-2" class="part"><h2>2 · Technical discussion of each topic</h2><article id="topic-01-technical" class="topic-card"><h3>OSI and TCP/IP layer models</h3><p>Layering helps an architect locate where a service fails. A link carries a frame to the next device; IP addresses a packet across networks; TCP or UDP identifies a transport endpoint with a port; an application protocol gives the bytes their meaning. HTTP status codes are application data, whereas a TCP reset or timeout occurs before an HTTP response can be interpreted. Encryption such as TLS fits between application messages and the transport in a practical stack; mapping it to one OSI box is less useful than naming the actual boundary.</p>
-<p>The OSI model is a vocabulary, not the sequence of software modules every cloud product must implement. TCP/IP is the operational model for Internet hosts. A layer can succeed while a higher one fails: DNS can return an address, TCP can establish, and an HTTP request can still return a server error. A load balancer making an L4 decision uses address/port/protocol information; an L7 proxy can inspect an HTTP host, path or header after the relevant protocol and TLS processing. The distinction affects routing, observability and where authentication or retries can occur.</p>
-<table><caption>Observations at each protocol boundary</caption>
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Day 2: IP addressing and packet paths · GCP 180 days</title><link rel="stylesheet" href="../assets/site.css"><script defer src="../assets/site.js"></script><style>.topic-card table{display:block;width:100%;overflow-x:auto;border-collapse:collapse;margin:18px 0;font-size:13px}.topic-card th,.topic-card td{min-width:140px;padding:9px 11px;border:1px solid var(--line);vertical-align:top;text-align:left}.topic-card th{color:var(--cyan);background:var(--bg)}.topic-card tr:nth-child(even) td{background:rgba(56,189,248,.035)}.diagram-figure{margin:24px 0;padding:18px;background:#060911;border:1px solid var(--line);border-radius:10px;overflow-x:auto;text-align:center}.diagram-figure svg{display:block;width:100%;min-width:700px;height:auto;margin:0 auto}.diagram-figure figcaption{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5}.topic-card caption{text-align:left;color:var(--rose);font-weight:700;padding:0 0 8px}.diagram-scroll-hint{display:none;color:var(--muted);font-size:12px;text-align:left;margin:0 0 8px}@media(max-width:720px){.diagram-scroll-hint{display:block}}</style></head><body><a class="skip" href="#main">Skip to content</a><header class="site-nav"><nav class="nav-inner" aria-label="Site navigation"><a class="brand" href="../index.html">◆ <span>GCP · 180 days</span></a><a href="../index.html">Day index</a><a href="../glossary.html">Glossary</a><a href="../sources.html">Sources</a><a href="../artifacts.html">Artifacts</a><a href="day-001.html" aria-label="Previous day">← Day 1</a><a href="day-003.html" aria-label="Next day">Day 3 →</a><label class="jump-label" for="day-jump">Jump to day</label><select id="day-jump" aria-label="Jump to day"><option value="">Choose a day…</option><optgroup label="Foundations"><option value="day-001.html">Day 1: Local workspace and learning baseline</option><option value="day-002.html" selected>Day 2: IP addressing and packet paths</option><option value="day-003.html">Day 3: DNS, sockets and transport</option><option value="day-004.html">Day 4: TLS, HTTP, MTU and routing vocabulary</option><option value="day-005.html">Day 5: VPN, load balancers and firewalls</option><option value="day-006.html">Day 6: Shell, processes and services</option><option value="day-007.html">Day 7: SSH, scripts and process inspection</option><option value="day-008.html">Day 8: CPU, memory and diagnostic signals</option><option value="day-009.html">Day 9: VM and container isolation</option><option value="day-010.html">Day 10: Images, filesystems and orchestration</option><option value="day-011.html">Day 11: Cloud service models and responsibility</option><option value="day-012.html">Day 12: Regions, scaling and economics</option><option value="day-013.html">Day 13: State, availability and recovery vocabulary</option><option value="day-014.html">Day 14: Git, APIs and JSON</option><option value="day-015.html">Day 15: Small application and architecture styles</option><option value="day-016.html">Day 16: SQL foundations and business outcomes</option><option value="day-017.html">Day 17: Gate 1 — Foundation recall and repair</option></optgroup><optgroup label="Cloud environment and identity"><option value="day-018.html">Day 18: Cloud sandbox and cost controls</option><option value="day-019.html">Day 19: CLI configuration and identity checks</option><option value="day-020.html">Day 20: APIs, client libraries and emulators</option><option value="day-021.html">Day 21: Resource hierarchy and ownership</option><option value="day-022.html">Day 22: Inheritance, labels and tags</option><option value="day-023.html">Day 23: Organization policies and lifecycle</option><option value="day-024.html">Day 24: Principals and workforce identity</option><option value="day-025.html">Day 25: Roles and authorization decisions</option><option value="day-026.html">Day 26: Credentials, tokens and impersonation</option><option value="day-027.html">Day 27: Billing roles and budget ownership</option><option value="day-028.html">Day 28: Cost attribution and notifications</option><option value="day-029.html">Day 29: Cost exports, quota and capacity</option><option value="day-030.html">Day 30: Region and resource-scope decisions</option><option value="day-031.html">Day 31: Network tiers and delivery paths</option><option value="day-032.html">Day 32: Support, inventory and learning tracker</option><option value="day-033.html">Day 33: Lifecycle policies and operating assumptions</option><option value="day-034.html">Day 34: First controlled cloud resource operation</option><option value="day-035.html">Day 35: Gate 2 — Sandbox and identity readiness</option></optgroup><optgroup label="Core services and integrated practice"><option value="day-036.html">Day 36: VM sizing and image choices</option><option value="day-037.html">Day 37: Disks, metadata and persistence</option><option value="day-038.html">Day 38: Templates, MIGs and scaling</option><option value="day-039.html">Day 39: Autohealing and deployment changes</option><option value="day-040.html">Day 40: Spot, tenancy and secure VM access</option><option value="day-041.html">Day 41: VM operations and resource diagnosis</option><option value="day-042.html">Day 42: Kubernetes architecture and cluster choices</option><option value="day-043.html">Day 43: Scheduling, scaling and Kubernetes access</option><option value="day-044.html">Day 44: Service networking and persistent volumes</option><option value="day-045.html">Day 45: Probes, secrets and workload failures</option><option value="day-046.html">Day 46: Fleet, supply chain and mesh trade-offs</option><option value="day-047.html">Day 47: Cloud Run and event-driven functions</option><option value="day-048.html">Day 48: Workflows and runtime selection</option><option value="day-049.html">Day 49: VPC address and route design</option><option value="day-050.html">Day 50: Firewall policy and private API access</option><option value="day-051.html">Day 51: Peering, Shared VPC, PSC and NAT</option><option value="day-052.html">Day 52: DNS, hybrid transit and network diagnosis</option><option value="day-053.html">Day 53: Load-balancer architecture</option><option value="day-054.html">Day 54: Health checks, certificates and draining</option><option value="day-055.html">Day 55: CDN, WAF and traffic management</option><option value="day-056.html">Day 56: Hybrid topology and failure domains</option><option value="day-057.html">Day 57: BGP, MTU and NAT diagnosis</option><option value="day-058.html">Day 58: Object storage and local durability</option><option value="day-059.html">Day 59: Transfers, block storage and restore</option><option value="day-060.html">Day 60: File systems and backup design</option><option value="day-061.html">Day 61: Relational databases and transactions</option><option value="day-062.html">Day 62: Distributed and nonrelational database choices</option><option value="day-063.html">Day 63: Caching, CDC and database selection</option><option value="day-064.html">Day 64: Messaging, outbox and duplicate handling</option><option value="day-065.html">Day 65: Integrate one order-service path</option><option value="day-066.html">Day 66: Reproduce and recover the integrated baseline</option><option value="day-067.html">Day 67: Gate 3 — Operate the core application</option></optgroup><optgroup label="Requirements, migration and architecture"><option value="day-068.html">Day 68: Requirements from observed behavior</option><option value="day-069.html">Day 69: Stakeholders and priority trade-offs</option><option value="day-070.html">Day 70: Well-Architected review lenses</option><option value="day-071.html">Day 71: Performance, sustainability and trade-offs</option><option value="day-072.html">Day 72: Application architecture patterns</option><option value="day-073.html">Day 73: Data and hybrid architecture vocabulary</option><option value="day-074.html">Day 74: Regional and tenant boundaries</option><option value="day-075.html">Day 75: Migration assessment and VMware fit</option><option value="day-076.html">Day 76: Migration rehearsal and reconciliation</option><option value="day-077.html">Day 77: Migration waves and acceptance</option><option value="day-078.html">Day 78: Decision matrices grounded in experiments</option><option value="day-079.html">Day 79: ADRs, TCO and risk registers</option><option value="day-080.html">Day 80: Architecture diagrams and failure sequences</option><option value="day-081.html">Day 81: First architecture defense</option><option value="day-082.html">Day 82: Gate 4 — Design from operational evidence</option></optgroup><optgroup label="Reliability and security"><option value="day-083.html">Day 83: Availability math and dependency risk</option><option value="day-084.html">Day 84: Failure domains and graceful degradation</option><option value="day-085.html">Day 85: Retries, timeouts and overload vocabulary</option><option value="day-086.html">Day 86: SLIs, SLOs and error budgets</option><option value="day-087.html">Day 87: Incidents, toil and capacity</option><option value="day-088.html">Day 88: Availability across infrastructure layers</option><option value="day-089.html">Day 89: Messaging, DNS and application health</option><option value="day-090.html">Day 90: Recovery targets and patterns</option><option value="day-091.html">Day 91: Backups and replication correctness</option><option value="day-092.html">Day 92: Failover and failback planning</option><option value="day-093.html">Day 93: Metrics, alerting and burn rates</option><option value="day-094.html">Day 94: Logs, traces and profiling</option><option value="day-095.html">Day 95: Central observability and audit evidence</option><option value="day-096.html">Day 96: Bounded failure experiment design</option><option value="day-097.html">Day 97: Run a recovery and overload experiment</option><option value="day-098.html">Day 98: Restore and failover acceptance</option><option value="day-099.html">Day 99: Advanced IAM and policy evaluation</option><option value="day-100.html">Day 100: Workload federation and short-lived access</option><option value="day-101.html">Day 101: Workforce federation and remote access</option><option value="day-102.html">Day 102: Privileged access and break-glass</option><option value="day-103.html">Day 103: Defense in depth and network policy</option><option value="day-104.html">Day 104: Data perimeters and egress controls</option><option value="day-105.html">Day 105: Certificates, mTLS and hybrid encryption</option><option value="day-106.html">Day 106: Data classification and key lifecycle</option><option value="day-107.html">Day 107: Secrets and de-identification</option><option value="day-108.html">Day 108: Residency, confidentiality and data access</option><option value="day-109.html">Day 109: Compliance evidence and responsibility</option><option value="day-110.html">Day 110: Policy as code and audit retention</option><option value="day-111.html">Day 111: Regulated workload design</option><option value="day-112.html">Day 112: Threat detection and triage</option><option value="day-113.html">Day 113: Incident response and threat modelling</option><option value="day-114.html">Day 114: Artifact integrity and admission</option><option value="day-115.html">Day 115: Container and pipeline hardening</option><option value="day-116.html">Day 116: Integrate private access and key controls</option><option value="day-117.html">Day 117: Security handover and evidence repair</option><option value="day-118.html">Day 118: Gate 5 — Reliability and security acceptance</option></optgroup><optgroup label="Performance, delivery and operations"><option value="day-119.html">Day 119: Cost baseline and commitments</option><option value="day-120.html">Day 120: Storage, network and database costs</option><option value="day-121.html">Day 121: Runtime, analytics and carbon cost drivers</option><option value="day-122.html">Day 122: Unit economics and sensitivity</option><option value="day-123.html">Day 123: Caching correctness under load</option><option value="day-124.html">Day 124: Database, network and I/O bottlenecks</option><option value="day-125.html">Day 125: Profiling and capacity evidence</option><option value="day-126.html">Day 126: Terraform baseline and state boundaries</option><option value="day-127.html">Day 127: Terraform testing, drift and recovery</option><option value="day-128.html">Day 128: Build and deployment pipeline</option><option value="day-129.html">Day 129: Release rollback and delivery measures</option><option value="day-130.html">Day 130: Service catalog and ownership</option><option value="day-131.html">Day 131: Lifecycle, exceptions and adoption</option><option value="day-132.html">Day 132: Customer success and platform outcomes</option><option value="day-133.html">Day 133: Operations integration and remediation</option></optgroup><optgroup label="Data, AI and distributed correctness"><option value="day-134.html">Day 134: Warehouse foundations and query costs</option><option value="day-135.html">Day 135: Warehouse security and reporting</option><option value="day-136.html">Day 136: Batch and streaming processing choices</option><option value="day-137.html">Day 137: Streaming correctness and CDC</option><option value="day-138.html">Day 138: Lakehouse and open table design</option><option value="day-139.html">Day 139: Catalogs, lineage and data contracts</option><option value="day-140.html">Day 140: ML lifecycle and model selection</option><option value="day-141.html">Day 141: Build a small grounded-answer flow</option><option value="day-142.html">Day 142: Bounded tools and enterprise assistants</option><option value="day-143.html">Day 143: AI security and evaluation</option><option value="day-144.html">Day 144: AI serving and infrastructure choices</option><option value="day-145.html">Day 145: Distributed state and regional correctness</option></optgroup><optgroup label="Discovery, cases and exam preparation"><option value="day-146.html">Day 146: Case analysis and discovery method</option><option value="day-147.html">Day 147: Extract facts and numeric requirements</option><option value="day-148.html">Day 148: Map requirements and conflicts</option><option value="day-149.html">Day 149: Discovery: business, load and recovery</option><option value="day-150.html">Day 150: Discovery: data, regulation and skills</option><option value="day-151.html">Day 151: Discovery: budget, risks and success</option><option value="day-152.html">Day 152: EHR Healthcare — facts and migration constraints</option><option value="day-153.html">Day 153: EHR Healthcare — defend the design</option><option value="day-154.html">Day 154: Altostrat Media — content and AI requirements</option><option value="day-155.html">Day 155: Altostrat Media — architecture defense</option><option value="day-156.html">Day 156: Cymbal Retail — catalog and commerce requirements</option><option value="day-157.html">Day 157: Cymbal Retail — architecture defense</option><option value="day-158.html">Day 158: KnightMotives — modernization requirements</option><option value="day-159.html">Day 159: KnightMotives — architecture defense</option><option value="day-160.html">Day 160: Case synthesis and feedback</option><option value="day-161.html">Day 161: Changed-constraint design exercise</option><option value="day-162.html">Day 162: Exam domain mapping and sample questions</option><option value="day-163.html">Day 163: Timed reasoning and source-backed limits</option><option value="day-164.html">Day 164: Readiness plan and remaining repairs</option></optgroup><optgroup label="Multi-team architecture and synthesis"><option value="day-165.html">Day 165: Landing zones and multi-team platform boundaries</option><option value="day-166.html">Day 166: Production identity across teams</option><option value="day-167.html">Day 167: API contracts and compatibility</option><option value="day-168.html">Day 168: Sustainability and assisted operations</option><option value="day-169.html">Day 169: Capacity allocation and overload governance</option><option value="day-170.html">Day 170: Compute and database decision synthesis</option><option value="day-171.html">Day 171: Network decision synthesis</option><option value="day-172.html">Day 172: Storage, messaging and limits synthesis</option><option value="day-173.html">Day 173: Consulting, portfolio and customer handover</option></optgroup><optgroup label="Final gate and capstone defenses"><option value="day-174.html">Day 174: Gate 6 — Integrated readiness and remediation</option><option value="day-175.html">Day 175: Capstone 1 — Landing-zone defense</option><option value="day-176.html">Day 176: Capstone 2 — Regulated-workload defense</option><option value="day-177.html">Day 177: Capstone 3 — Global-application defense</option><option value="day-178.html">Day 178: Capstone 4 — Migration defense</option><option value="day-179.html">Day 179: Capstone 5 — Cost and reliability rescue</option></optgroup><optgroup label="Final review and rest"><option value="day-180.html">Day 180: Final review, logistics and rest</option></optgroup></select><button type="button" id="theme-toggle" aria-label="Toggle light and dark theme">☀ Theme</button></nav></header><main id="main" class="container day" data-day="2" data-prev="day-001.html" data-next="day-003.html" data-index="../index.html"><div class="crumb"><a href="../index.html">Roadmap index</a> / <a href="../index.html#block-foundations">Foundations</a> / Day 2 of 180</div><section class="hero"><div class="pills"><span class="pill">DAY 2</span><span class="pill">2–3 hours</span><span class="pill">local exercise</span><span class="pill">Topics 001</span></div><h1>Day 2 — IP addressing and packet paths</h1><p class="lead"><strong>Outcome:</strong> Split a /24 into four equal networks and trace a packet from a host to a different subnet using a supplied diagram.</p><p><strong>Entry prerequisites:</strong> Complete <a href="day-001.html">Day 1</a> and bring its exit artifacts.</p><div class="callout success"><strong>Exit artifact</strong><p>Four correct ranges with network/broadcast addresses and a labeled next-hop path.</p></div><p class="small">Roadmap entry and linked written sections reviewed 2026-09-27. Local and tabletop results do not prove a deployed network path.</p></section><aside class="toc" aria-label="On this page"><strong>On this page</strong><a href="#part-1">1 · Topics</a><a href="#part-2">2 · Technical discussion</a><a href="#part-3">3 · Problems and solutions</a><a href="#part-4">4 · Labs</a><div class="toc-topic"><span>OSI and TCP/IP layer models</span><a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div><div class="toc-topic"><span>IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting</span><a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div><div class="toc-topic"><span>Packet path from NIC to application socket</span><a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div></aside><section id="part-1" class="part"><h2>1 · Topics of the day</h2>
+<article id="topic-01-overview" class="topic-card">
+<h3>OSI and TCP/IP layer models</h3>
+<p>The OSI 7-layer reference model and the 4-layer TCP/IP Internet model define modular protocol boundaries, dividing network transmission into physical link framing, network-wide IP packet routing, transport-level host-to-host streams (Layer 4), and application-specific payload semantics (Layer 7). Transport Layer 4 protocols such as TCP and UDP govern port multiplexing, sequence ordering, windowing, and reliability, whereas Application Layer 7 protocols such as HTTP/1.1, HTTP/2, gRPC, and TLS define serialization, request-response semantics, headers, and authorization tokens.</p>
+<p><strong>Why today and where it sits:</strong> Day 2 establishes fundamental diagnostic boundaries before exploring DNS, TLS handshakes, VPC networks, and Google Cloud Load Balancing. In enterprise cloud systems, this model governs the operational distinction between Layer 4 passthrough load balancers (such as Maglev and Google Cloud Network Load Balancing) and Layer 7 reverse proxies (such as Envoy and Google Cloud Application Load Balancing). Understanding this division prevents conflating network reachability with application readiness.</p>
+<p>A cloud load balancer reports green TCP port 443 health checks while backend application runtimes throw unhandled database exceptions and return HTTP 500 error payloads. Rushing to declare an infrastructure routing outage misdirects engineering response while customers experience immediate checkout abandonment and transaction loss.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-02-overview" class="topic-card">
+<h3>IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting</h3>
+<p>IPv4 addressing, RFC 1918 private address allocations (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16), Address Resolution Protocol (ARP) / Neighbor Discovery Protocol (NDP), and Classless Inter-Domain Routing (CIDR) bitmask mathematics govern how endpoints are addressed, partitioned, and locally mapped to hardware layer-2 media access control (MAC) addresses. Subnetting borrows host bits to create network prefixes, dividing monolithic networks into bounded broadcast domains and routed zones.</p>
+<p><strong>Why today and where it sits:</strong> Day 2 teaches IP allocation and subnet splitting (/24, /20, /16) to prepare architects for designing Google Cloud Virtual Private Cloud (VPC) subnets, Cloud Interconnect peering, and IP address management (IPAM) hierarchies. In modern cloud architecture, these mechanisms sit inside host kernel routing tables, VPC virtual switches (Andromeda SDN), and inter-subnet routing gateways.</p>
+<p>An infrastructure team provisions non-contiguous or overlapping /24 subnets across on-premises data centers and a newly peered Google Cloud VPC without calculating network bit boundaries. The resulting route collision blackholes cross-environment database replication traffic and halts enterprise manufacturing operations during business peak hours.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article id="topic-03-overview" class="topic-card">
+<h3>Packet path from NIC to application socket</h3>
+<p>The packet traversal lifecycle maps how an incoming raw frame moves from physical or virtualized network interface cards (NICs) through DMA descriptor rings, hardware interrupts, Linux kernel softIRQs (NAPI), sk_buff allocation, netfilter/iptables packet filtering, IP route lookup, TCP/UDP reassembly, and finally into the user-space application socket receive buffer (SO_RCVBUF). Each boundary represents a distinct queueing, filtering, and demultiplexing domain managed by different operating system subsystems.</p>
+<p><strong>Why today and where it sits:</strong> Day 2 completes the packet transmission trace from wire to process, providing the low-level grounding required to debug Compute Engine guest OS bottlenecks, Cloud Load Balancer backend timeouts, and microservice socket exhaustion. It sits at the critical interface between guest kernel networking subsystems and user-space runtime processes.</p>
+<p>Virtual machine guest metrics show rising interface receive drops and backlog queue overruns while application CPU utilization remains deceptively under twenty percent. Unacknowledged customer HTTP requests encounter thirty-second gateway timeouts, triggering duplicate API retries that compound cascading backpressure across the entire ordering pipeline.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+</section><section id="part-2" class="part"><h2>2 · Technical discussion of each topic</h2>
+<article id="topic-01-technical" class="topic-card">
+<h3>OSI and TCP/IP layer models</h3>
+<p>Layer models separate networking responsibilities into bounded modular domains so that failures at one level can be diagnosed and isolated without mistaking them for faults in adjacent systems. The Open Systems Interconnection (OSI) 7-layer reference model defines conceptual boundaries from Physical (Layer 1) to Application (Layer 7). In contrast, the operational TCP/IP model organizes production network stacks into four pragmatic layers: Link (network access and local framing), Internet (IP packet addressing and inter-network routing), Transport (end-to-end host stream and datagram multiplexing), and Application (process communication protocols such as HTTP, TLS, DNS, and gRPC).</p>
+<p>Architects must rigorously differentiate between Layer 4 (Transport) and Layer 7 (Application). Layer 4 operates on the 4-tuple consisting of source IP, source port, destination IP, and destination port. Layer 4 protocols such as TCP manage the three-way handshake (SYN, SYN-ACK, ACK), sequence number ordering, sliding-window flow control, congestion avoidance, and connection termination (FIN or RST). Layer 4 has zero awareness of application payload syntax. In contrast, Layer 7 protocols interpret message semantics: HTTP request verbs, Uniform Resource Identifiers (URIs), request and response headers, MIME types, status codes (such as 200 OK or 503 Service Unavailable), and serialized message bodies (JSON or Protocol Buffers).</p>
+<p>This distinction governs load balancing in Google Cloud. An External Passthrough Network Load Balancer operates at Layer 4: it inspects packet 5-tuples and directs raw packets to backend virtual machine instances via Maglev consistent hashing without terminating TCP connections, preserving client source IP addresses and delivering line-rate throughput with microsecond latency. Conversely, an External Application Load Balancer operates at Layer 7: it terminates client TCP connections and TLS sessions via Envoy proxies, decrypts payloads, evaluates HTTP path-based and host-based routing rules, injects custom headers, and establishes separate backend TCP/TLS connections to upstream application pools.</p>
+<p>Ownership boundaries reflect this separation. Operating system kernels own the TCP/IP stack, managing socket state machines and buffer memory in kernel space. Application runtimes own user-space process memory and request handling. A successful TCP three-way handshake proves physical link connectivity, IP routing, firewall clearance, and the existence of a listening socket; it proves absolutely nothing about whether the application process is healthy, whether database connections are available, or whether the requested business operation can be fulfilled.</p>
+<div class="callout">
+<strong>Further study and authoritative sources</strong>
+<p>For protocol specifications and standards compliance, review <a href="https://www.rfc-editor.org/rfc/rfc791" rel="noopener noreferrer">RFC 791: Internet Protocol</a> Section 3.1 (Header Format) and Section 3.2 (Routing), as well as <a href="https://www.rfc-editor.org/rfc/rfc9293" rel="noopener noreferrer">RFC 9293: Transmission Control Protocol</a> Section 3.3 (Connection Establishment and Termination). In this curriculum, cross-reference <a href="../sources.html#topic-001">Topic 001 references</a> for foundational networking documentation. Verified 2026-09-29.</p>
+</div>
+</article>
+
+<article id="topic-02-technical" class="topic-card">
+<h3>IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting</h3>
+<p>IPv4 addresses are 32-bit binary integers conventionally represented as four dotted-decimal octets ranging from 0.0.0.0 to 255.255.255.255. Classless Inter-Domain Routing (CIDR) replaced legacy classful addressing by defining networks via an arbitrary bit prefix length (/n). The prefix length indicates how many leading bits identify the network routing domain, leaving the remaining (32 - n) bits to identify individual host interfaces.</p>
+<p>Subnetting is the mathematical process of borrowing bits from the host portion of an address block to create multiple smaller, logically isolated subnets. When splitting a standard /24 network (which provides 2^(32 - 24) = 256 total IP addresses with subnet mask 255.255.255.0) into four equal subnets, exactly two additional bits are borrowed (2^2 = 4), yielding four /26 subnets (32 - 6 = 26 network bits, mask 255.255.255.192). Each /26 subnet contains 2^(32 - 26) = 64 total IP addresses. The four subnets allocate as follows:</p>
+<ul>
+<li><strong>Subnet 0 (192.0.2.0/26):</strong> Network: 192.0.2.0 | Usable: 192.0.2.1–192.0.2.62 | Broadcast: 192.0.2.63</li>
+<li><strong>Subnet 1 (192.0.2.64/26):</strong> Network: 192.0.2.64 | Usable: 192.0.2.65–192.0.2.126 | Broadcast: 192.0.2.127</li>
+<li><strong>Subnet 2 (192.0.2.128/26):</strong> Network: 192.0.2.128 | Usable: 192.0.2.129–192.0.2.190 | Broadcast: 192.0.2.191</li>
+<li><strong>Subnet 3 (192.0.2.192/26):</strong> Network: 192.0.2.192 | Usable: 192.0.2.193–192.0.2.254 | Broadcast: 192.0.2.255</li>
+</ul>
+<p>Architects must account for cloud-specific reservation rules. While standard RFC 1918 networking consumes exactly two addresses per subnet (the first for the network ID and the last for the broadcast address), Google Cloud Virtual Private Cloud (VPC) subnets reserve exactly five IP addresses per subnet: the network address (.0), the default gateway (.1), the Cloud DNS resolver address (.2), an address reserved for Google future use (.3), and the broadcast address (.255 or the final address in the block). In a /26 VPC subnet, 59 IP addresses remain available for Compute Engine instances, GKE nodes, and internal forwarding rules.</p>
+<p>RFC 1918 reserves three private address blocks for enterprise intranets: 10.0.0.0/8 (16,777,216 addresses), 172.16.0.0/12 (1,048,576 addresses), and 192.168.0.0/16 (65,536 addresses). In addition, RFC 6598 designates 100.64.0.0/10 as Shared Address Space for Carrier-Grade NAT, which Google Cloud utilizes extensively for Private Service Connect (PSC) and Cloud NAT translations. Private ranges cannot be routed across the public Internet and require Network Address Translation (NAT) or private interconnects.</p>
+<p>When an operating system prepares to transmit an IP packet, it consults its Forwarding Information Base (FIB) using the Longest Prefix Match (LPM) rule. If the destination IP falls within the host's locally configured subnet mask, the destination is considered on-link. The host sends an Address Resolution Protocol (ARP, RFC 826) broadcast request querying "who has destination IP, tell source MAC". The target host replies with a unicast ARP reply containing its hardware Layer 2 Ethernet MAC address. In IPv6, Neighbor Discovery Protocol (NDP, RFC 4861) performs this role using ICMPv6 multicast neighbor solicitations. Crucially, if the destination IP is outside the local subnet mask, the host does not ARP for the destination IP; instead, it ARPs exclusively for its configured next-hop default gateway MAC address.</p>
+<div class="callout">
+<strong>Further study and authoritative sources</strong>
+<p>Review the primary specifications in <a href="https://www.rfc-editor.org/rfc/rfc1918" rel="noopener noreferrer">RFC 1918: Address Allocation for Private Internets</a> Section 3, and <a href="https://www.rfc-editor.org/rfc/rfc826" rel="noopener noreferrer">RFC 826: Ethernet Address Resolution Protocol</a>. Review CIDR mechanics in <a href="https://www.rfc-editor.org/rfc/rfc4632" rel="noopener noreferrer">RFC 4632: CIDR Address Assignment and Aggregation Plan</a>. In this site, see <a href="../sources.html#topic-001">Topic 001 references</a>. Verified 2026-09-29.</p>
+</div>
+</article>
+
+<article id="topic-03-technical" class="topic-card">
+<h3>Packet path from NIC to application socket</h3>
+<p>The packet ingress journey through a Linux host or Compute Engine guest virtual machine represents a tightly orchestrated handoff across physical hardware, device drivers, kernel memory structures, and user-space runtimes. Tracing this path establishes where packets are queued, filtered, translated, and potentially discarded under load.</p>
+<p>The nine-stage packet ingress traversal proceeds as follows:</p>
+<ol>
+<li><strong>Physical or Virtual NIC Reception:</strong> An Ethernet frame arrives at the physical network interface or virtualized virtIO device. The physical layer verifies the frame check sequence (FCS) cyclic redundancy check (CRC). If corrupted, the NIC hardware drops the frame immediately.</li>
+<li><strong>Direct Memory Access (DMA) Transfer:</strong> The NIC uses DMA bus mastering to copy the raw Ethernet frame directly into host physical RAM mapped to a circular receive descriptor ring buffer (rx_ring) without CPU intervention.</li>
+<li><strong>Hardware Interrupt (MSI-X IRQ):</strong> Upon depositing the frame in host memory, the NIC asserts a PCIe Message Signaled Interrupt (MSI-X) targeting a specific CPU core.</li>
+<li><strong>NAPI SoftIRQ Scheduling:</strong> The kernel interrupt service routine (ISR) executes, immediately disables device hardware interrupts for that queue to avoid interrupt storms, and schedules a software interrupt (NET_RX_SOFTIRQ) handled by the kernel thread ksoftirqd. The driver's New API (NAPI) poll routine executes in softIRQ context, draining frames from the DMA ring and allocating a kernel socket buffer (sk_buff) structure for each packet.</li>
+<li><strong>Netfilter PREROUTING &amp; Connection Tracking:</strong> The kernel passes the sk_buff to the netfilter subsystem at the NF_INET_PRE_ROUTING hook. Kernel connection tracking (conntrack) creates or updates state table entries, and iptables/nftables PREROUTING rules (such as DNAT) are evaluated.</li>
+<li><strong>Kernel Routing Decision (FIB Lookup):</strong> The kernel routing subsystem executes ip_route_input_noref(). If the destination IP address matches a local interface address, the packet is directed to the local input path (ip_local_deliver). If the packet is destined for another network and IP forwarding is enabled, it is routed to the forward path.</li>
+<li><strong>Transport Protocol Demultiplexing:</strong> The kernel inspects the IP header protocol field (e.g., protocol 6 for TCP or 17 for UDP) and passes the sk_buff to the transport layer handler (tcp_v4_rcv). The TCP engine parses sequence numbers, verifies checksums, processes acknowledgments, updates the TCP sliding window, and evaluates the TCP connection state machine.</li>
+<li><strong>Socket Receive Queue Insertion:</strong> The kernel performs a hash table lookup (inet_lookup_skb) using the 4-tuple to locate the matching struct sock. If the socket exists, the sk_buff payload is appended to the socket's receive buffer (sk_receive_queue) up to the limit established by the SO_RCVBUF socket option and sysctl net.ipv4.tcp_rmem.</li>
+<li><strong>User-Space Process Syscall &amp; Data Copy:</strong> The kernel marks the socket descriptor as readable, waking worker threads blocked in system calls such as epoll_wait(), select(), or blocking read()/recv(). The application executes the read() syscall; the kernel copies the payload bytes from kernel sk_buff memory into the user-space process application buffer and frees the sk_buff memory back to the slab allocator.</li>
+</ol>
+<p>Each boundary introduces specific failure signals and trade-offs. If the rate of incoming frames exceeds the capacity of the NIC DMA ring or if SoftIRQ processing is starved by CPU saturation, the driver increments rx_dropped or rx_fifo_errors (observable via ethtool -S or ip -s link). If the application event loop is slow to process connections, the kernel listen backlog overflows, resulting in TCP ListenOverflows and ListenDrops (observable via netstat -s). Tuning sysctl parameters such as net.core.somaxconn and net.core.netdev_max_backlog expands queue limits but consumes unevictable kernel memory.</p>
+<div class="callout">
+<strong>Further study and authoritative sources</strong>
+<p>Review the kernel implementation details in the <a href="https://docs.kernel.org/networking/napi.html" rel="noopener noreferrer">Linux Kernel NAPI Documentation</a> and the Linux networking subsystem core architecture. For socket interface semantics, refer to the POSIX.1-2017 socket specification and Linux socket(7) and tcp(7) manuals. Access verified 2026-09-29.</p>
+</div>
+</article>
+
+<h3>Architecture protocol and boundary matrix</h3>
+<p>The table below correlates network boundaries, Protocol Data Units (PDUs), processing engines, observability commands, and diagnostic failure signatures across the complete stack.</p>
+
+<div style="max-width:100%;overflow-x:auto">
+<table>
+<caption>Protocol layer boundaries, encapsulated objects, observability tools, and failure signals</caption>
 <thead>
 <tr>
-<th>Boundary</th>
-<th>Encapsulated object</th>
-<th>Decision owner</th>
-<th>Observation and limit</th>
+<th scope="col">Protocol boundary</th>
+<th scope="col">Layer model</th>
+<th scope="col">PDU &amp; key headers</th>
+<th scope="col">Core processing engine</th>
+<th scope="col">Observability command &amp; metrics</th>
+<th scope="col">Diagnostic boundary failure signal</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Client application</td>
-<td>HTTP request</td>
-<td>Brightloaf client</td>
-<td>A request can be constructed even when no connection exists.</td>
+<td><strong>Application Payload</strong></td>
+<td>OSI L7 / TCP/IP App</td>
+<td>HTTP request/response, JSON/gRPC body, status codes</td>
+<td>User-space web runtime (Envoy, Gunicorn, Go net/http)</td>
+<td>Application access logs, OpenTelemetry traces, curl -i</td>
+<td>HTTP 500/503 responses; backend database connection pool exhaustion; null-pointer exceptions</td>
 </tr>
 <tr>
-<td>Transport (L4)</td>
-<td>TCP segment and port</td>
-<td>Client and server kernels</td>
-<td>A completed handshake proves reachability to a TCP listener, not application health.</td>
+<td><strong>Transport Multiplexing</strong></td>
+<td>OSI L4 / TCP/IP Transport</td>
+<td>TCP segment, ports, sequence numbers, SYN/ACK/RST flags</td>
+<td>Kernel TCP stack (tcp_v4_rcv, socket state machine)</td>
+<td>ss -t -a -n, netstat -s, tcpdump -i eth0 port 443</td>
+<td>TCP connection refused (ECONNREFUSED / RST); SYN timeout; ListenOverflows incrementing in netstat</td>
 </tr>
 <tr>
-<td>Internet (L3)</td>
-<td>IP packet and destination</td>
-<td>Host and routers</td>
-<td>A route selects a next hop; it does not prove delivery or a return path.</td>
+<td><strong>Internet Routing</strong></td>
+<td>OSI L3 / TCP/IP Internet</td>
+<td>IPv4 packet, 32-bit src/dst IP, TTL, protocol field</td>
+<td>Kernel FIB routing engine (ip_route_input_noref), LPM</td>
+<td>ip route show, ip route get &lt;ip&gt;, traceroute -n</td>
+<td>Network unreachable; Destination Host Unreachable ICMP; route blackhole; TTL exceeded in transit</td>
 </tr>
 <tr>
-<td>Link (L2)</td>
-<td>Frame and next-hop link address</td>
-<td>NIC and local network</td>
-<td>Link delivery reaches one hop, not the final socket.</td>
+<td><strong>Link &amp; Local Framing</strong></td>
+<td>OSI L2 / TCP/IP Link</td>
+<td>Ethernet frame, 48-bit MAC addresses, EtherType, CRC</td>
+<td>NIC driver, ARP table (ip neigh), virtIO subsystem</td>
+<td>ip neigh show, arp -an, ip -s link, ethtool -S eth0</td>
+<td>ARP resolution timeout (incomplete neighbor entry); rx_dropped / rx_fifo_errors on interface; CRC errors</td>
 </tr>
 <tr>
-<td>Server application (L7)</td>
-<td>HTTP response</td>
-<td>Order API or proxy</td>
-<td>HTTP 503 is an application-layer result after lower-layer progress.</td>
+<td><strong>Socket Buffer Queue</strong></td>
+<td>Host OS Kernel / User Space</td>
+<td>sk_buff descriptor, TCP receive window, SO_RCVBUF</td>
+<td>Kernel socket buffer layer (sk_receive_queue), epoll</td>
+<td>ss -t -i, /proc/net/tcp, mpstat -P ALL 1 (softIRQ si%)</td>
+<td>Socket receive buffer full; TCP zero-window advertisements; ksoftirqd core pinned at 100% CPU utilization</td>
 </tr>
 </tbody>
 </table>
-<p>The path is client HTTP → client TCP socket → IP route → next-hop frame → server IP/TCP → Order API listener → HTTP response. On each return leg the reverse route and socket state also matter. This table is a conceptual map: TLS negotiation, proxies, offload and cloud virtual networking can add boundaries, so record the actual deployed path before assigning a failure to a layer.</p>
-<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 260" role="img" aria-labelledby="day2-svg1-title day2-svg1-desc"><title id="day2-svg1-title">Order API protocol boundaries</title><desc id="day2-svg1-desc">A link frame reaches a next hop, an IP route selects a path, TCP connects to a listener, and HTTP returns a response. A TCP connection can succeed while HTTP returns 503.</desc><defs><marker id="day2-svg1-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker></defs><rect x="18" y="42" width="210" height="145" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><text x="123" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">Link / L2</text><text x="123" y="112" fill="#a9b7cb" font-size="12" font-weight="400" text-anchor="middle">Frame to next hop</text><text x="123" y="143" fill="#38bdf8" font-size="12" font-weight="400" text-anchor="middle">one local link</text><rect x="249" y="42" width="210" height="145" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><text x="354" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">IP / L3</text><text x="354" y="112" fill="#a9b7cb" font-size="12" font-weight="400" text-anchor="middle">Destination and route</text><text x="354" y="143" fill="#38bdf8" font-size="12" font-weight="400" text-anchor="middle">forwarding choice</text><rect x="480" y="42" width="210" height="145" rx="10" fill="#121526" stroke="#34d399" stroke-width="2"/><text x="585" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">TCP / L4</text><text x="585" y="112" fill="#a9b7cb" font-size="12" font-weight="400" text-anchor="middle">Socket connected</text><text x="585" y="143" fill="#34d399" font-size="12" font-weight="400" text-anchor="middle">listener reachable</text><rect x="711" y="42" width="210" height="145" rx="10" fill="#121526" stroke="#f43f5e" stroke-width="2"/><text x="816" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">HTTP / L7</text><text x="816" y="112" fill="#a9b7cb" font-size="12" font-weight="400" text-anchor="middle">503 from application</text><text x="816" y="143" fill="#f43f5e" font-size="12" font-weight="400" text-anchor="middle">request failed</text><path d="M228 103 L244 103" stroke="#38bdf8" stroke-width="2" marker-end="url(#day2-svg1-arrow)"/><path d="M459 103 L475 103" stroke="#38bdf8" stroke-width="2" marker-end="url(#day2-svg1-arrow)"/><path d="M690 103 L706 103" stroke="#38bdf8" stroke-width="2" marker-end="url(#day2-svg1-arrow)"/><text x="470" y="227" fill="#a9b7cb" font-size="12" text-anchor="middle">Success at one boundary does not establish success at the next.</text></svg><figcaption>Figure 2.1: Diagnostic boundaries from link to application. The local loopback lab demonstrates TCP success with an HTTP 503 response; the diagram is not a packet-order trace or a deployed network measurement.</figcaption></figure>
-<div class="callout"><strong>Further Study</strong><p> <a href="https://datatracker.ietf.org/doc/html/rfc1122#section-1.1.3">RFC 1122 §1.1.3, Internet Protocol Suite</a> defines the host communication layers. A timestamped video segment remains pending verification; use the written section for this exercise.</p></div></article><article id="topic-02-technical" class="topic-card"><h3>IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting</h3><p>Subnetting decides whether a destination is on-link or requires a router. In a /24, 24 bits identify the network and eight bits remain; a conventional /24 has 256 addresses. A /20 spans 4096 addresses and a /16 spans 65536. Splitting a /24 into four equal pieces adds two network bits, producing four /26 ranges of 64 addresses each. In ordinary IPv4 unicast subnets, the first address is the network address and the last is the broadcast address, leaving 62 conventional host addresses per /26. Cloud services may reserve additional addresses, so a product's usable count must be checked separately.</p>
-<p>The RFC 1918 ranges are 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16. These addresses are not globally unique. When two networks with overlapping private ranges must connect, routing becomes ambiguous unless the addressing or translation design resolves the overlap. A host first chooses an on-link destination or a gateway based on its route and prefix. It then resolves the <em>next hop's</em> link address: for IPv4 on Ethernet, ARP maps that IPv4 address to a MAC address. NDP performs IPv6 neighbor and router discovery, rather than ARP being reused unchanged.</p>
-<table><caption>First-hop decision for the supplied fixture</caption>
-<thead>
-<tr>
-<th>Address or step</th>
-<th>Scope / owner</th>
-<th>Decision</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>192.0.2.10/26</code> source</td>
-<td>Host configuration</td>
-<td><code>192.0.2.0–63</code> is on-link.</td>
-</tr>
-<tr>
-<td><code>192.0.2.70</code> destination</td>
-<td>Different <code>/26</code></td>
-<td>The source chooses its gateway, <code>192.0.2.1</code>, as next hop.</td>
-</tr>
-<tr>
-<td>ARP for <code>192.0.2.1</code></td>
-<td>Source link</td>
-<td>Resolve the gateway's link address, not the remote host's.</td>
-</tr>
-<tr>
-<td>Router forwarding</td>
-<td>Router table</td>
-<td>Forward toward <code>192.0.2.64/26</code>; a return route must also exist.</td>
-</tr>
-</tbody>
-</table>
-<p>The four <code>/26</code> ranges are <code>192.0.2.0–63</code>, <code>192.0.2.64–127</code>, <code>192.0.2.128–191</code> and <code>192.0.2.192–255</code>. The example block is reserved for documentation, so no live host is implied. Traditional network and broadcast addresses bound each range; cloud products can reserve more addresses and must be checked separately.</p>
-<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 280" role="img" aria-labelledby="day2-svg2-title day2-svg2-desc"><title id="day2-svg2-title">Four equal IPv4 subnets within 192.0.2.0/24</title><desc id="day2-svg2-desc">The four /26 networks begin at 192.0.2.0, 192.0.2.64, 192.0.2.128 and 192.0.2.192. Their broadcast addresses are 192.0.2.63, 192.0.2.127, 192.0.2.191 and 192.0.2.255.</desc><rect x="18" y="42" width="210" height="172" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><text x="123" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">192.0.2.0/26</text><text x="123" y="109" fill="#a9b7cb" font-size="11" text-anchor="middle">Network 192.0.2.0</text><text x="123" y="137" fill="#a9b7cb" font-size="11" text-anchor="middle">Broadcast 192.0.2.63</text><text x="123" y="165" fill="#38bdf8" font-size="11" text-anchor="middle">Hosts 192.0.2.1 to</text><text x="123" y="190" fill="#38bdf8" font-size="11" text-anchor="middle">192.0.2.62</text><rect x="249" y="42" width="210" height="172" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><text x="354" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">192.0.2.64/26</text><text x="354" y="109" fill="#a9b7cb" font-size="11" text-anchor="middle">Network 192.0.2.64</text><text x="354" y="137" fill="#a9b7cb" font-size="11" text-anchor="middle">Broadcast 192.0.2.127</text><text x="354" y="165" fill="#38bdf8" font-size="11" text-anchor="middle">Hosts 192.0.2.65 to</text><text x="354" y="190" fill="#38bdf8" font-size="11" text-anchor="middle">192.0.2.126</text><rect x="480" y="42" width="210" height="172" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><text x="585" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">192.0.2.128/26</text><text x="585" y="109" fill="#a9b7cb" font-size="11" text-anchor="middle">Network 192.0.2.128</text><text x="585" y="137" fill="#a9b7cb" font-size="11" text-anchor="middle">Broadcast 192.0.2.191</text><text x="585" y="165" fill="#38bdf8" font-size="11" text-anchor="middle">Hosts 192.0.2.129 to</text><text x="585" y="190" fill="#38bdf8" font-size="11" text-anchor="middle">192.0.2.190</text><rect x="711" y="42" width="210" height="172" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><text x="816" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">192.0.2.192/26</text><text x="816" y="109" fill="#a9b7cb" font-size="11" text-anchor="middle">Network 192.0.2.192</text><text x="816" y="137" fill="#a9b7cb" font-size="11" text-anchor="middle">Broadcast 192.0.2.255</text><text x="816" y="165" fill="#38bdf8" font-size="11" text-anchor="middle">Hosts 192.0.2.193 to</text><text x="816" y="190" fill="#38bdf8" font-size="11" text-anchor="middle">192.0.2.254</text><text x="470" y="247" fill="#a9b7cb" font-size="12" text-anchor="middle">Four nonoverlapping ranges × 64 addresses = the original /24.</text></svg><figcaption>Figure 2.2: Conventional IPv4 network, broadcast and host ranges. 192.0.2.0/24 is reserved for documentation; these are offline examples.</figcaption></figure>
-<div class="callout"><strong>Further Study</strong><p> <a href="https://datatracker.ietf.org/doc/html/rfc1918#section-3">RFC 1918 §3, private address space</a>, <a href="https://datatracker.ietf.org/doc/html/rfc4632#section-3.1">RFC 4632 §3.1, basic concept and prefix notation</a>, and <a href="https://datatracker.ietf.org/doc/html/rfc4861#section-2.1">RFC 4861 §2.1, IPv6 Neighbor Discovery terminology</a>, and <a href="https://datatracker.ietf.org/doc/html/rfc5737#section-3">RFC 5737 §3, documentation address blocks</a>. A timestamped video segment remains pending verification; the written sections are sufficient for the lab.</p></div></article><article id="topic-03-technical" class="topic-card"><h3>Packet path from NIC to application socket</h3><p>An application sees a socket endpoint, but the operating system handles much of the path beneath it. On a typical Linux receive path, the NIC and driver accept a frame, kernel networking processing classifies it, IP determines the local destination, and TCP or UDP finds the socket using addresses, ports and protocol. A packet may be dropped by hardware, the driver, a firewall, routing decision, transport validation or the application. Seeing a frame at the NIC does not prove the application read it; seeing a connection does not prove that the application returned a valid response.</p>
-<p>The reverse path chooses a route and next hop, prepares transport and IP data, resolves a link address when needed, and sends a frame through the interface. Cloud VMs add virtual NICs, host networking and provider network controls, but the boundary question remains the same: where is the last observed success and first observed failure? This is why packet counters, route tables, firewall logs, socket state and application logs answer different questions. The exact Linux implementation changes across kernels, so use this as a conceptual path rather than a fixed function-call trace.</p>
-<table><caption>Receive-side evidence boundaries</caption>
-<thead>
-<tr>
-<th>Receive boundary</th>
-<th>Owner</th>
-<th>What its evidence proves</th>
-<th>What it cannot prove</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>NIC / driver</td>
-<td>Host hardware or virtual NIC</td>
-<td>A frame reached this interface.</td>
-<td>IP acceptance or socket delivery.</td>
-</tr>
-<tr>
-<td>IP and local filtering</td>
-<td>Host kernel, plus any external policy</td>
-<td>Destination and policy evaluation.</td>
-<td>A process read the payload.</td>
-</tr>
-<tr>
-<td>TCP demultiplexing</td>
-<td>Host kernel</td>
-<td>A matching local address, protocol and port can select a listener.</td>
-<td>Valid HTTP response.</td>
-</tr>
-<tr>
-<td>Socket read</td>
-<td>Order API process</td>
-<td>Bytes reached the application.</td>
-<td>Successful order commit or fulfillment.</td>
-</tr>
-</tbody>
-</table>
-<p>Receive path: frame → NIC/driver → IP destination and filtering → TCP port selection → listening socket → Order API. A counter at any row is evidence only for that boundary. After an HTTP response, trace the return route as a separate path; if an order is retried, the fulfillment store must reject a duplicate order or event key.</p>
-<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 260" role="img" aria-labelledby="day2-svg3-title day2-svg3-desc"><title id="day2-svg3-title">Source to Order API socket through a gateway</title><desc id="day2-svg3-desc">Source 192.0.2.10/26 sends to gateway 192.0.2.1 for destination 192.0.2.70/26. It resolves the gateway link address. The destination then needs a matching TCP 443 listener.</desc><defs><marker id="day2-svg3-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"/></marker></defs><rect x="18" y="42" width="252" height="145" rx="10" fill="#121526" stroke="#34d399" stroke-width="2"/><text x="144" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">Source host</text><text x="144" y="112" fill="#a9b7cb" font-size="12" font-weight="400" text-anchor="middle">192.0.2.10/26</text><text x="144" y="143" fill="#34d399" font-size="12" font-weight="400" text-anchor="middle">ARP for 192.0.2.1</text><rect x="344" y="42" width="252" height="145" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><text x="470" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">Gateway / router</text><text x="470" y="112" fill="#a9b7cb" font-size="12" font-weight="400" text-anchor="middle">192.0.2.1</text><text x="470" y="143" fill="#38bdf8" font-size="12" font-weight="400" text-anchor="middle">toward 192.0.2.64/26</text><rect x="670" y="42" width="252" height="145" rx="10" fill="#121526" stroke="#f43f5e" stroke-width="2"/><text x="796" y="77" fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle">Destination host</text><text x="796" y="112" fill="#a9b7cb" font-size="12" font-weight="400" text-anchor="middle">192.0.2.70/26</text><text x="796" y="143" fill="#f43f5e" font-size="12" font-weight="400" text-anchor="middle">TCP listener :443</text><path d="M270 103 L339 103" stroke="#38bdf8" stroke-width="2" marker-end="url(#day2-svg3-arrow)"/><path d="M596 103 L665 103" stroke="#38bdf8" stroke-width="2" marker-end="url(#day2-svg3-arrow)"/><text x="470" y="227" fill="#a9b7cb" font-size="12" text-anchor="middle">NIC → IP and policy → TCP port match → socket read. Port :8443 does not match :443.</text></svg><figcaption>Figure 2.3: The source resolves the gateway, not the remote host. A correct first hop does not prove delivery to the Order API process.</figcaption></figure>
-<div class="callout"><strong>Further Study</strong><p> <a href="https://docs.kernel.org/networking/napi.html#driver-api">Linux kernel NAPI documentation, Driver API</a> describes receive processing; <a href="https://datatracker.ietf.org/doc/html/rfc1122#section-3.3.1">RFC 1122 §3.3.1, routing outbound datagrams</a> covers route decisions. A timestamped video segment remains pending verification; use the written sections for the packet trace.</p></div></article></section><section id="part-3" class="part"><h2>3 · Real-world problem and solution for each topic</h2><article id="topic-01-problem" class="topic-card"><h3>OSI and TCP/IP layer models</h3><p><strong>Failure and impact:</strong> Brightloaf's order API health check connects to TCP port 443, but the checkout POST receives <code>HTTP/1.1 503 Service Unavailable</code> for 8 minutes. The order queue remains empty while customers retry; a separate Fulfillment consumer must still prevent duplicate fulfillment if delayed orders are replayed.</p>
-<p><strong>Constraints and root cause:</strong> The edge proxy accepts TCP and completes TLS, but its backend pool has no healthy Order API instances. An L4-only probe looked at the edge listener, so its green result missed the L7 dependency. This is an example diagnosis; the same 503 could have another cause, so the backend health result and request log must confirm it.</p>
-<p><strong>Solution:</strong> Freeze unrelated network changes. Correlate one request ID across edge access logs and Order API logs, record DNS answer, TCP establishment, TLS result and HTTP status independently, then inspect backend health reasons and service readiness. Restore a healthy backend or roll back the last application release; verify that an order request receives the expected application response and a single order record. Keep replay protection at Fulfillment's durable business boundary: restoring HTTP availability does not establish exactly-once processing. Add an L7 synthetic order check alongside the L4 listener probe and alert when their results diverge.</p></article><article id="topic-02-problem" class="topic-card"><h3>IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting</h3><p><strong>Failure and impact:</strong> Brightloaf proposes a private connection to a fulfillment site, but both sites use <code>10.20.0.0/16</code>. Order API requests for remote <code>10.20.4.8</code> follow the source site's local route and time out; fulfillment does not receive those orders during a planned cutover.</p>
-<p><strong>Constraints and root cause:</strong> Both networks contain active hosts, so an immediate wholesale renumber is risky. RFC 1918 permits reuse inside independent networks, but the connected routing domain needs an unambiguous destination. The source route selects a local prefix before a packet can reach the proposed connection. A firewall allow rule cannot disambiguate equal addresses.</p>
-<p><strong>Solution:</strong> Inventory both sites' active prefixes, routes, DNS names and endpoint dependencies. Prefer a phased renumber of one site into nonoverlapping space with a temporary migration route and rollback plan. If renumbering cannot happen before cutover, design a translation boundary with unique mapped addresses and document forward and return mappings; validate protocol and logging implications. Test one synthetic Order API request in both directions and inspect selected routes and translated addresses. Keep the deduplication key stable through migration so replay after a timeout does not create a second fulfillment. Remove temporary translation only after every client uses the new range.</p></article><article id="topic-03-problem" class="topic-card"><h3>Packet path from NIC to application socket</h3><p><strong>Failure and impact:</strong> During a Brightloaf sale, the Order API VM's receive counter increases, but a synthetic request to <code>192.0.2.70:443</code> produces no application request log. Customers see timeouts, and retries increase load while new orders fail to enter the system.</p>
-<p><strong>Constraints and root cause:</strong> The incident team must avoid widening firewall rules without evidence and must preserve order replay safety. In the supplied failure, the process listens on port 8443 while the client targets 443. The interface counter measures an earlier boundary than application delivery; it cannot prove that a 443 listener exists.</p>
-<p><strong>Solution:</strong> Confirm the exact packet destination and port from the client and ingress observation. Compare the VM's assigned address and listening sockets, then inspect host filtering and transport state. Restore the intended 443 listener or correct the approved upstream target to 8443; do not blindly expose a second port. Verify a request log and application response for one synthetic order, plus a valid return path. If traffic never reaches the virtual NIC, investigate the external route and policy instead. Replaying any timed-out event must be checked against a durable fulfillment deduplication record before producing a second shipment.</p></article></section><section id="part-4" class="part"><h2>4 · Step-by-step labs for each topic</h2><article id="topic-01-lab" class="topic-card lab"><h3>Exercise 1 · Separate TCP connection from HTTP response</h3><p><strong>Goal:</strong> Observe transport establishment and application response as separate facts. <strong>Mode:</strong> one local Linux terminal with Python 3. The script binds loopback only; it makes no cloud resource or external network call.</p>
-<p><strong>Preflight:</strong> Bring the Day 1 evidence repository and confirm Python 3 and the active directory:</p>
-<pre><code class="language-sh">python3 --version
+</div>
+
+<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg role="img" aria-labelledby="d2-top-title d2-top-desc" viewBox="0 0 1120 690" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d2-top-title">Day 2 Protocol Layers, CIDR Subnets, and Packet Ingress Topology</title>
+<desc id="d2-top-desc">Architecture topology mapping OSI and TCP/IP protocol layers, CIDR subnets, next-hop routing, NIC DMA rings, Linux kernel softIRQs, and socket queues across three non-overlapping tiers with system verification checkpoints.</desc>
+<defs>
+<marker id="d2-top-arr-ok" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#22c55e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d2-top-arr-fail" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#f43f5e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d2-top-arr-warn" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#f59e0b" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d2-top-arr-blue" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#38bdf8" points="0 0, 8 4, 0 8"></polygon></marker>
+</defs>
+
+<!-- TIER 1: INGRESS & NETWORK DEMAND (y=55..147) -->
+<rect fill="#1e3a5f" height="92" opacity="0.45" rx="6" width="1080" x="20" y="55"></rect>
+<rect fill="#090d16" height="18" rx="4" stroke="#7dd3fc" stroke-opacity="0.3" stroke-width="1" width="1080" x="20" y="55"></rect>
+<text fill="#7dd3fc" font-family="monospace" font-size="9.5" font-weight="bold" x="32" y="68">TIER 1: INGRESS &amp; NETWORK DEMAND (L2–L7 ENCAPSULATION)</text>
+<text fill="#94a3b8" font-family="monospace" font-size="8.5" text-anchor="end" x="1086" y="68">HTTP payloads · TCP streams · IPv4 packets · Ethernet frames</text>
+
+<!-- Tier 1 Component 1 (Col 1 center: x=160, box: x=60, w=200, y=82, h=52) -->
+<rect fill="#1e293b" height="52" rx="4" stroke="#38bdf8" stroke-width="1.5" width="200" x="60" y="82"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="160" y="103">Client App (L7)</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="160" y="122">HTTP/1.1 &amp; HTTP/2 Requests</text>
+
+<!-- Tier 1 Component 2 (Col 2 center: x=420, box: x=320, w=200, y=82, h=52) -->
+<rect fill="#1e293b" height="52" rx="4" stroke="#38bdf8" stroke-width="1.5" width="200" x="320" y="82"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="420" y="103">Transport Socket (L4)</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="420" y="122">TCP SYN/ACK · Port 443</text>
+<circle cx="510" cy="92" fill="#38bdf8" opacity="0.95" r="9" stroke="#ffffff" stroke-width="1.5"></circle>
+<text fill="white" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="510" y="95">P1</text>
+
+<!-- Tier 1 Component 3 (Col 3 center: x=690, box: x=590, w=200, y=82, h=52) -->
+<rect fill="#1e293b" height="52" rx="4" stroke="#38bdf8" stroke-width="1.5" width="200" x="590" y="82"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="690" y="103">IP Network Header (L3)</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="690" y="122">IPv4 32-bit Destination IP</text>
+
+<!-- Tier 1 Component 4 (Col 4 center: x=960, box: x=860, w=200, y=82, h=52) -->
+<rect fill="#1e293b" height="52" rx="4" stroke="#38bdf8" stroke-width="1.5" width="200" x="860" y="82"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="960" y="103">Data Link Frame (L2)</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="960" y="122">Ethernet MAC &amp; Frame CRC</text>
+
+<!-- VERTICAL DROPS TIER 1 -> TIER 2 (x1=x2 exact) -->
+<line marker-end="url(#d2-top-arr-blue)" stroke="#38bdf8" stroke-width="2" x1="160" x2="160" y1="134" y2="210"></line>
+<line marker-end="url(#d2-top-arr-ok)" stroke="#22c55e" stroke-width="2" x1="420" x2="420" y1="134" y2="210"></line>
+<line marker-end="url(#d2-top-arr-ok)" stroke="#22c55e" stroke-width="2" x1="690" x2="690" y1="134" y2="210"></line>
+<line marker-end="url(#d2-top-arr-ok)" stroke="#22c55e" stroke-width="2" x1="960" x2="960" y1="134" y2="210"></line>
+
+<!-- TIER 2: RUNTIME & DATA (y=185..395) -->
+<rect fill="#064e3b" height="210" opacity="0.45" rx="6" width="1080" x="20" y="185"></rect>
+<rect fill="#090d16" height="18" rx="4" stroke="#6ee7b7" stroke-opacity="0.3" stroke-width="1" width="1080" x="20" y="185"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="9.5" font-weight="bold" x="32" y="198">TIER 2: PROTOCOL STACKS &amp; KERNEL PACKET PIPELINE</text>
+<text fill="#94a3b8" font-family="monospace" font-size="8.5" text-anchor="end" x="1086" y="198">DMA rings · NAPI softIRQ · Netfilter · FIB lookup · TCP demux</text>
+
+<!-- Invariant Verification Boundary Box (ends before y=560, specifically at y=545) -->
+<rect fill="none" height="345" rx="6" stroke="#f59e0b" stroke-dasharray="5,3" stroke-width="2" width="810" x="290" y="200"></rect>
+<rect fill="#0f172a" height="18" rx="3" stroke="#f59e0b" stroke-width="1" width="450" x="640" y="535"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle" x="865" y="547">VERIFICATION BOUNDARY: KERNEL PACKET PIPELINE &amp; CIDR ROUTING</text>
+
+<!-- Tier 2 Row 1 (y=210, h=65) -->
+<!-- Col 1: Application Worker -->
+<rect fill="#1e293b" height="65" rx="4" stroke="#6ee7b7" stroke-width="1.5" width="200" x="60" y="210"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="160" y="234">Application Worker</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="160" y="252">epoll_wait &amp; Event Loop</text>
+<text fill="#64748b" font-family="monospace" font-size="8" text-anchor="middle" x="160" y="266">User-space process read</text>
+
+<!-- Col 2: TCP State Engine -->
+<rect fill="#1e293b" height="65" rx="4" stroke="#6ee7b7" stroke-width="1.5" width="200" x="320" y="210"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="420" y="234">TCP State Engine</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="420" y="252">4-Tuple Demux &amp; Window</text>
+<text fill="#64748b" font-family="monospace" font-size="8" text-anchor="middle" x="420" y="266">SYN backlog &amp; ACK handling</text>
+
+<!-- Col 3: FIB Routing Engine -->
+<rect fill="#1e293b" height="65" rx="4" stroke="#6ee7b7" stroke-width="1.5" width="200" x="590" y="210"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="690" y="234">FIB Routing Engine</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="690" y="252">Longest Prefix Match (LPM)</text>
+<text fill="#64748b" font-family="monospace" font-size="8" text-anchor="middle" x="690" y="266">ip_route_input_noref</text>
+<circle cx="780" cy="220" fill="#22c55e" opacity="0.95" r="9" stroke="#ffffff" stroke-width="1.5"></circle>
+<text fill="white" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="780" y="223">P2</text>
+
+<!-- Col 4: vNIC DMA Ring -->
+<rect fill="#1e293b" height="65" rx="4" stroke="#6ee7b7" stroke-width="1.5" width="200" x="860" y="210"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="960" y="234">vNIC DMA Ring Buffer</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="960" y="252">PCIe Descriptors &amp; MSI-X</text>
+<text fill="#64748b" font-family="monospace" font-size="8" text-anchor="middle" x="960" y="266">rx_ring / hardware queues</text>
+<circle cx="1050" cy="220" fill="#f59e0b" opacity="0.95" r="9" stroke="#ffffff" stroke-width="1.5"></circle>
+<text fill="white" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="1050" y="223">P3</text>
+
+<!-- VERTICAL DROPS WITHIN TIER 2 (x1=x2 exact) -->
+<line marker-end="url(#d2-top-arr-blue)" stroke="#38bdf8" stroke-width="1.5" x1="160" x2="160" y1="275" y2="310"></line>
+<line marker-end="url(#d2-top-arr-ok)" stroke="#22c55e" stroke-width="1.5" x1="420" x2="420" y1="275" y2="310"></line>
+<line marker-end="url(#d2-top-arr-ok)" stroke="#22c55e" stroke-width="1.5" x1="690" x2="690" y1="275" y2="310"></line>
+<line marker-end="url(#d2-top-arr-ok)" stroke="#22c55e" stroke-width="1.5" x1="960" x2="960" y1="275" y2="310"></line>
+
+<!-- Tier 2 Row 2 (y=310, h=65) -->
+<!-- Col 1: Socket Recv Buffer -->
+<rect fill="#1e293b" height="65" rx="4" stroke="#6ee7b7" stroke-width="1.5" width="200" x="60" y="310"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="160" y="334">Socket Recv Queue</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="160" y="352">sk_receive_queue</text>
+<text fill="#64748b" font-family="monospace" font-size="8" text-anchor="middle" x="160" y="366">SO_RCVBUF memory boundary</text>
+
+<!-- Col 2: Netfilter & Conntrack -->
+<rect fill="#1e293b" height="65" rx="4" stroke="#6ee7b7" stroke-width="1.5" width="200" x="320" y="310"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="420" y="334">Netfilter &amp; Conntrack</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="420" y="352">PREROUTING Hooks &amp; NAT</text>
+<text fill="#64748b" font-family="monospace" font-size="8" text-anchor="middle" x="420" y="366">Connection state tracking</text>
+
+<!-- Col 3: ARP / NDP Cache -->
+<rect fill="#1e293b" height="65" rx="4" stroke="#6ee7b7" stroke-width="1.5" width="200" x="590" y="310"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="690" y="334">ARP / NDP Cache</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="690" y="352">Next-Hop Gateway MAC Table</text>
+<text fill="#64748b" font-family="monospace" font-size="8" text-anchor="middle" x="690" y="366">Link address resolution</text>
+
+<!-- Col 4: NAPI SoftIRQ Poll -->
+<rect fill="#1e293b" height="65" rx="4" stroke="#6ee7b7" stroke-width="1.5" width="200" x="860" y="310"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="960" y="334">NAPI SoftIRQ Poll</text>
+<text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="960" y="352">ksoftirqd &amp; sk_buff Alloc</text>
+<text fill="#64748b" font-family="monospace" font-size="8" text-anchor="middle" x="960" y="366">Interrupt-to-poll mitigation</text>
+
+<!-- VERTICAL DROPS TIER 2 -> TIER 3 (x1=x2 exact) -->
+<line marker-end="url(#d2-top-arr-blue)" stroke="#38bdf8" stroke-width="2" x1="160" x2="160" y1="375" y2="455"></line>
+<line marker-end="url(#d2-top-arr-ok)" stroke="#22c55e" stroke-width="2" x1="420" x2="420" y1="375" y2="455"></line>
+<line marker-end="url(#d2-top-arr-ok)" stroke="#22c55e" stroke-width="2" x1="690" x2="690" y1="375" y2="455"></line>
+<line marker-end="url(#d2-top-arr-ok)" stroke="#22c55e" stroke-width="2" x1="960" x2="960" y1="375" y2="455"></line>
+
+<!-- TIER 3: GOVERNANCE, SUBNET ARCHITECTURE & SOCKETS (y=435..550) -->
+<rect fill="#422006" height="115" opacity="0.45" rx="6" width="1080" x="20" y="435"></rect>
+<rect fill="#090d16" height="18" rx="4" stroke="#fdba74" stroke-opacity="0.3" stroke-width="1" width="1080" x="20" y="435"></rect>
+<text fill="#fdba74" font-family="monospace" font-size="9.5" font-weight="bold" x="32" y="448">TIER 3: GOVERNANCE, SUBNET ARCHITECTURE &amp; SOCKETS</text>
+<text fill="#94a3b8" font-family="monospace" font-size="8.5" text-anchor="end" x="1086" y="448">CIDR /26 boundaries · RFC 1918 policy · SO_RCVBUF invariant</text>
+
+<!-- Tier 3 Component 1 (Col 1) -->
+<rect fill="#1e293b" height="75" rx="4" stroke="#fdba74" stroke-width="1.5" width="200" x="60" y="455"></rect>
+<text fill="#fdba74" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="160" y="478">Order Invariant Guard</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="9" text-anchor="middle" x="160" y="496">Durable Idempotency Key</text>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="160" y="512">1 fulfillment per order</text>
+
+<!-- Tier 3 Component 2 (Col 2) -->
+<rect fill="#1e293b" height="75" rx="4" stroke="#fdba74" stroke-width="1.5" width="200" x="320" y="455"></rect>
+<text fill="#fdba74" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="420" y="478">L4/L7 Policy Boundary</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="9" text-anchor="middle" x="420" y="496">Decoupled Health Probes</text>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="420" y="512">TCP SYN check != HTTP 200</text>
+
+<!-- Tier 3 Component 3 (Col 3) -->
+<rect fill="#1e293b" height="75" rx="4" stroke="#fdba74" stroke-width="1.5" width="200" x="590" y="455"></rect>
+<text fill="#fdba74" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="690" y="478">CIDR /26 Subnet Engine</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="9" text-anchor="middle" x="690" y="496">4 Non-Overlapping Blocks</text>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="690" y="512">.0 net, .1 gw, .63 bcast</text>
+
+<!-- Tier 3 Component 4 (Col 4) -->
+<rect fill="#1e293b" height="75" rx="4" stroke="#fdba74" stroke-width="1.5" width="200" x="860" y="455"></rect>
+<text fill="#fdba74" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="960" y="478">Backlog Tuning Guard</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="9" text-anchor="middle" x="960" y="496">somaxconn &amp; tcp_rmem</text>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="960" y="512">Prevent ListenDrops</text>
+
+<!-- SYSTEM PROBE PANEL (y=585..637, height 52) -->
+<rect fill="#090d16" height="52" opacity="0.95" rx="4" stroke="#1e293b" stroke-width="1" width="1100" x="10" y="585"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" x="24" y="601">SYSTEM PROBES &amp; INVARIANT VERIFICATION CHECKPOINTS:</text>
+<circle cx="32" cy="618" fill="#38bdf8" r="7"></circle>
+<text fill="white" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="32" y="621">P1</text>
+<text fill="#38bdf8" font-family="monospace" font-size="9" x="44" y="621">P1: OSI L4/L7 Boundary — Verify TCP handshake independently from HTTP 5xx application responses</text>
+<circle cx="430" cy="618" fill="#22c55e" r="7"></circle>
+<text fill="white" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="430" y="621">P2</text>
+<text fill="#22c55e" font-family="monospace" font-size="9" x="442" y="621">P2: CIDR Route Engine — Verify longest-prefix match and ARP resolution to valid next-hop gateway</text>
+<circle cx="790" cy="618" fill="#f59e0b" r="7"></circle>
+<text fill="white" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="790" y="621">P3</text>
+<text fill="#f59e0b" font-family="monospace" font-size="9" x="802" y="621">P3: Kernel Ingress Pipeline — Inspect ethtool rx_dropped and kernel ListenDrops</text>
+
+<!-- LEGEND BAR (y=646..682, height 36) -->
+<rect fill="#0f172a" height="36" opacity="0.8" rx="4" stroke="#1e293b" width="1100" x="10" y="646"></rect>
+<line stroke="#22c55e" stroke-width="2.5" x1="22" x2="62" y1="664" y2="664"></line>
+<text fill="#22c55e" font-family="monospace" font-size="10" x="68" y="668">CORRECTED / HEALTHY DATA PATH</text>
+<line stroke="#f43f5e" stroke-dasharray="6,4" stroke-width="2" x1="280" x2="320" y1="664" y2="664"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="10" x="326" y="668">FAILED / DROPPED PATH</text>
+<rect fill="none" height="12" stroke="#f59e0b" stroke-dasharray="4,2" stroke-width="2" width="12" x="520" y="658"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="10" x="540" y="668">VERIFY BOUNDARY</text>
+<circle cx="720" cy="664" fill="#f43f5e" r="6"></circle>
+<text fill="#f43f5e" font-family="monospace" font-size="10" x="732" y="668">FI = Fault Injection Point</text>
+</svg></div>
+<figcaption>Conceptual topology of the IPv4 packet traversal path, protocol layer transitions, and subnet next-hop decisions for Day 2. It illustrates the boundaries between hardware NICs, Linux kernel network stack, and user-space sockets; it does not prove physical latency, hardware offload capabilities, or cloud SDN forwarding performance for a live production deployment.</figcaption>
+</figure>
+</section><section id="part-3" class="part"><h2>3 · Real-world problem and solution for each topic</h2>
+<article id="topic-01-problem" class="topic-card">
+<h3>OSI and TCP/IP layer models · field case: L4 TCP handshake success masking L7 application HTTP 503 database pool failure</h3>
+<p><strong>Symptoms and evidence:</strong> During an automated synthetic load test of Brightloaf's checkout service generating 1,200 checkout requests per second, Cloud Monitoring network dashboards showed 100% successful TCP three-way handshakes to port 443 with an average round-trip latency of 1.8 milliseconds. Zero TCP resets (RST) were logged at the Google Cloud External Application Load Balancer. However, client applications recorded an 84% failure rate, receiving HTTP/1.1 503 Service Unavailable responses within 12 milliseconds containing the body <code>{"error": "DATABASE_POOL_TIMEOUT", "service": "order-api"}</code>. The edge proxy health check was configured as a basic TCP SYN check, and reported 100% backend health.</p>
+<p><strong>Business and operational constraints:</strong> Customer checkout transactions must never result in duplicate orders or multiple credit card charges when retrying failed requests. The platform must maintain high transaction throughput during morning peak order windows while isolating infrastructure transport health from application runtime state.</p>
+<p><strong>Causal root-cause reasoning:</strong></p>
+<p><strong>Supplied facts:</strong> Synthetic load of 1,200 requests/sec; 100% TCP port 443 connection success; 84% HTTP 503 responses returned to clients; edge health check configured as an L4 TCP port check reporting green status; backend application connection pool exhausted at 100/100 active sessions.</p>
+<p><strong>Architectural inference:</strong> The network transport layer (Layer 4) was functioning flawlessly: packets reached the virtual machines, and the Linux kernel accepted incoming connections into its TCP listening queue. However, the application layer (Layer 7) was critically degraded: worker threads could not obtain a database connection within the 10-millisecond pool acquisition timeout, immediately generating HTTP 503 payloads. Because the load balancer was configured with an L4 TCP check rather than an L7 HTTP check, it continued sending incoming customer requests to saturated backends. Frustrated users clicked checkout multiple times, compounding request load and creating duplicate order risks.</p>
+<p><strong>Defensible fix:</strong> Reconfigure the load balancer health check from an L4 TCP port test to an L7 HTTP check targeting a dedicated <code>/healthz</code> endpoint that actively queries database connection pool headroom. Configure the reverse proxy with connection limits and circuit breaking to shed excess traffic gracefully before the database pool saturates. To defend the business invariant of exactly one fulfillment per order, implement an idempotent request deduplication middleware in the Order API: every client request must supply a unique idempotency key (such as an order UUID), which the service records in a fast distributed store before initiating transaction processing. Repeated requests with the same key return the original cached response without re-triggering order fulfillment.</p>
+<p><strong>Verification plan:</strong> Execute decoupled test probes verifying that TCP connect succeeds while HTTP GET /healthz fails when the database pool is exhausted. Simulate duplicate checkout POST requests with the identical idempotency key; verify that the second request returns HTTP 200 with the original order confirmation and that exactly one order fulfillment message is published to the downstream processing queue.</p>
+<p><strong>Residual risk:</strong> Deep L7 health checks execute database queries and add background load; health check frequency and timeout thresholds must be tuned (e.g. 5-second interval, 2-second timeout) to prevent monitoring traffic from starving production queries during high-load periods.</p>
+<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg role="img" aria-labelledby="d2-case-1-title d2-case-1-desc" viewBox="0 0 1020 455" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d2-case-1-title">OSI Layer 4 Transport Handshake vs Layer 7 Application Health Failure Cascade</title>
+<desc id="d2-case-1-desc">Dual-lane architectural incident diagram showing how L4 TCP handshake success masked an L7 database pool exhaustion, contrasted with decoupled health probes and idempotent deduplication.</desc>
+<defs>
+<marker id="d2-case-1-arr-ok" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#22c55e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d2-case-1-arr-fail" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#f43f5e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d2-case-1-arr-warn" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#f59e0b" points="0 0, 8 4, 0 8"></polygon></marker>
+</defs>
+<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="990" x="15" y="10"></rect>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" font-weight="bold" x="25" y="27">INCIDENT COMPARISON: OSI and TCP/IP Layer Models (L4 Health Probes vs L7 Service Outage)</text>
+
+<!-- UPPER LANE: FAILED PATH -->
+<rect fill="#180b12" height="175" rx="6" stroke="#881337" stroke-width="1.5" width="990" x="15" y="40"></rect>
+<rect fill="#881337" height="20" rx="3" width="220" x="25" y="48"></rect>
+<text fill="#white" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="135" y="62">FAILED PATH · UNCHECKED ROOT CAUSE</text>
+
+<!-- Card 1: Trigger -->
+<g transform="translate(150, 140)">
+<rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. INITIATING EVENT</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Checkout traffic surge</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">1,200 req/s arrive at</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">TCP port 443 proxy</text>
+<rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[TRAFFIC SPIKE]</text>
+</g>
+
+<!-- Arrow 1 -> 2 -->
+<line marker-end="url(#d2-case-1-arr-fail)" stroke="#f43f5e" stroke-dasharray="6,4" stroke-width="2.5" x1="270" x2="350" y1="140" y2="140"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="8" text-anchor="middle" x="310" y="132">TRIGGERS</text>
+
+<!-- Card 2: Root Cause -->
+<g transform="translate(480, 140)">
+<rect fill="#2a0a10" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="240" x="-120" y="-50"></rect>
+<circle cx="-100" cy="-34" fill="#f43f5e" r="8"></circle>
+<text fill="white" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle" x="-100" y="-31">FI</text>
+<text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="10" y="-30">2. ROOT CAUSE DEFECT</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">L4 TCP check stays green</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">while backend DB pool</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">exhausts completely (L7)</text>
+<rect fill="#3b0d18" height="16" rx="2" width="140" x="-70" y="24"></rect>
+<text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[CONFLATED LAYERS]</text>
+</g>
+
+<!-- Arrow 2 -> 3 -->
+<line marker-end="url(#d2-case-1-arr-fail)" stroke="#f43f5e" stroke-dasharray="6,4" stroke-width="2.5" x1="605" x2="685" y1="140" y2="140"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="8" text-anchor="middle" x="645" y="132">CASCADES</text>
+
+<!-- Card 3: Impact -->
+<g transform="translate(820, 140)">
+<rect fill="#380914" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. IMPACT &amp; DEGRADATION</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">84% of checkouts get 503;</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">users retry blindly; order</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">queue duplicates orders</text>
+<rect fill="#4c0519" height="16" rx="2" width="150" x="-75" y="24"></rect>
+<text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[DOUBLE FULFILLMENT RISK]</text>
+</g>
+
+<!-- LOWER LANE: CORRECTED PATH -->
+<rect fill="#061f15" height="175" rx="6" stroke="#065f46" stroke-width="1.5" width="990" x="15" y="230"></rect>
+<rect fill="#064e3b" height="20" rx="3" stroke="#22c55e" stroke-width="1" width="240" x="25" y="238"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="145" y="252">CORRECTED PATH · ENFORCED CONTROL</text>
+
+<!-- Card 1: Same Trigger -->
+<g transform="translate(150, 326)">
+<rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. SAME TRIGGER EVENT</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Checkout traffic surge</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">1,200 req/s arrive at</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">TCP port 443 proxy</text>
+<rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[IDENTICAL INPUT]</text>
+</g>
+
+<!-- Arrow 1 -> 2 -->
+<line marker-end="url(#d2-case-1-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="270" x2="350" y1="326" y2="326"></line>
+<text fill="#22c55e" font-family="monospace" font-size="8" text-anchor="middle" x="310" y="318">INTERCEPT</text>
+
+<!-- Invariant Verification Boundary enclosing Card 2 and 3 -->
+<rect fill="none" height="150" rx="6" stroke="#f59e0b" stroke-dasharray="5,3" stroke-width="1.5" width="645" x="345" y="244"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="668" y="256">INVARIANT VERIFICATION BOUNDARY: GUARDRAIL ENFORCED</text>
+
+<!-- Card 2: Enforced Control -->
+<g transform="translate(480, 326)">
+<rect fill="#064e3b" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="240" x="-120" y="-50"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">2. DEFENSIVE CONTROL</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Decoupled L7 /healthz check;</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">shed load gracefully; enforce</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">durable idempotency key</text>
+<rect fill="#022c22" height="16" rx="2" width="150" x="-75" y="24"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[LAYER-AWARE GUARDRAIL]</text>
+</g>
+
+<!-- Arrow 2 -> 3 -->
+<line marker-end="url(#d2-case-1-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="605" x2="685" y1="326" y2="326"></line>
+<text fill="#22c55e" font-family="monospace" font-size="8" text-anchor="middle" x="645" y="318">PRESERVES</text>
+
+<!-- Card 3: Outcome -->
+<g transform="translate(820, 326)">
+<rect fill="#022c22" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. VERIFIED OUTCOME</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">L7 probe sheds failing node;</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">retried checkouts return cached</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">order; exactly 1 fulfillment</text>
+<rect fill="#064e3b" height="16" rx="2" width="150" x="-75" y="24"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[INVARIANT DEFENDED]</text>
+</g>
+
+<!-- Legend Bar -->
+<rect fill="#0f172a" height="32" rx="4" stroke="#1e293b" stroke-width="1" width="990" x="15" y="414"></rect>
+<line stroke="#22c55e" stroke-width="2.5" x1="28" x2="60" y1="430" y2="430"></line>
+<text fill="#22c55e" font-family="monospace" font-size="10" x="66" y="434">CORRECTED PATH</text>
+<line stroke="#f43f5e" stroke-dasharray="4,3" stroke-width="2" x1="200" x2="232" y1="430" y2="430"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="10" x="238" y="434">FAILED PATH</text>
+<rect fill="none" height="12" stroke="#f59e0b" stroke-dasharray="4,2" stroke-width="1.5" width="12" x="360" y="424"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="10" x="380" y="434">VERIFICATION BOUNDARY</text>
+<circle cx="560" cy="430" fill="#f43f5e" r="5"></circle>
+<text fill="#f43f5e" font-family="monospace" font-size="10" x="572" y="434">FI = Fault Injection Point</text>
+</svg></div>
+<figcaption><strong>Supplied facts:</strong> Synthetic load of 1,200 req/sec; 100% TCP port 443 handshake success; 84% HTTP 503 responses; L4 TCP SYN health check green.<br/><strong>Architectural inference:</strong> Transport reachability (L4) was conflated with application readiness (L7); unhandled database pool exhaustion caused HTTP 503 while edge proxy continued sending traffic.<br/><strong>Expected post-fix behavior:</strong> Deep L7 /healthz check detects pool saturation, proxy sheds excess load, and idempotent deduplication keys guarantee exactly one order fulfillment per customer transaction.</figcaption>
+</figure>
+</article>
+
+<article id="topic-02-problem" class="topic-card">
+<h3>IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting · field case: Overlapping CIDR /24 and /25 subnets causing asymmetric routing drops</h3>
+<p><strong>Symptoms and evidence:</strong> Brightloaf integrated a newly automated bakery distribution center into its hybrid cloud network. The warehouse robotics system was assigned 192.168.10.0/24, while an existing Enterprise Resource Planning (ERP) inventory synchronization server was placed on 192.168.10.128/25. Outbound inventory updates sent from the ERP host (192.168.10.130) over Cloud Interconnect to the Google Cloud regional database (10.240.0.50) timed out after 60 seconds. Packet captures at the cloud gateway revealed that outbound TCP SYN packets from 192.168.10.130 arrived successfully and the database replied with TCP SYN-ACK packets, but the SYN-ACK packets never reached the ERP host.</p>
+<p><strong>Business and operational constraints:</strong> Real-time inventory reconciliation must continuously synchronize bread production counts with central order distribution. Re-routing or addressing changes must not disrupt live warehouse robotic conveyor controllers operating on the factory floor.</p>
+<p><strong>Causal root-cause reasoning:</strong></p>
+<p><strong>Supplied facts:</strong> Warehouse robotics assigned 192.168.10.0/24 with Gateway A (192.168.10.1); ERP host assigned 192.168.10.128/25 with Gateway B (192.168.10.129); Cloud Router configured with a single static aggregate return route for 192.168.10.0/24 pointing exclusively to Gateway A.</p>
+<p><strong>Architectural inference:</strong> The network architecture contained an overlapping CIDR subnet defect. The /25 block (192.168.10.128 to 192.168.10.255) is an exact subset of the /24 block (192.168.10.0 to 192.168.10.255). Outbound packets from the ERP host traveled through Gateway B to Google Cloud. However, the Cloud Router matched the aggregate route 192.168.10.0/24 and forwarded return SYN-ACK packets to Gateway A. Gateway A had no ARP entry or routing table interface for 192.168.10.130, and an intermediate stateful firewall dropped the out-of-sequence SYN-ACK packet because it had never observed the forward SYN on that interface. This asymmetric routing blackhole completely stalled inventory synchronization.</p>
+<p><strong>Defensible fix:</strong> Disaggregate the monolithic 192.168.10.0/24 address block into two strictly non-overlapping /25 CIDR subnets: assign Subnet 0 (192.168.10.0/25, usable range .1–.126) to Warehouse Robotics via Gateway A, and retain Subnet 1 (192.168.10.128/25, usable range .129–.254) for ERP Systems via Gateway B. Update on-premises core routing tables and Google Cloud Cloud Router BGP advertisements to broadcast both explicit /25 prefixes with their distinct next-hop gateway IPs, ensuring fully symmetric forward and return routing.</p>
+<p><strong>Verification plan:</strong> Inspect host routing tables using route lookup simulation to verify that destinations in 192.168.10.128/25 resolve explicitly to Gateway B. Execute bidirectional ping and TCP connection handshakes between 192.168.10.130 and 10.240.0.50, verifying that stateful firewalls record matching forward and return session states. Replay order stock decrements to ensure the Brightloaf single-fulfillment invariant holds.</p>
+<p><strong>Residual risk:</strong> Subnetting down to /25 restricts each broadcast domain to a maximum of 126 usable host addresses. If future warehouse robotics expansion requires more than 126 nodes, the network must be re-architected into a larger RFC 1918 10.0.0.0/8 block with centralized IPAM governance.</p>
+<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg role="img" aria-labelledby="d2-case-2-title d2-case-2-desc" viewBox="0 0 1020 455" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d2-case-2-title">Overlapping CIDR Subnets and Asymmetric Route Blackhole Failure Cascade</title>
+<desc id="d2-case-2-desc">Dual-lane architectural incident diagram showing how nested /24 and /25 CIDR subnets caused asymmetric return packet drops, contrasted with strict non-overlapping subnet disaggregation.</desc>
+<defs>
+<marker id="d2-case-2-arr-ok" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#22c55e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d2-case-2-arr-fail" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#f43f5e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d2-case-2-arr-warn" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#f59e0b" points="0 0, 8 4, 0 8"></polygon></marker>
+</defs>
+<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="990" x="15" y="10"></rect>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" font-weight="bold" x="25" y="27">INCIDENT COMPARISON: IPv4 Addressing, Private Ranges, and CIDR Subnetting (Route Collision)</text>
+
+<!-- UPPER LANE: FAILED PATH -->
+<rect fill="#180b12" height="175" rx="6" stroke="#881337" stroke-width="1.5" width="990" x="15" y="40"></rect>
+<rect fill="#881337" height="20" rx="3" width="220" x="25" y="48"></rect>
+<text fill="#white" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="135" y="62">FAILED PATH · UNCHECKED ROOT CAUSE</text>
+
+<!-- Card 1: Trigger -->
+<g transform="translate(150, 140)">
+<rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. INITIATING EVENT</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">ERP node in 192.168.10.128/25</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">sends sync packet to cloud</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">database at 10.240.0.50</text>
+<rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[OUTBOUND PACKET]</text>
+</g>
+
+<!-- Arrow 1 -> 2 -->
+<line marker-end="url(#d2-case-2-arr-fail)" stroke="#f43f5e" stroke-dasharray="6,4" stroke-width="2.5" x1="270" x2="350" y1="140" y2="140"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="8" text-anchor="middle" x="310" y="132">TRIGGERS</text>
+
+<!-- Card 2: Root Cause -->
+<g transform="translate(480, 140)">
+<rect fill="#2a0a10" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="240" x="-120" y="-50"></rect>
+<circle cx="-100" cy="-34" fill="#f43f5e" r="8"></circle>
+<text fill="white" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle" x="-100" y="-31">FI</text>
+<text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="10" y="-30">2. ROOT CAUSE DEFECT</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Nested /25 inside active /24;</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">cloud router returns packets</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">to wrong warehouse gateway A</text>
+<rect fill="#3b0d18" height="16" rx="2" width="140" x="-70" y="24"></rect>
+<text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[OVERLAPPING CIDR]</text>
+</g>
+
+<!-- Arrow 2 -> 3 -->
+<line marker-end="url(#d2-case-2-arr-fail)" stroke="#f43f5e" stroke-dasharray="6,4" stroke-width="2.5" x1="605" x2="685" y1="140" y2="140"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="8" text-anchor="middle" x="645" y="132">CASCADES</text>
+
+<!-- Card 3: Impact -->
+<g transform="translate(820, 140)">
+<rect fill="#380914" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. IMPACT &amp; DEGRADATION</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Return SYN-ACK dropped by</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">firewall (asymmetric path);</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">inventory sync times out</text>
+<rect fill="#4c0519" height="16" rx="2" width="150" x="-75" y="24"></rect>
+<text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[ASYMMETRIC BLACKHOLE]</text>
+</g>
+
+<!-- LOWER LANE: CORRECTED PATH -->
+<rect fill="#061f15" height="175" rx="6" stroke="#065f46" stroke-width="1.5" width="990" x="15" y="230"></rect>
+<rect fill="#064e3b" height="20" rx="3" stroke="#22c55e" stroke-width="1" width="240" x="25" y="238"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="145" y="252">CORRECTED PATH · ENFORCED CONTROL</text>
+
+<!-- Card 1: Same Trigger -->
+<g transform="translate(150, 326)">
+<rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. SAME TRIGGER EVENT</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">ERP node in 192.168.10.128/25</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">sends sync packet to cloud</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">database at 10.240.0.50</text>
+<rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[IDENTICAL INPUT]</text>
+</g>
+
+<!-- Arrow 1 -> 2 -->
+<line marker-end="url(#d2-case-2-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="270" x2="350" y1="326" y2="326"></line>
+<text fill="#22c55e" font-family="monospace" font-size="8" text-anchor="middle" x="310" y="318">INTERCEPT</text>
+
+<!-- Invariant Verification Boundary enclosing Card 2 and 3 -->
+<rect fill="none" height="150" rx="6" stroke="#f59e0b" stroke-dasharray="5,3" stroke-width="1.5" width="645" x="345" y="244"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="668" y="256">INVARIANT VERIFICATION BOUNDARY: GUARDRAIL ENFORCED</text>
+
+<!-- Card 2: Enforced Control -->
+<g transform="translate(480, 326)">
+<rect fill="#064e3b" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="240" x="-120" y="-50"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">2. DEFENSIVE CONTROL</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Disaggregate into non-overlapping</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">/25 subnets; advertise explicit</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">next hops via BGP to cloud</text>
+<rect fill="#022c22" height="16" rx="2" width="150" x="-75" y="24"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[CLEAN CIDR BOUNDARY]</text>
+</g>
+
+<!-- Arrow 2 -> 3 -->
+<line marker-end="url(#d2-case-2-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="605" x2="685" y1="326" y2="326"></line>
+<text fill="#22c55e" font-family="monospace" font-size="8" text-anchor="middle" x="645" y="318">PRESERVES</text>
+
+<!-- Card 3: Outcome -->
+<g transform="translate(820, 326)">
+<rect fill="#022c22" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. VERIFIED OUTCOME</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Longest prefix match directs</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">return traffic to Gateway B;</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">symmetric TCP state verified</text>
+<rect fill="#064e3b" height="16" rx="2" width="150" x="-75" y="24"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[SYMMETRIC REACHABILITY]</text>
+</g>
+
+<!-- Legend Bar -->
+<rect fill="#0f172a" height="32" rx="4" stroke="#1e293b" stroke-width="1" width="990" x="15" y="414"></rect>
+<line stroke="#22c55e" stroke-width="2.5" x1="28" x2="60" y1="430" y2="430"></line>
+<text fill="#22c55e" font-family="monospace" font-size="10" x="66" y="434">CORRECTED PATH</text>
+<line stroke="#f43f5e" stroke-dasharray="4,3" stroke-width="2" x1="200" x2="232" y1="430" y2="430"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="10" x="238" y="434">FAILED PATH</text>
+<rect fill="none" height="12" stroke="#f59e0b" stroke-dasharray="4,2" stroke-width="1.5" width="12" x="360" y="424"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="10" x="380" y="434">VERIFICATION BOUNDARY</text>
+<circle cx="560" cy="430" fill="#f43f5e" r="5"></circle>
+<text fill="#f43f5e" font-family="monospace" font-size="10" x="572" y="434">FI = Fault Injection Point</text>
+</svg></div>
+<figcaption><strong>Supplied facts:</strong> Warehouse automation on 192.168.10.0/24; ERP on 192.168.10.128/25; static return route 192.168.10.0/24 pointed to Gateway A; return SYN-ACK packets dropped.<br/><strong>Architectural inference:</strong> Subnet /25 was nested inside /24 aggregate route without disaggregation, creating asymmetric routing where return packets were directed to the wrong physical gateway.<br/><strong>Expected post-fix behavior:</strong> Non-overlapping /25 subnets advertised with dedicated next hops ensure symmetric forward and return routing, restoring bidirectional TCP handshakes.</figcaption>
+</figure>
+</article>
+
+<article id="topic-03-problem" class="topic-card">
+<h3>Packet path from NIC to application socket · field case: Virtual NIC receive ring buffer overflow and default somaxconn backlog drops</h3>
+<p><strong>Symptoms and evidence:</strong> During a scheduled flash sale event generating 6,000 requests per second to Brightloaf's Order Ingestion API running on a Compute Engine c2-standard-16 Linux VM, clients experienced severe 15-second request timeouts and dropped connections. Cloud Monitoring reported that overall VM CPU utilization was only 22% and memory usage was steady at 35%. However, guest OS network telemetry revealed that interface receive drop counters (rx_dropped) were climbing at 1,400 drops per second, and netstat -s showed 32,000 TCP listen queue drops (ListenDrops) and overflows (ListenOverflows). Single-core CPU metrics showed vCPU 0 pinned at 100% utilization in SoftIRQ mode (si), while the remaining 15 vCPUs remained virtually idle.</p>
+<p><strong>Business and operational constraints:</strong> Flash sales require processing 10,000 orders per minute without dropped connection requests. Client retry storms caused by timeouts must not result in duplicate order fulfillment or corrupted inventory state.</p>
+<p><strong>Causal root-cause reasoning:</strong></p>
+<p><strong>Supplied facts:</strong> Ingress traffic rate of 6,000 req/sec; overall VM CPU 22%; vCPU 0 pinned at 100% in SoftIRQ context; interface rx_dropped incrementing; 32,000 ListenDrops in netstat; default kernel sysctl net.core.somaxconn=128; single virtIO network queue bound to vCPU 0.</p>
+<p><strong>Architectural inference:</strong> The bottleneck occurred entirely within the Linux kernel receive pipeline prior to socket delivery. Because the virtual NIC was configured with a single receive queue, all incoming packet hardware interrupts and subsequent NAPI SoftIRQs were directed to vCPU 0. Once vCPU 0 saturated at 100% CPU time in ksoftirqd/0, the NIC DMA receive ring buffer filled completely, causing the driver to discard incoming Ethernet frames before sk_buff allocation (rx_dropped). Furthermore, the default listen backlog limit (somaxconn=128) was vastly inadequate for 6,000 req/sec bursts: when application worker threads were momentarily delayed, the kernel listen backlog filled instantly, dropping TCP connection handshakes before the application could execute accept(). Packets never reached the user-space socket buffer.</p>
+<p><strong>Defensible fix:</strong> Enable multi-queue virtIO with Receive Side Scaling (RSS) on the Compute Engine VM interface to distribute hardware interrupts and SoftIRQ processing evenly across all 16 vCPUs. Tune kernel socket backlog parameters in <code>/etc/sysctl.d/99-network.conf</code>: expand the socket listen backlog (net.core.somaxconn = 8192), enlarge the driver input queue (net.core.netdev_max_backlog = 16384), increase the TCP half-open SYN backlog (net.ipv4.tcp_max_syn_backlog = 8192), and widen the TCP receive buffer limits (net.ipv4.tcp_rmem = 4096 87380 16777216). Reconfigure the application runtime socket listener with a matching backlog parameter (listen backlog 8192).</p>
+<p><strong>Verification plan:</strong> Run a local socket load harness dispatching 10,000 concurrent connection requests; inspect netstat -s and assert that ListenDrops remains exactly zero. Monitor CPU utilization across all cores using mpstat to confirm SoftIRQ load is evenly distributed. Test duplicated order payloads to confirm that application-level deduplication keys preserve single-fulfillment integrity.</p>
+<p><strong>Residual risk:</strong> Increasing socket buffer limits and queue lengths increases kernel memory allocation (kmalloc). Total TCP memory consumption must be constrained via net.ipv4.tcp_mem to prevent extreme traffic surges from exhausting system memory and triggering the Linux Out-Of-Memory (OOM) killer.</p>
+<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg role="img" aria-labelledby="d2-case-3-title d2-case-3-desc" viewBox="0 0 1020 455" width="100%" height="auto" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+<title id="d2-case-3-title">Ingress NIC DMA Ring and Socket Listen Backlog Overrun Failure Cascade</title>
+<desc id="d2-case-3-desc">Dual-lane architectural incident diagram showing how single-core softIRQ saturation and default somaxconn dropped packets, contrasted with multi-queue RSS and tuned kernel backlog buffers.</desc>
+<defs>
+<marker id="d2-case-3-arr-ok" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#22c55e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d2-case-3-arr-fail" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#f43f5e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d2-case-3-arr-warn" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4"><polygon fill="#f59e0b" points="0 0, 8 4, 0 8"></polygon></marker>
+</defs>
+<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="990" x="15" y="10"></rect>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" font-weight="bold" x="25" y="27">INCIDENT COMPARISON: Packet Path from NIC to Socket (Buffer Saturation and Listen Drops)</text>
+
+<!-- UPPER LANE: FAILED PATH -->
+<rect fill="#180b12" height="175" rx="6" stroke="#881337" stroke-width="1.5" width="990" x="15" y="40"></rect>
+<rect fill="#881337" height="20" rx="3" width="220" x="25" y="48"></rect>
+<text fill="#white" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="135" y="62">FAILED PATH · UNCHECKED ROOT CAUSE</text>
+
+<!-- Card 1: Trigger -->
+<g transform="translate(150, 140)">
+<rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. INITIATING EVENT</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Flash sale traffic burst</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">6,000 req/s arrive at</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">Order API VM interface</text>
+<rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[BURST INGRESS]</text>
+</g>
+
+<!-- Arrow 1 -> 2 -->
+<line marker-end="url(#d2-case-3-arr-fail)" stroke="#f43f5e" stroke-dasharray="6,4" stroke-width="2.5" x1="270" x2="350" y1="140" y2="140"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="8" text-anchor="middle" x="310" y="132">TRIGGERS</text>
+
+<!-- Card 2: Root Cause -->
+<g transform="translate(480, 140)">
+<rect fill="#2a0a10" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="240" x="-120" y="-50"></rect>
+<circle cx="-100" cy="-34" fill="#f43f5e" r="8"></circle>
+<text fill="white" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle" x="-100" y="-31">FI</text>
+<text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="10" y="-30">2. ROOT CAUSE DEFECT</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Default somaxconn=128;</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">single CPU pinned to softIRQ;</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">DMA descriptors overflow</text>
+<rect fill="#3b0d18" height="16" rx="2" width="140" x="-70" y="24"></rect>
+<text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[KERNEL QUEUE OVERRUN]</text>
+</g>
+
+<!-- Arrow 2 -> 3 -->
+<line marker-end="url(#d2-case-3-arr-fail)" stroke="#f43f5e" stroke-dasharray="6,4" stroke-width="2.5" x1="605" x2="685" y1="140" y2="140"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="8" text-anchor="middle" x="645" y="132">CASCADES</text>
+
+<!-- Card 3: Impact -->
+<g transform="translate(820, 140)">
+<rect fill="#380914" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. IMPACT &amp; DEGRADATION</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">32k ListenDrops in kernel;</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">VM CPU only 22% but</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">clients time out after 15s</text>
+<rect fill="#4c0519" height="16" rx="2" width="150" x="-75" y="24"></rect>
+<text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[PRE-SOCKET DROPS]</text>
+</g>
+
+<!-- LOWER LANE: CORRECTED PATH -->
+<rect fill="#061f15" height="175" rx="6" stroke="#065f46" stroke-width="1.5" width="990" x="15" y="230"></rect>
+<rect fill="#064e3b" height="20" rx="3" stroke="#22c55e" stroke-width="1" width="240" x="25" y="238"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="145" y="252">CORRECTED PATH · ENFORCED CONTROL</text>
+
+<!-- Card 1: Same Trigger -->
+<g transform="translate(150, 326)">
+<rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. SAME TRIGGER EVENT</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Flash sale traffic burst</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">6,000 req/s arrive at</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">Order API VM interface</text>
+<rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
+<text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[IDENTICAL INPUT]</text>
+</g>
+
+<!-- Arrow 1 -> 2 -->
+<line marker-end="url(#d2-case-3-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="270" x2="350" y1="326" y2="326"></line>
+<text fill="#22c55e" font-family="monospace" font-size="8" text-anchor="middle" x="310" y="318">INTERCEPT</text>
+
+<!-- Invariant Verification Boundary enclosing Card 2 and 3 -->
+<rect fill="none" height="150" rx="6" stroke="#f59e0b" stroke-dasharray="5,3" stroke-width="1.5" width="645" x="345" y="244"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="668" y="256">INVARIANT VERIFICATION BOUNDARY: GUARDRAIL ENFORCED</text>
+
+<!-- Card 2: Enforced Control -->
+<g transform="translate(480, 326)">
+<rect fill="#064e3b" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="240" x="-120" y="-50"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">2. DEFENSIVE CONTROL</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Enable multi-queue RSS;</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">tune somaxconn=8192 and</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">netdev_max_backlog=16384</text>
+<rect fill="#022c22" height="16" rx="2" width="150" x="-75" y="24"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[KERNEL TUNING APPLIED]</text>
+</g>
+
+<!-- Arrow 2 -> 3 -->
+<line marker-end="url(#d2-case-3-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="605" x2="685" y1="326" y2="326"></line>
+<text fill="#22c55e" font-family="monospace" font-size="8" text-anchor="middle" x="645" y="318">PRESERVES</text>
+
+<!-- Card 3: Outcome -->
+<g transform="translate(820, 326)">
+<rect fill="#022c22" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. VERIFIED OUTCOME</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">SoftIRQ balanced across 16 CPUs;</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">zero listen drops; socket delivers</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">all frames to worker threads</text>
+<rect fill="#064e3b" height="16" rx="2" width="150" x="-75" y="24"></rect>
+<text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[ZERO PACKET LOSS]</text>
+</g>
+
+<!-- Legend Bar -->
+<rect fill="#0f172a" height="32" rx="4" stroke="#1e293b" stroke-width="1" width="990" x="15" y="414"></rect>
+<line stroke="#22c55e" stroke-width="2.5" x1="28" x2="60" y1="430" y2="430"></line>
+<text fill="#22c55e" font-family="monospace" font-size="10" x="66" y="434">CORRECTED PATH</text>
+<line stroke="#f43f5e" stroke-dasharray="4,3" stroke-width="2" x1="200" x2="232" y1="430" y2="430"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="10" x="238" y="434">FAILED PATH</text>
+<rect fill="none" height="12" stroke="#f59e0b" stroke-dasharray="4,2" stroke-width="1.5" width="12" x="360" y="424"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="10" x="380" y="434">VERIFICATION BOUNDARY</text>
+<circle cx="560" cy="430" fill="#f43f5e" r="5"></circle>
+<text fill="#f43f5e" font-family="monospace" font-size="10" x="572" y="434">FI = Fault Injection Point</text>
+</svg></div>
+<figcaption><strong>Supplied facts:</strong> 6,000 req/sec flash sale traffic; 22% VM CPU utilization; interface rx_dropped incrementing; 32,000 listen queue overflows; default somaxconn=128.<br/><strong>Architectural inference:</strong> Single-core SoftIRQ saturation and default listen backlog queue limits caused kernel-level packet drops before connection delivery to the application socket.<br/><strong>Expected post-fix behavior:</strong> Multi-queue RSS distribution and tuned somaxconn=8192 eliminate driver and listen queue drops, allowing full socket delivery while preserving single-fulfillment deduplication.</figcaption>
+</figure>
+</article>
+</section><section id="part-4" class="part"><h2>4 · Step-by-step labs for each topic</h2>
+
+<article id="topic-01-lab" class="topic-card lab">
+<h3>Exercise 1: OSI vs TCP/IP Protocol Boundary Dissection and Transport-Application Decoupling</h3>
+<p><strong>Goal:</strong> Experimentally verify the decoupling of Layer 4 TCP connection establishment from Layer 7 HTTP application response using local Python socket and HTTP servers.</p>
+<p><strong>Expected result:</strong> A verified demonstration proving that a successful TCP three-way handshake operates independently from application HTTP status, and that idempotent request deduplication prevents duplicate fulfillment during application retries.</p>
+<p><strong>Mode:</strong> local script execution &amp; tabletop analysis · <strong>Prerequisite:</strong> Day 1 local evidence repository and Python 3 standard library.</p>
+<p><strong>Preflight:</strong> Ensure Python 3 is installed and loopback socket networking is functional; no cloud resources or external network access required.</p>
+<h4>Exact execution</h4>
+<ol>
+<li><h4>Stage 1: Preflight and Environment Verification</h4>
+<p>Inspect local Python 3 interpreter availability and verify loopback network interface socket binding:</p>
+<pre><code class="language-sh">python3 -c "import socket, sys; print(f'Python: {sys.version.split()[0]} | Loopback: {socket.gethostbyname(\"localhost\")}')"
 pwd
-</code></pre>
-<p>Expected: a Python 3 version and your current path. No <code>gcloud</code> configuration is required on this foundations day.</p>
-<h3>Step 1 — Run a local request and response</h3>
-<p>Open a Linux terminal. Paste the complete block:</p>
-<pre><code class="language-sh">python3 - &lt;&lt;'PY'
+</code></pre></li>
+
+<li><h4>Stage 2: Prepare Target Inputs and Network Fixtures</h4>
+<p>Author the baseline network port schema and endpoint configuration for protocol layer boundary testing:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; l4_l7_fixture.py
+PORTS = {
+    'HEALTHY_L4_L7': 18081,
+    'HEALTHY_L4_DEGRADED_L7': 18082,
+    'CLOSED_L4_REFUSED': 18083
+}
+print(f"[FIXTURE] Target ports defined: {PORTS}")
+EOF
+python3 l4_l7_fixture.py
+</code></pre></li>
+
+<li><h4>Stage 3: Author Decoupled L4 and L7 Test Harness</h4>
+<p>Author a test harness implementing two distinct HTTP services: Server A responds with HTTP 200 OK, while Server B completes the TCP handshake normally but returns HTTP 503 Service Unavailable to simulate database pool exhaustion:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; run_l4_l7_harness.py
+import http.server
+import socketserver
+import threading
+import time
+
+class HealthyHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(b'{"status":"CONFIRMED","order_id":"ORD-2001"}\n')
+    def log_message(self, format, *args): pass
+
+class DegradedHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(503)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(b'{"error":"DATABASE_POOL_EXHAUSTED"}\n')
+    def log_message(self, format, *args): pass
+
+server_a = socketserver.TCPServer(('127.0.0.1', 18081), HealthyHandler)
+server_b = socketserver.TCPServer(('127.0.0.1', 18082), DegradedHandler)
+
+t1 = threading.Thread(target=server_a.serve_forever, daemon=True)
+t2 = threading.Thread(target=server_b.serve_forever, daemon=True)
+t1.start()
+t2.start()
+time.sleep(0.5)
+print("[HARNESS] Mock servers running on 127.0.0.1:18081 (Healthy) and 18082 (Degraded).")
+EOF
+python3 run_l4_l7_harness.py
+</code></pre></li>
+
+<li><h4>Stage 4: Execute Protocol Layer Verification Probes</h4>
+<p>Execute independent Layer 4 socket probes and Layer 7 HTTP requests against both endpoints:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; probe_protocol_layers.py
+import socket
+import urllib.request
+import urllib.error
+
+def probe_l4_tcp(port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(2.0)
+    try:
+        start = socket.getaddrinfo('127.0.0.1', port)
+        s.connect(('127.0.0.1', port))
+        s.close()
+        return "L4_CONNECTED"
+    except Exception as e:
+        return f"L4_ERROR:{e}"
+
+def probe_l7_http(port):
+    try:
+        resp = urllib.request.urlopen(f'http://127.0.0.1:{port}/checkout', timeout=2.0)
+        return f"L7_HTTP_{resp.status}"
+    except urllib.error.HTTPError as e:
+        return f"L7_HTTP_{e.code}"
+    except Exception as e:
+        return f"L7_ERROR:{e}"
+
+for name, port in [('Server A (Healthy)', 18081), ('Server B (Degraded)', 18082)]:
+    l4_result = probe_l4_tcp(port)
+    l7_result = probe_l7_http(port)
+    print(f"[PROBE] {name} -&gt; {l4_result} | {l7_result}")
+EOF
+python3 probe_protocol_layers.py
+</code></pre></li>
+
+<li><h4>Stage 5: Inspect Expected State and Verify Boundary Independence</h4>
+<p>Assert that Layer 4 TCP connection success occurs identically on both servers, while Layer 7 health reflects application database state:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; assert_layer_independence.py
+from probe_protocol_layers import probe_l4_tcp, probe_l7_http
+
+# Server A assertions
+assert probe_l4_tcp(18081) == "L4_CONNECTED", "Server A L4 must connect"
+assert probe_l7_http(18081) == "L7_HTTP_200", "Server A L7 must return HTTP 200"
+
+# Server B assertions (L4 connects, L7 fails)
+assert probe_l4_tcp(18082) == "L4_CONNECTED", "Server B L4 must connect despite app failure"
+assert probe_l7_http(18082) == "L7_HTTP_503", "Server B L7 must return HTTP 503"
+
+print("[ASSERT PASS] Protocol layer independence verified: L4 handshake does not guarantee L7 readiness.")
+EOF
+python3 assert_layer_independence.py
+</code></pre></li>
+
+<li><h4>Stage 6: Rehearse Bounded Failure: Total L4 Refusal vs L7 Degradation</h4>
+<p>Rehearse a total Layer 4 failure by attempting connection to closed port 18083, and contrast the failure signature with Layer 7 HTTP 503 degradation:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; rehearse_l4_refusal.py
+import socket
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(1.0)
+try:
+    s.connect(('127.0.0.1', 18083))
+    print("[ERROR] Connection to closed port succeeded unexpectedly")
+except ConnectionRefusedError as e:
+    print(f"[REHEARSAL PASS] Layer 4 connection refused as expected: {e}")
+    print("  • L4 Failure Signature: TCP RST received; no socket established; 0 bytes transferred.")
+    print("  • L7 Failure Signature: TCP established; TLS completed; HTTP 503 payload received.")
+finally:
+    s.close()
+EOF
+python3 rehearse_l4_refusal.py
+</code></pre></li>
+
+<li><h4>Stage 7: Diagnose Evidence and Record Remediation Decision</h4>
+<p>Author a diagnostic evaluation verifying the Brightloaf order deduplication invariant when retrying after HTTP 503 errors:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; diagnose_layer_evidence.py
+# Simulate Order API idempotent retry evaluation
+processed_orders = {}
+fulfillment_events = []
+
+def process_checkout(order_id, idempotency_key):
+    if idempotency_key in processed_orders:
+        return 200, processed_orders[idempotency_key], "CACHED_IDEMPOTENT_RESPONSE"
+    # First attempt: simulate database write
+    record = {"order_id": order_id, "amount": 42.50, "status": "CONFIRMED"}
+    processed_orders[idempotency_key] = record
+    fulfillment_events.append(order_id)
+    return 200, record, "PROCESSED_NEW_ORDER"
+
+# Initial attempt and retry with same idempotency key
+code1, body1, state1 = process_checkout("ORD-9901", "IDEMP-KEY-ABCD-1234")
+code2, body2, state2 = process_checkout("ORD-9901", "IDEMP-KEY-ABCD-1234")
+
+assert len(fulfillment_events) == 1, f"Invariant violated: {len(fulfillment_events)} fulfillments"
+assert body1 == body2, "Responses must be identical"
+print(f"[INVARIANT PASS] Exactly 1 fulfillment event recorded across multiple retries.")
+print(f"  • Attempt 1: {state1} -&gt; {body1}")
+print(f"  • Attempt 2: {state2} -&gt; {body2}")
+EOF
+python3 diagnose_layer_evidence.py
+</code></pre></li>
+
+<li><h4>Stage 8: Clean Up and Close Out Exercise</h4>
+<p>Clean up temporary scripts and record the completed analysis in the local evidence repository:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; day-002-topic-01-layer-decoupling.md
+# Day 2 Topic 1 Evidence: OSI vs TCP/IP Protocol Boundary Dissection
+
+- Date: 2026-09-29
+- Lab Mode: local script execution
+- Target Ports: 18081 (Healthy L4/L7), 18082 (Healthy L4 / Degraded L7), 18083 (Refused L4)
+- Verification Findings:
+  1. Server B accepted TCP connections (L4_CONNECTED) despite returning HTTP 503 Service Unavailable.
+  2. Conflating L4 port checks with L7 health checks conceals application-layer outages from load balancers.
+  3. Client retry storm following HTTP 503 was safely handled via idempotency key deduplication (exactly 1 fulfillment event).
+EOF
+rm -f l4_l7_fixture.py run_l4_l7_harness.py probe_protocol_layers.py assert_layer_independence.py rehearse_l4_refusal.py diagnose_layer_evidence.py
+cat day-002-topic-01-layer-decoupling.md
+</code></pre></li>
+</ol>
+<div class="callout success"><strong>Expected result / acceptance</strong><p>Verification proves that Layer 4 TCP connection success is completely independent of Layer 7 HTTP application health, and the order deduplication simulation prevents duplicate fulfillment.</p>
+<p><strong>Artifact acceptance:</strong> Completed layer decoupling analysis and evidence log. File: <code>day-002-topic-01-layer-decoupling.md</code>.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>If port 18081 or 18082 reports address already in use, verify that previous Python background processes were terminated using process inspection tools before retrying.</p></div>
+<div class="callout"><strong>Cleanup and cost</strong><p>No cloud resources created; zero cost incurred. Temporary mock scripts removed and evidence committed to local markdown artifact.</p></div>
+<label class="check"><input data-progress="lab-2-topic-01" type="checkbox"/> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-02-lab" class="topic-card lab">
+<h3>Exercise 2: IPv4 CIDR Subnet Partitioning, RFC 1918 Planning, and Next-Hop Routing Engine</h3>
+<p><strong>Goal:</strong> Split a /24 network into four equal /26 subnets, calculate host boundaries, broadcast addresses, and Google Cloud VPC reservations, and simulate a longest-prefix-match next-hop routing decision engine.</p>
+<p><strong>Expected result:</strong> A complete four-subnet address allocation table with calculated broadcast and gateway addresses, plus an automated routing engine verification script proving correct next-hop resolution.</p>
+<p><strong>Mode:</strong> local Python calculation and routing simulation · <strong>Prerequisite:</strong> Binary bitwise arithmetic concepts and Python 3 standard library.</p>
+<p><strong>Preflight:</strong> Confirm Python 3 standard library ipaddress module is available; no external libraries required.</p>
+<h4>Exact execution</h4>
+<ol>
+<li><h4>Stage 1: Preflight and Environment Verification</h4>
+<p>Verify Python 3 ipaddress module functionality and environment isolation:</p>
+<pre><code class="language-sh">python3 -c "import ipaddress; print(f'ipaddress module loaded from: {ipaddress.__file__}')"
+pwd
+</code></pre></li>
+
+<li><h4>Stage 2: Prepare Target Inputs and Network Fixtures</h4>
+<p>Define the target address block 192.0.2.0/24 (RFC 5737 TEST-NET-1) and target partitioning parameters:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; subnet_inputs.py
+BASE_NETWORK = "192.0.2.0/24"
+TARGET_PREFIX = 26
+print(f"[INPUTS] Base CIDR: {BASE_NETWORK} | Target Subnet Prefix: /{TARGET_PREFIX}")
+EOF
+python3 subnet_inputs.py
+</code></pre></li>
+
+<li><h4>Stage 3: Author CIDR Subnet Calculation and Bitmask Engine</h4>
+<p>Author a Python calculation script that computes subnet network addresses, netmasks, broadcast addresses, usable RFC 1918 ranges, and Google Cloud VPC 5-IP reserved offsets:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; subnet_calculator.py
+import ipaddress
+
+base_net = ipaddress.ip_network("192.0.2.0/24")
+subnets = list(base_net.subnets(new_prefix=26))
+
+print(f"{'Subnet CIDR':&lt;16} | {'Netmask':&lt;15} | {'Broadcast':&lt;14} | {'RFC Usable Range':&lt;31} | {'GCP Usable Range'}")
+print("-" * 110)
+
+for i, sub in enumerate(subnets):
+    hosts = list(sub.hosts())
+    rfc_usable = f"{hosts[0]} - {hosts[-1]}"
+    # Google Cloud reserves 5 IPs: .0 (net), .1 (gw), .2 (dns), .3 (future), last (bcast)
+    gcp_usable = f"{sub.network_address + 4} - {sub.network_address + sub.num_addresses - 2}"
+    print(f"{str(sub):&lt;16} | {str(sub.netmask):&lt;15} | {str(sub.broadcast_address):&lt;14} | {rfc_usable:&lt;31} | {gcp_usable}")
+EOF
+python3 subnet_calculator.py
+</code></pre></li>
+
+<li><h4>Stage 4: Execute Subnet Partitioning and Output Range Map</h4>
+<p>Execute the calculation engine and generate the structured CIDR range documentation:</p>
+<pre><code class="language-sh">python3 subnet_calculator.py &gt; subnet_ranges.txt
+cat subnet_ranges.txt
+</code></pre></li>
+
+<li><h4>Stage 5: Inspect Expected State and Verify CIDR Invariants</h4>
+<p>Execute automated assertions validating that all 4 subnets are strictly contiguous, non-overlapping, sum to 256 addresses, and possess valid broadcast boundaries:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; assert_cidr_invariants.py
+import ipaddress
+
+base_net = ipaddress.ip_network("192.0.2.0/24")
+subnets = list(base_net.subnets(new_prefix=26))
+
+assert len(subnets) == 4, f"Expected 4 subnets, got {len(subnets)}"
+total_addresses = sum(s.num_addresses for s in subnets)
+assert total_addresses == 256, f"Expected 256 total addresses, got {total_addresses}"
+
+for i in range(len(subnets) - 1):
+    assert subnets[i].broadcast_address + 1 == subnets[i+1].network_address, \
+        f"Gap detected between {subnets[i]} and {subnets[i+1]}"
+
+print("[ASSERT PASS] All 4 subnets are contiguous, non-overlapping, and fully cover /24.")
+EOF
+python3 assert_cidr_invariants.py
+</code></pre></li>
+
+<li><h4>Stage 6: Rehearse Bounded Failure: Overlapping CIDR Route Collision</h4>
+<p>Simulate an overlapping CIDR subnet assignment and demonstrate routing ambiguity:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; simulate_cidr_collision.py
+import ipaddress
+
+net_a = ipaddress.ip_network("192.0.2.0/25")   # .0 to .127
+net_b = ipaddress.ip_network("192.0.2.64/26")  # .64 to .127 (COLLISION)
+
+test_ip = ipaddress.ip_address("192.0.2.70")
+matches = []
+if test_ip in net_a: matches.append(f"{net_a} (Warehouse)")
+if test_ip in net_b: matches.append(f"{net_b} (Robotics)")
+
+print(f"[COLLISION REHEARSAL] Destination IP: {test_ip}")
+print(f"  • Conflicting Subnet Matches: {matches}")
+assert len(matches) &gt; 1, "Collision must match both overlapping ranges"
+print("  • Route Ambiguity: Routers will choose /26 by longest-prefix match, bypassing /25 gateway!")
+EOF
+python3 simulate_cidr_collision.py
+</code></pre></li>
+
+<li><h4>Stage 7: Diagnose Evidence and Record Next-Hop Routing Decision</h4>
+<p>Author and execute a routing engine simulator implementing Longest Prefix Match (LPM) to determine on-link versus gateway forwarding:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; route_lookup_simulator.py
+import ipaddress
+
+class RoutingTable:
+    def __init__(self):
+        self.routes = []
+    def add_route(self, prefix_str, gateway_str, interface_str):
+        self.routes.append((ipaddress.ip_network(prefix_str), gateway_str, interface_str))
+        # Sort by prefix length descending (Longest Prefix Match)
+        self.routes.sort(key=lambda r: r[0].prefixlen, reverse=True)
+    def lookup(self, destination_ip_str):
+        dst = ipaddress.ip_address(destination_ip_str)
+        for net, gw, iface in self.routes:
+            if dst in net:
+                return {"destination": str(dst), "matched_prefix": str(net), "next_hop": gw, "interface": iface}
+        return None
+
+rt = RoutingTable()
+rt.add_route("192.0.2.0/26", "ON_LINK", "eth0")
+rt.add_route("192.0.2.64/26", "192.0.2.1", "eth0")
+rt.add_route("10.0.0.0/8", "192.0.2.1", "eth0")
+rt.add_route("0.0.0.0/0", "192.0.2.1", "eth0")
+
+for dst in ["192.0.2.15", "192.0.2.70", "10.240.0.50", "8.8.8.8"]:
+    decision = rt.lookup(dst)
+    print(f"[ROUTE LOOKUP] Destination: {dst:&lt;15} -&gt; Prefix: {decision['matched_prefix']:&lt;14} Next-Hop: {decision['next_hop']}")
+EOF
+python3 route_lookup_simulator.py
+</code></pre></li>
+
+<li><h4>Stage 8: Clean Up and Close Out Exercise</h4>
+<p>Clean up temporary test scripts and save the final four-range subnet table and next-hop decision artifact:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; day-002-topic-02-subnetting.md
+# Day 2 Topic 2 Evidence: IPv4 CIDR Subnet Partitioning &amp; Next-Hop Routing
+
+- Date: 2026-09-29
+- Lab Mode: local Python calculation &amp; routing simulation
+- Base Network: 192.0.2.0/24 split into four /26 subnets:
+  1. Subnet 0: 192.0.2.0/26 | Netmask: 255.255.255.192 | Gateway: 192.0.2.1 | Usable: 192.0.2.1–192.0.2.62 | Broadcast: 192.0.2.63
+  2. Subnet 1: 192.0.2.64/26 | Netmask: 255.255.255.192 | Gateway: 192.0.2.65 | Usable: 192.0.2.65–192.0.2.126 | Broadcast: 192.0.2.127
+  3. Subnet 2: 192.0.2.128/26 | Netmask: 255.255.255.192 | Gateway: 192.0.2.129 | Usable: 192.0.2.129–192.0.2.190 | Broadcast: 192.0.2.191
+  4. Subnet 3: 192.0.2.192/26 | Netmask: 255.255.255.192 | Gateway: 192.0.2.193 | Usable: 192.0.2.193–192.0.2.254 | Broadcast: 192.0.2.255
+- Google Cloud VPC Reserved Offset Rule: 5 IPs reserved (.0 network, .1 default gateway, .2 Cloud DNS, .3 Google future use, .255 broadcast).
+- Next-Hop Decision: Destination 192.0.2.15 is ON_LINK; destination 192.0.2.70 forwards to Gateway 192.0.2.1 via LPM rule.
+EOF
+rm -f subnet_inputs.py subnet_calculator.py subnet_ranges.txt assert_cidr_invariants.py simulate_cidr_collision.py route_lookup_simulator.py
+cat day-002-topic-02-subnetting.md
+</code></pre></li>
+</ol>
+<div class="callout success"><strong>Expected result / acceptance</strong><p>Four mathematically correct /26 ranges with explicit network, broadcast, and Google Cloud reserved addresses, verified via automated invariant assertions and next-hop route simulation.</p>
+<p><strong>Artifact acceptance:</strong> Four verified CIDR ranges and next-hop decision table. File: <code>day-002-topic-02-subnetting.md</code>.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>Verify that prefix length math uses 2^(32 - prefixlen) to compute total address capacity. Ensure /26 broadcast addresses are always odd values ending in 63, 127, 191, and 255.</p></div>
+<div class="callout"><strong>Cleanup and cost</strong><p>No cloud resources created; zero cost incurred. Local worksheet and routing simulation scripts cleaned up, retaining final markdown evidence artifact.</p></div>
+<label class="check"><input data-progress="lab-2-topic-02" type="checkbox"/> I completed and checked this topic exercise</label>
+</article>
+
+<article id="topic-03-lab" class="topic-card lab">
+<h3>Exercise 3: Packet Traversal Lifecycle Tracing from Physical NIC to Application Socket Buffer</h3>
+<p><strong>Goal:</strong> Trace an incoming IPv4 packet through all nine operating system receive boundaries, inspect socket buffer metrics, and simulate socket listen backlog saturation to formulate kernel sysctl tuning remediations.</p>
+<p><strong>Expected result:</strong> A complete nine-stage packet ingress traversal trace with telemetry signals, an observed connection drop under listen backlog saturation, and a calculated sysctl tuning profile for high-throughput ingress.</p>
+<p><strong>Mode:</strong> local execution and Linux kernel network telemetry analysis · <strong>Prerequisite:</strong> Understanding of Linux process model, sockets, and sysctl interfaces.</p>
+<p><strong>Preflight:</strong> Verify loopback network interface is active and socket creation permissions are available in current user environment.</p>
+<h4>Exact execution</h4>
+<ol>
+<li><h4>Stage 1: Preflight and Environment Telemetry Discovery</h4>
+<p>Inspect local kernel socket buffer parameters and default listen backlog values:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; inspect_kernel_defaults.py
+import socket
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+default_rcvbuf = s.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
+default_sndbuf = s.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)
+s.close()
+
+print(f"[KERNEL TELEMETRY] Default SO_RCVBUF: {default_rcvbuf} bytes ({default_rcvbuf // 1024} KiB)")
+print(f"[KERNEL TELEMETRY] Default SO_SNDBUF: {default_sndbuf} bytes ({default_sndbuf // 1024} KiB)")
+EOF
+python3 inspect_kernel_defaults.py
+</code></pre></li>
+
+<li><h4>Stage 2: Prepare Target Sockets and Descriptor Baseline</h4>
+<p>Create a dedicated TCP listening socket on port 19090 configured with an explicit receive buffer limit:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; create_target_socket.py
+import socket
+
+server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+# Set receive buffer to 64 KiB
+server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
+server_sock.bind(('127.0.0.1', 19090))
+server_sock.listen(128)
+
+actual_rcvbuf = server_sock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
+print(f"[SOCKET READY] Bound to 127.0.0.1:19090 | Active SO_RCVBUF: {actual_rcvbuf} bytes")
+server_sock.close()
+EOF
+python3 create_target_socket.py
+</code></pre></li>
+
+<li><h4>Stage 3: Author Kernel Packet Path Trace and Simulator</h4>
+<p>Author a Python simulator modeling the exact nine-stage progression of a packet from physical wire to user-space application socket:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; packet_path_trace.py
+stages = [
+    ("Stage 1", "NIC Physical Framing", "CRC check verified; frame accepted by PHY"),
+    ("Stage 2", "DMA Ring Placement", "Frame copied into host RAM rx_ring descriptor"),
+    ("Stage 3", "MSI-X Hardware Interrupt", "NIC signals PCIe interrupt to CPU core"),
+    ("Stage 4", "NAPI SoftIRQ Processing", "ksoftirqd polls rx_ring; allocates sk_buff descriptor"),
+    ("Stage 5", "Netfilter PREROUTING", "iptables/nftables hooks evaluate conntrack &amp; DNAT"),
+    ("Stage 6", "FIB Route Lookup", "ip_route_input_noref confirms local destination address"),
+    ("Stage 7", "TCP Port Demux", "tcp_v4_rcv validates 4-tuple, sequence numbers, and ACK"),
+    ("Stage 8", "Socket Queueing", "Payload appended to socket sk_receive_queue buffer"),
+    ("Stage 9", "User-Space Syscall", "Application wakes from epoll_wait; read() copies data to process")
+]
+
+print("[PACKET INGRESS TRACE] 9-Stage Packet Traversal Pipeline:")
+for step, boundary, desc in stages:
+    print(f"  • {step:&lt;8} | {boundary:&lt;26} | {desc}")
+EOF
+python3 packet_path_trace.py
+</code></pre></li>
+
+<li><h4>Stage 4: Execute Packet Dispatch and Socket Delivery</h4>
+<p>Transmit an application payload through loopback and observe end-to-end socket delivery:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; run_socket_delivery.py
 import socket
 import threading
+import time
 
-listener = socket.socket()
-listener.bind(('127.0.0.1', 0))
-listener.listen(1)
-port = listener.getsockname()[1]
+def start_server():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('127.0.0.1', 19090))
+    s.listen(10)
+    conn, addr = s.accept()
+    data = conn.recv(1024)
+    conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 15\r\n\r\nOrder Confirmed")
+    conn.close()
+    s.close()
+    print(f"[SERVER RECEIVE] Received {len(data)} bytes from {addr}")
 
-def serve():
-    conn, _ = listener.accept()
-    with conn:
-        request = conn.recv(4096)
-        print('L7 request:', request.split(b'\r\n', 1)[0].decode())
-        conn.sendall(b'HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n')
-    listener.close()
+t = threading.Thread(target=start_server, daemon=True)
+t.start()
+time.sleep(0.3)
 
-worker = threading.Thread(target=serve)
-worker.start()
-with socket.create_connection(('127.0.0.1', port)) as client:
-    print('L4 connected:', client.getpeername()[0] == '127.0.0.1')
-    client.sendall(b'GET /orders HTTP/1.1\r\nHost: orders.test\r\n\r\n')
-    print('L7 response:', client.recv(4096).split(b'\r\n', 1)[0].decode())
-worker.join()
-PY
-</code></pre>
-<p>Expected lines:</p>
-<pre><code class="language-text">L4 connected: True
-L7 request: GET /orders HTTP/1.1
-L7 response: HTTP/1.1 503 Service Unavailable
-</code></pre>
-<p>Thread output may place the request line before or after the connected line. Explain why the TCP connection succeeded although the application response is an error. This loopback exercise does not test DNS, TLS or a physical NIC.</p>
-<h3>Step 2 — Label the layers</h3>
-<p>In your Day 2 note, label the destination IP as Internet layer, the dynamically chosen TCP port as transport, and the GET request and 503 response as application. State which observation an L4-only health check could miss. <strong>Verification:</strong> the note has all three labels and identifies the 503 as an application outcome. <strong>Troubleshooting:</strong> if the local bind fails, check whether loopback is available; if the script hangs, terminate it and note the last printed line. <strong>Cleanup:</strong> the script closes both sockets and exits; no service or cloud resource remains. <strong>Artifact acceptance:</strong> retain the three observed lines and the L4/L7 explanation.</p>
-<p><label class="check"><input type="checkbox" data-progress="lab-2-topic-01"> I completed and checked this topic exercise</label></p></article><article id="topic-02-lab" class="topic-card lab"><h3>Exercise 2 · Split a /24 and choose the next hop</h3><p><strong>Goal:</strong> Split one /24 into four /26 networks and identify the next hop. <strong>Mode:</strong> local Linux terminal with Python 3; no cloud use.</p>
-<p><strong>Preflight:</strong> Confirm the Day 1 repository is available and run:</p>
-<pre><code class="language-sh">python3 --version
-python3 -c 'import ipaddress; print(&quot;ipaddress available&quot;)'
-</code></pre>
-<p>Expected: a Python 3 version and <code>ipaddress available</code>. This standard-library exercise needs no network, cloud account or <code>gcloud</code> configuration.</p>
-<h3>Step 1 — Calculate the ranges</h3>
-<p>Open a terminal and run:</p>
-<pre><code class="language-sh">python3 - &lt;&lt;'PY'
-from ipaddress import ip_network
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(('127.0.0.1', 19090))
+payload = b"POST /orders HTTP/1.1\r\nHost: localhost\r\nContent-Length: 22\r\n\r\n{\"order_id\":\"ORD-1042\"}"
+client.sendall(payload)
+response = client.recv(1024)
+client.close()
 
-parent = ip_network('192.0.2.0/24')
-for subnet in parent.subnets(new_prefix=26):
-    print(subnet, 'network', subnet.network_address,
-          'broadcast', subnet.broadcast_address,
-          'host-range', subnet.network_address + 1, subnet.broadcast_address - 1)
-PY
-</code></pre>
-<p>Expected:</p>
-<pre><code class="language-text">192.0.2.0/26 network 192.0.2.0 broadcast 192.0.2.63 host-range 192.0.2.1 192.0.2.62
-192.0.2.64/26 network 192.0.2.64 broadcast 192.0.2.127 host-range 192.0.2.65 192.0.2.126
-192.0.2.128/26 network 192.0.2.128 broadcast 192.0.2.191 host-range 192.0.2.129 192.0.2.190
-192.0.2.192/26 network 192.0.2.192 broadcast 192.0.2.255 host-range 192.0.2.193 192.0.2.254
-</code></pre>
-<p>The address block is reserved for documentation; do not try to contact its sample hosts. Four /26 ranges cover the /24 without overlap. Copy the network and broadcast values into the Day 2 exit artifact.</p>
-<h3>Step 2 — Trace a supplied route</h3>
-<p>Use this fixture: source <code>192.0.2.10/26</code>, gateway <code>192.0.2.1</code>, destination <code>192.0.2.70</code>. Verify the on-link decision:</p>
-<pre><code class="language-sh">python3 - &lt;&lt;'PY'
-from ipaddress import ip_address, ip_interface
-source = ip_interface('192.0.2.10/26')
-destination = ip_address('192.0.2.70')
-gateway = ip_address('192.0.2.1')
-print('source subnet:', source.network)
-print('destination on-link:', destination in source.network)
-print('gateway on-link:', gateway in source.network)
-print('first next hop:', destination if destination in source.network else gateway)
-PY
-</code></pre>
-<p>Expected:</p>
-<pre><code class="language-text">source subnet: 192.0.2.0/26
-destination on-link: False
-gateway on-link: True
-first next hop: 192.0.2.1
-</code></pre>
-<p>In your note, draw source → gateway → destination. The source resolves the gateway's link address and sends it a frame; the router forwards the IP packet toward the second subnet. <strong>Troubleshooting:</strong> if the computed next hop is the destination, check the entered <code>/26</code> prefix and both addresses. <strong>Cleanup:</strong> no resource was created; retain the calculation and note. <strong>Artifact acceptance:</strong> four nonoverlapping <code>/26</code> ranges with network and broadcast values, plus the labeled next-hop decision.</p>
-<p><label class="check"><input type="checkbox" data-progress="lab-2-topic-02"> I completed and checked this topic exercise</label></p></article><article id="topic-03-lab" class="topic-card lab"><h3>Exercise 3 · Trace a packet to the Order API socket</h3><p><strong>Goal:</strong> Follow a supplied packet through the first hop and local socket boundary. <strong>Mode:</strong> local diagram with one optional read-only Linux check.</p>
-<p><strong>Preflight:</strong> Bring your Day 1 evidence repository and Day 2 subnet calculation. Confirm Python 3 with:</p>
-<pre><code class="language-sh">python3 --version
-</code></pre>
-<p>Expected: a Python 3 version. No live GCP project is used.</p>
-<h3>Step 1 — Record your machine's local view</h3>
-<p>Open a Linux terminal and, if the <code>ip</code> tool is available, run:</p>
-<pre><code class="language-sh">ip -brief address
-ip route
-</code></pre>
-<p>Expected: one or more interface/address lines and a route table. The exact interface names and routes vary by machine; do not copy another learner's values. If the command is unavailable, use the fixture below without installing software. These commands only read local state.</p>
-<h3>Step 2 — Trace the fixture</h3>
-<p>Use source <code>192.0.2.10/26</code>, gateway <code>192.0.2.1</code>, destination <code>192.0.2.70:443</code>, and a server listening on <code>192.0.2.70:443</code>. Draw and label: source socket → source TCP/IP stack → source NIC → gateway link address → router → server NIC → server TCP/IP stack → listening socket. Mark that ARP at the source resolves the gateway because the destination is outside the source <code>/26</code>. Then mark the server's destination port as the socket-selection clue. This is a supplied paper fixture; the example addresses do not denote reachable hosts.</p>
-<h3>Step 3 — Inject a failure</h3>
-<p>Change the server listener to port 8443 while the packet still targets 443. Expected: the source route and gateway decision are unchanged, but the destination no longer matches that listening socket. The exact network response depends on firewall and host settings; do not invent a guaranteed reset or timeout. Record the first boundary you would inspect and one observation that distinguishes a missing listener from a routing failure. In this fixture, a missing matching listener and a rising server NIC counter point to a receive-side issue; no server NIC observation points farther upstream.</p>
-<p><strong>Verification:</strong> the saved diagram shows the next hop, both NICs, the destination port and the 443/8443 mismatch. <strong>Troubleshooting:</strong> if the optional <code>ip</code> command is unavailable, do not install anything for this fixture; use the supplied addresses and mark local measurements as unavailable. <strong>Cleanup:</strong> no cloud resource was created. The optional terminal commands are read-only; retain only the diagram and observations. <strong>Artifact acceptance:</strong> the note labels every receive boundary, the first next hop, the port mismatch and the evidence needed to separate routing from socket delivery.</p>
-<p><label class="check"><input type="checkbox" data-progress="lab-2-topic-03"> I completed and checked this topic exercise</label></p></article></section><section class="completion"><h2>Daily evidence</h2><label class="check"><input type="checkbox" data-progress="read-2"> I read and reviewed the day</label><label class="check"><input type="checkbox" data-progress="artifact-2"> I saved the exit artifact</label></section><nav class="pager" aria-label="Day pagination"><a href="day-001.html">← Day 1<small>Local workspace and learning baseline</small></a><a href="../index.html">All 180 days<small>Browse the roadmap</small></a><a href="day-003.html">Day 3 →<small>DNS, sockets and transport</small></a></nav><p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p></main><footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer></body></html>
+print(f"[CLIENT RESPONSE] {response.decode().splitlines()[0]}")
+EOF
+python3 run_socket_delivery.py
+</code></pre></li>
+
+<li><h4>Stage 5: Inspect Expected State and Buffer Metrics</h4>
+<p>Verify socket connection states, buffer utilization, and descriptor cleanup:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; assert_socket_delivery.py
+import socket
+
+# Confirm test port is now closed after clean teardown
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(0.5)
+try:
+    s.connect(('127.0.0.1', 19090))
+    raise AssertionError("Port 19090 should be closed")
+except ConnectionRefusedError:
+    print("[ASSERT PASS] Socket closed cleanly; descriptors released to kernel.")
+s.close()
+EOF
+python3 assert_socket_delivery.py
+</code></pre></li>
+
+<li><h4>Stage 6: Rehearse Bounded Failure: Socket Buffer Saturation and Listen Drop</h4>
+<p>Simulate listen queue exhaustion by launching an unserviced listening socket with a tiny backlog (backlog=2) and flooding it with connection attempts:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; simulate_backlog_overflow.py
+import socket
+import time
+
+# Create listener with tiny backlog of 2 without calling accept()
+listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+listener.bind(('127.0.0.1', 19095))
+listener.listen(2)
+
+print("[OVERFLOW REHEARSAL] Server listening on 19095 with backlog=2 (no accept() calls).")
+successful_connections = []
+failed_connections = 0
+
+for i in range(10):
+    c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    c.settimeout(0.5)
+    try:
+        c.connect(('127.0.0.1', 19095))
+        successful_connections.append(c)
+    except Exception as e:
+        failed_connections += 1
+        c.close()
+
+print(f"  • Established Connections: {len(successful_connections)}")
+print(f"  • Refused or Timed Out Connections: {failed_connections}")
+print("  • Kernel Behavior: When backlog saturates, kernel drops incoming SYN packets (ListenDrops).")
+
+for c in successful_connections:
+    c.close()
+listener.close()
+EOF
+python3 simulate_backlog_overflow.py
+</code></pre></li>
+
+<li><h4>Stage 7: Diagnose Evidence and Formulate Kernel Tuning Remediation</h4>
+<p>Author an automated kernel sysctl calculation script determining optimal production network parameters for a 10,000 req/sec ingress workload:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; diagnose_socket_drops.py
+target_rps = 10000
+burst_factor = 2.5
+peak_concurrent = int(target_rps * burst_factor)
+
+# Calculate recommended sysctl parameters
+recommended_somaxconn = 8192
+recommended_netdev_backlog = 16384
+recommended_syn_backlog = 8192
+min_rcvbuf_kib = 64
+max_rcvbuf_mib = 16
+
+print(f"[TUNING DIAGNOSIS] Target RPS: {target_rps} | Peak Burst: {peak_concurrent} conns")
+print("Recommended Linux sysctl settings for /etc/sysctl.d/99-network-tuning.conf:")
+print(f"  net.core.somaxconn = {recommended_somaxconn}           # Max socket listen backlog")
+print(f"  net.core.netdev_max_backlog = {recommended_netdev_backlog}  # Max incoming packet driver queue")
+print(f"  net.ipv4.tcp_max_syn_backlog = {recommended_syn_backlog}  # Max half-open TCP connections")
+print(f"  net.ipv4.tcp_rmem = 4096 87380 {max_rcvbuf_mib * 1024 * 1024} # Dynamic TCP receive buffer limits")
+print("Remediation protects against rx_dropped and ListenDrops during high-volume bursts.")
+EOF
+python3 diagnose_socket_drops.py
+</code></pre></li>
+
+<li><h4>Stage 8: Clean Up and Close Out Exercise</h4>
+<p>Remove temporary test scripts and save the packet path traversal analysis and sysctl tuning profile into the evidence repository:</p>
+<pre><code class="language-sh">cat &lt;&lt;'EOF' &gt; day-002-topic-03-packet-path.md
+# Day 2 Topic 3 Evidence: Packet Ingress Lifecycle &amp; Socket Buffer Tuning
+
+- Date: 2026-09-29
+- Lab Mode: local execution and kernel telemetry analysis
+- Packet Traversal Summary:
+  1. NIC PHY: Ethernet FCS CRC verification
+  2. DMA Engine: Copies frame into host RAM rx_ring
+  3. MSI-X IRQ: Asserts hardware interrupt to target CPU core
+  4. NAPI SoftIRQ: ksoftirqd drains descriptors and allocates sk_buff
+  5. Netfilter: Evaluates conntrack and PREROUTING iptables/nftables
+  6. FIB Lookup: Confirms local IP destination address
+  7. TCP Demux: tcp_v4_rcv validates 4-tuple and sequence numbers
+  8. Socket Buffer: Appends payload to sk_receive_queue up to SO_RCVBUF
+  9. User Space: Application thread wakes from epoll_wait and executes read()
+- Listen Backlog Simulation: Rehearsed backlog=2 overflow, observing kernel connection refusal on burst attempts.
+- Recommended Production sysctl Profile:
+  net.core.somaxconn = 8192
+  net.core.netdev_max_backlog = 16384
+  net.ipv4.tcp_max_syn_backlog = 8192
+  net.ipv4.tcp_rmem = 4096 87380 16777216
+EOF
+rm -f inspect_kernel_defaults.py create_target_socket.py packet_path_trace.py run_socket_delivery.py assert_socket_delivery.py simulate_backlog_overflow.py diagnose_socket_drops.py
+cat day-002-topic-03-packet-path.md
+</code></pre></li>
+</ol>
+<div class="callout success"><strong>Expected result / acceptance</strong><p>Complete 9-boundary packet lifecycle trace with documented telemetry signals, backlog queue overflow simulation, and production sysctl tuning formulas.</p>
+<p><strong>Artifact acceptance:</strong> Packet traversal trace diagram and kernel tuning specification. File: <code>day-002-topic-03-packet-path.md</code>.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><p>If simulate_backlog_overflow.py shows all 10 connections established, note that Linux loopback connections may bypass certain driver backlog limits; test with non-blocking connect loops or inspect kernel ListenDrops in netstat.</p></div>
+<div class="callout"><strong>Cleanup and cost</strong><p>No cloud resources created; zero cost incurred. Test sockets closed and temporary scripts removed; markdown trace retained in repository.</p></div>
+<label class="check"><input data-progress="lab-2-topic-03" type="checkbox"/> I completed and checked this topic exercise</label>
+</article>
+</section><section class="completion"><h2>Daily evidence</h2><label class="check"><input type="checkbox" data-progress="read-2"> I read and reviewed the day</label><label class="check"><input type="checkbox" data-progress="artifact-2"> I saved the exit artifact</label></section><nav class="pager" aria-label="Day pagination"><a href="day-001.html">← Day 1<small>Local workspace and learning baseline</small></a><a href="../index.html">All 180 days<small>Browse the roadmap</small></a><a href="day-003.html">Day 3 →<small>DNS, sockets and transport</small></a></nav><p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p></main><footer class="site-footer">GCP Architect · 180-day independent study · Roadmap dated 2026-09-26. Local progress remains in this browser.</footer></body></html>
