@@ -23,20 +23,24 @@ CRITICAL AUTHORING MANDATES (NON-NEGOTIABLE):
    - Multi-step diagnostic sequence and defensible tactical + strategic remediation.
    - Dual-lane Incident SVG flow (5 nodes: Event -> Failure -> Impact -> Fix -> Outcome).
 
-3. PART 4 (8-STAGE OPERATIONAL LAB LIFECYCLE):
+3. PART 4 (EXACTLY 8 LAB EXECUTION STAGES):
    - ZERO DIFFICULTY LABELS: Under no circumstance include "Beginner", "Intermediate",
      "Advanced", "Level 1/2/3", or similar difficulty markers.
-   - Every exercise must progress through the standard 8-stage engineering lifecycle:
-       Stage 1: Preflight & Environment Validation (env vars, APIs, IAM permissions)
-       Stage 2: Target / Backing Infrastructure Provisioning (service accounts, secrets, buckets)
-       Stage 3: Production Manifest Authoring (multi-resource YAML / Terraform / JSON configs)
-       Stage 4: Workload Deployment & Orchestration (kubectl apply, gcloud deploy, terraform apply)
-       Stage 5: Runtime Inspection & Verification (exec, curl assertions, log queries)
-       Stage 6: Chaos / Fault Injection & Failure Rehearsal (breaking dependency, revoking token)
-       Stage 7: Triage, Troubleshooting & Remediation Patch (identifying error and fixing)
-       Stage 8: Cleanup & Resource Teardown (step-by-step removal, zero orphaned costs)
-       Stage 9: Artifact Acceptance Criteria (saving verified proof into daily markdown artifact)
-   - Code density: 6 to 10 distinct code blocks per exercise (matching Day 44/45/50).
+   - Each exercise must contain exactly eight clearly titled execution stages, modeled on Day 96:
+       Stage 1: Preflight & Assumption / Environment Validation
+       Stage 2: Prepare Target, Inputs, or Backing Resources
+       Stage 3: Author the Plan, Configuration, or Analysis
+       Stage 4: Execute or Simulate the Planned Work
+       Stage 5: Inspect Expected State & Verify Outcomes
+       Stage 6: Rehearse a Bounded Failure, Edge Case, or Decision Challenge
+       Stage 7: Diagnose Evidence & Record Remediation / Decision
+       Stage 8: Cleanup or Exercise Closeout
+     Adapt labels and actions to the topic. Each stage must have a real action and observable result: exact runnable commands/file
+     contents when appropriate, or exact inputs plus a concrete worksheet/calculation/decision output for local/tabletop work.
+     Headings alone, generic “review/analyze/verify” directions, and placeholders are insufficient. Local/tabletop labs must remain
+     local/tabletop and must not invent cloud provisioning, deployment, or fault injection. Put artifact acceptance criteria after
+     the eight stages in the lab's acceptance field/callout.
+   - Make all eight stages substantive, but use code blocks only when commands or multi-line file contents serve the exercise; local/tabletop work may use analysis tables, checklists, or decision records instead.
    - High-contrast callout boxes for Acceptance (.callout.success), Troubleshooting (.callout.caution),
      and Cleanup/Cost (.callout).
 
@@ -243,7 +247,7 @@ TOPICS = [
             )
         },
 
-        # PART 4: 8-Stage Hands-On Operational Engineering Lab (Day 40-50 Standard)
+        # PART 4: Exactly 8 topic-adapted execution stages; acceptance follows the stage list.
         "lab": {
             "name": "Production Workload Identity Federation & Secret Volume Mounting",
             "file": "day-000-topic-01.md",
@@ -422,11 +426,6 @@ TOPICS = [
                     "rm -f secret-provider-class.yaml fulfillment-deployment.yaml\n"
                     "```"
                 ),
-                (
-                    "**Stage 9: Artifact Acceptance**\n"
-                    "- Save the verified execution log proving zero environment variable leaks and successful volume mount "
-                    "into `day-000-topic-01.md`."
-                )
             ],
             "verification": (
                 "Verified file mount at `/etc/secrets/db-password.txt` populated directly from Secret Manager via CSI, "
@@ -441,7 +440,11 @@ TOPICS = [
                 "Deleting the Secret Manager secret and GKE deployment eliminates ongoing API and storage costs. "
                 "Secret Manager charges $0.18/version/month and $0.06 per 10,000 API operations."
             ),
-            "accept": "Artifact acceptance criteria verified and documented with zero lingering resources."
+            "accept": (
+                "Save the verified execution record for the topic exit artifact, including the successful volume-mount check, "
+                "the zero-secret-in-environment check, the observed failure and recovery evidence, and confirmation that all "
+                "temporary resources were removed."
+            )
         }
     }
 ]
