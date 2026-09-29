@@ -203,13 +203,22 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
     title = arch_diagram.get("title", f"Day {day} System Operations & Infrastructure Topology")
     desc = arch_diagram.get("desc", "Multi-tier operational architecture showing infrastructure layers, request traces, and security boundaries.")
     caption = arch_diagram.get("caption", "Architecture topology, request traces, and boundary verification.")
-    vb_w = arch_diagram.get("width", 1100)
+    vb_w = max(arch_diagram.get("width", 1120), 1120)
     raw_probes = arch_diagram.get("probes", [])
-    # Provide generous canvas height if probes exist
-    default_h = 660 if raw_probes else 620
-    vb_h = arch_diagram.get("height", default_h)
-    if raw_probes and vb_h < 660:
-        vb_h = 660
+
+    # Calculate maximum content Y extent to guarantee zero overlap with probe and legend panels (Day 121 standard)
+    max_content_y = 0
+    for l in arch_diagram.get("layers", []):
+        max_content_y = max(max_content_y, l.get("y", 10) + l.get("h", 88))
+    for c in arch_diagram.get("components", []):
+        max_content_y = max(max_content_y, c.get("y", 0) + c.get("h", 0))
+    for b in arch_diagram.get("boundaries", []):
+        max_content_y = max(max_content_y, b.get("y", 0) + b.get("h", 0))
+
+    # Generous Day 121 canvas geometry (minimum 690 height with probes, or dynamic expansion beyond max_content_y)
+    default_h = 690 if raw_probes else 620
+    min_required_h = max_content_y + (130 if raw_probes else 65)
+    vb_h = max(arch_diagram.get("height", default_h), min_required_h, default_h)
 
     layers_html = []
     for l in arch_diagram.get("layers", []):

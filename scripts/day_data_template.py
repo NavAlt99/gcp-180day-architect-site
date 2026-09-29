@@ -101,43 +101,73 @@ ARCH_TABLE_HTML = """
 # ARCH_SVG_HTML = """<figure class="diagram-container">...</figure>"""
 #
 # Option 2: Structured multi-tier topology (layers, components, flows, boundaries, probes)
+# Architecture Diagram for Part 2 (Mandatory Day 121 Standard Schema):
+# Multi-tier topology with generous non-overlapping tiers (1120x690), exact vertical drops (x1 == x2),
+# verified boundary boxes, strategic probe pins, and bottom checkpoints panel.
 ARCH_DIAGRAM = {
     "type": "topology",
     "title": "Enterprise System Architecture & Boundary Enforcement Topology",
     "desc": "Multi-tier operational architecture showing infrastructure layers, security perimeters, and request flows.",
-    "caption": "Figure: Infrastructure layers, request flows, and verification boundaries.",
-    "width": 1100,
-    "height": 640,
+    "caption": "Figure: Infrastructure layers, request flows, and boundary verification.",
+    "width": 1120,
+    "height": 690,
     "layers": [
-        {"name": "LAYER 1: Ingress / Edge Perimeter", "desc": "Global External ALB, Cloud Armor, SSL Termination", "fill": "#1e3a5f", "y": 10, "h": 90},
-        {"name": "LAYER 2: Service Mesh & Routing", "desc": "Anthos / GKE Gateway API, Dataplane V2", "fill": "#0c2838", "y": 110, "h": 90},
-        {"name": "LAYER 3: Compute & Workload Runtime", "desc": "GKE Autopilot, Cloud Run, Workload Identity", "fill": "#064e3b", "y": 210, "h": 90},
-        {"name": "LAYER 4: Persistence & Data Tier", "desc": "Cloud Spanner, Cloud SQL, Secret Manager", "fill": "#1e1b4b", "y": 310, "h": 90},
-        {"name": "LAYER 5: Observability & Security Vault", "desc": "Cloud Logging Aggregated Sinks, BigQuery Audit Vault", "fill": "#3b0764", "y": 410, "h": 90},
+        {"name": "INGRESS / DEMAND & INPUTS", "desc": "requests · identities · workloads · policies", "x": 20, "y": 55, "w": 1080, "h": 92, "fill": "#1e3a5f", "title_color": "#7dd3fc"},
+        {"name": "MANAGED RUNTIME & DATA PLANE", "desc": "sandboxed compute · service mesh · persistence tier", "x": 20, "y": 185, "w": 1080, "h": 210, "fill": "#064e3b", "title_color": "#6ee7b7"},
+        {"name": "GOVERNANCE, AUDIT & POLICY DECISION", "desc": "immutable audit vault · telemetry · admission control", "x": 20, "y": 435, "w": 1080, "h": 115, "fill": "#422006", "title_color": "#fdba74"},
     ],
     "components": [
-        {"id": "alb", "name": "Global External ALB", "detail": "Anycast Ingress (TLS 1.3)", "x": 100, "y": 30, "w": 240, "h": 50, "fill": "#0f2338", "stroke": "#38bdf8"},
-        {"id": "armor", "name": "Cloud Armor Policy", "detail": "WAF & Adaptive Protection", "x": 420, "y": 30, "w": 260, "h": 50, "fill": "#0f2338", "stroke": "#38bdf8"},
-        {"id": "gw", "name": "GKE Gateway Controller", "detail": "Envoy Layer 7 Routing", "x": 420, "y": 130, "w": 260, "h": 50, "fill": "#0f2338", "stroke": "#38bdf8"},
-        {"id": "pods", "name": "Workload Pods (mTLS)", "detail": "Dataplane V2 eBPF Policies", "x": 420, "y": 230, "w": 260, "h": 50, "fill": "#093322", "stroke": "#22c55e"},
-        {"id": "db", "name": "Cloud Spanner Instance", "detail": "Regional High-Availability", "x": 420, "y": 330, "w": 260, "h": 50, "fill": "#1e1b4b", "stroke": "#a855f7"},
-        {"id": "logs", "name": "Aggregated Log Sink", "detail": "Central Security Archive", "x": 750, "y": 430, "w": 260, "h": 50, "fill": "#280a3c", "stroke": "#c084fc"},
+        # Tier 1 Components (Ingress & Demand)
+        {"x": 55, "y": 88, "w": 180, "h": 45, "name": "Client Ingress", "detail": "TLS 1.3 · Anycast ALB", "stroke": "#38bdf8"},
+        {"x": 320, "y": 88, "w": 180, "h": 45, "name": "Identity Boundary", "detail": "OIDC · Workload Identity", "stroke": "#38bdf8"},
+        {"x": 585, "y": 88, "w": 205, "h": 45, "name": "Workload Dispatch", "detail": "Rate limiting · Concurrency", "stroke": "#38bdf8"},
+        {"x": 855, "y": 88, "w": 205, "h": 45, "name": "Regional Context", "detail": "Residency · Quotas", "stroke": "#38bdf8"},
+
+        # Tier 2 Components - Row 1 (Core Services & Platform)
+        {"x": 55, "y": 220, "w": 215, "h": 65, "name": "Cloud Run Services", "detail": "Scale-to-zero · Sandboxed", "stroke": "#22c55e"},
+        {"x": 330, "y": 220, "w": 215, "h": 65, "name": "GKE Microservices", "detail": "Autopilot · Pod Packing", "stroke": "#22c55e"},
+        {"x": 610, "y": 220, "w": 205, "h": 65, "name": "Database Tier", "detail": "Cloud SQL / Spanner HA", "stroke": "#22c55e"},
+        {"x": 860, "y": 220, "w": 200, "h": 65, "name": "Analytics Engine", "detail": "BigQuery · Partitioned", "stroke": "#22c55e"},
+
+        # Tier 2 Components - Row 2 (Telemetry & Security State)
+        {"x": 170, "y": 320, "w": 250, "h": 52, "name": "Telemetry & Observability", "detail": "Cloud Logging · Trace · Metrics", "stroke": "#f59e0b"},
+        {"x": 590, "y": 320, "w": 290, "h": 52, "name": "Security & Cost Accounting", "detail": "KMS · Cloud Armor · FinOps Scope", "stroke": "#f59e0b"},
+
+        # Tier 3 Components (Policy & Decision Guardrails)
+        {"x": 220, "y": 468, "w": 280, "h": 58, "name": "Policy & Decision Matrix", "detail": "Org Policies · IAM Invariants", "stroke": "#fdba74"},
+        {"x": 620, "y": 468, "w": 280, "h": 58, "name": "Enforced Verification Gate", "detail": "SLO · Automated Rollback", "stroke": "#fdba74"},
     ],
     "flows": [
-        {"x1": 340, "y1": 55, "x2": 420, "y2": 55, "type": "ok", "label": "HTTPS:443"},
-        {"x1": 550, "y1": 80, "x2": 550, "y2": 130, "type": "ok", "label": "Internal VPC"},
-        {"x1": 550, "y1": 180, "x2": 550, "y2": 230, "type": "ok", "label": "eBPF Pod Ingress"},
-        {"x1": 550, "y1": 280, "x2": 550, "y2": 330, "type": "ok", "label": "gRPC / IAM Token"},
-        {"x1": 680, "y1": 255, "x2": 750, "y2": 455, "type": "ok", "label": "Audit Telemetry"},
+        # Tier 1 Horizontal Transitions
+        {"x1": 235, "y1": 110, "x2": 320, "y2": 110, "label": "auth", "type": "ok"},
+        {"x1": 500, "y1": 110, "x2": 585, "y2": 110, "label": "dispatch", "type": "ok"},
+        {"x1": 790, "y1": 110, "x2": 855, "y2": 110, "label": "scope", "type": "ok"},
+
+        # Tier 1 to Tier 2 Exact Vertical Drops (x1 == x2)
+        {"x1": 145, "y1": 133, "x2": 145, "y2": 220, "label": "HTTP traffic", "type": "ok"},
+        {"x1": 415, "y1": 133, "x2": 415, "y2": 220, "label": "gRPC / mTLS", "type": "ok"},
+        {"x1": 710, "y1": 133, "x2": 710, "y2": 220, "label": "SQL queries", "type": "ok"},
+        {"x1": 960, "y1": 133, "x2": 960, "y2": 220, "label": "sync stream", "type": "warn"},
+
+        # Tier 2 Internal Routing
+        {"x1": 270, "y1": 252, "x2": 330, "y2": 252, "label": "egress", "type": "ok"},
+        {"x1": 545, "y1": 252, "x2": 610, "y2": 252, "label": "persist", "type": "ok"},
+        {"x1": 415, "y1": 285, "x2": 295, "y2": 320, "label": "traces", "type": "warn"},
+        {"x1": 710, "y1": 285, "x2": 735, "y2": 320, "label": "audit log", "type": "ok"},
+        {"x1": 420, "y1": 346, "x2": 590, "y2": 346, "label": "reconcile", "type": "ok"},
+
+        # Tier 2 to Tier 3 Flow
+        {"x1": 735, "y1": 372, "x2": 735, "y2": 468, "label": "verified audit", "type": "ok"},
+        {"x1": 500, "y1": 497, "x2": 620, "y2": 497, "label": "enforce gate", "type": "ok"},
     ],
     "boundaries": [
-        {"x": 60, "y": 14, "w": 300, "h": 76, "label": "PUBLIC EDGE PERIMETER", "color": "#f59e0b"},
-        {"x": 60, "y": 214, "w": 300, "h": 76, "label": "ZERO-TRUST WORKLOAD PERIMETER", "color": "#10b981"},
+        {"x": 35, "y": 425, "w": 1045, "h": 135, "label": "VERIFICATION BOUNDARY · INVARIANTS & POLICY GATES ENFORCED", "color": "#f59e0b"},
     ],
     "probes": [
-        {"cx": 550, "cy": 105, "label": "FI-1: Ingress Gateway Intercept", "color": "#f43f5e"},
-        {"cx": 550, "cy": 205, "label": "FI-2: eBPF Policy Denial", "color": "#f43f5e"},
-    ]
+        {"cx": 258, "cy": 233, "label": "P1: Ingress Rate & Concurrency Gate", "color": "#38bdf8"},
+        {"cx": 858, "cy": 263, "label": "P2: Audit Log & Telemetry Verification", "color": "#22c55e"},
+        {"cx": 1040, "cy": 133, "label": "P3: Organization Policy / Residency Check", "color": "#f59e0b"},
+    ],
 }
 
 # Standard 1:1 Topics Definition
