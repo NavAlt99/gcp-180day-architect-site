@@ -533,6 +533,40 @@ def render_code_blocks(text: str) -> str:
     return markdown.markdown(text, extensions=["tables", "fenced_code"])
 
 
+CASE_DEPTH = {
+    153: ("EHR design defense", "clinical-data boundary, migration reconciliation, least privilege, key custody, and restore authority"),
+    154: ("Altostrat requirements discovery", "media provenance, hybrid ingestion, editorial safety, discovery, and operating evidence"),
+    155: ("Altostrat architecture defense", "grounded retrieval, editorial approval, hybrid operation, release provenance, and cost controls"),
+    156: ("Cymbal requirements discovery", "catalog authority, supplier integration, generated content, inventory truth, and human approval"),
+    157: ("Cymbal architecture defense", "catalog state transitions, discovery freshness, review workflow, and modernization sequencing"),
+    158: ("KnightMotives requirements discovery", "data classification, integration contracts, reliability boundaries, and stakeholder evidence"),
+    159: ("KnightMotives architecture defense", "option comparison, control ownership, migration/recovery behavior, and observability"),
+    160: ("case-study synthesis", "cross-case requirement extraction, contradictions, reusable decision rules, and evidence quality"),
+    161: ("changed-constraint design", "assumption management, architecture pivots, operational blast radius, and revalidation"),
+    162: ("exam-domain mapping", "requirement interpretation, option elimination, evidence-backed trade-offs, and uncertainty handling"),
+    163: ("timed architecture reasoning", "fact extraction, option comparison, source checking, time-boxing, and error review"),
+}
+
+
+def render_case_depth(day: int, topic: dict) -> str:
+    """Render a substantive, case-focused evidence dossier for Days 153–163."""
+    if day not in CASE_DEPTH:
+        return ""
+    label, boundaries = CASE_DEPTH[day]
+    title = escape(topic.get("title", "this topic"))
+    return f'''<section class="callout"><h4>Decision dossier: {escape(label)}</h4>
+<p>Make <strong>{title}</strong> reviewable rather than merely plausible. Its material boundaries are {escape(boundaries)}. Begin with a fact register: quote or link the supplied statement, record its owner, label it supplied, observed, inferred, or unknown, and name the artifact that could disprove the interpretation. A case prompt does not authorize invented quotas, prices, recovery objectives, quality scores, or production outcomes.</p>
+<table><caption>Evidence chain for this decision</caption><thead><tr><th>Question</th><th>Evidence artifact</th><th>Owner</th><th>Revisit trigger</th></tr></thead><tbody>
+<tr><td>What outcome or risk is required?</td><td>Source-linked requirement row and exact ambiguity.</td><td>Business or case stakeholder.</td><td>The proposal depends on an unstated target.</td></tr>
+<tr><td>Who owns data, action, or approval?</td><td>Data-flow diagram with read, write, review, and audit arrows.</td><td>Data steward and service owner.</td><td>Two components can publish, overwrite, or authorize the same state.</td></tr>
+<tr><td>Why this option, not a credible alternative?</td><td>ADR matrix: benefits, costs, skills, operator work, disqualifier.</td><td>Architecture decision owner.</td><td>A changed constraint makes the rejected option safer or simpler.</td></tr>
+<tr><td>What proves the invariant before approval?</td><td>Bounded test, reconciliation report, restore drill, access review, or evaluation set.</td><td>Named verifier.</td><td>A green test has no linked business invariant.</td></tr>
+</tbody></table>
+<p><strong>Reasoning sequence.</strong> Write an invariant in plain language—such as “one source version has one publishable derived version,” “a restricted actor cannot retrieve a protected record,” or “rollback restores an internally consistent state.” Then map the invariant to a signal, owner, response, and residual risk. Keep selected and rejected options side by side.</p>
+<p><strong>Changed-constraint rehearsal.</strong> Change one material condition: lost connectivity, shorter cutover, unavailable dependency, stricter retention, larger corpus, delayed reviewer, or a different recovery target. Identify the first failed boundary, safe degraded behavior, stop condition, and evidence to regenerate. Tabletop evidence predicts behavior only; it cannot prove production, compliance, cost, or exam claims.</p>
+</section>'''
+
+
 def compile_day_page(day_num: int, data: dict) -> None:
     """Compile the day page override from data specification."""
     override_file = SITE_CONTENT / f"day-{day_num:03d}-page.html"
@@ -599,11 +633,13 @@ def compile_day_page(day_num: int, data: dict) -> None:
         ref_label = t.get("reference_label", "Google Cloud Documentation")
         ref_html = f'<p><strong>Further study:</strong> <a href="{escape(ref_link)}" target="_blank" rel="noopener">{escape(ref_label)}</a>.</p>' if ref_link else ""
         tech_body = render_code_blocks(t.get("technical", ""))
+        depth_dossier = render_case_depth(day_num, t)
 
         p2_html.append(
             f'<article id="{key}-technical" class="topic-card technical">'
             f'<h3>{i}. {escape(t["title"])}: technical mechanics</h3>'
             f'{tech_body}'
+            f'{depth_dossier}'
             f'{q_section}'
             f'{ref_html}'
             f'</article>'
