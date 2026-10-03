@@ -1,6 +1,9 @@
-# Token-efficiency report — Phase 0 and Phase A only
+# Token-efficiency report — Phases 0, A, B and C
 
-## Scope and commits
+Latest status: authorized Phases B and C complete; Phase D and later remain deferred.
+The Phase 0/A sections below retain historical measurements and scope statements.
+
+## Original Phase 0/A scope and commits
 
 Branch: `token-efficiency`, starting at e729d87 from `prompt-fix`.
 Phase 0 commit: e33bcfb (baseline). Phase A is the commit containing this report.
@@ -77,23 +80,23 @@ Additional audit procedure: RENDER_REVIEW.md 3,266 → 2,745 bytes (816.50 → 6
 
 ## Options 1–10: scoped accounting
 
-The request associates Phase A with options 8, 9, 1 and 2 but does not supply
-separate labels for the other numbers. This table accounts for all ten without
-inventing implementation claims or starting deferred phases. Shared file savings
-are not double-counted across overlapping options.
+The original Phase A request associates consolidation with options 8, 9, 1 and 2.
+The table below records Phase A status; the user subsequently supplied labels
+for deferred options. Current Phase C status appears in the follow-up below.
+Shared file savings are not double-counted across overlapping options.
 
 | Option | What changed / why | Files | Measured effect |
 |---|---|---|---|
 | 1 | Bounded day-input Read budget; avoid full catalogs/unrelated pages | Contract, three wrappers, render procedure | Read volume not benchmarked; contributes to aggregate bytes reduction |
 | 2 | Static rules first; avoid routine generated-page/engine/template reads; forward schema reference | Same instruction files | Stable prefix established; provider cache benefit unmeasured |
-| 3 | Not executed; no independent label supplied in scoped request | None | 0; B–G deferred |
-| 4 | Not executed; no independent label supplied in scoped request | None | 0; B–G deferred |
-| 5 | Not executed; no independent label supplied in scoped request | None | 0; B–G deferred |
-| 6 | Not executed; no independent label supplied in scoped request | None | 0; B–G deferred |
-| 7 | Not executed; no independent label supplied in scoped request | None | 0; B–G deferred |
+| 3 | Phase C helpers/defaults: not executed during Phase A | None | 0 in Phase A; follow-up status below |
+| 4 | Phase D compact diagrams: not executed during Phase A | None | 0 in Phase A; follow-up status below |
+| 5 | Phase D directory specs: not executed during Phase A | None | 0 in Phase A; follow-up status below |
+| 6 | Phase E spec linter: not executed during Phase A | None | 0 in Phase A; follow-up status below |
+| 7 | Phase F study-link checker: not executed during Phase A | None | 0 in Phase A; follow-up status below |
 | 8 | One canonical contract; short unique wrappers; duplicate rules moved | Four instructions, render procedure | Per-file table and aggregate above |
 | 9 | Resolve four contradictions, record superseded policies, map requirements | Contract, wrappers, render procedure, traceability | 109 original lines mapped; 0 unmapped; rendered diffs empty |
-| 10 | Not executed; no independent label supplied in scoped request | None | 0; B–G deferred |
+| 10 | Phase G audit output: not executed during Phase A | None | 0 in Phase A; follow-up status below |
 
 ## Regression and checks actually run
 
@@ -110,7 +113,7 @@ Results: byte-identical pages (not even whitespace/order changes), zero validato
 errors, zero unmapped original requirements. No regression-triggered stop/revert.
 Full-site validation reads existing pages; no full-site build was run.
 
-## Deliberately unchanged and limitations
+## Original Phase 0/A unchanged scope and limitations
 
 - All day specs, overrides, rendered pages, CSS, JS, engine, build/validator/checker
   code, coverage.csv, roadmap/catalog content and local icons unchanged. No Day 003
@@ -166,3 +169,91 @@ Instruction fixes: contract handoff now reads the exact requested concise-report
 Measurements: SPEC_SCHEMA.md 2996 bytes (749.00 estimated tokens); SPEC_DEFAULTS.json 5278 bytes; new_day_skeleton.py 4832 bytes. Day 002 spec unchanged: 67,330 bytes (16,832.50 estimated tokens). Schema is a stable prefix; actual provider token/cache effects not benchmarked. Skeleton boilerplate is generated without author tokens, but per-page savings vary.
 
 Checks: Day 003 scratch fixture covers all three mapped topics and eight complete stage-label/sentinel slots; DATA loader equality passes; Day 002 overwrite attempt correctly refused (exit 2). Builds Day 002/003 only: byte-identical baseline, hashes unchanged. Day 002 structural validation: 0 errors. No generic content accepted. Legacy spec files and all rendered pages unchanged. Phase B commit contains these results; no Phase C changes mixed into it.
+
+
+## Phase C — shared helpers and safe lab slots (option 3)
+
+What and why: moved the Day 002 escape/dedent imports and source, keyword,
+subtopic, discussion, flow_svg, stage, workspace, write_file, lab and case helpers
+into scratch/day_helpers.py. Explicit partial-bound Day 002 context retains every
+original sentence, lab prerequisite, provenance label and diagram caption.
+Shared helpers contain assembly logic, not substitute teaching explanations.
+No other day was migrated. The existing flow_svg geometry remains unchanged;
+compact flow data is Phase D and was not introduced.
+
+The engine supplies seven structural lab slots (mode, prereq, preflight,
+verification, trouble, cleanup, accept), each with TODO:. Explicit authored fields
+win. New skeletons and Day 002 opt in with empty lab_defaults metadata. The
+compiler rejects unresolved TODOs anywhere in labs and blank default slots before
+writing overrides. Helpers leave missing lab/context/location slots unfinished.
+Legacy specs without lab_defaults retain historical omission rendering for backward
+compatibility; this is not permission for generic new labs. The future Phase E
+linter remains deferred, so legacy generic fallback prose is not newly classified
+by this run. Only structure may be defaulted; the depth floor is unchanged.
+
+Day 002 CASES already held the sole literal scenario content. Removed that extra
+container and constructed TOPICS scenario entries directly, deriving the completed
+topic dictionaries from them. No duplicate scenario prose was deleted because
+none existed. This reduces structural indirection, not teaching depth.
+
+Files touched: scratch/day_helpers.py, scratch/day_data_002.py,
+scripts/author_engine.py, scripts/new_day_skeleton.py, SPEC_SCHEMA.md,
+SPEC_DEFAULTS.json, scratch/instruction-traceability.md, this report,
+scratch/baseline/phase-c-input-hashes.txt, scratch/baseline/phase-c-checks.txt,
+and scratch/spec-fixtures/phase-c-day-003-skeleton.py (a separate unfinished
+fixture, not the durable Day 003 spec). Phase B changed the contract/prompt
+handoff and Read budget, added the schema/default appendix/skeleton, and retained
+its separate fixture/check evidence; commit 203ba0b records that phase.
+
+### Phase B/C measurements
+
+Bytes/4 estimates measure repository text, not actual tokenizer or provider cache
+usage. Phase B values precede helper extraction; instruction increases document
+explicit user requirements and available tools, rather than claiming savings.
+
+| File | Before B bytes | After B bytes | After C bytes | Before tokens | After B tokens | After C tokens |
+|---|---:|---:|---:|---:|---:|---:|
+| AGENTS.md | 1134 | 1134 | 1134 | 283.50 | 283.50 | 283.50 |
+| ONE_DAY_AT_A_TIME.md | 1469 | 1469 | 1469 | 367.25 | 367.25 | 367.25 |
+| PAGE_UPDATE_PROMPT.md | 1847 | 1924 | 1924 | 461.75 | 481.00 | 481.00 |
+| PAGE_AUTHORING_CONTRACT.md | 12304 | 12336 | 12336 | 3076.00 | 3084.00 | 3084.00 |
+| scratch/day_data_002.py | 67330 | 67330 | 63292 | 16832.50 | 16832.50 | 15823.00 |
+
+Day 002 per-page specification reduction: 4038 bytes / 1009.50 estimated tokens
+(6.00%). Shared helpers add 5526 bytes once (1381.50 estimated tokens); spec plus
+helpers totals 68818 bytes, 1488 more than the original single file. This is a
+per-page context reduction when shared helpers are reused without rereading them,
+not a claim of net repository shrinkage. Schema after C: 2996 bytes; exact-default
+appendix 5801 bytes; skeleton script 4864 bytes. Defaults chiefly save generation
+of scaffolding; their standalone token benefit has not been benchmarked.
+
+### Checks, depth and deferred options
+
+Both phases rebuilt only Days 002 and 003 and compared baseline bytes/hashes:
+PASS, no whitespace differences. Phase C also regenerated Day 002 through the
+engine: identical override/rendered output, validator 0 errors. Entire loaded Day
+002 and legacy Day 003 content equals pre-C data after JSON normalization and
+excluding only new structural lab_defaults metadata. Reviewed git diff on
+scratch/day_data_002.py: it removes no explanatory prose, only structure; no facts
+were corrected. No topic depth decreased or increased, no study-time overrun.
+All 14 subtopics and 32 lab stages remain intact. The initial direct Python data
+comparison distinguished tuples from JSON lists; normalization resolved that
+comparison issue, with no content or rendered-page change.
+
+Skeleton coverage/eight-stage/TODO/overwrite checks PASS in Phase B. Phase C
+checks confirm unresolved/blank defaults, helper omissions, and missing stage
+location reject; unfinished skeletons reject before modifying the override;
+legacy omitted-field dictionaries remain unchanged. git diff --check passes.
+Evidence: scratch/baseline/phase-b-checks.txt and phase-c-checks.txt. No new unit
+test suite was introduced (Phase E remains deferred); no full-site build, fresh
+browser review, remote link check or cloud lab execution was needed for unchanged
+pages. The engine CLI invokes existing whole-site validation, not a whole-site
+build. Part 2 preview decision remains unchanged: two sentences apply only to
+Part 1; Part 2 explanations have no two-sentence limit.
+
+Current option status: 3 (Phase C helpers/defaults) implemented above; 4 and 5
+(Phase D diagrams/directory specs), 6 (Phase E linter), 7 (Phase F links) and
+10 (Phase G audit output) remain deferred. Options 1, 2, 8, 9 retain Phase A
+measurements above. Raw SVGs, generated HTML, day structure/anchors, typography,
+icons, sources, CSS/JS, lab detail and every other durable day spec remain
+unchanged. Stop after the Phase C commit; do not begin Phase D.

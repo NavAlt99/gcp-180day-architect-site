@@ -133,3 +133,5 @@ Mappings name canonical contract sections unless a destination filename is expli
 Coverage check: 109 original requirement lines mapped; 0 unmapped. Long lines map to multiple sections when their clauses span topics. No requirement source was deleted. All superseded read policies remain archived and explicitly explained above.
 
 User-approved Phase B handoff clarification: concise reporting stays separate from depth; item 5 requires git diff on the durable spec and an explicit no-explanatory-prose-removal statement. The depth floor itself is unchanged.
+
+Phase C implementation homes: shared assembly is scratch/day_helpers.py; explicit Day 002 context remains scratch/day_data_002.py. SPEC_SCHEMA.md documents all new lab_defaults fields and structural-only defaulting. Engine TODO lab slots reject before writes; new specs opt in, while legacy single-file omissions remain compatible. No original acceptance requirement was replaced; no explanatory prose was removed. Option 3 implemented; 4/5/6/7/10 deferred per the user.

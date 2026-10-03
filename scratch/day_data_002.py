@@ -3,8 +3,15 @@
 All case records are synthetic teaching fixtures. Labs are offline/local tabletop;
 GCP documentation informs design only. No credentials or cloud resources required.
 """
-from html import escape
-from textwrap import dedent
+import sys
+from pathlib import Path
+from functools import partial
+_SITE = Path(__file__).resolve().parents[1]
+if str(_SITE) not in sys.path:
+    sys.path.insert(0, str(_SITE))
+from scratch.day_helpers import (escape, dedent, keyword, discussion, flow_svg,
+    source as _source, subtopic as _subtopic, stage as _stage,
+    workspace as _workspace, write_file, lab as _lab, case as _case)
 
 DAY = 2
 ACCESS_DATE = '2026-10-03'
@@ -29,57 +36,26 @@ SOURCES = {
 }
 
 
-def source(key):
-    label, url = SOURCES[key]
-    return f'<a href="{escape(url, quote=True)}">{escape(label)}</a>'
-
-
-def keyword(term):
-    return f'<strong class="keyword">{escape(term)}</strong>'
-
-
-def subtopic(title, general, architect, gcp, refs):
-    return f'''\n<h4>{escape(title)}</h4>
-<p><strong class="side-heading">What it is in general:</strong> {general}</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> {architect}</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> {gcp}</p>
-<p><strong class="side-heading">Further study:</strong> {'; '.join(source(k) for k in refs)}. Accessed {ACCESS_DATE}.</p>\n'''
-
-
-def discussion(titles, sections, example, limit):
-    return '<p><strong class="side-heading">Subtopics in this discussion:</strong></p><ol>' + ''.join(
-        f'<li>{escape(t)}</li>' for t in titles
-    ) + '</ol>\n' + ''.join(sections) + f'''\n<p><strong class="side-heading">Concrete example:</strong> {example}</p>
-<p><strong class="side-heading">Evidence limit:</strong> {limit}</p>'''
-
-
-def flow_svg(uid, title, nodes, transitions, caption):
-    """A focused six-node sequence, arranged as two rows of three (snake order)."""
-    positions = [(30, 80), (420, 80), (810, 80), (810, 310), (420, 310), (30, 310)]
-    cards = []
-    for i, (label, detail, icon) in enumerate(nodes):
-        x, y = positions[i]
-        cards.append(f'''<g transform="translate({x},{y})"><rect width="280" height="110" rx="10" fill="#121526" stroke="#38bdf8"/>
-<image href="../assets/icons/generic/{icon}.svg" x="15" y="17" width="30" height="30" preserveAspectRatio="xMidYMid meet"/>
-<text x="54" y="35" fill="#7dd3fc" font-size="16" font-weight="700">{i+1}. {escape(label)}</text>
-<text x="16" y="70" fill="#e2e8f0" font-size="14">{escape(detail[0])}</text>
-<text x="16" y="92" fill="#e2e8f0" font-size="14">{escape(detail[1])}</text></g>''')
-    arrows = []
-    for i, (x1, y1, x2, y2, tx, ty) in enumerate([
-        (310,135,410,135,360,118), (700,135,800,135,750,118),
-        (950,190,950,300,950,248), (810,365,710,365,760,348), (420,365,320,365,370,348),
-    ]):
-        arrows.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#38bdf8" stroke-width="2" marker-end="url(#{uid}-arrow)"/>')
-        # The vertical label sits to the left of the arrow, not across it.
-        if i == 2:
-            tx, ty = 864, 246
-        arrows.append(f'<text x="{tx}" y="{ty}" fill="#cbd5e1" font-size="12" text-anchor="middle">{escape(transitions[i])}</text>')
-    return f'''<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg role="img" aria-labelledby="{uid}-title {uid}-desc" viewBox="0 0 1120 455" style="display:block;width:100%;height:auto;background:#090d16;font-family:ui-monospace,monospace">
-<title id="{uid}-title">{escape(title)}</title><desc id="{uid}-desc">{escape(caption)}</desc>
-<defs><marker id="{uid}-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#38bdf8"/></marker></defs>
-<text x="30" y="38" fill="#f8fafc" font-size="20" font-weight="700">{escape(title)}</text>
-{''.join(arrows)}{''.join(cards)}</svg></div><figcaption>{escape(caption)}</figcaption></figure>'''
-
+source = partial(_source, sources=SOURCES)
+subtopic = partial(_subtopic, sources=SOURCES, access_date=ACCESS_DATE)
+stage = partial(_stage, location='Local Linux Bash terminal / text editor.')
+workspace = partial(_workspace, preflight_text='Python available; local/tabletop only; GCP untested')
+LAB_CONTEXT = {'mode': 'Local/offline tabletop; supplied fixtures, no live GCP deployment',
+ 'prereq': 'Day 1 workspace/evidence repository; local Linux Bash, Python 3 standard library, text editor',
+ 'preflight': 'Run all eight stages in order in the same terminal. Stage 1 creates a unique workspace. Stop '
+              'if Python is unavailable; use the Linux environment prepared on Day 1. Commands write only '
+              'inside the lab workspace.',
+ 'verification': 'Recorded outputs are local calculation or fixture classifications. They are not cloud '
+                 'observations.',
+ 'cleanup': 'Stage 8 removes named lab input/script files only, preserving evidence. No processes, cloud '
+            'resources, firewall rules, or kernel settings are created or changed. Copy the listed evidence '
+            'to the Day 1 repository before discarding the workspace.'}
+lab = partial(_lab, defaults=LAB_CONTEXT)
+case = partial(_case,
+    evidence_label='Supplied synthetic records (literal fixture, not observed logs):',
+    facts='Synthetic fixture: socket bytes queued=yes; application reads=no.',
+    inference='The first missing progress signal is the process-read boundary; worker blockage remains a hypothesis.',
+    expected='After the actual blockage is diagnosed and repaired, observe a read and valid response; neither is established here.')
 
 NEXT_HOP_SVG = flow_svg('d002-next-hop', 'Supplied Ethernet model: host A to host B', [
     ('Host A selects route', ('10.240.0.10/26 → .75', 'Destination outside A subnet'), 'client'),
@@ -235,38 +211,6 @@ T4_TECH = discussion(T4_TITLES, [
 </tbody></table>''',
 ], 'Application A and helper B share a Linux host, so a supported UDS can be considered. After B moves to a different VM, A must use a reachable network endpoint; copying /tmp/helper.sock to A cannot expose B’s listener.',
     'A design table predicts suitability. It neither measures IPC performance nor demonstrates Cloud SQL access, authentication, or compatibility.')
-
-
-def stage(number, name, action, result, evidence, commands=''):
-    text = f'**Stage {number}: {name}**\n\n**Location:** Local Linux Bash terminal / text editor.\n\n{action}\n\n'
-    if commands:
-        text += '```bash\n' + dedent(commands).strip() + '\n```\n\n'
-    return text + f'**Expected result:** {result}\n\n**Save:** {evidence}'
-
-
-def workspace(prefix):
-    return f'''python3 --version
-LAB_DIR=$(mktemp -d /tmp/{prefix}.XXXXXX)
-export LAB_DIR
-cd "$LAB_DIR"
-python3 -c 'import os, pathlib; pathlib.Path("preflight.txt").write_text("Python available; local/tabletop only; GCP untested\\n"); print(os.getcwd())'
-'''
-
-
-def write_file(name, content):
-    return f"cat > {name} <<'EOF'\n{dedent(content).strip()}\nEOF\n"
-
-
-def lab(name, goal, expected, steps, accept, trouble, files):
-    return {'name': name, 'goal': goal, 'expected': expected,
-            'mode': 'Local/offline tabletop; supplied fixtures, no live GCP deployment',
-            'prereq': 'Day 1 workspace/evidence repository; local Linux Bash, Python 3 standard library, text editor',
-            'preflight': 'Run all eight stages in order in the same terminal. Stage 1 creates a unique workspace. Stop if Python is unavailable; use the Linux environment prepared on Day 1. Commands write only inside the lab workspace.',
-            'steps': steps, 'accept': accept,
-            'verification': 'Recorded outputs are local calculation or fixture classifications. They are not cloud observations.',
-            'trouble': trouble,
-            'cleanup': 'Stage 8 removes named lab input/script files only, preserving evidence. No processes, cloud resources, firewall rules, or kernel settings are created or changed. Copy the listed evidence to the Day 1 repository before discarding the workspace.',
-            'file': files}
 
 
 LAYER_CHECK = '''import csv
@@ -435,20 +379,7 @@ EOF'''),
     'ipc-decisions.csv; ipc-check.txt; ipc-note.md')
 
 
-def case(scenario, impact, constraints, records, root, diagnostics, fixes, verify, residual, enabled=False, diagram=None):
-    result = {'scenario': scenario, 'impact': impact, 'constraints': constraints,
-        'evidence': '**Supplied synthetic records (literal fixture, not observed logs):**\n\n```text\n' + records + '\n```',
-        'root': root, 'diagnostic_steps': diagnostics, 'remediation_steps': fixes,
-        'verify': verify, 'residual': residual, 'diagram_enabled': enabled}
-    if enabled:
-        result.update({'diagram': diagram, 'icons': ['../assets/icons/generic/' + name + '.svg' for name in ('event', 'failure', 'failure', 'policy', 'outcome')],
-            'facts': 'Synthetic fixture: socket bytes queued=yes; application reads=no.',
-            'inference': 'The first missing progress signal is the process-read boundary; worker blockage remains a hypothesis.',
-            'expected': 'After the actual blockage is diagnosed and repaired, observe a read and valid response; neither is established here.'})
-    return result
-
-
-CASES = [
+TOPICS = [{'scenario': item} for item in [
     case('Synthetic Brightloaf checkout case: a port probe succeeds but the checkout operation returns HTTP 503.',
         'Customers cannot complete the operation; no transaction count, outage duration, or revenue estimate is supplied.',
         'Investigate using the supplied records; do not alter a deployed load balancer or claim a dependency failure without evidence.',
@@ -486,26 +417,25 @@ CASES = [
         ['Either keep compatible peers on the same host with a supported local endpoint, or design a reachable authenticated network interface.', 'Check runtime/client support in primary documentation before selecting a cloud connector.'],
         'The worksheet must change its choice to a network application interface when peers are remote. It must not invent a throughput improvement or claim Cloud SQL compatibility was tested.',
         'Reachability would still leave authentication, authorization, and remote operation correctness to validate.'),
-]
+]]
 
-TOPICS = []
-for i, (overview, tech, scenario, exercise) in enumerate(zip(OVERVIEWS, [T1_TECH, T2_TECH, T3_TECH, T4_TECH], CASES, [LAYER_LAB, SUBNET_LAB, PATH_LAB, IPC_LAB])):
+for i, (overview, tech, topic, exercise) in enumerate(zip(OVERVIEWS, [T1_TECH, T2_TECH, T3_TECH, T4_TECH], TOPICS, [LAYER_LAB, SUBNET_LAB, PATH_LAB, IPC_LAB])):
     key, title, intro, why, where, preview = overview
     ref_key = ['layers', 'private', 'napi', 'unix'][i]
     label, url = SOURCES[ref_key]
-    TOPICS.append({'key': key, 'title': title, 'overview': intro, 'preview': preview,
+    topic.update({'key': key, 'title': title, 'overview': intro, 'preview': preview,
         'technical': tech, 'reference': url, 'reference_label': f'{label} (accessed {ACCESS_DATE})',
         'questions': [
             ['Which successful lower-layer fact still leaves the application outcome unproved?', 'Which probe tests the actual readiness condition?'],
             ['Which two bits are borrowed to split /24 into four equal blocks?', 'Is the frame destination the gateway or the remote host on A’s first hop?'],
             ['What is the first missing progress signal between socket delivery and process read?', 'Which stages does local loopback bypass?'],
             ['Can the endpoint reach a process on another host?', 'Which compatibility/security fact needs documentation or observation?'],
-        ][i], 'scenario': scenario, 'lab': exercise})
+        ][i], 'scenario': topic['scenario'], 'lab': exercise})
 
 COMPLETION_HTML = '''<p>Save <strong>subnet-ranges.csv</strong> and <strong>next-hop-path.csv</strong> together with their check reports and notes in the Day 1 evidence repository. The four /26 network/broadcast pairs and the A → R → B path must be reviewable. Retain source dates and label all tabletop predictions and untested GCP behavior.</p>
 <label class="check"><input type="checkbox" data-progress="read-2"> I read and reviewed the day</label>
 <label class="check"><input type="checkbox" data-progress="artifact-2"> I saved the exit artifact</label>'''
-DATA = {'day': DAY, 'work_block': 'Days 1–17 — Foundations', 'part1_html': PART1_HTML,
+DATA = {'day': DAY, 'lab_defaults': {}, 'work_block': 'Days 1–17 — Foundations', 'part1_html': PART1_HTML,
         'part1_intro': PART1_INTRO, 'part2_intro': PART2_INTRO, 'part3_intro': PART3_INTRO,
         'part4_intro': PART4_INTRO, 'exit_summary': EXIT_SUMMARY,
         'arch_diagram': ARCH_DIAGRAM, 'arch_svg_html': ARCH_SVG_HTML,

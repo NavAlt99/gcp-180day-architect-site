@@ -48,6 +48,7 @@ def skeleton(day: int) -> dict:
                                      '**Expected result:** TODO: observable outcome.\n\n**Save:** TODO: evidence path.'
                                      for i in range(1, 9)]
     return {'day': day, 'work_block': 'TODO: work block', 'topics': topics,
+            'lab_defaults': {},
             'part1_html': '\n'.join(overviews),
             **{f'part{i}_intro': 'TODO: day-specific introduction' for i in range(1, 5)},
             'exit_summary': 'TODO: exact roadmap exit evidence', 'completion_html': 'TODO: acceptance and progress controls',

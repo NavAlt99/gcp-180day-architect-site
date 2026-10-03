@@ -24,6 +24,32 @@ SITE_CONTENT = ROOT / "content"
 SITE_DAYS = ROOT / "days"
 SCRIPTS = ROOT / "scripts"
 
+# Opt-in structural defaults for new specifications. Legacy specifications that
+# omit lab_defaults keep their historical rendering; helpers still emit TODOs.
+LAB_DEFAULTS = {
+    field: f"TODO: author topic-specific lab {field}"
+    for field in ("mode", "prereq", "preflight", "verification", "trouble", "cleanup", "accept")
+}
+
+
+def resolve_lab(lab: dict, defaults: dict | None = None) -> dict:
+    """Merge structural slots, rejecting unfilled authored/default lab content."""
+    result = {**LAB_DEFAULTS, **defaults, **lab} if defaults is not None else dict(lab)
+    def unfinished(value):
+        if isinstance(value, str):
+            return "TODO:" in value
+        if isinstance(value, dict):
+            return any(unfinished(v) for v in value.values())
+        if isinstance(value, (list, tuple)):
+            return any(unfinished(v) for v in value)
+        return False
+    if unfinished(result):
+        raise ValueError("Unfinished lab: replace every TODO: with topic-specific content")
+    if defaults is not None and any(not isinstance(result[field], str) or not result[field].strip()
+                                    for field in LAB_DEFAULTS):
+        raise ValueError("Unfinished lab: default slots need explicit topic-specific text")
+    return result
+
 
 def wrap_svg(text: str, limit: int = 22, max_lines: int = 2) -> list[str]:
     """Break text into wrapped lines for SVG boxes without overflowing."""
@@ -587,6 +613,9 @@ def render_case_depth(day: int, topic: dict) -> str:
 
 def compile_day_page(day_num: int, data: dict) -> None:
     """Compile the day page override from data specification."""
+    # Check before touching overrides; defaults never supply accepted teaching.
+    lab_defaults = data.get("lab_defaults")
+    labs = [resolve_lab(t.get("lab", {}), lab_defaults) for t in data.get("topics", [])]
     override_file = SITE_CONTENT / f"day-{day_num:03d}-page.html"
     source_day_file = SITE_DAYS / f"day-{day_num:03d}.html"
 
@@ -749,7 +778,7 @@ def compile_day_page(day_num: int, data: dict) -> None:
 
     for i, t in enumerate(topics, 1):
         key = t["key"]
-        lab = t.get("lab", {})
+        lab = labs[i - 1]
         steps_html = []
         for step in lab.get("steps", []):
             rendered_step = render_code_blocks(step)
