@@ -16,6 +16,11 @@ import re
 import subprocess
 import sys
 
+try:
+    from .compact_flow import render_compact_flow
+except ImportError:  # direct CLI
+    from compact_flow import render_compact_flow
+
 from bs4 import BeautifulSoup
 import markdown
 
@@ -101,6 +106,9 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
         return f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{scenario["incident_svg_html"]}</div></figure>'
     if scenario.get("svg_html"):
         return f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{scenario["svg_html"]}</div></figure>'
+
+    if scenario.get("flow"):
+        return render_compact_flow(f"d{day:03d}-case-{index}-flow", scenario["flow"])
 
     diagram = scenario.get("diagram", ("Trigger event", "Root cause", "Impact", "Corrected control", "Expected outcome"))
     event, cause, impact, control, outcome = diagram
@@ -265,6 +273,8 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
 
 def render_topology_svg(day: int, arch_diagram: dict) -> str:
     """Render a full multi-tier infrastructure topology SVG (matching Day 65/67 standards)."""
+    if arch_diagram.get("flow") or "steps" in arch_diagram:
+        return render_compact_flow(f"d{day:03d}-architecture-flow", arch_diagram.get("flow", arch_diagram))
     uid = f"d{day:03d}-top"
     title = arch_diagram.get("title", f"Day {day} System Operations & Infrastructure Topology")
     desc = arch_diagram.get("desc", "Multi-tier operational architecture showing infrastructure layers, request traces, and security boundaries.")
@@ -472,6 +482,8 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
 
 def render_sophisticated_flow_svg(day: int, arch_diagram: dict) -> str:
     """Render a multi-tier architectural flow SVG with Day 67 standards."""
+    if arch_diagram.get("flow") or "steps" in arch_diagram:
+        return render_compact_flow(f"d{day:03d}-architecture-flow", arch_diagram.get("flow", arch_diagram))
     uid = f"d{day:03d}-arch-flow"
     title = arch_diagram.get("title", f"Day {day} Enterprise Architecture Flow")
     desc = arch_diagram.get("desc", "Multi-tier architecture and control evaluation flow.")
@@ -715,6 +727,8 @@ def compile_day_page(day_num: int, data: dict) -> None:
         ref_label = t.get("reference_label", "Google Cloud Documentation")
         ref_html = f'<p><strong>Further study:</strong> <a href="{escape(ref_link)}" target="_blank" rel="noopener">{escape(ref_label)}</a>.</p>' if ref_link else ""
         tech_body = render_code_blocks(t.get("technical", ""))
+        if t.get("flow"):
+            tech_body += render_compact_flow(f"d{day_num:03d}-{key}-flow", t["flow"])
         depth_dossier = render_case_depth(day_num, t)
 
         p2_html.append(
@@ -929,6 +943,20 @@ def build_and_validate(day_num: int) -> None:
 
 def load_day_module(path: Path) -> dict:
     """Dynamically load day data module."""
+    if path.is_dir():
+        meta = load_day_module(path / "meta.py")
+        if meta.get("topics"):
+            raise ValueError("Directory meta DATA must exclude topics; use topic_NN.py")
+        files = sorted(path.glob("topic_*.py"))
+        if not files or [p.name for p in files] != [f"topic_{i:02d}.py" for i in range(1, len(files)+1)]:
+            raise ValueError("Directory specs need contiguous topic_01.py..topic_0K.py")
+        topics = []
+        for topic_path in files:
+            topic_spec = importlib.util.spec_from_file_location("day_topic_module", topic_path)
+            module = importlib.util.module_from_spec(topic_spec)
+            topic_spec.loader.exec_module(module)
+            topics.append(module.TOPIC)
+        return {**meta, "topics": topics}
     spec = importlib.util.spec_from_file_location("day_data_module", path)
     if not spec or not spec.loader:
         raise ImportError(f"Cannot load module from {path}")
@@ -969,6 +997,9 @@ def parse_range(range_str: str) -> list[int]:
 
 def process_single_day(day_num: int, data_path_override: str = "") -> None:
     data_path = Path(data_path_override) if data_path_override else ROOT / "scratch" / f"day_data_{day_num:03d}.py"
+    directory_path = ROOT / "scratch" / f"day_data_{day_num:03d}"
+    if not data_path_override and directory_path.is_dir():
+        data_path = directory_path
     if data_path.exists():
         print(f"Loading data from {data_path}...")
         data = load_day_module(data_path)

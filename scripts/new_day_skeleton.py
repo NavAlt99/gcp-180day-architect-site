@@ -58,24 +58,40 @@ def skeleton(day: int) -> dict:
             'access_date': 'TODO: access date'}
 
 
+def write_skeleton(destination: Path, data: dict, directory: bool = False) -> None:
+    """Exclusive creation, with registry metadata retained in the loaded DATA."""
+    data = dict(data)
+    sources = data.pop('sources')
+    access_date = data.pop('access_date')
+    preamble = ('"""Unfinished coverage spec; replace TODOs. Diagrams only for eligible flows."""\n'
+                + 'SOURCES = ' + pformat(sources, width=105, sort_dicts=False)
+                + f'\nACCESS_DATE = {access_date!r}\nDATA = ')
+    if directory:
+        topics = data.pop('topics')
+        destination.mkdir(parents=True, exist_ok=False)
+        target = destination / 'meta.py'
+    else:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        target = destination
+    with target.open('x', encoding='utf-8') as stream:
+        stream.write(preamble + pformat(data, width=105, sort_dicts=False))
+        stream.write('\nDATA.update(sources=SOURCES, access_date=ACCESS_DATE)\n')
+    if directory:
+        for i, topic in enumerate(topics, 1):
+            with (destination / f'topic_{i:02d}.py').open('x', encoding='utf-8') as stream:
+                stream.write('TOPIC = ' + pformat(topic, width=105, sort_dicts=False) + '\n')
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--day', type=int, required=True, choices=range(1, 181))
     parser.add_argument('--output', type=Path, help='Optional new scratch fixture; existing paths are refused')
+    parser.add_argument('--directory', action='store_true', help='Create meta.py and topic_NN.py in a new directory')
     args = parser.parse_args()
-    destination = args.output or SITE / 'scratch' / f'day_data_{args.day:03d}.py'
+    destination = args.output or SITE / 'scratch' / (f'day_data_{args.day:03d}' if args.directory else f'day_data_{args.day:03d}.py')
     try:
         data = skeleton(args.day)
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        with destination.open('x', encoding='utf-8') as stream:
-            stream.write('"""Unfinished coverage-based spec. Replace every TODO; see SPEC_SCHEMA.md.\n'
-                         'Empty architecture fields are deliberate: author only eligible flows.\n"""\n\nSOURCES = ')
-            sources = data.pop('sources')
-            access_date = data.pop('access_date')
-            stream.write('{}\nACCESS_DATE = {!r}\nDATA = '.format(
-                pformat(sources, width=105, sort_dicts=False), access_date))
-            stream.write(pformat(data, width=105, sort_dicts=False))
-            stream.write('\nDATA.update(sources=SOURCES, access_date=ACCESS_DATE)\n')
+        write_skeleton(destination, data, args.directory)
     except (FileExistsError, ValueError) as error:
         parser.error(str(error))
     print(f'Created unfinished Day {args.day} spec: {destination}')

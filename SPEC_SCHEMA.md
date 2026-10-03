@@ -2,15 +2,16 @@
 
 Contract: only structure defaults, never teaching/case/lab depth.
 `scripts/new_day_skeleton.py --day N`: coverage TODO spec, no overwrite;
-`--output`: fixture. Handoff: depth/overruns separate; git diff spec, no explanatory prose removed
+`--output`: fixture; `--directory`: create a new directory spec without overwrite. Handoff: depth/overruns separate; git diff spec, no explanatory prose removed
 (only structure/corrected facts).
 
 E=escaped; R=Markdown/HTML; H=raw HTML; ?=engine optional, contract still required.
 Fallbacks/geometry: SPEC_DEFAULTS.json.
 Loader: DAY_DATA, DATA, then legacy uppercase DAY/TOPICS/PART1_INTRO..PART4_INTRO/
 ARCH_DIAGRAM/ARCH_SVG_HTML (alias ARCH_DIAGRAM_HTML)/ARCH_TABLE_HTML/EXIT_SUMMARY/
-COMPLETION_HTML. PART1_HTML is not collected. No directories yet. Build reads
-override, not spec; existing shell needs four parts/completion.
+COMPLETION_HTML. PART1_HTML is not collected. Directory specs use meta.py (DATA without topics) and contiguous topic_01.py..topic_0K.py
+(each exporting TOPIC); the default loader prefers scratch/day_data_NNN/ when present.
+Build reads override, not spec; existing shell needs four parts/completion.
 
 ## DATA
 
@@ -49,6 +50,23 @@ location/actions/expected/save. mode/prereq/preflight E;
 verification/trouble/cleanup/accept R: new TODO defaults, explicit topic content
 required; legacy omissions unchanged. file: Markdown filename? day-NNN-key.md.
 All lab TODOs, including stages, rejected. No stage-dict API.
+
+
+## Diagrams
+
+- `scratch.day_helpers.flow_svg`: fixed six nodes, no label wrapping; source-compact.
+- Compact flow: any ordered chain of 2–12 nodes, non-truncating label/detail wrapping
+  and a numbered transition list; larger source. Use when labels or details are long
+  or the chain is not six nodes. Enforces `min-width:1120px`, with horizontal scroll
+  on mobile; bounded layouts reject content that cannot fit rather than truncate.
+- Raw SVG: branches or layouts neither helper supports; retain contract accessibility,
+  icons, complete labels, transition explanations and evidence captions.
+
+Compact flow fields: title/caption, optional desc, nodes[] with unique id/label/local
+icon and optional detail (string or list), and steps[] with from/to/label matching
+adjacent nodes. Route via topic.flow, scenario.flow (subject to diagram_enabled and
+raw SVG precedence), or arch_diagram.flow/direct nodes+steps. Eligibility and diagram
+quality rules still apply; tooling availability does not approve a conversion.
 
 ## sources/helpers
 

@@ -117,6 +117,8 @@ is illustrative.
 
 ## Diagram eligibility and standards
 
+Diagram quality floor (user decision): compact diagram data may replace hand-written SVG markup only when the rendered result is at least as clear as before: every node has its correct icon, labels are complete (wrapped or enlarged, never truncated), arrows and numbered transitions are unambiguous, nothing clips or overlaps, and accessibility and caption requirements still hold. When the renderer cannot meet this, author raw SVG instead. Token savings must never reduce diagram clarity, icon coverage, or label completeness.
+
 ONLY diagram actual multi-step sequences, packet traversal or request/response
 lifecycles. No conceptual/static/configuration diagrams, invented qualifying flows,
 or empty headings/wrappers/captions/placeholders. Applies to Part 2 topology and

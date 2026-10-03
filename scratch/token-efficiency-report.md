@@ -1,6 +1,6 @@
-# Token-efficiency report — Phases 0, A, B and C
+# Token-efficiency report — Phases 0, A, B, C and D
 
-Latest status: authorized Phases B and C complete; Phase D and later remain deferred.
+Latest status: Phase D closed out as tooling only; Phase E and later remain deferred.
 The Phase 0/A sections below retain historical measurements and scope statements.
 
 ## Original Phase 0/A scope and commits
@@ -317,3 +317,53 @@ No Phase D or later implementation started. Stop after this follow-up commit.
 | scripts/new_day_skeleton.py | 4864 | 5212 | 87.00 |
 | SPEC_SCHEMA.md | 2996 | 3803 | 201.75 |
 | SPEC_DEFAULTS.json | 5801 | 5828 | 6.75 |
+
+
+## Phase D close-out — tooling only (options 4 and 5)
+
+Approved tooling retained: scripts/compact_flow.py, engine compact-flow routing,
+directory-spec loading with the contiguous topic-file check,
+new_day_skeleton.py --directory, and tests/test_phase_d.py. No durable day spec
+was converted or reauthored. Day 002 keeps its flow_svg helper calls; all other
+durable specs, overrides, rendered pages and shared shell remain unchanged.
+The canonical diagram quality floor remains in the contract. SPEC_SCHEMA.md now
+documents diagram choices and the directory loader/skeleton interface.
+
+| Option | Actual value | Source-size result / limit |
+|---|---|---|
+| 4 — compact flows | Non-truncating label/detail wrapping, ordered chains of 2–12 nodes, and a numbered transition list | Day 2 helper-based experiment comparator: **63,369 bytes**; compact conversion: **66,024 bytes**, **+2,655 bytes**. NEXT_HOP_FLOW: **2,258 bytes**; NIC_FLOW: **2,415 bytes**. No Day 2 token saving from compact flows. |
+| 5 — directory specs | meta.py plus contiguous topic_01.py..topic_0K.py, equivalent loaded data, and --directory skeleton generation | Enables topic-specific source organization/reads; no durable migration and no measured token saving claimed. |
+
+Correction: the earlier compact-flow saving estimate counted rendered output
+rather than source. Rendered SVG bytes are not the per-page authoring source cost.
+The supplied experiment comparison above is a source increase, not a saving
+(+663.75 bytes/4 estimated tokens; actual tokenizer effects unmeasured).
+The unchanged on-disk scratch/day_data_002.py is **63,292 bytes**, as recorded in
+Phase C; the 63,369-byte experiment comparator is a separate measurement and does
+not replace that durable-source baseline. The compact scratch fixture is 66,024
+bytes. These experimental fixtures are audit evidence, not adopted day specs.
+Compact flows enforce min-width 1120px and horizontal scrolling on mobile.
+
+Visual evidence requiring user review (no visual approval claimed):
+- scratch/baseline/diagram-compare/next_hop-before-dark.html
+- scratch/baseline/diagram-compare/next_hop-after-dark.html
+- scratch/baseline/diagram-compare/next_hop-before-light.html
+- scratch/baseline/diagram-compare/next_hop-after-light.html
+- scratch/baseline/diagram-compare/nic-before-dark.html
+- scratch/baseline/diagram-compare/nic-after-dark.html
+- scratch/baseline/diagram-compare/nic-before-light.html
+- scratch/baseline/diagram-compare/nic-after-light.html
+
+scratch/phase-d-fixtures.py reproduces the scratch-only compact conversion and
+comparison HTML; it was not used to overwrite durable specs or pages. Automated
+accessibility/icon/label checks do not prove visual clarity or user approval.
+
+Close-out verification: rebuild Day 002, then Day 003 only; compare both rendered
+files byte-for-byte and by SHA-256 with Phase 0 baselines; run validate.py --day 2,
+all discovered unit tests including test_phase_d.py, and git diff --check.
+Results: both pages byte-identical with unchanged Phase 0 hashes; Day 2 validation
+0 errors; all 25 tests PASS (including 7 Phase D tests); git diff --check PASS.
+Evidence is recorded in scratch/baseline/phase-d-checks.txt.
+No explanatory prose removed, no depth change or study-time overrun, no cloud lab
+execution or fresh source-link review. STOP after the Phase D commit; do not start
+Phase E.
