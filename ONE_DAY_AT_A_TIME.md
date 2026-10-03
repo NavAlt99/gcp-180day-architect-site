@@ -16,6 +16,8 @@ Use this workflow to build the 180-day site without carrying one page's assumpti
 4. Build and validate only the target day: `python3 scripts/build.py --day N`, then `python3 scripts/validate.py`. Repair issues introduced by this edit and rerun the required commands. Do not run a full-site build.
 5. Report the data specification, generated override, rendered page, changes, checks actually run, and any unverified source or lab limitation. Do not paste page HTML into chat.
 
+Apply `PAGE_UPDATE_PROMPT.md` on every page update. After the target-day build, run `python3 scripts/check_study_links.py --day N --report scratch/day-NNN-study-links.json` and confirm source relevance manually.
+
 Use `PAGE_AUTHORING_CONTRACT.md` for page content, source checks, diagrams, labs, and acceptance criteria. The current roadmap is authoritative when older prompts disagree with it. An alternate Day 13 prompt is explicitly noncanonical and must not silently change the current curriculum.
 
 For a ten-page run, this means ten isolated page contexts in sequence, not ten full copies of the authoring instructions and not ten pages in one long context. Keep the coordinator's context to the current day number, agent result, and build/validation status.

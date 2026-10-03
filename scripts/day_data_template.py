@@ -11,8 +11,17 @@ Follow PAGE_AUTHORING_CONTRACT.md for the complete shared requirements.
 For every topic's Part 2 discussion, first list all in-scope subtopics, then discuss
 each in order with explicit explanations of: what it is in general, its relevance
 to a cloud architect across providers, and its particular application to GCP.
-Give each subtopic a descriptive heading, concrete example, and relevant source;
+Give each subtopic a plain-language definition, expanded acronyms, mechanism, concrete example, and relevant source;
 do not invent a GCP service equivalent when the concept has none.
+Use <strong class="keyword"> for selected paragraph terms and <strong class="side-heading"> for blue bold labels.
+ONLY diagram actual multi-step sequences, packet traversal, or request/response lifecycles.
+Omit diagrams for definitions, static features, and configuration topics. Explicitly set
+scenario["diagram_enabled"] = False for nonqualifying topics, True for qualifying ones.
+Leave ARCH_DIAGRAM/ARCH_SVG_HTML empty when no Part 2 flow qualifies.
+Each lab stage needs execution location, commands/full files or numbered manual steps,
+exact inputs, observable result, and evidence to save. Cover local and GCP execution
+where applicable; manual steps need a relevant official procedure link as well.
+Run scripts/check_study_links.py --day {DAY} after building and review source relevance.
 Every node in every topology and incident diagram must have a readable label and
 an appropriate icon: official product icons for GCP services, network component
 icons for generic infrastructure, and concept icons for events/decisions/outcomes.
@@ -32,7 +41,7 @@ Record icon sources, keep assets local or embedded, and verify mapping and layou
    - Deep systems root cause: Kernel cgroups, CFS quotas, IAM token refresh lifetimes,
      BGP routing dynamics, TLS handshakes, or control/data plane divergence.
    - Multi-step diagnostic sequence and defensible tactical + strategic remediation.
-   - Dual-lane Incident SVG flow (5 nodes: Event -> Failure -> Impact -> Fix -> Outcome).
+   - Only when the Diagram Generation Rule qualifies: dual-lane incident SVG flow.
 
 3. PART 4 (EXACTLY 8 LAB EXECUTION STAGES):
    - ZERO DIFFICULTY LABELS: Under no circumstance include "Beginner", "Intermediate",
@@ -211,6 +220,7 @@ TOPICS = [
 
         # PART 3: Realistic Operational Incident (Day 40-50 Standard)
         "scenario": {
+            "diagram_enabled": False,  # Set True only for a qualifying sequence/packet/lifecycle topic.
             "scenario": (
                 "Brightloaf's regional fulfillment service experienced severe order processing degradations "
                 "following a cluster configuration update. The incident triggered high-priority P1 alerts "

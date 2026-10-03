@@ -44,6 +44,8 @@ def wrap_svg(text: str, limit: int = 22, max_lines: int = 2) -> list[str]:
 def render_incident_svg(day: int, index: int, topic: dict) -> str:
     """Generate dual-lane incident SVG diagram: Failed Path vs Corrected Path with Day 67 standards."""
     scenario = topic.get("scenario", {})
+    if scenario.get("diagram_enabled") is False:
+        return ""
     if scenario.get("incident_svg_html"):
         return f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{scenario["incident_svg_html"]}</div></figure>'
     if scenario.get("svg_html"):
