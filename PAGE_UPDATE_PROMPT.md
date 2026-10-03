@@ -31,4 +31,5 @@ Handoff only:
 4. Checks actually run/results, structural errors, study-link report, semantic
    source review and source/lab limits. Claim zero errors only when confirmed;
    blocked/unverified links are not passes. No full-page HTML or content recap.
+5. Depth: list any topic whose depth was increased and any study-time overrun; confirm no existing explanation was shortened.
 ```

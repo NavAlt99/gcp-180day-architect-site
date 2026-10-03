@@ -29,9 +29,10 @@ supplement them. Durable source: `scratch/day_data_NNN.py`; never hand-edit
 never the full site. Fix only introduced issues and rerun checks before advancing.
 No generic fallback prose/root causes/lab steps or unfilled placeholders.
 
-Write concise non-repetitive prose retaining mechanisms, ownership/boundaries,
-limits, trade-offs and evidence. Scheduled time guides scope, not necessary depth;
-allow extra time for worked mechanisms.
+Write concise non-repetitive prose without reducing depth, retaining mechanisms,
+ownership/boundaries, limits, trade-offs and evidence.
+
+Depth floor (user decision): conceptual depth may increase but must never decrease. Scheduled study time never caps or shortens an explanation. If a topic needs more worked mechanism, examples, or lab detail than the schedule suggests, write it and note the time overrun in the handoff; do not trim it. Token savings come only from structure (shared helpers, defaults, compact diagram specs, read budget), never from shorter prose, fewer subtopics, fewer examples, or thinner labs. Existing page content may be revised only to add or correct depth, not to condense it.
 
 ### Part 1: Topics of the day
 
@@ -138,8 +139,8 @@ behavior**. Standards are in the engine; no Day 96/121 page-template reads.
 Every SVG: viewBox, role=img, unique title/desc IDs, aria-labelledby, readable
 labels, icon/node, horizontal scroll wrapper, scope/evidence-limit caption.
 Check text/icons/badges/arrows for clipping/overlap; labels/path explain without
-color/icon recognition. Wrap/shorten labels, never shrink illegibly or mask body
-overflow with overflow-x:hidden.
+color/icon recognition. Wrap/reflow labels or enlarge nodes without reducing depth or removing meaning;
+never shrink illegibly or mask body overflow with overflow-x:hidden.
 
 ## Diagram icons
 
@@ -202,4 +203,5 @@ This overrides unconditional rendered reading, not teaching or acceptance checks
 
 After static rules select CURRENT_DAY N (NNN zero-padded); use serial workflow
 and update prompt commands/handoff. No cross-day assumptions. Wait for background
-completion, no status polling/loops. Concise handoff: actual checks/limits, no HTML.
+completion, no status polling/loops. Concise handoff without reducing depth: actual checks/limits, depth increases and
+time overruns, confirm no existing explanation was shortened; no HTML.

@@ -134,3 +134,24 @@ Full-site validation reads existing pages; no full-site build was run.
   actual model tokenization and future per-day outcomes remain unmeasured.
 
 Stop after Phase A commit. Do not begin Phase B until the user replies `continue`.
+
+
+## User-approved depth floor — instruction-only follow-up
+
+Depth floor (user decision): conceptual depth may increase but must never decrease. Scheduled study time never caps or shortens an explanation. If a topic needs more worked mechanism, examples, or lab detail than the schedule suggests, write it and note the time overrun in the handoff; do not trim it. Token savings come only from structure (shared helpers, defaults, compact diagram specs, read budget), never from shorter prose, fewer subtopics, fewer examples, or thinner labs. Existing page content may be revised only to add or correct depth, not to condense it.
+
+This supersedes both the earlier current-user-allowance decision and the original proportional-to-scheduled-study-time rule. Non-repetitive remains; every live concise directive now explicitly says without reducing depth. Diagram labels use wrap/reflow or larger nodes instead of shortening. Handoff now reports increased topic depth and study-time overruns and confirms no existing explanation was shortened. All five instruction files were searched and treated together; exact before/after wording is in scratch/depth-floor-decision.md.
+
+Phase A measurements remain: four files 30,021 → 15,937 bytes; 7,505.25 → 3,984.25 bytes/4 estimated tokens; 46.91% reduction. These are historical Phase A values, not silently replaced by this follow-up. Day 002 spec remains 67,330 bytes (16,832.50 estimated tokens). Part 2 preview decision remains: exactly two preview sentences are Part 1 only (topics[].preview or part1_html); Part 2 technical explanations have no such sentence limit. Existing engine does not enforce preview sentence count.
+
+Follow-up current sizes (not a remeasurement of Phase A):
+
+| File | Bytes | Estimated tokens (bytes/4) |
+|---|---:|---:|
+| AGENTS.md | 1,134 | 283.50 |
+| ONE_DAY_AT_A_TIME.md | 1,469 | 367.25 |
+| PAGE_UPDATE_PROMPT.md | 1,847 | 461.75 |
+| PAGE_AUTHORING_CONTRACT.md | 12,304 | 3,076.00 |
+| scratch/day_data_002.py | 67,330 | 16,832.50 |
+
+Follow-up verification: rebuild only Days 002 and 003, compare bytes and SHA-256 with Phase 0 baseline; run target Day 002 structural validation and git diff --check. Results recorded in scratch/baseline/depth-floor-checks.txt. No spec, rendered content, engine, helper, diagram, lab, CSS/JS, or source changes. Stop after commit; Phase B not started.

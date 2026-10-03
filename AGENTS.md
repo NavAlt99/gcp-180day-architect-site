@@ -5,7 +5,7 @@ rules once before day-specific inputs. Its Source precedence and Read budget
 apply to every curriculum task; do not infer requirements from existing HTML.
 
 Use `ONE_DAY_AT_A_TIME.md` to select/run one day serially and
-`PAGE_UPDATE_PROMPT.md` for commands and concise handoff. Apply the contract to
+`PAGE_UPDATE_PROMPT.md` for commands and concise handoff without reducing depth. Apply the contract to
 every future update; all teaching, evidence, structure, typography, SVG/icon,
 exercise, source and rendering requirements remain mandatory.
 
