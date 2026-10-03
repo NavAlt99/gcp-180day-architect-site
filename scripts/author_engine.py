@@ -981,7 +981,7 @@ def main():
         process_single_day(args.day, args.data)
         print("\nRunning validator...")
         res_val = subprocess.run(
-            [sys.executable, str(SCRIPTS / "validate.py")],
+            [sys.executable, str(SCRIPTS / "validate.py"), "--day", str(args.day)],
             cwd=str(ROOT),
             capture_output=True,
             text=True

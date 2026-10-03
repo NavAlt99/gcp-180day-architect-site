@@ -28,11 +28,14 @@ Requirements:
 - Study links: Run the target-day link check below after building. It tests reachability, redirects, and exact fragments, not semantic correctness. Open each Further study source and confirm it explains the stated topic/subtopic and matches the link label. Prefer the specific official documentation section. Repair broken, irrelevant, and misleading redirect targets; record access date and unresolved access restrictions accurately.
 - Inline commands outside code blocks must use <kbd>...</kbd> rather than <code>...</code> to ensure clean validator pass.
 
+
+Permanent rendering rules: follow `RENDER_REVIEW.md` on every page update. Use shared styles rather than day-specific color patches, run target-day markup guards, and save `scripts/browser_render_audit.js` results for desktop/mobile in both themes plus visual diagram and copy-control checks. Fix all introduced errors before handoff.
+
 Pipeline execution:
 Run in order:
 python3 scripts/author_engine.py --day N
 python3 scripts/build.py --day N
-python3 scripts/validate.py
+python3 scripts/validate.py --day N
 python3 scripts/check_study_links.py --day N --report scratch/day-NNN-study-links.json
 For changes to the link checker, also run: python3 -m unittest discover -s tests -p "test_check_study_links.py"
 Review subtopic coverage, all eight exercise stages, highlighting/blue bold labels in both themes, and diagram eligibility on the rendered target page. Do not treat HTTP success as proof of topic relevance.

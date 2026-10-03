@@ -2,6 +2,7 @@
 """Audit generated page, topic, and local-link coverage."""
 from __future__ import annotations
 
+import argparse
 import csv
 import re
 from pathlib import Path
@@ -10,6 +11,9 @@ from urllib.parse import unquote, urlsplit
 from bs4 import BeautifulSoup
 
 SITE = Path(__file__).resolve().parents[1]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--day', type=int, choices=range(1, 181), help='Also enforce authoring/render markup guards on the updated day')
+args = parser.parse_args()
 pages = sorted(SITE.glob("*.html")) + sorted((SITE / "days").glob("*.html"))
 errors = []
 documents = {}
@@ -63,6 +67,27 @@ for n, page in enumerate(day_pages, 1):
             errors.append(f"{page.name}: <pre> element missing child <code> element (breaks copy button)")
         if pre.select_one("kbd"):
             errors.append(f"{page.name}: <pre> element contains <kbd> instead of <code>")
+
+if args.day:
+    target = SITE / 'days' / f'day-{args.day:03d}.html'
+    soup, ids = documents[target.resolve()]
+    if not soup.select_one('strong.keyword') or not soup.select_one('strong.side-heading'):
+        errors.append(f'{target.name}: missing keyword highlights or blue bold side-heading markup')
+    for term in soup.select('.keyword'):
+        if term.name != 'strong' or term.find_parent(['pre', 'code']):
+            errors.append(f'{target.name}: highlight must be strong.keyword in prose, not code')
+    for svg in soup.select('figure svg'):
+        refs = svg.get('aria-labelledby', '').split()
+        if svg.get('role') != 'img' or not (svg.get('viewbox') or svg.get('viewBox')) or len(refs) < 2 or any(x not in ids for x in refs):
+            errors.append(f'{target.name}: SVG requires viewBox, role=img and existing title/description IDs')
+        figure = svg.find_parent('figure')
+        if not figure.select_one('figcaption'):
+            errors.append(f'{target.name}: diagram missing evidence caption')
+        for image in svg.select('image'):
+            href = image.get('href') or image.get('xlink:href', '')
+            parsed = urlsplit(href)
+            if not href or parsed.scheme or parsed.netloc or not (target.parent / unquote(parsed.path)).is_file():
+                errors.append(f'{target.name}: SVG icon must be an existing local asset: {href}')
 
 for path, (soup, ids) in documents.items():
     for link in soup.select("a[href], link[href], script[src]"):

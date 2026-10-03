@@ -18,7 +18,7 @@ Existing HTML is rendered output, not curriculum truth. Do not infer requirement
 - Work on exactly one day at a time, in serial order. Do not use batch generation or edit multiple day pages concurrently.
 - Before editing Day `N`, read its roadmap entry, generated brief, coverage rows, current `scratch/day_data_NNN.py` if present, current `content/day-NNN-page.html` if present, and the required sections of `PAGE_AUTHORING_CONTRACT.md`.
 - Author the durable input in `scratch/day_data_NNN.py`. Keep page content topic-specific; do not use generic fallback prose, generic root causes, or generic lab steps in place of the day’s actual case, trade-off, and acceptance evidence.
-- Generate the override with `python3 scripts/author_engine.py --day N`, then run `python3 scripts/build.py --day N` and `python3 scripts/validate.py`.
+- Generate the override with `python3 scripts/author_engine.py --day N`, then run `python3 scripts/build.py --day N` and `python3 scripts/validate.py --day N`.
 - Fix only issues introduced by the target day before proceeding. Preserve the shared site shell, navigation, day selector, progress controls, theme controls, and footer.
 
 ## Page acceptance rules
@@ -33,3 +33,5 @@ Existing HTML is rendered output, not curriculum truth. Do not infer requirement
 ## Handoff
 
 Report the data specification, generated override, rendered page, source/lab limitations, and checks actually run. Do not paste full page HTML into chat.
+
+Permanent rendering rules: follow `RENDER_REVIEW.md` on every page update. Use shared styles rather than day-specific color patches, run target-day markup guards, and save `scripts/browser_render_audit.js` results for desktop/mobile in both themes plus visual diagram and copy-control checks. Fix all introduced errors before handoff.

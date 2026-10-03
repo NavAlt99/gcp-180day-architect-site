@@ -26,6 +26,10 @@ All commands and multi-line file contents belong in `<pre><code>` blocks with th
 - Side headings and labels such as “Why today”, “Where it sits”, and “Why today and where it sits” must be blue and bold: `<strong class="side-heading">...</strong>`. Shared styles must remain readable in light and dark themes. Use supported rich-text fields; plain string fields are escaped by the engine, so use `part1_html` for rich overview content.
 - Every subtopic needs a beginner-readable definition, expanded unfamiliar acronyms, a mechanism explanation, and a concrete example before its architecture/GCP relevance. A repeated heading, unexplained list, source link, or generic statement that it “helps architects” does not count as teaching.
 
+## Rendering regression prevention
+
+Follow `RENDER_REVIEW.md` for shared theme fixes and mandatory browser acceptance. Do not put reusable panel/heading/caption fixes in individual day specifications. Run `python3 scripts/validate.py --day N` and the read-only `scripts/browser_render_audit.js` at desktop/mobile in both themes; visual checks remain required for node fit, arrows, and source accuracy.
+
 ## Diagram Generation Rule
 
 ONLY generate a diagram if the actual topic/subtopic specifically describes a multi-step sequence, a data packet traversal flow (for example NIC to application socket), or a request/response lifecycle. Do NOT generate diagrams for conceptual definitions, static features, or configuration topics. Do not manufacture a flow to qualify a static topic. If no diagram qualifies, omit its section entirely, including its heading, wrapper, caption, and placeholder.
