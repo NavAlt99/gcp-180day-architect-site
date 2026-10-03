@@ -1,72 +1,205 @@
 # Day-page authoring contract
 
-Use this contract with one generated day brief from `gcp-architect-180-day-page-prompts.md`. The roadmap entry in that brief is the curriculum source of truth. Work on one day only.
+Canonical rules for every page update: read once as a static prefix before day
+inputs. Wrappers reference these rules; token savings must not reduce page
+structure, technical depth, or acceptance evidence.
 
-## Efficient context and edits
+## Source precedence
 
-- Read the day's roadmap entry, generated brief, coverage rows, durable data specification if present, rendered page if present, and only the CSS/JavaScript rules needed for components you touch. Do not load the entire 180-day prompt catalog, full roadmap, unrelated day pages, or the whole selector markup into working context.
-- Preserve the existing HTML shell, selector, theme controls, navigation, progress controls, footer, and useful visuals. Author the durable specification in `scratch/day_data_NNN.py`; generate the override with `python3 scripts/author_engine.py --day N`, then build only that day. Do not hand-edit the generated override or rendered page as the durable source.
-- Keep the page focused on the day's Study, Practice, and Exit evidence. Do not add products or deploy alternatives merely because they are named for comparison. Use synthetic Brightloaf examples only when useful.
-- Write concise, non-repetitive teaching prose. Define the mechanism, ownership/boundary, a meaningful limit or trade-off, and the observable evidence. Keep the depth proportional to the scheduled study time.
+1. `../roadmap-180-days.md`: scope/prerequisites/Study/Practice/Exit evidence.
+2. `../gcp-architect-180-day-page-prompts.md`: compact day brief/anchors.
+3. `data/coverage.csv`: topic/anchor/source-ID/publisher/exit mappings.
+4. `../gcp-architect-roadmap-100-days.md`: source-topic references/official docs.
+5. This contract: teaching/evidence/SVG/lab/source/rendering rules.
+6. `ONE_DAY_AT_A_TIME.md`: serial run; `PAGE_UPDATE_PROMPT.md`: commands/handoff;
+   `AGENTS.md`: entry point.
 
-## Required content
+HTML is output, not curriculum truth. Current roadmap overrides older prompts;
+alternate Day 13 is noncanonical. Stay within Study/Practice/Exit evidence;
+comparisons do not justify extra products/deployments. Brightloaf synthetic
+examples are optional when useful.
 
-Retain the site's four numbered parts and every topic ID/anchor listed in the coverage rows: `#key-overview`, `#key-technical`, `#key-problem`, and `#key-lab`.
+## Content invariants
 
-1. **Topics of the day:** For each mapped topic, explain what it is, why it belongs today, and where it sits. End that topic with exactly two preview sentences: one concrete symptom or decision, then its user/business effect.
-2. **Technical discussion:** Explain the relevant control/data flow, ownership, boundary, limit, failure signal, and trade-off. Include an accessible architecture-path table where useful. Apply the Diagram Generation Rule below before adding any SVG. For an eligible multi-tier topology, use the **Day 121 topology standard**: minimum canvas `1120x690`, 3 non-overlapping tiers (Tier 1 Ingress/Demand $y=55\dots 147$, Tier 2 Runtime/Data $y=185\dots 395$, Tier 3 Governance/Decision $y=435\dots 550$), exact vertical drops ($x_1=x_2$) into component centers, non-overlapping boundary boxes ending before $y=560$, and system probe panel cleanly seated at the bottom. The diagram needs a unique accessible title/description, readable labels, a horizontally scrollable wrapper, and a caption stating scope and what it does not prove. End each topic with a verified authoritative written source linked to a real relevant section. Add videos only when the segment and timestamp have actually been checked; never invent them.
-3. **Problem and solution:** Give one clearly labeled example per topic. Include symptoms/evidence, business and operational constraints, causal root-cause reasoning, a defensible fix, verification, and residual risk. Keep supplied facts separate from inference. Only for a topic eligible under the Diagram Generation Rule, include an incident SVG matching the **Day 121 dual-lane incident standard**: 5-node progression (Initiating Event -> Root Cause Defect / FI -> Impact & Degradation vs Same Trigger -> Defensive Control -> Verified Outcome), in-diagram verification boundary enclosing nodes 2 & 3, fault injection badge (FI), and a 3-field figcaption (`Supplied facts`, `Architectural inference`, `Expected post-fix behavior`). Do not portray an example or prediction as an observed production incident. For event replay, preserve one business fulfillment per order.
-4. **Step-by-step lab:** Provide a named exercise for each topic or an integrated exercise with an explicit checkpoint for each. Every exercise must use exactly eight clearly labeled stages under “Exact execution,” following the progression demonstrated by Day 96: (1) preflight and validate assumptions/environment; (2) prepare the target, inputs, or backing resources; (3) author the plan, configuration, or analysis; (4) execute or simulate the planned change; (5) inspect expected state and verify outcomes; (6) rehearse a bounded failure, edge case, or decision challenge; (7) diagnose evidence and record remediation/decision; (8) clean up or close out the exercise. Each stage must contain an actual execution step: provide exact commands or file contents when the mode calls for them, or give a specific worksheet/calculation/decision task with exact inputs and a visible expected result for local/tabletop work. Stage headings alone, generic instructions (“review,” “analyze,” “verify”), and unfilled placeholders do not count. Adapt stage names and actions to the day's topic and lab mode; local and tabletop exercises must not invent cloud provisioning or fault injection. Keep artifact acceptance criteria after the eight stages, alongside expected state, troubleshooting, cleanup, and the roadmap Exit evidence mapping. Include goal/result, mode/limits, prerequisites, preflight, exact steps, expected state, verification, troubleshooting, cleanup, and artifact acceptance. For cloud changes, verify identity, project, APIs, permissions, location, inventory, billing assumptions, and bounded cost first; clean up in reverse dependency order. Prefer a local/tabletop lab when it satisfies the Practice. Never expose credentials.
+Preserve shell, navigation, 180-day selector, progress/theme controls, footer,
+and useful eligible visuals. Keep four numbered parts and exact coverage-row
+overview/technical/problem/lab anchors (e.g. `#topic-01-overview`); subtopics
+supplement them. Durable source: `scratch/day_data_NNN.py`; never hand-edit
+`content/day-NNN-page.html` or `days/day-NNN.html` as source. Build one named day,
+never the full site. Fix only introduced issues and rerun checks before advancing.
+No generic fallback prose/root causes/lab steps or unfilled placeholders.
 
-All commands and multi-line file contents belong in `<pre><code>` blocks with the site's working copy control. Keep non-command filenames and short technical terms inline. All expected cloud output must be labeled illustrative when environment-dependent. Distinguish documentation, local observation, and tabletop prediction.
+Write concise non-repetitive prose retaining mechanisms, ownership/boundaries,
+limits, trade-offs and evidence. Scheduled time guides scope, not necessary depth;
+allow extra time for worked mechanisms.
 
-## Typography and explanation completeness
+### Part 1: Topics of the day
 
-- Highlight selected key terms at their first meaningful use in paragraphs with `<strong class="keyword">...</strong>`. Use the shared pink text and subtle tinted background; do not highlight entire sentences or decorate commands/code blocks.
-- Side headings and labels such as “Why today”, “Where it sits”, and “Why today and where it sits” must be blue and bold: `<strong class="side-heading">...</strong>`. Shared styles must remain readable in light and dark themes. Use supported rich-text fields; plain string fields are escaped by the engine, so use `part1_html` for rich overview content.
-- Every subtopic needs a beginner-readable definition, expanded unfamiliar acronyms, a mechanism explanation, and a concrete example before its architecture/GCP relevance. A repeated heading, unexplained list, source link, or generic statement that it “helps architects” does not count as teaching.
+Each mapped topic: what it is, why today, where it sits. Closing problem-preview:
+exactly two sentences (symptom/decision, then user/business effect); links may follow.
 
-## Rendering regression prevention
+### Part 2: Subtopic-first technical discussion
 
-Follow `RENDER_REVIEW.md` for shared theme fixes and mandatory browser acceptance. Do not put reusable panel/heading/caption fixes in individual day specifications. Run `python3 scripts/validate.py --day N` and the read-only `scripts/browser_render_audit.js` at desktop/mobile in both themes; visual checks remain required for node fit, arrows, and source accuracy.
+Preview sentence count applies ONLY to Part 1 (`topics[].preview` or `part1_html`),
+not Part 2 technical content; existing engine does not enforce sentence count.
 
-## Diagram Generation Rule
+List ALL scoped subtopics first, derived from Study/brief/coverage, not later days.
+Explain each in order under a descriptive heading with these explicit labels:
+- **What it is in general:** plain definition, first-use acronym expansions,
+  mechanism, concrete topic example.
+- **Relevance to a cloud architect:** design/ownership/reliability/security/cost/
+  operational trade-off across providers.
+- **Relevance to GCP:** documented service/feature/configuration/architecture use
+  and primary source; if no direct equivalent, say so and explain applicability.
+  Never invent mappings or deployments.
 
-ONLY generate a diagram if the actual topic/subtopic specifically describes a multi-step sequence, a data packet traversal flow (for example NIC to application socket), or a request/response lifecycle. Do NOT generate diagrams for conceptual definitions, static features, or configuration topics. Do not manufacture a flow to qualify a static topic. If no diagram qualifies, omit its section entirely, including its heading, wrapper, caption, and placeholder.
+Cover control/data flow, ownership, boundaries, limits, failure signals,
+trade-offs and prerequisites; add an accessible architecture-path table where
+useful. End with a concrete example, **Evidence limit:** and verified authoritative
+written section. Headings/lists/links/repeated or generic relevance are not
+explanations. Video segments/timestamps must be actually checked.
 
-This rule governs both Part 2 and Part 3 and supersedes earlier blanket topology/incident requirements. For each topic explicitly set `scenario["diagram_enabled"]` to `True` or `False`; the engine retains legacy behavior only for older specifications without this key. Leave `ARCH_DIAGRAM` and `ARCH_SVG_HTML` empty if no Part 2 flow qualifies. Place subtopic-specific SVGs beside the relevant explanation, and do not replace a focused packet trace with unrelated infrastructure. Use numbered steps and meaningful arrows and explain the same transitions in prose. A simple sequence SVG is valid; the multi-tier topology standard applies when that layout fits. All generated diagrams still require local icons, unique IDs, accessible titles/descriptions, readable labels, and evidence captions.
+### Part 3: Problem and solution
 
-## Executable exercise stages
+One labeled case/topic: symptoms, literal logs, business/operational constraints,
+causal root reasoning, diagnostic sequence, defensible fix, verification, residual
+risk. Logs labeled **supplied**, **illustrative** or **local-observed**; supplied
+text verbatim, measured distinct from expected, never production observation.
+Facts/inferences/predictions/questions stay distinct; unknown causes stay unknown.
+Event replay: one business fulfillment per order.
 
-Each of the eight stages must provide:
+### Part 4: Executable labs
 
-1. Execution location: local terminal, Cloud Shell, terminal inside a GCP VM, Console, or local/tabletop worksheet; name the shell/OS and tools when relevant.
-2. Ordered actions with copyable commands and full required file contents, or numbered manual instructions with exact navigation, fields, and values. Define variables and explain how learners obtain environment-specific values before they use them. Provide Terraform prerequisites and init/plan/apply/inspection/destroy steps when Terraform is used.
-3. Expected observable result and a concrete artifact/output to save, with a stop condition or recovery instruction where needed. Environment-dependent outputs are illustrative, never claimed observations.
+Named exercise per topic, or integrated exercise with explicit topic checkpoints:
+exactly eight stages under **Exact execution**, with topic-specific names/actions:
+1. Preflight: validate assumptions/environment.
+2. Prepare target, inputs, or backing resources.
+3. Author plan, configuration, or analysis.
+4. Execute or simulate the planned change.
+5. Inspect expected state and verify outcomes.
+6. Rehearse bounded failure, edge case, or decision challenge.
+7. Diagnose evidence and record remediation/decision.
+8. Clean up or close out.
 
-For tasks unavailable through commands or Terraform, provide a relevant official procedure link AND complete step-by-step Console/editor/worksheet instructions; a link or “configure/verify” sentence alone is insufficient. Where a lab uses both a local machine and GCP, describe preparation and execution in both environments and explicitly identify the handoff. For local-only/tabletop work, provide exact inputs and outputs and state which GCP behavior is untested. Do not provision cloud resources merely to add a GCP variant outside the day's Practice. Stage 8 must remove only lab-owned resources in reverse dependency order or close out the local artifact with exact instructions.
+Every stage: location (local terminal, Cloud Shell, GCP VM terminal, Console,
+or local/tabletop worksheet), OS/shell/tools, ordered exact actions/inputs/file
+contents, observable expected result, evidence/path to save, stop/recovery where
+needed. Define variables/prerequisites/dependencies/tools/paths before use and
+how environment values are obtained. Headings or generic review/analyze/verify
+alone are insufficient.
 
-## Subtopic-first discussion
+Use copyable commands or complete Terraform including prerequisites and
+init/plan/apply/inspect/destroy. Otherwise give numbered Console/editor/worksheet
+navigation, exact fields/values/result AND official procedure link, not link alone.
+Local/tabletop tasks need exact calculation/decision inputs and visible outcomes,
+not invented provisioning/fault injection. Explain BOTH local/GCP preparation,
+execution and handoff when involved. Prefer local/tabletop when Practice permits;
+state untested GCP behavior, never deploy merely to add a cloud variant.
 
-- At the start of each topic's Technical discussion, list all subtopics covered by that topic before explaining any of them. Derive this complete list from the day's authoritative Study scope, brief, and coverage rows; keep it within the scheduled day rather than expanding into later-day material.
-- Discuss every listed subtopic in the same order, under its own descriptive heading. For each subtopic, explicitly cover **What it is in general** (a plain-language definition and how it works), **Relevance to a cloud architect** (the design decision, ownership, reliability, security, cost, or operational trade-off it informs across cloud providers), and **Relevance to GCP** (the corresponding Google Cloud service, feature, configuration, or architectural application, with a relevant primary source).
-- Use a concrete topic-specific example to connect the general concept to the architect's decision and its GCP application. Explain prerequisites when needed. If there is no direct GCP service equivalent, state that and explain how the concept applies to a GCP architecture; do not invent a product mapping or require a deployment outside the day's Practice.
-- Preserve the topic's existing coverage anchors and the four numbered parts. Subtopic headings supplement the mapped topic structure. A subtopic list alone is insufficient: every entry must receive all three explanations.
+Include goal/result, mode/limits, prerequisites, preflight, execution, expected
+state, verification, troubleshooting, cleanup/cost, acceptance after eight stages,
+and roadmap Exit evidence mapping. Cloud preflight verifies identity/project/APIs/
+permissions/location/inventory/billing/bounded cost. Stage 8 removes only lab-owned
+resources in reverse dependency order or explicitly closes the local artifact.
 
-## Diagram node logos and icons
+## Typography and inline code
 
-- Reuse the local library in `assets/icons/`; consult `assets/icons/manifest.json` for mappings and provenance, `assets/icons/index.html` for previews, and `assets/icons/README.md` for embedding instructions. Prefer `gcp/core/` over `gcp/legacy/` when both contain the service.
-- Every diagram, including topology and incident SVGs, must include an appropriate logo or icon on every node alongside its readable text label. Use the matching official Google Cloud product icon for each GCP service node; use recognizable network component icons for clients, routers, switches, firewalls, load balancers, DNS resolvers, links/endpoints, and other generic network components as applicable. A generic Google Cloud logo does not substitute for an available product-specific icon.
-- Use an appropriate concept icon for non-component nodes such as an event, decision, policy, artifact, or outcome. Label these explicitly so the icon does not imply that a concept is a deployed GCP service. Identify GCP grouping boundaries with a Google Cloud logo where appropriate; preserve the distinction between provider boundaries and individual service nodes.
-- Use official Google Cloud architecture icon assets for GCP logos, preserve their proportions and colors, and record their source. Prefer local SVG assets or embedded SVG symbols so diagrams remain usable without remote image requests. Do not invent product logos or use emoji as substitutes.
-- If a required official GCP icon is missing from the local library, obtain the authentic asset from Google's official Cloud architecture icon resources, add it to `assets/icons/`, and record its source and provenance in the manifest. Do not redraw or generate Google Cloud or product logos. If a generic network component icon is missing, create a simple original SVG symbol for that component and label it clearly; do not style it as a Google product mark. Keep downloaded and created assets local so the finished diagrams work offline.
-- Keep icons inside their nodes with enough space for readable labels, arrows, and badges. Retain the required topology/incident layout, unique SVG IDs, accessible titles/descriptions, and responsive scrolling. Labels and the architecture-path table must still explain the diagram without relying on icon or color recognition.
-- Before completing a page, check every diagram for node icon coverage, correct service-to-icon mapping, resolved asset references, and absence of clipped or overlapping icons and text.
+Selected first-use prose terms: `<strong class="keyword">term</strong>` with
+shared pink/tinted highlight (Kubernetes example); no whole sentences or commands.
+Labels Why today/Where it sits/combined use `<strong class="side-heading">`;
+labels and subtopic headings are blue/bold in both themes via `assets/site.css`,
+not per-day patches. Rich fields accept Markdown/HTML, plain fields are escaped;
+use `part1_html` for rich overview. Copyable commands/multiline contents use
+`<pre><code>` and working copy controls. Inline commands use `<kbd>`; non-command
+filenames/short terms use `<code>`. Expected environment-dependent cloud output
+is illustrative.
 
-## Sources and completion
+## Diagram eligibility and standards
 
-Use primary documentation for product behavior that can change. Open each cited section and confirm the fragment resolves before describing it as verified; include descriptive link text and access date. A second written source is preferable to an unverified video. Do not invent quotas, prices, outputs, version details, or causal claims.
+ONLY diagram actual multi-step sequences, packet traversal or request/response
+lifecycles. No conceptual/static/configuration diagrams, invented qualifying flows,
+or empty headings/wrappers/captions/placeholders. Applies to Part 2 topology and
+Part 3 incidents, overriding blanket requirements. Explicit boolean
+`scenario["diagram_enabled"]`: False when nonqualifying, True for eligible incidents;
+legacy missing-key behavior remains. Empty `ARCH_DIAGRAM`/`ARCH_SVG_HTML` if no
+Part 2 flow qualifies. Place subtopic SVGs beside their explanation, not unrelated
+infrastructure. Number transitions with meaningful arrows and matching nearby
+prose; linear flows are valid.
 
-After building the target day, run `python3 scripts/check_study_links.py --day N --report scratch/day-NNN-study-links.json`. The check covers Further study links, HTTP reachability/redirects, local targets, and section fragments. Non-success responses, missing fragments, and access restrictions must be fixed or reported as unresolved, never marked verified. Also open each source to confirm its title, linked section, and subject actually support the topic and link label; HTTP success cannot prove relevance. Record access dates and the report in the handoff. If the checker changes, run `python3 -m unittest discover -s tests -p "test_check_study_links.py"`.
+Applicable multi-tier topology standard: minimum 1120x690; non-overlapping tiers
+Ingress/Demand y=55..147, Runtime/Data y=185..395, Governance/Decision y=435..550;
+vertical drops x1=x2 into centers; boundary boxes end before y=560; bottom probe
+panel. Eligible incident standard: five-node dual-lane progression Initiating
+Event -> Root Cause Defect/FI -> Impact & Degradation versus Same Trigger ->
+Defensive Control -> Verified Outcome; boundary encloses nodes 2/3; FI badge;
+figcaption **Supplied facts**, **Architectural inference**, **Expected post-fix
+behavior**. Standards are in the engine; no Day 96/121 page-template reads.
 
-Build only the target day with `python3 scripts/build.py --day N`, then run `python3 scripts/validate.py`. Review the final page for the four parts, required anchors, valid local links, complete day selector, working copy blocks, unique SVG IDs/ARIA references, responsive figure scrolling, and accurate exit evidence. Fix only issues caused by this edit. Do not run a full-site build. Report what changed, checks actually run, and any source or lab limitation; do not paste the HTML into chat.
+Every SVG: viewBox, role=img, unique title/desc IDs, aria-labelledby, readable
+labels, icon/node, horizontal scroll wrapper, scope/evidence-limit caption.
+Check text/icons/badges/arrows for clipping/overlap; labels/path explain without
+color/icon recognition. Wrap/shorten labels, never shrink illegibly or mask body
+overflow with overflow-x:hidden.
+
+## Diagram icons
+
+Reuse `assets/icons/`; targeted `manifest.json` mappings/provenance, `index.html`
+previews, `README.md` embedding. Prefer `gcp/core/` to `gcp/legacy/`. Every GCP
+service node uses its matching official product icon, not a generic provider logo;
+preserve colors/proportions. Label provider boundaries separately, provider logo
+where appropriate. Generic client/router/switch/firewall/load-balancer/DNS/endpoint
+nodes use recognizable icons; events/decisions/policies/artifacts/outcomes use
+labeled concept icons, not implied services.
+
+Missing official icons: obtain authentic Google Cloud architecture assets,
+add locally with manifest provenance; no redrawn/generated logos or emoji. Missing
+generic icons: original labeled SVG, not a Google mark. Local assets/symbols must
+work offline; verify every node mapping and asset reference.
+
+## Sources and evidence
+
+Official primary written docs for changeable product behavior, certification/
+exam, quotas, prices, versions, eligibility. Open cited sections; verify actual
+fragment/title/subject supports descriptive labels; date access. Prefer second
+written source to unverified video; never invent segments/timestamps. Separate
+supplied facts, local observations, tabletop predictions, design inferences and
+open questions. No invented production behavior/exam results/outputs/quotas/prices/
+latency/causality/customer acceptance. No credentials/protected exam/payment data.
+
+Study-link checks cover HTTP/redirects, local targets, exact fragments, NOT
+relevance. Manually verify every Further study subject/label. Fix broken,
+irrelevant or misleading targets; missing fragments/non-success/access restrictions
+remain unresolved, not passes. Record dates/report/limits. Checker changes require
+its documented unit tests.
+
+## Permanent rendering rules
+
+Follow `RENDER_REVIEW.md`: shared fixes/target markup guards, saved desktop/mobile
+both-theme audits, focused diagram/copy checks. Light cards/TOC/tables/rail retain
+active indicator; dark-canvas captions readable; scrolling contained, selector/
+progress keys/copies intact. Fix introduced errors. Audits cannot prove every
+text overlap/arrow/source/eligibility decision; rendered reads follow Read budget.
+
+## Read budget
+
+After static rules read ONLY the day's roadmap entry, compact brief, coverage.csv
+rows, and durable `scratch/day_data_NNN.py` if present. Extract brief/entry using
+bounded grep/rg and sed, never full 180-day catalog/roadmap, unrelated days or
+selector markup. Give each context only its compact brief. Precedence item 4,
+icon metadata/source sections or flagged CSS/JS are targeted exceptions only when
+needed, not full-file reads.
+
+Do NOT routinely read `content/day-NNN-page.html`, `days/day-NNN.html`, rendered
+pages, `author_engine.py`, `build.py`, Day 96/121 pages. Use `SPEC_SCHEMA.md` instead
+of engine internals once Phase B delivers it (not created in Phase A). Until then
+use durable spec/contract; report schema uncertainty. Run validators/browser audit
+without full rendered text/screenshots in author context. Open/read rendered pages
+ONLY for a specific validate.py/browser-audit problem, ONLY the flagged region.
+Review depth/coverage/eligibility in durable spec; retain source/audit checks.
+This overrides unconditional rendered reading, not teaching or acceptance checks.
+
+## Day-specific execution and handoff
+
+After static rules select CURRENT_DAY N (NNN zero-padded); use serial workflow
+and update prompt commands/handoff. No cross-day assumptions. Wait for background
+completion, no status polling/loops. Concise handoff: actual checks/limits, no HTML.

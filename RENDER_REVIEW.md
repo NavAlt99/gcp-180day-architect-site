@@ -3,39 +3,30 @@
 These rules preserve the fixes discovered during the Day 002 browser review.
 They apply to every future page update. Do not rely on copying Day 002 HTML.
 
-## Shared fixes
-
-- Use `assets/site.css` for themes. Do not add per-day `<style>` fixes for panel,
-  heading, keyword, or caption colors. Foundation cards, TOC, tables, and rail
-  tiles must use light panels in light mode; preserve the active rail indicator.
-- Diagrams intentionally retain dark canvases. Their captions must stay light
-  in both themes, rather than inheriting light-mode dark muted text.
-- All subtopic headings and teaching side labels must be blue and bold. Selected
-  prose keywords use the shared theme-aware pink highlight.
-- Place wide SVGs inside a contained horizontal scroll wrapper. Do not hide
-  inaccessible diagram content or shrink labels until unreadable. Do not mask
-  document overflow with `body { overflow-x: hidden }`.
-- Every SVG must have a viewBox, role=img, unique referenced title/description
-  IDs, local icons, and an evidence caption. Shorten or wrap long labels; inspect
-  text inside individual nodes as well as the overall canvas.
-- Copyable blocks use `<pre><code>…</code></pre>`, with the shared JS attached.
+The canonical rules are in `PAGE_AUTHORING_CONTRACT.md`, sections Permanent
+rendering rules, Typography and inline code, and Diagram eligibility and standards.
+Use this file only for audit procedure; apply the contract's Read budget globally.
 
 ## Required browser review
 
 1. Build only the requested day, then run `python3 scripts/validate.py --day N`.
    The authoring engine also runs these target-day markup guards automatically.
-2. Open the rendered page using an approved browser preview. If file URLs are
-   blocked, use an authorized local HTTP preview; do not bypass security.
-3. At desktop and 390×844, inspect both light and dark themes. Check cards, TOC,
-   tables, rail, selected keywords, teaching headings, and diagram captions.
+2. Run the browser audit through an approved preview without importing full
+   page text or screenshots into author context. If file URLs are blocked, use
+   an authorized local HTTP preview; do not bypass security. Inspect rendered
+   regions only for a specific validator/audit flag, per the canonical Read budget.
+3. Audit desktop and 390×844 in both themes. Review durable-spec markup and
+   shared styling; on a flag, inspect the affected cards, TOC, tables, rail,
+   keywords, headings or captions only.
 4. Read `scripts/browser_render_audit.js` into `auditSource` and invoke its
    expression with `tab.playwright.evaluate('(' + auditSource + '\n)()')` using
    the supported browser API. Save all four results. Fix each
    error; this checks document overflow, heading style, caption contrast, SVG
    canvas clipping, scroll containment, and copy-button count.
-5. Visually inspect EVERY qualifying diagram: text must fit its nodes; labels,
-   arrows, and evidence boundaries must be readable without overlapping. On
-   mobile, scroll each wide diagram to its far edge and verify it is reachable.
+5. Check EVERY qualifying diagram for node/icon coverage, readable text, arrows
+   and evidence boundaries without overlaps. Use durable-spec review and audit
+   bounds/scroll results; inspect only flagged rendered diagrams. Verify mobile
+   far-edge reachability through the audit/browser control, saving compact results.
 6. Click one exercise copy button; confirm it reports `Copied`. Verify all
    progress keys and the 180-day selector remain present. Do not mark the user's
    actual progress as completed during review.
@@ -43,7 +34,7 @@ They apply to every future page update. Do not rely on copying Day 002 HTML.
    insufficient for fragment existence or semantic relevance. Do not assume an
    RFC has `#section-X`: older publications may use page anchors. Repair against
    the live primary source and record the access date, never guessed fragments.
-8. Save screenshots and audit results. Restore the theme and temporary viewport
+8. Save audit results and screenshots of flagged regions only. Restore theme and viewport
    settings. Record manual checks and anything unverified accurately.
 
 A successful structural check does not prove visual quality. The browser audit
