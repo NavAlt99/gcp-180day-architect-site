@@ -91,3 +91,34 @@ Phase E rule list from SPEC_DEFAULTS.json (legacy behavior unchanged):
 These non-empty prose/label fallbacks require authored context; lab TODO slots
 are unfinished placeholders, not acceptable prose. Structural lab.file defaults
 and colors/dimensions are not teaching prose.
+
+
+## Read-only spec validation (Phase E)
+
+`python3 scripts/validate_spec.py --day N [--spec PATH]` uses the engine file/directory
+loader, checks authored structure before compilation, and never builds or traverses
+rendered pages. It emits at most 30 ERROR lines and one summary; any error exits 1.
+It checks TODOs, coverage keys/titles/explicit or engine-derived anchors, eight lab
+steps with environment/markers and code or numbered manual bodies, incident diagram
+booleans, reachable generic-prose fallback slots, subtopic lists/headings/labels,
+examples/evidence limits, keyword/side-heading markup and inline commands, Part 1
+previews (including part1_html), HTTPS source metadata/access date, SVG attributes
+and compact icon existence. ACCESS_DATE/SOURCES literal module metadata supplements
+engine-loaded fields when the loader omits it. Legacy uppercase modules skip only
+fallback-presence checks, with an INFO line; other errors remain errors, and the
+existing compiler remains compatible. Unreachable fallback branches (raw/compact
+SVG overrides, disabled incidents, replaced Part 1/completion) require no unused
+fallback fields.
+
+scenario.diagram_enabled controls incident diagrams per the contract; False
+rejects any incident flow/SVG/diagram/icons fields; True requires incident diagram
+data. Technical SVGs are separately eligible and emit a manual eligibility WARN.
+Their structural checks cover resolvable title/desc IDs, figcaptions, local icon
+references and empty wrappers/headings/placeholders, as well as viewBox and role.
+This interpretation preserves the required passing Day 2 case, whose technical
+flows occur on topics with disabled incident diagrams.
+Depth WARNs compare technical text length, subtopic count, lab step count and total
+step text length to half the minimum Day 2 range; never fail on length. These are
+signals, not quality thresholds or proof of depth non-regression. Source relevance,
+technical accuracy, semantic diagram eligibility, visual clarity, lab executability
+and actual depth require manual review; syntax markers cannot establish them.

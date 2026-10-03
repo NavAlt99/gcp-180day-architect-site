@@ -11,6 +11,7 @@ Author scratch/day_data_NNN.py using only the scoped day inputs. Preserve all
 contract requirements; finish acceptance checks and fix target-introduced errors.
 
 Run in order:
+python3 scripts/validate_spec.py --day N
 python3 scripts/author_engine.py --day N
 python3 scripts/build.py --day N
 python3 scripts/validate.py --day N

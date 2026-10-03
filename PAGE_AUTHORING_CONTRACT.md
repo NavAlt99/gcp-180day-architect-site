@@ -195,6 +195,7 @@ needed, not full-file reads.
 Do NOT routinely read `content/day-NNN-page.html`, `days/day-NNN.html`, rendered
 pages, `author_engine.py`, `build.py`, Day 96/121 pages. Use available `SPEC_SCHEMA.md` instead
 of engine internals; its `SPEC_DEFAULTS.json` appendix lists fallback expressions.
+`scripts/validate_spec.py --day N` checks authored source before compilation, without building or reading rendered pages.
 For missing specs, available `scripts/new_day_skeleton.py --day N` creates a
 coverage-based TODO skeleton without overwriting authored input. Run validators/browser audit
 without full rendered text/screenshots in author context. Open/read rendered pages

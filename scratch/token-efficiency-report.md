@@ -1,6 +1,6 @@
 # Token-efficiency report — Phases 0, A, B, C and D
 
-Latest status: Phase D closed out as tooling only; Phase E and later remain deferred.
+Latest status: Phase E (option 6) complete; Phase F and later remain deferred.
 The Phase 0/A sections below retain historical measurements and scope statements.
 
 ## Original Phase 0/A scope and commits
@@ -367,3 +367,75 @@ Evidence is recorded in scratch/baseline/phase-d-checks.txt.
 No explanatory prose removed, no depth change or study-time overrun, no cloud lab
 execution or fresh source-link review. STOP after the Phase D commit; do not start
 Phase E.
+
+
+## Phase E — read-only authored-spec validator (option 6)
+
+Added scripts/validate_spec.py --day N with optional --spec PATH. It uses the
+engine's single-file/directory loader and recursive TODO scanner. It never calls
+the compiler/build/whole-site validator or parses rendered day pages; Markdown
+and SVG fragments from loaded source are inspected in memory only. It prints at
+most 30 ERROR lines, one per line as ERROR topic_key field: reason, one summary,
+and exit 1 on any error. WARN signals and legacy INFO are separate from errors.
+
+Checks: unfinished values/keys and source metadata; exact coverage topic set,
+titles and explicit or engine-derived anchors; exactly eight lab steps, Location/
+Expected result/Save markers, recognised environment and code/file-content or
+numbered manual body; incident boolean; reachable generic-prose fallback presence;
+initial subtopic list and ordered headings with all three relevance labels,
+Concrete example and Evidence limit; strong.keyword/strong.side-heading, keywords
+outside pre/code and the identical validate.py inline-command pattern; exactly
+two Part 1 preview sentences (including part1_html); HTTPS references/source
+registry and access date; SVG viewBox/role/title/desc, resolving aria-labelledby,
+figcaption, local icon references, compact structure and empty diagram placeholders.
+Literal module ACCESS_DATE/SOURCES metadata supplements engine-loaded fields;
+unreachable fallback branches do not require unused authored fields.
+
+Rule 10 resolved explicitly by the user: scenario.diagram_enabled is incident-only.
+False rejects any incident flow, raw SVG, diagram or icons fields; True requires
+incident diagram data. Technical diagrams receive structural checks and a manual
+eligibility WARN per topic carrying one (or day-level architecture WARN). Day 2
+technical flows with disabled incident flags therefore pass. SPEC_SCHEMA.md records
+this decision. PAGE_UPDATE_PROMPT.md runs the validator before author_engine.py;
+the contract Read budget has a one-line description. Depth floor wording unchanged.
+
+Depth signals compare each topic's technical text length, subtopic count, lab step
+count and total step text length with half the minimum Day 2 range. These WARNs
+never fail validation and are not quality thresholds or proof of non-regression.
+The validator deliberately cannot establish source relevance, technical accuracy,
+complete mapped teaching scope, causal reasoning, actual explanatory depth,
+diagram semantic eligibility/visual clarity, icon product correctness, working
+lab instructions, or measured cloud behavior. Sentence splitting/command patterns
+and marker/heading checks are structural heuristics. Source relevance remains a
+manual item in every summary; no new link fetch, visual approval or lab execution
+is claimed. Existing compiler/build behavior and legacy compatibility unchanged.
+
+Checks actually run:
+
+- validate_spec.py --day 2: exit 0; **0 errors, 2 technical-diagram eligibility
+  WARNs**, on topic-02 and topic-03. No depth WARNs.
+- validate_spec.py --day 3: exit 1; **81 existing authored-spec errors, 2 WARNs**.
+  Legacy uppercase format explicitly skips generic-fallback-presence checks only;
+  all other checks apply. Existing gaps: 3 missing incident booleans, 24 missing
+  Location markers, 24 missing Expected result markers, 24 missing Save markers,
+  3 missing Concrete example labels, 1 missing source access date, and missing
+  strong.keyword/strong.side-heading (1 each). WARNs: topic-02 total stage text
+  below the Day 2 reference range and day-level technical diagram eligibility.
+  Errors are reported, not silently grandfathered; Day 3 still builds. Its durable
+  source is unchanged under the user's explicit scope.
+- python3 scripts/build.py --day 2, then --day 3: both **byte-identical to Phase 0**
+  (122760 and 153299 bytes, original SHA-256 hashes unchanged).
+- python3 scripts/validate.py --day 2: **0 errors**.
+- PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v:
+  **43 tests PASS**, including 18 new validator tests. In-memory failure fixtures
+  cover all ten error classes, scope decision, legacy exemption, depth warnings,
+  output cap and no-write guard. Directory loader fixture uses only a temporary
+  directory; no tests write days/ or content/.
+- git diff --check: PASS. Durable day specs, overrides, rendered pages and shared
+  shell unchanged. No explanatory prose removed; no depth change or time overrun.
+
+Evidence: scratch/baseline/phase-e-checks.txt, phase-e-day-002-spec-checks.txt and
+phase-e-day-003-spec-checks.txt. Validation/schema/test additions claim no token
+saving; they catch structural omissions before expensive compilation/review.
+No full-site build or other-day regression build. STOP after the Phase E commit;
+Phase F and later not started.
