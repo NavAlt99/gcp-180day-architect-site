@@ -32,19 +32,44 @@ LAB_DEFAULTS = {
 }
 
 
+def find_todo(value, path: str = "spec") -> str | None:
+    """Return the first unfinished field path, including nested metadata/keys."""
+    if isinstance(value, str):
+        return path if "TODO:" in value else None
+    if isinstance(value, dict):
+        for key, item in value.items():
+            field = f"{path}.{key}"
+            if isinstance(key, str) and "TODO:" in key:
+                return field + " (key)"
+            found = find_todo(item, field)
+            if found:
+                return found
+    elif isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            found = find_todo(item, f"{path}[{index}]")
+            if found:
+                return found
+    return None
+
+
+def validate_spec_todos(data: dict) -> None:
+    """Reject unfinished authored content before any compiler output write."""
+    for index, topic in enumerate(data.get("topics", [])):
+        key = topic.get("key", f"index-{index}")
+        found = find_todo(topic, f"topics[{key}]")
+        if found:
+            raise ValueError(f"Unfinished topic {key}, field {found}: replace TODO:")
+    found = find_todo({key: value for key, value in data.items() if key != "topics"})
+    if found:
+        raise ValueError(f"Unfinished day-level field {found}: replace TODO:")
+
+
 def resolve_lab(lab: dict, defaults: dict | None = None) -> dict:
     """Merge structural slots, rejecting unfilled authored/default lab content."""
     result = {**LAB_DEFAULTS, **defaults, **lab} if defaults is not None else dict(lab)
-    def unfinished(value):
-        if isinstance(value, str):
-            return "TODO:" in value
-        if isinstance(value, dict):
-            return any(unfinished(v) for v in value.values())
-        if isinstance(value, (list, tuple)):
-            return any(unfinished(v) for v in value)
-        return False
-    if unfinished(result):
-        raise ValueError("Unfinished lab: replace every TODO: with topic-specific content")
+    unfinished = find_todo(result, "lab")
+    if unfinished:
+        raise ValueError(f"Unfinished lab field {unfinished}: replace TODO: with topic-specific content")
     if defaults is not None and any(not isinstance(result[field], str) or not result[field].strip()
                                     for field in LAB_DEFAULTS):
         raise ValueError("Unfinished lab: default slots need explicit topic-specific text")
@@ -614,8 +639,14 @@ def render_case_depth(day: int, topic: dict) -> str:
 def compile_day_page(day_num: int, data: dict) -> None:
     """Compile the day page override from data specification."""
     # Check before touching overrides; defaults never supply accepted teaching.
+    validate_spec_todos(data)
     lab_defaults = data.get("lab_defaults")
-    labs = [resolve_lab(t.get("lab", {}), lab_defaults) for t in data.get("topics", [])]
+    labs = []
+    for index, topic in enumerate(data.get("topics", [])):
+        try:
+            labs.append(resolve_lab(topic.get("lab", {}), lab_defaults))
+        except ValueError as error:
+            raise ValueError(f"Unfinished topic {topic.get('key', index)}: {error}") from error
     override_file = SITE_CONTENT / f"day-{day_num:03d}-page.html"
     source_day_file = SITE_DAYS / f"day-{day_num:03d}.html"
 

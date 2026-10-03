@@ -22,8 +22,8 @@ override, not spec; existing shell needs four parts/completion.
 - arch_diagram dict/SVG? {}; arch_svg_html H? overrides it; arch_diagram_html
   alias, empty. arch_table_html H? empty.
 - lab_defaults dict?: TODO slots, explicit lab fields win; absent preserves
-  legacy omissions. Any lab TODO rejected before writes.
-- sources and per-topic anchors: ignored author metadata.
+  legacy omissions. Every spec TODO rejected before writes; errors name topic/field.
+- sources/access_date and per-topic anchors: author metadata, scanned for TODOs.
 
 ## topics[]
 
@@ -52,8 +52,24 @@ All lab TODOs, including stages, rejected. No stage-dict API.
 
 ## sources/helpers
 
-Registry: key -> (label,URL), access date separate; skeleton {label,url,accessed}
-metadata; embed verified links/dates. Geometry unchanged, raw SVG allowed.
+Skeleton emits SOURCES={key: (label,URL)} and ACCESS_DATE, also included in DATA
+as sources/access_date for scanning. Reference is TODO: verify + publisher URL;
+lab.file is prefilled day-NNN-key.md. Verify links/dates; teaching stays TODO. Geometry unchanged, raw SVG allowed.
 scratch.day_helpers assembles explicit context via partial; missing context TODO,
 not teaching. Legacy files unchanged. Empty lab_defaults opts in to engine slots;
-Only resolved TODOs are unfinished.
+Whole loaded spec, including metadata, must be TODO-free.
+
+
+## Fallbacks that count as generic prose
+
+Phase E rule list from SPEC_DEFAULTS.json (legacy behavior unchanged):
+
+- data.part1_intro, part2_intro, part3_intro, part4_intro, exit_summary.
+- topic.title (Topic/this topic), t.reference_label.
+- scenario.diagram, facts, inference, expected.
+- lab.mode, prereq, preflight, trouble, cleanup.
+- arch_diagram.title, desc, caption, nodes (both diagram renderers).
+
+These non-empty prose/label fallbacks require authored context; lab TODO slots
+are unfinished placeholders, not acceptable prose. Structural lab.file defaults
+and colors/dimensions are not teaching prose.

@@ -257,3 +257,63 @@ Current option status: 3 (Phase C helpers/defaults) implemented above; 4 and 5
 measurements above. Raw SVGs, generated HTML, day structure/anchors, typography,
 icons, sources, CSS/JS, lab detail and every other durable day spec remain
 unchanged. Stop after the Phase C commit; do not begin Phase D.
+
+
+## Phase B/C follow-up — whole-spec unfinished-content enforcement
+
+What/why: author_engine.py now shares a recursive TODO path scanner between lab
+resolution and whole-spec validation. Before any compiler write it checks every
+loaded topic/day field, nested list/tuple/dict value and dict key, including
+technical prose, preview, scenario evidence/provenance, references, completion
+and source metadata. Errors identify the topic key and field path, or explicitly
+identify day-level fields. Generated lab-default TODO errors also identify the
+topic. No text fallback or rendering behavior changed for finished specs.
+
+Skeleton references now retain coverage publisher URLs behind TODO: verify;
+SOURCES uses the Day 002 key -> (label, URL) shape with TODO labels/verified URLs,
+and ACCESS_DATE is TODO. DATA includes that metadata so the whole-spec scan
+covers it. Only lab.file is prefilled to the engine's day-NNN-key.md default;
+all teaching slots remain unfinished. Existing historical fixtures are retained
+as Phase B/C evidence rather than overwritten or deleted. Tests generate fresh
+fixtures in a temporary directory and verify refusal to overwrite them.
+
+SPEC_SCHEMA.md documents source emission and whole-spec checks and lists
+non-empty generic prose fallbacks from SPEC_DEFAULTS.json as future Phase E
+rules. Legacy fallbacks remain unchanged; Phase E was not implemented. Exact
+fallback appendix note updated. Files touched: scripts/author_engine.py,
+scripts/new_day_skeleton.py, SPEC_SCHEMA.md, SPEC_DEFAULTS.json,
+tests/test_authoring_followup.py, this report, and
+scratch/baseline/phase-bc-followup-checks.txt. No other instructions prescribe the
+old skeleton shape or lab-only guard; canonical instructions remain applicable.
+
+Checks actually run:
+- PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p
+  'test_authoring_followup.py' -v: PASS, 9 tests with topic/scenario/day subtests.
+  Includes lab TODO, default case evidence label, technical/reference_label TODO,
+  source metadata, missing lab default topic naming, skeleton overwrite/registry,
+  exact Day 002 coverage anchors/eight slots and complete Day 002 acceptance.
+  Rejection tests assert no Path.write_text call; pre-write guard runs first.
+- Compile Day 002 durable spec to override: PASS; generated output unchanged.
+- python3 scripts/build.py --day 2 and --day 3: PASS; both byte-identical to
+  Phase 0 baselines (no whitespace changes). No full-site or other-day build.
+- python3 scripts/validate.py --day 2: PASS, 0 errors.
+- Loaded-spec semantic hashes: PASS, exactly Phase C values, using its JSON
+  normalization and exclusion of structural lab_defaults metadata:
+  Day 002 d5540233f36df205a9d26d56c8b6ccb25c33d33c257dc9c62231f26e8a570cd0;
+  Day 003 78a0d0fd7d91c94ead64998e9095a262fa37acd6e34e8d99c6a773b92b768079.
+- git diff --check: PASS.
+
+Measured effect: durable Day 002 spec stays 63292 bytes (15823.00 estimated
+tokens), and all four instruction sizes stay at Phase C values. This safety fix
+adds validation/schema text rather than claiming token savings. Schema expansion
+for the requested future-linter rule list is recorded below (bytes/4 estimates).
+No explanatory prose, subtopics, examples, labs or other day spec was edited;
+no depth change or study-time overrun. Raw SVGs and legacy format remain intact.
+No Phase D or later implementation started. Stop after this follow-up commit.
+
+| Follow-up file | Before bytes | After bytes | Estimated token change |
+|---|---:|---:|---:|
+| scripts/author_engine.py | 61240 | 62503 | 315.75 |
+| scripts/new_day_skeleton.py | 4864 | 5212 | 87.00 |
+| SPEC_SCHEMA.md | 2996 | 3803 | 201.75 |
+| SPEC_DEFAULTS.json | 5801 | 5828 | 6.75 |

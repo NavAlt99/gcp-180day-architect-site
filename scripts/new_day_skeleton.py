@@ -34,13 +34,14 @@ def skeleton(day: int) -> dict:
                          '<strong class="keyword">TODO: term</strong> TODO: list ALL subtopics, then define/mechanism/example, '
                          'architect/GCP relevance with sources, concrete example and Evidence limit.</p>',
             'questions': ['TODO: topic-specific architectural question'],
-            'reference': row['publisher_url'], 'reference_label': 'TODO: verified source label and access date',
+            'reference': 'TODO: verify ' + row['publisher_url'], 'reference_label': 'TODO: verified source label and access date',
             'scenario': {field: 'TODO: '+field for field in (
                 'scenario', 'impact', 'constraints', 'evidence', 'root', 'verify', 'residual',
                 'diagram_enabled', 'facts', 'inference', 'expected')},
             'lab': {field: 'TODO: topic-specific '+field for field in (
-                'name', 'goal', 'expected', 'mode', 'prereq', 'preflight', 'verification', 'trouble', 'cleanup', 'accept', 'file')},
+                'name', 'goal', 'expected', 'mode', 'prereq', 'preflight', 'verification', 'trouble', 'cleanup', 'accept')},
         })
+        topics[-1]['lab']['file'] = f'day-{day:03d}-{key}.md'
         topics[-1]['scenario'].update(diagnostic_steps=['TODO: diagnostic action'],
                                       remediation_steps=['TODO: fix action'])
         topics[-1]['lab']['steps'] = [f'**Stage {i}: TODO: stage name**\n\n**Location:** TODO: environment.\n\n'
@@ -53,8 +54,8 @@ def skeleton(day: int) -> dict:
             **{f'part{i}_intro': 'TODO: day-specific introduction' for i in range(1, 5)},
             'exit_summary': 'TODO: exact roadmap exit evidence', 'completion_html': 'TODO: acceptance and progress controls',
             'arch_diagram': {}, 'arch_svg_html': '', 'arch_table_html': '',
-            'sources': {'TODO: source key': {'label': 'TODO: descriptive label', 'url': 'TODO: verified primary URL',
-                                             'accessed': 'TODO: access date'}}}
+            'sources': {row['topic_key']: ('TODO: label', 'TODO: verified primary URL') for row in rows},
+            'access_date': 'TODO: access date'}
 
 
 def main() -> None:
@@ -68,8 +69,13 @@ def main() -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
         with destination.open('x', encoding='utf-8') as stream:
             stream.write('"""Unfinished coverage-based spec. Replace every TODO; see SPEC_SCHEMA.md.\n'
-                         'Empty architecture fields are deliberate: author only eligible flows.\n"""\n\nDATA = ')
-            stream.write(pformat(data, width=105, sort_dicts=False)+'\n')
+                         'Empty architecture fields are deliberate: author only eligible flows.\n"""\n\nSOURCES = ')
+            sources = data.pop('sources')
+            access_date = data.pop('access_date')
+            stream.write('{}\nACCESS_DATE = {!r}\nDATA = '.format(
+                pformat(sources, width=105, sort_dicts=False), access_date))
+            stream.write(pformat(data, width=105, sort_dicts=False))
+            stream.write('\nDATA.update(sources=SOURCES, access_date=ACCESS_DATE)\n')
     except (FileExistsError, ValueError) as error:
         parser.error(str(error))
     print(f'Created unfinished Day {args.day} spec: {destination}')
