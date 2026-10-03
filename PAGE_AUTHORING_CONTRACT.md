@@ -191,9 +191,10 @@ icon metadata/source sections or flagged CSS/JS are targeted exceptions only whe
 needed, not full-file reads.
 
 Do NOT routinely read `content/day-NNN-page.html`, `days/day-NNN.html`, rendered
-pages, `author_engine.py`, `build.py`, Day 96/121 pages. Use `SPEC_SCHEMA.md` instead
-of engine internals once Phase B delivers it (not created in Phase A). Until then
-use durable spec/contract; report schema uncertainty. Run validators/browser audit
+pages, `author_engine.py`, `build.py`, Day 96/121 pages. Use available `SPEC_SCHEMA.md` instead
+of engine internals; its `SPEC_DEFAULTS.json` appendix lists fallback expressions.
+For missing specs, available `scripts/new_day_skeleton.py --day N` creates a
+coverage-based TODO skeleton without overwriting authored input. Run validators/browser audit
 without full rendered text/screenshots in author context. Open/read rendered pages
 ONLY for a specific validate.py/browser-audit problem, ONLY the flagged region.
 Review depth/coverage/eligibility in durable spec; retain source/audit checks.
@@ -203,5 +204,4 @@ This overrides unconditional rendered reading, not teaching or acceptance checks
 
 After static rules select CURRENT_DAY N (NNN zero-padded); use serial workflow
 and update prompt commands/handoff. No cross-day assumptions. Wait for background
-completion, no status polling/loops. Concise handoff without reducing depth: actual checks/limits, depth increases and
-time overruns, confirm no existing explanation was shortened; no HTML.
+completion, no status polling/loops. Handoff stays concise; report depth changes as a separate item, not as content recap.

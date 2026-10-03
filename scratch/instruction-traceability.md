@@ -13,7 +13,7 @@ Mappings name canonical contract sections unless a destination filename is expli
 - New Read budget replaces unconditional generated-HTML/template-page reads everywhere, including RENDER_REVIEW.md. Audits still run; full rendered context is excluded and only flagged regions are inspected. Durable-spec, icon, source, and audit acceptance checks remain mandatory.
 - Explicit user-approved depth floor: conceptual depth may increase but must never decrease; scheduled time never caps or shortens explanations. Add required mechanisms/examples/lab detail and report time overruns. Token savings are structural only, never shorter prose/fewer subtopics/fewer examples/thinner labs; existing explanations may only gain or correct depth, never be condensed. The original "proportional to scheduled study time" rule is intentionally superseded. This replaces the earlier current-user-allowance decision.
 - Serial multi-day subagent instruction applies only to an explicitly authorized multi-day page run, not this maintenance task.
-- SPEC_SCHEMA.md is a Phase B dependency. Reference is forward-looking; no missing-file/engine-reading workaround is silently introduced. Phase B has not started.
+- Phase B delivered SPEC_SCHEMA.md, SPEC_DEFAULTS.json and the non-overwriting coverage skeleton. Read budget uses these instead of engine internals; legacy single-file loading remains. The prior forward reference is now resolved.
 - RENDER_REVIEW.md existed; no reconstruction. Its unique audit procedure remains, with global read-policy correction.
 
 ## Requirement map
@@ -131,3 +131,5 @@ Mappings name canonical contract sections unless a destination filename is expli
 | PAGE_AUTHORING_CONTRACT.md:72 | Build only the target day with python3 scripts/build.py --day N, then run python3 scripts/validate.py. Review the final page for the four par… | Content invariants; Permanent rendering rules; PAGE_UPDATE_PROMPT.md: command sequence/Handoff; Read budget |
 
 Coverage check: 109 original requirement lines mapped; 0 unmapped. Long lines map to multiple sections when their clauses span topics. No requirement source was deleted. All superseded read policies remain archived and explicitly explained above.
+
+User-approved Phase B handoff clarification: concise reporting stays separate from depth; item 5 requires git diff on the durable spec and an explicit no-explanatory-prose-removal statement. The depth floor itself is unchanged.

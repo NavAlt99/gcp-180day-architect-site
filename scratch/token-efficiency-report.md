@@ -155,3 +155,14 @@ Follow-up current sizes (not a remeasurement of Phase A):
 | scratch/day_data_002.py | 67,330 | 16,832.50 |
 
 Follow-up verification: rebuild only Days 002 and 003, compare bytes and SHA-256 with Phase 0 baseline; run target Day 002 structural validation and git diff --check. Results recorded in scratch/baseline/depth-floor-checks.txt. No spec, rendered content, engine, helper, diagram, lab, CSS/JS, or source changes. Stop after commit; Phase B not started.
+
+
+## Phase B — schema and coverage skeleton (authorized follow-up)
+
+Inspected author_engine/build contracts once for this maintenance run, then supplied SPEC_SCHEMA.md and machine-readable SPEC_DEFAULTS.json so day authors need not reread implementation. The schema documents recognized fields, rich/escaped branches, exact fallback appendix, ignored author metadata, legacy loader precedence and limitations (including PART1_HTML not collected by legacy fallback). Only structure may be defaulted, never depth. New_day_skeleton.py reads only target coverage rows, copies keys/titles/exact anchor metadata, supplies eight location/actions/expected/save TODO stages, refuses overwrite, and supports a separate scratch fixture output. Empty diagram fields do not imply diagram eligibility; authored boolean decision is mandatory. No content was inferred or shortened.
+
+Instruction fixes: contract handoff now reads the exact requested concise-report wording; prompt item 5 requires git diff on the durable spec and an explicit no-prose-removal statement. Read budget now identifies schema/skeleton as available. Traceability forward dependency resolved. No read-budget or acceptance rule weakened.
+
+Measurements: SPEC_SCHEMA.md 2996 bytes (749.00 estimated tokens); SPEC_DEFAULTS.json 5278 bytes; new_day_skeleton.py 4832 bytes. Day 002 spec unchanged: 67,330 bytes (16,832.50 estimated tokens). Schema is a stable prefix; actual provider token/cache effects not benchmarked. Skeleton boilerplate is generated without author tokens, but per-page savings vary.
+
+Checks: Day 003 scratch fixture covers all three mapped topics and eight complete stage-label/sentinel slots; DATA loader equality passes; Day 002 overwrite attempt correctly refused (exit 2). Builds Day 002/003 only: byte-identical baseline, hashes unchanged. Day 002 structural validation: 0 errors. No generic content accepted. Legacy spec files and all rendered pages unchanged. Phase B commit contains these results; no Phase C changes mixed into it.
