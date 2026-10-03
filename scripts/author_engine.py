@@ -52,6 +52,13 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
     diagram = scenario.get("diagram", ("Trigger event", "Root cause", "Impact", "Corrected control", "Expected outcome"))
     event, cause, impact, control, outcome = diagram
 
+    icons = scenario.get("icons")
+    img_e = f'<image href="{escape(icons[0])}" x="-105" y="-42" width="20" height="20" preserveAspectRatio="xMidYMid meet"/>' if icons and len(icons) > 0 and icons[0] else ""
+    img_c = f'<image href="{escape(icons[1])}" x="90" y="-44" width="20" height="20" preserveAspectRatio="xMidYMid meet"/>' if icons and len(icons) > 1 and icons[1] else ""
+    img_i = f'<image href="{escape(icons[2])}" x="-115" y="-42" width="20" height="20" preserveAspectRatio="xMidYMid meet"/>' if icons and len(icons) > 2 and icons[2] else ""
+    img_ctrl = f'<image href="{escape(icons[3])}" x="-110" y="-42" width="20" height="20" preserveAspectRatio="xMidYMid meet"/>' if icons and len(icons) > 3 and icons[3] else ""
+    img_out = f'<image href="{escape(icons[4])}" x="-115" y="-42" width="20" height="20" preserveAspectRatio="xMidYMid meet"/>' if icons and len(icons) > 4 and icons[4] else ""
+
     uid = f"d{day:03d}-case-{index}"
     title = f"{topic.get('title', 'Topic')}: Failure Cascade vs Corrected Control"
     desc = (
@@ -84,6 +91,7 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
   <!-- Card 1: Trigger -->
   <g transform="translate(150, 140)">
     <rect x="-115" y="-50" width="230" height="100" rx="4" fill="#121526" stroke="#94a3b8" stroke-width="1.5"/>
+    {img_e}
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#94a3b8" font-weight="bold">1. INITIATING EVENT</text>
     {render_card_text(e_lines, -6, "#cbd5e1")}
     <rect x="-70" y="24" width="140" height="16" rx="2" fill="#1e293b"/>
@@ -99,6 +107,7 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
     <rect x="-120" y="-50" width="240" height="100" rx="4" fill="#2a0a10" stroke="#f43f5e" stroke-width="2"/>
     <circle cx="-100" cy="-34" r="8" fill="#f43f5e"/>
     <text x="-100" y="-31" text-anchor="middle" font-family="monospace" font-size="8" fill="white" font-weight="bold">FI</text>
+    {img_c}
     <text x="10" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#f43f5e" font-weight="bold">2. ROOT CAUSE DEFECT</text>
     {render_card_text(c_lines, -6, "#fda4af")}
     <rect x="-70" y="24" width="140" height="16" rx="2" fill="#3b0d18"/>
@@ -112,6 +121,7 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
   <!-- Card 3: Impact -->
   <g transform="translate(820, 140)">
     <rect x="-125" y="-50" width="250" height="100" rx="4" fill="#380914" stroke="#f43f5e" stroke-width="2"/>
+    {img_i}
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#f43f5e" font-weight="bold">3. IMPACT &amp; DEGRADATION</text>
     {render_card_text(i_lines, -6, "#fda4af")}
     <rect x="-75" y="24" width="150" height="16" rx="2" fill="#4c0519"/>
@@ -128,6 +138,7 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
   <!-- Card 1: Same Trigger -->
   <g transform="translate(150, 326)">
     <rect x="-115" y="-50" width="230" height="100" rx="4" fill="#121526" stroke="#94a3b8" stroke-width="1.5"/>
+    {img_e}
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#94a3b8" font-weight="bold">1. SAME TRIGGER EVENT</text>
     {render_card_text(e_lines, -6, "#cbd5e1")}
     <rect x="-70" y="24" width="140" height="16" rx="2" fill="#1e293b"/>
@@ -145,6 +156,7 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
   <!-- Card 2: Enforced Control -->
   <g transform="translate(480, 326)">
     <rect x="-120" y="-50" width="240" height="100" rx="4" fill="#064e3b" stroke="#22c55e" stroke-width="2"/>
+    {img_ctrl}
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#22c55e" font-weight="bold">2. DEFENSIVE CONTROL</text>
     {render_card_text(ctrl_lines, -6, "#6ee7b7")}
     <rect x="-75" y="24" width="150" height="16" rx="2" fill="#022c22"/>
@@ -158,6 +170,7 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
   <!-- Card 3: Outcome -->
   <g transform="translate(820, 326)">
     <rect x="-125" y="-50" width="250" height="100" rx="4" fill="#022c22" stroke="#22c55e" stroke-width="2"/>
+    {img_out}
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#22c55e" font-weight="bold">3. VERIFIED OUTCOME</text>
     {render_card_text(out_lines, -6, "#6ee7b7")}
     <rect x="-75" y="24" width="150" height="16" rx="2" fill="#064e3b"/>
@@ -246,31 +259,34 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
         sd = f' stroke-dasharray="{c["dash"]}"' if c.get("dash") else ""
         text_color = c.get("text_color", stroke)
         comps_html.append(f'<rect x="{cx}" y="{cy}" width="{cw}" height="{ch}" rx="4" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"{sd}/>')
+        if c.get("icon"):
+            comps_html.append(f'<image href="{escape(c["icon"])}" x="{cx + 10}" y="{cy + (ch - 24)//2}" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>')
         
+        text_cx = cx + cw // 2 + (12 if c.get("icon") else 0)
         name_lines = wrap_svg(c.get("name", ""), limit=28, max_lines=2)
         detail_lines = wrap_svg(c.get("detail", ""), limit=32, max_lines=2) if c.get("detail") else []
         
         # Format text lines with mathematically guaranteed non-overlapping spacing
         if len(name_lines) == 1 and not detail_lines:
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + ch // 2 + 4}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + ch // 2 + 4}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
         elif len(name_lines) == 1 and len(detail_lines) == 1:
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 22}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + ch - 12}" text-anchor="middle" font-family="monospace" font-size="9.5" fill="#94a3b8">{escape(detail_lines[0])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 22}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + ch - 12}" text-anchor="middle" font-family="monospace" font-size="9.5" fill="#94a3b8">{escape(detail_lines[0])}</text>')
         elif len(name_lines) == 1 and len(detail_lines) >= 2:
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 18}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 33}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[0])}</text>')
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 46}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[1])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 18}" text-anchor="middle" font-family="monospace" font-size="11" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 33}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[0])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 46}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[1])}</text>')
         elif len(name_lines) >= 2 and len(detail_lines) <= 1:
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 16}" text-anchor="middle" font-family="monospace" font-size="10.5" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 29}" text-anchor="middle" font-family="monospace" font-size="10.5" fill="{text_color}" font-weight="bold">{escape(name_lines[1])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 16}" text-anchor="middle" font-family="monospace" font-size="10.5" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 29}" text-anchor="middle" font-family="monospace" font-size="10.5" fill="{text_color}" font-weight="bold">{escape(name_lines[1])}</text>')
             if detail_lines:
-                comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + ch - 10}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[0])}</text>')
+                comps_html.append(f'<text x="{text_cx}" y="{cy + ch - 10}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[0])}</text>')
         else:
             # 2 name lines, 2 detail lines
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 14}" text-anchor="middle" font-family="monospace" font-size="10" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 26}" text-anchor="middle" font-family="monospace" font-size="10" fill="{text_color}" font-weight="bold">{escape(name_lines[1])}</text>')
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 39}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(detail_lines[0])}</text>')
-            comps_html.append(f'<text x="{cx + cw // 2}" y="{cy + 50}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(detail_lines[1])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 14}" text-anchor="middle" font-family="monospace" font-size="10" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 26}" text-anchor="middle" font-family="monospace" font-size="10" fill="{text_color}" font-weight="bold">{escape(name_lines[1])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 39}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(detail_lines[0])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 50}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(detail_lines[1])}</text>')
 
     bounds_html = []
     for b in arch_diagram.get("boundaries", []):
@@ -593,24 +609,28 @@ def compile_day_page(day_num: int, data: dict) -> None:
     topics = data.get("topics", [])
 
     # ─── PART 1: Topics of the Day ──────────────────────────────────────
-    part1_intro = data.get("part1_intro", f"Day {day_num} examines core architecture principles and trade-offs.")
     exit_summary = data.get("exit_summary", "Completed exercises and verified architecture decisions.")
+    part1_custom = data.get("part1_html")
+    if part1_custom:
+        put_section("part-1", part1_custom)
+    else:
+        part1_intro = data.get("part1_intro", f"Day {day_num} examines core architecture principles and trade-offs.")
 
-    p1_html = [
-        f'<p class="intro">{escape(part1_intro)}</p>',
-        f'<p class="callout"><strong>Exit evidence:</strong> {escape(exit_summary)}</p>'
-    ]
-    for i, t in enumerate(topics, 1):
-        key = t["key"]
-        p1_html.append(
-            f'<article id="{key}-overview" class="topic-card overview">'
-            f'<h3>{i}. {escape(t["title"])}</h3>'
-            f'<p>{escape(t["overview"])}</p>'
-            f'<p class="problem-preview"><strong>Problem preview:</strong> {escape(t["preview"])}</p>'
-            f'<p><a href="#{key}-technical">Technical discussion →</a> <a href="#{key}-problem">Real-world problem →</a> <a href="#{key}-lab">Step-by-step lab →</a></p>'
-            f'</article>'
-        )
-    put_section("part-1", "".join(p1_html))
+        p1_html = [
+            f'<p class="intro">{escape(part1_intro)}</p>',
+            f'<p class="callout"><strong>Exit evidence:</strong> {escape(exit_summary)}</p>'
+        ]
+        for i, t in enumerate(topics, 1):
+            key = t["key"]
+            p1_html.append(
+                f'<article id="{key}-overview" class="topic-card overview">'
+                f'<h3>{i}. {escape(t["title"])}</h3>'
+                f'<p>{escape(t["overview"])}</p>'
+                f'<p class="problem-preview"><strong>Problem preview:</strong> {escape(t["preview"])}</p>'
+                f'<p><a href="#{key}-technical">Technical discussion →</a> <a href="#{key}-problem">Real-world problem →</a> <a href="#{key}-lab">Step-by-step lab →</a></p>'
+                f'</article>'
+            )
+        put_section("part-1", "".join(p1_html))
 
     # ─── PART 2: Technical Discussion ───────────────────────────────────
     part2_intro = data.get("part2_intro", "Trace technical control and data boundaries, observable signals, and trade-offs.")
@@ -776,12 +796,43 @@ def compile_day_page(day_num: int, data: dict) -> None:
         )
     put_section("part-4", "".join(p4_html))
 
+    # Allow a day specification to replace only the completion evidence copy,
+    # while retaining the shared controls, navigation, and page shell.
+    completion_html = data.get("completion_html")
+    if completion_html:
+        completion = soup.select_one("section.completion")
+        if not completion:
+            raise ValueError("Completion section missing from page shell.")
+        heading = completion.find("h2", recursive=False)
+        for child in list(completion.contents):
+            if child is not heading:
+                child.extract()
+        completion.append(BeautifulSoup(completion_html, "html.parser"))
+
     # ─── COMPLETION SUMMARY ─────────────────────────────────────────────
     completion = soup.select_one(".completion")
     if completion:
         for old in completion.select(".exit-summary"):
             old.decompose()
         completion.append(BeautifulSoup(f'<p class="exit-summary">Exit artifact: {escape(exit_summary)}</p>', "html.parser"))
+
+    # ─── TOC TOPIC SYNCHRONIZATION ──────────────────────────────────────
+    toc = soup.select_one("aside.toc")
+    if toc:
+        for old in toc.select(".toc-topic"):
+            old.decompose()
+        for t in topics:
+            key = t["key"]
+            title = t.get("title", key)
+            topic_div = BeautifulSoup(
+                f'<div class="toc-topic"><span>{escape(title)}</span> '
+                f'<a href="#{key}-overview">overview</a> · '
+                f'<a href="#{key}-technical">discussion</a> · '
+                f'<a href="#{key}-problem">problem</a> · '
+                f'<a href="#{key}-lab">lab</a></div>',
+                "html.parser"
+            )
+            toc.append(topic_div)
 
     override_file.write_text(str(soup), encoding="utf-8")
     print(f"Updated override: {override_file}")
@@ -837,6 +888,7 @@ def load_day_module(path: Path) -> dict:
         "arch_svg_html": getattr(module, "ARCH_SVG_HTML", getattr(module, "ARCH_DIAGRAM_HTML", "")),
         "arch_table_html": getattr(module, "ARCH_TABLE_HTML", ""),
         "exit_summary": getattr(module, "EXIT_SUMMARY", ""),
+        "completion_html": getattr(module, "COMPLETION_HTML", ""),
     }
 
 

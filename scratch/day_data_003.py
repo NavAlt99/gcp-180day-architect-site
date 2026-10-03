@@ -1,94 +1,920 @@
-"""Durable Day 3 curriculum specification: DNS, sockets and transport.
+"""day_data_003.py — Specification for Day 3: DNS, sockets and transport.
 
-All examples are local/tabletop observations. They are not production claims.
+Topics:
+1. topic-01: IPv6 addressing and scope
+2. topic-02: DNS records, TTL and resolver roles
+3. topic-03: TCP and UDP, ports, connection states and buffers
 """
 
-DAY_NUM = 3
+import sys
+from pathlib import Path
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+from scripts.author_engine import render_topology_svg
 
+DAY = 3
+WORK_BLOCK = "Days 1–17 — Foundations"
 
-def lab(name, goal, expected, steps, accept, trouble):
-    """Keep the required eight-stage local/tabletop lab shape explicit."""
+PART1_INTRO = (
+    "Day 3 separates four fundamental architectural boundaries that are routinely conflated in enterprise operations: "
+    "a name resolving to an address (DNS), an address possessing a valid routing scope (IPv4/IPv6), a transport connection "
+    "successfully establishing state between kernel sockets (TCP/UDP/QUIC), and an application payload being semantically "
+    "processed by user-space runtimes. Building upon Day 2's packet traversal path, today's curriculum explores IPv6 128-bit "
+    "addressing and Neighbor Discovery Protocol (NDP), dissects the global DNS hierarchy, recursive resolution mechanics, "
+    "core record types, and DNSSEC/DoT/DoH security controls, establishes the complete BSD socket lifecycle API and "
+    "I/O multiplexing concurrency models (epoll, io_uring), and performs a deep architectural evaluation of TCP connection "
+    "management (3-way and 4-way handshakes), sliding-window flow control, congestion control algorithms (Tahoe, Reno, CUBIC, BBR), "
+    "and modern transport evolution via QUIC and HTTP/3."
+)
+
+EXIT_SUMMARY = "A DNS/transport diagram distinguishing name resolution, reachability and established connection."
+
+# Part 1 Topics of the Day Canonical HTML
+PART1_HTML = """
+<article class="topic-card" id="topic-01-overview">
+<h3>IPv6 addressing and scope</h3>
+<p>IPv6 represents a 128-bit address space (RFC 4291, RFC 8200) represented in eight 16-bit hexadecimal quads, incorporating strict scoping rules that govern reachability. Link-local addresses (<samp>fe80::/10</samp>) require an explicit interface zone identifier, Unique Local Addresses (ULA, <samp>fc00::/7</samp>, RFC 4193) provide enterprise private routing, and Global Unicast Addresses (GUA, <samp>2000::/3</samp>) provide internet-wide reachability. Neighbor Discovery Protocol (NDP, RFC 4861) replaces IPv4 ARP with ICMPv6 multicast messaging (Router/Neighbor Solicitations and Advertisements), SLAAC autoconfiguration, and Duplicate Address Detection (DAD), forming the foundation for Google Cloud dual-stack VPC subnets and global load balancer IPv6 termination.</p>
+<p><strong>Why today and where it sits:</strong> Day 3 establishes modern 128-bit addressing mechanics following Day 2's IPv4 foundations. In enterprise cloud architecture, IPv6 sits at the edge ingress boundary (Cloud Load Balancing dual-stack frontend VIPs) and internal container networking (GKE dual-stack pods), requiring architects to decouple DNS AAAA record resolution from local interface scope and route availability. <em>Why this matters for a Cloud Architect:</em> With public IPv4 addresses incurring ongoing billing costs across cloud providers and rapidly depleting in enterprise IPAM allocations, cloud architects must design future-proof dual-stack architectures. Architects must master IPv6 scoping to prevent fatal microservice misconfigurations—such as leaking non-routable link-local (fe80::) addresses into internal Cloud DNS zones, which causes immediate kernel EINVAL connection rejections—and design dual-stack subnets, external IPv6 load balancers, and Happy Eyeballs (RFC 8305) fallback paths that guarantee seamless client connectivity.</p>
+<p>A microservice client receives an IPv6 AAAA record resolving to a link-local address but attempts to initiate a TCP connection without specifying an interface scope index. The connection immediately errors out with Invalid Argument, halting automated canary deployments and blocking scheduled microservice updates.</p>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
+</article>
+
+<article class="topic-card" id="topic-02-overview">
+<h3>DNS records, TTL and resolver roles</h3>
+<p>The Domain Name System (DNS, RFC 1034 / RFC 1035) provides a globally distributed, hierarchical database spanning Root servers (<samp>.</samp>, 13 Anycast clusters A–M), Top-Level Domains (gTLDs, ccTLDs, <samp>.arpa</samp>), Second-Level Domains, and Authoritative Name Servers. The resolution process coordinates stub resolvers, OS caches, and Recursive Resolvers through iterative referral chains, mapping hostnames to typed resource records (A, AAAA, CNAME, MX, TXT, PTR, SRV, NS, SOA) bounded by Time-To-Live (TTL) cache policies. Security extensions (DNSSEC, RFC 4033–4035) provide cryptographic authenticity and data integrity via digital signatures (RRSIG, DNSKEY, DS), while encrypted transports (DNS over TLS [DoT] and DNS over HTTPS [DoH]) protect against on-path eavesdropping.</p>
+<p><strong>Why today and where it sits:</strong> Day 3 connects network addressing to human-readable names before Day 4's TLS certificate validation and HTTP layer exploration. In Google Cloud, DNS sits inside Cloud DNS managed private zones, split-horizon resolution paths, cross-VPC DNS peering, and metadata server resolvers (<samp>169.254.169.254</samp>), governing how workloads discover database endpoints and external APIs. <em>Why this matters for a Cloud Architect:</em> DNS is the primary control plane for service discovery, multi-region traffic steering, zero-downtime database migrations, and hybrid enterprise connectivity. A cloud architect must configure split-horizon DNS between on-premises data centers and multi-project VPCs, design resilient DNS forwarding and peering topologies, and strictly govern record TTLs to prevent devastating split-brain database outages during failovers. Furthermore, architects must implement DNSSEC and Response Policy Zones (RPZ) to secure cloud environments against cache poisoning, data exfiltration, and domain hijacking.</p>
+<p>An operations team modifies a DNS A record during a critical database failover but overlooks a 3600-second TTL cached across upstream recursive resolvers. Application pods continue directing transactional traffic to the decommissioned primary database for over forty minutes, resulting in split-brain data corruption and order reconciliation failures.</p>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
+</article>
+
+<article class="topic-card" id="topic-03-overview">
+<h3>TCP and UDP, ports, connection states and buffers</h3>
+<p>The transport layer establishes host-to-host process communication using 16-bit ports and socket abstractions. Endpoints bind to specific IP and port combinations across stream (<samp>SOCK_STREAM</samp>), datagram (<samp>SOCK_DGRAM</samp>), and raw (<samp>SOCK_RAW</samp>) socket types, governed by the BSD socket lifecycle API and high-performance I/O multiplexing primitives (<samp>epoll</samp>, <samp>io_uring</samp>, <samp>SO_REUSEPORT</samp>). The Transmission Control Protocol (TCP, RFC 9293) enforces reliability through 3-way connection handshakes, 4-way teardowns (<samp>TIME_WAIT</samp>), sliding-window flow control (<samp>rwnd</samp>), and congestion control algorithms (Tahoe, Reno, CUBIC, BBR), while modern transport evolution introduces QUIC (RFC 9000) and HTTP/3 (RFC 9114) over UDP to eliminate transport-level Head-of-Line blocking.</p>
+<p><strong>Why today and where it sits:</strong> Day 3 completes transport mechanics before examining application protocols (HTTP/1.1, HTTP/2, HTTP/3, TLS 1.3) on Day 4. In cloud systems, transport mechanics govern guest OS socket buffer depths, Compute Engine TCP throughput, Cloud Load Balancer proxy timeouts, and Kubernetes pod ingress concurrency limits. <em>Why this matters for a Cloud Architect:</em> Every cloud interaction—from microservices in GKE to global CDN distribution—is bound by the physics of the transport layer. A cloud architect must decide when to deploy Layer 4 passthrough (Maglev / Network Load Balancer, preserving client IP with zero proxy overhead) versus Layer 7 proxying (Envoy / Application Load Balancer with HTTP/3 support). Architects must size socket queues and tune Linux TCP buffers (somaxconn, BBR congestion control, TCP window scaling) to absorb high-concurrency traffic bursts, eliminate accept queue overflow drops during autoscaling lags, and prevent ephemeral port starvation across high-throughput cloud services.</p>
+<p>A high-concurrency API service encounters socket accept queue saturation under peak promotional traffic while CPU utilization sits at barely thirty percent. Inbound TCP SYN packets are silently dropped by the kernel network stack, causing upstream load balancers to log HTTP 504 gateway timeouts and prompting clients to retry aggressively, amplifying the cascade.</p>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
+</article>
+"""
+
+PART2_INTRO = (
+    "Architectural evaluation of dual-stack IPv6 addressing, DNS hierarchy and cryptographic trust chains, "
+    "BSD socket lifecycle states, I/O multiplexing concurrency models, and TCP transport reliability mechanics."
+)
+
+PART3_INTRO = (
+    "Production field cases examining real-world networking breakdowns: link-local IPv6 interface scope omissions, "
+    "recursive DNS TTL caching collisions during database failover, and TCP accept queue overflow drops under traffic surges."
+)
+
+PART4_INTRO = (
+    "Hands-on local laboratory exercises executing IPv6 scope binding, recursive DNS resolution and DNSSEC cryptographic auditing, "
+    "and socket lifecycle instrumentation capturing TCP state transitions and sliding window flow control."
+)
+
+# Part 2 Architectural Evidence & Comparison Matrix Table
+ARCH_TABLE_HTML = """
+<table>
+<caption>Protocol layer boundaries, encapsulated objects, observability tools, and failure signals</caption>
+<thead>
+<tr>
+  <th scope="col">Protocol boundary</th>
+  <th scope="col">Encapsulated object (PDU)</th>
+  <th scope="col">Processing engine &amp; execution layer</th>
+  <th scope="col">Observability &amp; diagnostic tooling</th>
+  <th scope="col">Observable failure signal &amp; blast radius</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <th scope="row">IPv6 Scoping &amp; Link Discovery</th>
+  <td>IPv6 Packet (128-bit IP src/dst, Next Header, Hop Limit, Flow Label) / ICMPv6</td>
+  <td>Linux FIB6 routing table, Neighbor Discovery Protocol (NDP), SLAAC engine</td>
+  <td><kbd>ip -6 addr</kbd>, <kbd>ip -6 route</kbd>, <kbd>ip -6 neigh</kbd>, <kbd>ndisc6</kbd></td>
+  <td><samp>EINVAL</samp> (missing zone index), Neighbor Solicitation timeout, DAD duplicate address conflict</td>
+</tr>
+<tr>
+  <th scope="row">DNS Resolution &amp; Trust Hierarchy</th>
+  <td>DNS Message Wire Format (Header, Question, Answer, Authority, Additional, EDNS0)</td>
+  <td>Stub resolver (<samp>systemd-resolved</samp>, <samp>glibc</samp>), Recursive Cache, Cloud DNS</td>
+  <td><kbd>dig +trace</kbd>, <kbd>dig +dnssec</kbd>, <kbd>delv</kbd>, <kbd>resolvectl</kbd></td>
+  <td><samp>NXDOMAIN</samp>, <samp>SERVFAIL</samp> (DNSSEC validation failure), stale TTL cache delivery, query timeout</td>
+</tr>
+<tr>
+  <th scope="row">Transport Layer Core (TCP / UDP / QUIC)</th>
+  <td>TCP Segment (16-bit Port, Seq/Ack, Flags, Window, MSS) / UDP Datagram / QUIC Packet</td>
+  <td>Linux kernel TCP state machine (3-way/4-way handshakes, sliding window, CUBIC/BBR)</td>
+  <td><kbd>ss -tuan</kbd>, <kbd>netstat -s</kbd>, <kbd>tcptraceroute</kbd>, <kbd>conntrack -L</kbd></td>
+  <td>Connection refused (<samp>RST</samp>), SYN queue drop, connection reset by peer, ephemeral port exhaustion</td>
+</tr>
+<tr>
+  <th scope="row">Socket Abstraction &amp; Concurrency</th>
+  <td>Kernel Socket Buffer (<samp>sk_buff</samp>, <samp>sk_rcvbuf</samp>, <samp>sk_sndbuf</samp>, accept queue)</td>
+  <td>BSD Socket API (<kbd>socket</kbd>, <kbd>bind</kbd>, <kbd>listen</kbd>, <kbd>accept</kbd>), <kbd>epoll</kbd>, <kbd>io_uring</kbd></td>
+  <td><kbd>ss -lnt</kbd>, <kbd>lsof -i</kbd>, <kbd>cat /proc/net/sockstat</kbd>, <kbd>vmstat 1</kbd></td>
+  <td><samp>EADDRINUSE</samp>, <samp>ECONNREFUSED</samp>, <samp>EAGAIN</samp> / <samp>EWOULDBLOCK</samp>, accept queue overflow</td>
+</tr>
+<tr>
+  <th scope="row">Application Semantics (L7)</th>
+  <td>Application Message (HTTP/1.1, HTTP/2, HTTP/3 QUIC frames, gRPC Protobuf, TLS 1.3)</td>
+  <td>User-space process, Envoy reverse proxy, JVM runtime, Web server worker thread</td>
+  <td><kbd>curl -vvv</kbd>, <kbd>openssl s_client</kbd>, OpenTelemetry traces, Application logs</td>
+  <td>HTTP 502 Bad Gateway, HTTP 503 Service Unavailable, TLS certificate mismatch, payload parse failure</td>
+</tr>
+</tbody>
+</table>
+"""
+
+# Day 3 Topology Standard Architecture Diagram
+ARCH_DIAGRAM = {
+    "type": "topology",
+    "title": "Day 3 End-to-End DNS, IPv6, Socket Lifecycle, and Transport Topology",
+    "desc": "Three-tier architecture topology mapping dual-stack IPv6 clients, DNS resolution hierarchy, BSD socket lifecycle, TCP state transitions, and verification boundaries.",
+    "caption": "Conceptual topology of the Day 3 request journey from dual-stack naming resolution to kernel socket transport state. It illustrates the boundaries between DNS recursive resolution, IPv6 scoping, kernel socket queues, and TCP handshakes; it does not prove physical latency, remote host readiness, or application authorization.",
+    "width": 1120,
+    "height": 690,
+    "layers": [
+        {
+            "name": "TIER 1 · INGRESS & ADDRESSING SCOPE",
+            "desc": "Dual-stack client · IPv6 scope context · DNS question dispatch",
+            "x": 20,
+            "y": 55,
+            "w": 1080,
+            "h": 92,
+            "fill": "#1e3a5f",
+            "title_color": "#7dd3fc"
+        },
+        {
+            "name": "TIER 2 · RESOLUTION RUNTIME & TRANSPORT DATA PLANE",
+            "desc": "DNS hierarchy · Socket lifecycle API · TCP 3-way/4-way handshakes · Congestion control",
+            "x": 20,
+            "y": 185,
+            "w": 1080,
+            "h": 210,
+            "fill": "#064e3b",
+            "title_color": "#6ee7b7"
+        },
+        {
+            "name": "TIER 3 · GOVERNANCE & BOUNDARY VERIFICATION",
+            "desc": "Layer boundary decoupling · Evidence classification · Invariant telemetry checkpoints",
+            "x": 20,
+            "y": 435,
+            "w": 1080,
+            "h": 115,
+            "fill": "#422006",
+            "title_color": "#fdba74"
+        }
+    ],
+    "components": [
+        {"x": 65, "y": 88, "w": 230, "h": 45, "name": "Dual-Stack Client", "detail": "IPv4 (RFC 1918) + IPv6 (GUA/LL)", "stroke": "#38bdf8", "icon": "../assets/icons/generic/client.svg"},
+        {"x": 430, "y": 88, "w": 250, "h": 45, "name": "DNS Query (A / AAAA)", "detail": "Stub query · EDNS0 · DoT/DoH", "stroke": "#38bdf8", "icon": "../assets/icons/generic/decision.svg"},
+        {"x": 815, "y": 88, "w": 220, "h": 45, "name": "IPv6 Destination Scope", "detail": "Link-Local (%eth0) vs Global", "stroke": "#38bdf8", "icon": "../assets/icons/generic/endpoint.svg"},
+        {"x": 65, "y": 225, "w": 230, "h": 60, "name": "Recursive Resolver", "detail": "OS Cache · TTL · DNSSEC Auth", "stroke": "#22c55e", "icon": "../assets/icons/generic/dns-resolver.svg"},
+        {"x": 430, "y": 225, "w": 250, "h": 60, "name": "Authoritative DNS Zone", "detail": "Root → TLD → Auth RRset", "stroke": "#22c55e", "icon": "../assets/icons/gcp/legacy/cloud-dns.svg"},
+        {"x": 815, "y": 225, "w": 220, "h": 60, "name": "BSD Socket Lifecycle", "detail": "socket → bind → listen → accept", "stroke": "#22c55e", "icon": "../assets/icons/generic/endpoint.svg"},
+        {"x": 260, "y": 322, "w": 260, "h": 52, "name": "TCP Transport Engine", "detail": "SYN-ACK · Sliding Window · CUBIC", "stroke": "#f59e0b", "icon": "../assets/icons/generic/server.svg"},
+        {"x": 650, "y": 322, "w": 260, "h": 52, "name": "UDP & QUIC Datagram Path", "detail": "Connectionless UDP · HTTP/3 QUIC", "stroke": "#f59e0b", "icon": "../assets/icons/generic/queue.svg"},
+        {"x": 190, "y": 468, "w": 280, "h": 58, "name": "Evidence Classification", "detail": "Resolution ≠ Reachability ≠ Connect", "stroke": "#fdba74", "icon": "../assets/icons/generic/decision.svg"},
+        {"x": 650, "y": 468, "w": 280, "h": 58, "name": "Stop Condition Telemetry", "detail": "Isolate failure to exact OSI layer", "stroke": "#fdba74", "icon": "../assets/icons/generic/policy.svg"}
+    ],
+    "flows": [
+        {"x1": 295, "y1": 110, "x2": 430, "y2": 110, "label": "lookup", "type": "ok"},
+        {"x1": 680, "y1": 110, "x2": 815, "y2": 110, "label": "scope policy", "type": "ok"},
+        {"x1": 180, "y1": 133, "x2": 180, "y2": 225, "label": "DNS query", "type": "ok"},
+        {"x1": 555, "y1": 133, "x2": 555, "y2": 225, "label": "iterative chain", "type": "ok"},
+        {"x1": 925, "y1": 133, "x2": 925, "y2": 225, "label": "socket bind", "type": "warn"},
+        {"x1": 555, "y1": 285, "x2": 390, "y2": 322, "label": "resolved IP", "type": "ok"},
+        {"x1": 815, "y1": 255, "x2": 520, "y2": 348, "label": "TCP handshake", "type": "ok"},
+        {"x1": 780, "y1": 285, "x2": 780, "y2": 322, "label": "UDP/QUIC", "type": "warn"},
+        {"x1": 390, "y1": 374, "x2": 390, "y2": 468, "label": "state telemetry", "type": "ok"},
+        {"x1": 470, "y1": 497, "x2": 650, "y2": 497, "label": "assert invariant", "type": "ok"}
+    ],
+    "boundaries": [
+        {
+            "x": 40,
+            "y": 425,
+            "w": 1040,
+            "h": 135,
+            "label": "VERIFICATION BOUNDARY · NAME RESOLUTION ≠ IP REACHABILITY ≠ TCP STATE ≠ APPLICATION READINESS",
+            "color": "#f59e0b"
+        }
+    ],
+    "probes": [
+        {"cx": 290, "cy": 225, "label": "P1: DNS RRset & TTL", "color": "#38bdf8"},
+        {"cx": 925, "cy": 285, "label": "P2: Socket 4-Tuple", "color": "#22c55e"},
+        {"cx": 910, "cy": 374, "label": "P3: TCP State (ESTAB/TIME_WAIT)", "color": "#f59e0b"}
+    ]
+}
+
+DNS_TRANSPORT_SVG = """
+<figure class="diagram-container">
+<div style="max-width:100%;overflow-x:auto">
+<svg viewBox="0 0 1120 640" width="100%" height="auto" role="img" aria-labelledby="d003-exit-title d003-exit-desc" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;">
+  <title id="d003-exit-title">DNS Resolution vs Network IP Reachability vs Established Socket Connection</title>
+  <desc id="d003-exit-desc">Architectural verification diagram separating three distinct boundaries: DNS Name Resolution (Phase 1), Network Layer IP Reachability (Phase 2), and Transport Layer Established Socket Connection (Phase 3), with protocol states and diagnostic signals.</desc>
+  <defs>
+    <marker id="exit-arr-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/></marker>
+    <marker id="exit-arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/></marker>
+    <marker id="exit-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b"/></marker>
+    <marker id="exit-arr-fail" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e"/></marker>
+  </defs>
+
+  <!-- Title Banner -->
+  <rect x="20" y="15" width="1080" height="48" rx="6" fill="#1e293b" stroke="#334155"/>
+  <text x="560" y="34" text-anchor="middle" font-family="monospace" font-size="13" fill="#38bdf8" font-weight="bold">DISTINGUISHING NAME RESOLUTION (DNS) ⟷ IP REACHABILITY (L3) ⟷ ESTABLISHED CONNECTION (L4 TCP)</text>
+  <text x="560" y="52" text-anchor="middle" font-family="monospace" font-size="9.5" fill="#94a3b8">Diagnostic Protocol Decoupling: Why a Successful DNS Lookup Does Not Guarantee Packet Delivery or Socket Readiness</text>
+
+  <!-- Column 1: Phase 1 - DNS Name Resolution (Left) -->
+  <rect x="25" y="75" width="345" height="425" rx="6" fill="#090d16" stroke="#38bdf8" stroke-width="1.5"/>
+  <rect x="35" y="85" width="325" height="24" rx="4" fill="#0c2033" stroke="#38bdf8" stroke-width="1"/>
+  <text x="197" y="101" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#38bdf8" font-weight="bold">PHASE 1 · NAME RESOLUTION</text>
+
+  <!-- Box 1.1: Component -->
+  <g transform="translate(45, 120)">
+    <rect width="305" height="65" rx="4" fill="#121827" stroke="#38bdf8" stroke-width="1.5"/>
+    <image href="../assets/icons/generic/dns-resolver.svg" x="12" y="20" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
+    <text x="48" y="24" font-family="monospace" font-size="11" fill="#38bdf8" font-weight="bold">DNS Recursive Resolver</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">Queries Cloud DNS / 8.8.8.8 / 169.254.169.254</text>
+    <text x="48" y="52" font-family="monospace" font-size="8" fill="#7dd3fc">PDU: DNS Query (UDP 53 / DoH 443)</text>
+  </g>
+
+  <!-- Flow Arrow -->
+  <line x1="197" y1="185" x2="197" y2="205" stroke="#38bdf8" stroke-width="2" marker-end="url(#exit-arr-blue)"/>
+  <text x="205" y="198" font-family="monospace" font-size="8" fill="#38bdf8">RRset Answer</text>
+
+  <!-- Box 1.2: Outcome -->
+  <g transform="translate(45, 210)">
+    <rect width="305" height="75" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+    <image href="../assets/icons/generic/decision.svg" x="12" y="25" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
+    <text x="48" y="24" font-family="monospace" font-size="10" fill="#38bdf8" font-weight="bold">Output: A / AAAA Record</text>
+    <text x="48" y="38" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">• Maps hostname to IP address</text>
+    <text x="48" y="52" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">• Bounded by TTL cache timer</text>
+    <text x="48" y="66" font-family="monospace" font-size="8" fill="#94a3b8">Diagnostic: dig +trace, nslookup</text>
+  </g>
+
+  <!-- Box 1.3: Boundary Invariant -->
+  <g transform="translate(45, 300)">
+    <rect width="305" height="185" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="15" y="20" font-family="monospace" font-size="9" fill="#fdba74" font-weight="bold">WHAT RESOLUTION PROVES:</text>
+    <text x="15" y="36" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">✓ Authoritative zone contains the record.</text>
+    <text x="15" y="50" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">✓ DNSSEC signature is cryptographically valid.</text>
+    <text x="15" y="64" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">✓ Recursive resolver cached record for TTL.</text>
+    <line x1="15" y1="74" x2="290" y2="74" stroke="#334155" stroke-width="1"/>
+    <text x="15" y="90" font-family="monospace" font-size="9" fill="#f43f5e" font-weight="bold">WHAT RESOLUTION DOES NOT PROVE:</text>
+    <text x="15" y="106" font-family="sans-serif" font-size="8" fill="#fda4af">✗ No proof host has a route to the IP.</text>
+    <text x="15" y="120" font-family="sans-serif" font-size="8" fill="#fda4af">✗ No proof IPv6 zone index (%eth0) is present.</text>
+    <text x="15" y="134" font-family="sans-serif" font-size="8" fill="#fda4af">✗ No proof intermediate routers forward traffic.</text>
+    <text x="15" y="148" font-family="sans-serif" font-size="8" fill="#fda4af">✗ No proof target port is open or listening.</text>
+    <text x="15" y="162" font-family="monospace" font-size="8" fill="#f43f5e">Failure: NXDOMAIN, SERVFAIL, Stale TTL</text>
+  </g>
+
+  <!-- Inter-phase Transition 1 -> 2 -->
+  <line x1="370" y1="247" x2="385" y2="247" stroke="#22c55e" stroke-width="2.5" marker-end="url(#exit-arr-green)"/>
+
+  <!-- Column 2: Phase 2 - Network IP Reachability (Middle) -->
+  <rect x="385" y="75" width="345" height="425" rx="6" fill="#090d16" stroke="#22c55e" stroke-width="1.5"/>
+  <rect x="395" y="85" width="325" height="24" rx="4" fill="#064e3b" stroke="#22c55e" stroke-width="1"/>
+  <text x="557" y="101" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#22c55e" font-weight="bold">PHASE 2 · IP REACHABILITY</text>
+
+  <!-- Box 2.1: Component -->
+  <g transform="translate(405, 120)">
+    <rect width="305" height="65" rx="4" fill="#121827" stroke="#22c55e" stroke-width="1.5"/>
+    <image href="../assets/icons/generic/router.svg" x="12" y="20" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
+    <text x="48" y="24" font-family="monospace" font-size="11" fill="#22c55e" font-weight="bold">IP Routing &amp; Forwarding Path</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">Linux FIB table · LPM · Andromeda SDN</text>
+    <text x="48" y="52" font-family="monospace" font-size="8" fill="#a7f3d0">PDU: IPv4 Packet (L3) / IPv6 Packet (L3)</text>
+  </g>
+
+  <!-- Flow Arrow -->
+  <line x1="557" y1="185" x2="557" y2="205" stroke="#22c55e" stroke-width="2" marker-end="url(#exit-arr-green)"/>
+  <text x="565" y="198" font-family="monospace" font-size="8" fill="#22c55e">FIB Forward</text>
+
+  <!-- Box 2.2: Outcome -->
+  <g transform="translate(405, 210)">
+    <rect width="305" height="75" rx="4" fill="#1e293b" stroke="#22c55e" stroke-width="1"/>
+    <image href="../assets/icons/generic/endpoint.svg" x="12" y="25" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
+    <text x="48" y="24" font-family="monospace" font-size="10" fill="#22c55e" font-weight="bold">Output: L3 Packet Traversal</text>
+    <text x="48" y="38" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">• NDP/ARP resolves next-hop MAC</text>
+    <text x="48" y="52" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">• Hop Limit / TTL decremented at hops</text>
+    <text x="48" y="66" font-family="monospace" font-size="8" fill="#94a3b8">Diagnostic: ping, traceroute, ip route</text>
+  </g>
+
+  <!-- Box 2.3: Boundary Invariant -->
+  <g transform="translate(405, 300)">
+    <rect width="305" height="185" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="15" y="20" font-family="monospace" font-size="9" fill="#fdba74" font-weight="bold">WHAT REACHABILITY PROVES:</text>
+    <text x="15" y="36" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">✓ Host routing table has a valid route.</text>
+    <text x="15" y="50" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">✓ Intermediate SDN / physical routers forward IP.</text>
+    <text x="15" y="64" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">✓ Target host interface accepts packets.</text>
+    <line x1="15" y1="74" x2="290" y2="74" stroke="#334155" stroke-width="1"/>
+    <text x="15" y="90" font-family="monospace" font-size="9" fill="#f43f5e" font-weight="bold">WHAT REACHABILITY DOES NOT PROVE:</text>
+    <text x="15" y="106" font-family="sans-serif" font-size="8" fill="#fda4af">✗ No proof target port 443/8080 is open.</text>
+    <text x="15" y="120" font-family="sans-serif" font-size="8" fill="#fda4af">✗ No proof kernel SYN queue is not saturated.</text>
+    <text x="15" y="134" font-family="sans-serif" font-size="8" fill="#fda4af">✗ No proof application process is listening.</text>
+    <text x="15" y="148" font-family="sans-serif" font-size="8" fill="#fda4af">✗ Ping success can mask total TCP port blockage.</text>
+    <text x="15" y="162" font-family="monospace" font-size="8" fill="#f43f5e">Failure: Host Unreachable, Time Exceeded</text>
+  </g>
+
+  <!-- Inter-phase Transition 2 -> 3 -->
+  <line x1="730" y1="247" x2="745" y2="247" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#exit-arr-amber)"/>
+
+  <!-- Column 3: Phase 3 - Established Socket Connection (Right) -->
+  <rect x="745" y="75" width="350" height="425" rx="6" fill="#090d16" stroke="#f59e0b" stroke-width="1.5"/>
+  <rect x="755" y="85" width="330" height="24" rx="4" fill="#422006" stroke="#f59e0b" stroke-width="1"/>
+  <text x="920" y="101" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#f59e0b" font-weight="bold">PHASE 3 · ESTABLISHED CONNECTION</text>
+
+  <!-- Box 3.1: Component -->
+  <g transform="translate(765, 120)">
+    <rect width="310" height="65" rx="4" fill="#121827" stroke="#f59e0b" stroke-width="1.5"/>
+    <image href="../assets/icons/generic/server.svg" x="12" y="20" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
+    <text x="48" y="24" font-family="monospace" font-size="11" fill="#f59e0b" font-weight="bold">Linux TCP State Machine</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">3-way handshake · 4-tuple bind · somaxconn</text>
+    <text x="48" y="52" font-family="monospace" font-size="8" fill="#fde68a">PDU: TCP Segment (SYN, SYN-ACK, ACK)</text>
+  </g>
+
+  <!-- Flow Arrow -->
+  <line x1="920" y1="185" x2="920" y2="205" stroke="#f59e0b" stroke-width="2" marker-end="url(#exit-arr-amber)"/>
+  <text x="928" y="198" font-family="monospace" font-size="8" fill="#f59e0b">Handshake Complete</text>
+
+  <!-- Box 3.2: Outcome -->
+  <g transform="translate(765, 210)">
+    <rect width="310" height="75" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+    <image href="../assets/icons/generic/endpoint.svg" x="12" y="25" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
+    <text x="48" y="24" font-family="monospace" font-size="10" fill="#f59e0b" font-weight="bold">Output: State = ESTABLISHED</text>
+    <text x="48" y="38" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">• Connected socket returned by accept()</text>
+    <text x="48" y="52" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">• Flow control sliding window initialized</text>
+    <text x="48" y="66" font-family="monospace" font-size="8" fill="#94a3b8">Diagnostic: ss -tan, netstat -s, lsof -i</text>
+  </g>
+
+  <!-- Box 3.3: Boundary Invariant -->
+  <g transform="translate(765, 300)">
+    <rect width="310" height="185" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="15" y="20" font-family="monospace" font-size="9" fill="#fdba74" font-weight="bold">WHAT CONNECTION PROVES:</text>
+    <text x="15" y="36" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">✓ Remote host kernel accepted the connection.</text>
+    <text x="15" y="50" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">✓ 4-tuple socket entry allocated in kernel table.</text>
+    <text x="15" y="64" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">✓ Transport flow control active (rwnd/cwnd).</text>
+    <line x1="15" y1="74" x2="295" y2="74" stroke="#334155" stroke-width="1"/>
+    <text x="15" y="90" font-family="monospace" font-size="9" fill="#f43f5e" font-weight="bold">WHAT CONNECTION DOES NOT PROVE:</text>
+    <text x="15" y="106" font-family="sans-serif" font-size="8" fill="#fda4af">✗ No proof application is returning HTTP 200.</text>
+    <text x="15" y="120" font-family="sans-serif" font-size="8" fill="#fda4af">✗ Application may be crashed or throwing 503.</text>
+    <text x="15" y="134" font-family="sans-serif" font-size="8" fill="#fda4af">✗ TLS handshake has not yet negotiated ciphers.</text>
+    <text x="15" y="148" font-family="sans-serif" font-size="8" fill="#fda4af">✗ Worker thread may be blocked on database pool.</text>
+    <text x="15" y="162" font-family="monospace" font-size="8" fill="#f43f5e">Failure: Connection Refused (RST), ETIMEDOUT</text>
+  </g>
+
+  <!-- Bottom Diagnostic Summary Matrix -->
+  <rect x="25" y="515" width="1070" height="110" rx="6" fill="#090d16" stroke="#334155" stroke-width="1"/>
+  <text x="40" y="533" font-family="monospace" font-size="10" fill="#94a3b8" font-weight="bold">BOUNDARY FAILURE SEPARATION &amp; ARCHITECTURAL DIAGNOSTIC CHECKS:</text>
+
+  <!-- Card 1 -->
+  <g transform="translate(38, 542)">
+    <rect width="250" height="72" rx="3" fill="#121827" stroke="#38bdf8" stroke-width="1"/>
+    <image href="../assets/icons/generic/decision.svg" x="8" y="8" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
+    <text x="32" y="18" font-family="monospace" font-size="8.5" fill="#38bdf8" font-weight="bold">NAME RESOLUTION CHECK</text>
+    <text x="10" y="34" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Fails at DNS: Hostname cannot be queried</text>
+    <text x="10" y="47" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Check DNS TTL &amp; local resolver cache</text>
+    <text x="10" y="60" font-family="monospace" font-size="7.5" fill="#7dd3fc">Tool: dig +trace, resolvectl status</text>
+  </g>
+
+  <!-- Card 2 -->
+  <g transform="translate(300, 542)">
+    <rect width="250" height="72" rx="3" fill="#121827" stroke="#22c55e" stroke-width="1"/>
+    <image href="../assets/icons/generic/endpoint.svg" x="8" y="8" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
+    <text x="32" y="18" font-family="monospace" font-size="8.5" fill="#22c55e" font-weight="bold">IP REACHABILITY CHECK</text>
+    <text x="10" y="34" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Fails at L3: Packet dropped by route or ACL</text>
+    <text x="10" y="47" font-family="sans-serif" font-size="8" fill="#cbd5e1">• IPv6 requires zone index (%eth0) if link-local</text>
+    <text x="10" y="60" font-family="monospace" font-size="7.5" fill="#a7f3d0">Tool: ip route get, traceroute -I</text>
+  </g>
+
+  <!-- Card 3 -->
+  <g transform="translate(562, 542)">
+    <rect width="250" height="72" rx="3" fill="#121827" stroke="#f59e0b" stroke-width="1"/>
+    <image href="../assets/icons/generic/server.svg" x="8" y="8" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
+    <text x="32" y="18" font-family="monospace" font-size="8.5" fill="#f59e0b" font-weight="bold">TCP CONNECTION CHECK</text>
+    <text x="10" y="34" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Fails at L4: Port closed (RST) or queue full</text>
+    <text x="10" y="47" font-family="sans-serif" font-size="8" fill="#cbd5e1">• SYN drop under burst: check somaxconn</text>
+    <text x="10" y="60" font-family="monospace" font-size="7.5" fill="#fde68a">Tool: ss -lnt, netstat -s, tcptraceroute</text>
+  </g>
+
+  <!-- Card 4 -->
+  <g transform="translate(824, 542)">
+    <rect width="258" height="72" rx="3" fill="#121827" stroke="#ec4899" stroke-width="1"/>
+    <image href="../assets/icons/generic/outcome.svg" x="8" y="8" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
+    <text x="32" y="18" font-family="monospace" font-size="8.5" fill="#ec4899" font-weight="bold">APPLICATION READINESS</text>
+    <text x="10" y="34" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Fails at L7: HTTP 500/502/503 status code</text>
+    <text x="10" y="47" font-family="sans-serif" font-size="8" fill="#cbd5e1">• L4 success gives FALSE positive for L7 health</text>
+    <text x="10" y="60" font-family="monospace" font-size="7.5" fill="#fbcfe8">Tool: curl -iv, OpenTelemetry traces</text>
+  </g>
+</svg>
+</div>
+<figcaption>Architectural exit evidence distinguishing the three sequential boundaries of network connectivity: (1) DNS Name Resolution, proving record existence in a zone database; (2) Network IP Reachability, proving Layer 3 packet routing and NDP/ARP MAC resolution; and (3) Established Socket Connection, proving Layer 4 kernel socket handshake completion. It demonstrates that each boundary operates independently, and success at one phase does not guarantee readiness at the next.</figcaption>
+</figure>
+"""
+
+ARCH_SVG_HTML = f"{render_topology_svg(DAY, ARCH_DIAGRAM)}\n\n{DNS_TRANSPORT_SVG}"
+
+def make_lab(name, goal, expected, steps, accept, trouble, cleanup="No chargeable cloud resources created. All operations execute locally.", file_name=None):
     return {
-        "name": name, "goal": goal, "expected": expected,
-        "mode": "local/tabletop; no cloud resources or credentials required",
-        "prereq": "Day 2 network-path artifact, a terminal with dig and curl, and a text editor",
-        "preflight": "Use only approved public documentation/test names; record local command output as an observation, not as a universal result.",
-        "steps": steps, "verification": "Compare the recorded diagram and command transcript with the stated invariant; environment-dependent resolver output is illustrative.",
-        "accept": accept, "trouble": trouble,
-        "cleanup": "Save only the worksheet/transcript. No cloud resources, DNS records, listeners, or credentials were created.",
-        "file": "day-003-dns-transport-evidence.md",
+        "name": name,
+        "goal": goal,
+        "expected": expected,
+        "mode": "local exercise",
+        "prereq": "Day 2 local workspace and network path artifacts.",
+        "preflight": "Verify local Python 3 environment, standard Linux diagnostic tools (<kbd>ip</kbd>, <kbd>ss</kbd>, <kbd>dig</kbd>), and write permissions in workspace.",
+        "steps": steps,
+        "accept": accept,
+        "verification": "All automated assertions pass with exit code 0 and output artifacts record verifiable architectural invariants.",
+        "trouble": trouble,
+        "cleanup": cleanup,
+        "file": file_name
     }
 
+# 1:1 Coverage Topics Definition
+TOPICS = [
+    {
+        "key": "topic-01",
+        "title": "IPv6 addressing and scope",
+        "overview": (
+            "IPv6 represents a 128-bit address space (RFC 4291, RFC 8200) represented in eight 16-bit hexadecimal quads, "
+            "incorporating strict scoping rules that govern reachability. Link-local addresses (<samp>fe80::/10</samp>) require an "
+            "explicit interface zone identifier, Unique Local Addresses (ULA, <samp>fc00::/7</samp>, RFC 4193) provide enterprise "
+            "private routing, and Global Unicast Addresses (GUA, <samp>2000::/3</samp>) provide internet-wide reachability. "
+            "Neighbor Discovery Protocol (NDP, RFC 4861) replaces IPv4 ARP with ICMPv6 multicast messaging (Router/Neighbor "
+            "Solicitations and Advertisements), SLAAC autoconfiguration, and Duplicate Address Detection (DAD), forming the "
+            "foundation for Google Cloud dual-stack VPC subnets and global load balancer IPv6 termination."
+        ),
+        "preview": (
+            "A microservice client receives an IPv6 AAAA record resolving to a link-local address but attempts to initiate a TCP "
+            "connection without specifying an interface scope index. The connection immediately errors out with Invalid Argument, "
+            "halting automated canary deployments and blocking scheduled microservice updates."
+        ),
+        "technical": (
+            "**Subtopics in this discussion:** IPv6 128-bit address architecture and canonical representation; "
+            "address scoping boundaries (Link-Local, Unique Local, and Global Unicast); "
+            "Neighbor Discovery Protocol (NDP) mechanics (RS/RA, NS/NA, SLAAC, DAD); "
+            "dual-stack VPC architecture, Happy Eyeballs (RFC 8305), and Google Cloud edge ingress.\n\n"
 
-DATA = {
-    "day": 3,
-    "part1_intro": "Day 3 separates three boundaries that are often conflated: a name resolving to an address, a packet being reachable to that address, and a transport connection becoming established. Build from the Day 2 next-hop artifact and preserve uncertainty where a local resolver, network policy, or remote host is not under your control.",
-    "exit_summary": "Produce one annotated DNS/transport diagram that distinguishes IPv4 and IPv6 name resolution, IP reachability, and a TCP established connection; attach answers for record type, resolver role, endpoint, port, and handshake state.",
-    "part2_intro": "The path is intentionally layered: addressing supplies a scoped destination, DNS supplies data from an authority through a resolver cache, and transport supplies a socket-to-socket exchange. A successful result at one layer is evidence only for that layer.",
-    "arch_table_html": """<div class=\"table-container\"><table><caption>DNS and transport evidence boundaries</caption><thead><tr><th scope=\"col\">Question</th><th scope=\"col\">Control or data path</th><th scope=\"col\">Observable evidence</th><th scope=\"col\">Limit</th></tr></thead><tbody><tr><th scope=\"row\">What IPv6 address may be used?</th><td>Host chooses an address and scope; router/NDP applies only where applicable.</td><td>Address notation, prefix length, and chosen interface.</td><td>An address alone does not prove a route or service listener.</td></tr><tr><th scope=\"row\">Who answered the name?</th><td>Stub asks recursive resolver; resolver may answer cache or query authoritative data.</td><td>dig flags, answer section, TTL, and server field.</td><td>A cached answer is not proof that the authoritative zone was queried now.</td></tr><tr><th scope=\"row\">Is a service connection established?</th><td>Client socket selects local endpoint; TCP synchronizes sequence state with server socket.</td><td>Local socket state and bounded packet/connection trace.</td><td>TCP establishment does not prove HTTP authorization or application success.</td></tr></tbody></table></div>""",
-    "arch_diagram": {
-        "type": "topology", "title": "Day 3 DNS, IPv6, and TCP transport evidence path",
-        "desc": "A three-tier topology separating client addressing, recursive and authoritative DNS roles, and transport connection evidence.",
-        "caption": "Scope: a local/tabletop request journey from name lookup to a TCP socket. It does not prove Internet reachability, a remote application's health, or a production incident.",
-        "width": 1120, "height": 690,
-        "layers": [
-            {"name": "TIER 1 · INGRESS / DEMAND", "desc": "client name and destination choice", "x": 20, "y": 55, "w": 1080, "h": 92, "fill": "#1e3a5f", "title_color": "#7dd3fc"},
-            {"name": "TIER 2 · RUNTIME / DATA", "desc": "resolver data and socket exchange", "x": 20, "y": 185, "w": 1080, "h": 210, "fill": "#064e3b", "title_color": "#6ee7b7"},
-            {"name": "TIER 3 · GOVERNANCE / DECISION", "desc": "evidence classification and stop conditions", "x": 20, "y": 435, "w": 1080, "h": 115, "fill": "#422006", "title_color": "#fdba74"},
+            "### IPv6 128-bit address architecture and canonical representation\n"
+            "**What it is in general:** IPv6 (RFC 8200, RFC 4291) expands the IP address space from 32 bits ($2^{32} \\approx 4.3 \\times 10^9$) "
+            "to 128 bits ($2^{128} \\approx 3.4 \\times 10^{38}$), eliminating the architectural requirement for Network Address Translation (NAT). "
+            "An IPv6 address consists of eight 16-bit hexadecimal quads separated by colons (e.g., <samp>2001:0db8:85a3:0000:0000:8a2e:0370:7334</samp>). "
+            "Under RFC 5952 canonical formatting rules: (1) leading zeros within any quad must be suppressed; (2) lowercase hexadecimal characters must be used; "
+            "and (3) the single longest run of consecutive all-zero quads must be compressed exactly once using a double colon (<samp>::</samp>). For instance, "
+            "<samp>2001:db8:85a3::8a2e:370:7334</samp> is canonical, whereas compressing isolated single zeros or using double colons multiple times is invalid.\n\n"
+            "**Relevance to a cloud architect:** Canonical string parsing is critical for automated cloud infrastructure, CI/CD pipelines, firewall policies, "
+            "and audit logging. Non-canonical variations of the same IPv6 address can bypass naive string-matching security rules, cause IPAM database deduplication "
+            "failures, or break automated infrastructure-as-code validations across multi-cloud environments.\n\n"
+            "**Relevance to GCP:** In Google Cloud, subnets support dual-stack operation. As documented in "
+            "[Google Cloud VPC IPv6 overview](https://cloud.google.com/vpc/docs/subnets#ipv6-subnets), Google Cloud allocates a <samp>/64</samp> IPv6 subnet prefix "
+            "from internal or external allocations, requiring architects to configure canonical IPv6 routes and firewall rules across Andromeda virtual network fabrics.\n\n"
+
+            "### Address scoping boundaries (Link-Local, Unique Local, and Global Unicast)\n"
+            "**What it is in general:** Unlike IPv4 where private ranges are routable across any private network, IPv6 introduces strict, architecturally enforced address scopes:\n"
+            "- **Link-Local Unicast (<samp>fe80::/10</samp>):** Automatically configured on every active IPv6 interface. Link-local addresses are topologically bounded to the local Layer 2 broadcast/broadcast-equivalent segment and are never forwarded by routers. Because identical link-local addresses can legally exist on distinct interfaces connected to different physical links, the operating system cannot route packets to a link-local destination without an explicit **Zone Identifier / Interface Index** (e.g., <samp>fe80::1%eth0</samp> on Linux). Initiating a socket connection to a bare link-local address without a zone index fails immediately with <samp>EINVAL</samp> (Invalid argument).\n"
+            "- **Unique Local Address (ULA, <samp>fc00::/7</samp>, RFC 4193):** Globally unique private addresses intended for local communications across an enterprise private WAN or hybrid interconnect. Block <samp>fd00::/8</samp> is assigned with a 40-bit pseudo-random Global ID, preventing address collisions during future enterprise corporate mergers or VPC peerings without NAT.\n"
+            "- **Global Unicast Address (GUA, <samp>2000::/3</samp>, RFC 3587):** Globally routable public addresses allocated by Regional Internet Registries (RIRs). Typically structured as a 48-bit global routing prefix assigned to the enterprise, a 16-bit subnet ID (providing up to 65,536 individual subnets per enterprise site), and a 64-bit Interface Identifier (IID).\n"
+            "- **Special Purpose Addresses:** Loopback (<samp>::1/128</samp>), Unspecified (<samp>::/128</samp>, used as source during boot prior to DAD), and Multicast (<samp>ff00::/8</samp>, including All-Nodes <samp>ff02::1</samp> and All-Routers <samp>ff02::2</samp>).\n\n"
+            "**Relevance to a cloud architect:** A common and devastating cloud misconfiguration occurs when automated CI/CD registration scripts or metadata agents register an instance's link-local address into Cloud DNS or Consul service registries. Because link-local addresses are non-routable and require an explicit Linux interface zone index (<samp>%eth0</samp>), cross-VM or cross-container client requests fail instantly with kernel <samp>EINVAL</samp> errors. Architects must enforce DNS validation webhooks that reject non-GUA/ULA records.\n\n"
+            "**Relevance to GCP:** [Google Cloud External Application Load Balancers](https://cloud.google.com/load-balancing/docs/https) allocate global Anycast IPv6 VIPs from Google's GUA pool, terminating public client IPv6 connections and proxying requests to backend Compute Engine instances or GKE pods over IPv4 or internal ULA/GUA IPv6.\n\n"
+
+            "### Neighbor Discovery Protocol (NDP) mechanics (RS/RA, NS/NA, SLAAC, DAD)\n"
+            "**What it is in general:** IPv6 completely deprecates broadcast transmissions and IPv4 ARP in favor of ICMPv6 multicast messaging (RFC 4861):\n"
+            "- **Router Solicitation (RS, Type 133) & Router Advertisement (RA, Type 134):** Hosts multicast an RS to <samp>ff02::2</samp> upon boot. Routers respond with periodic RAs to <samp>ff02::1</samp> advertising network prefixes, MTU, default gateway lifetime, and autoconfiguration flags.\n"
+            "- **Stateless Address Autoconfiguration (SLAAC, RFC 4862):** Hosts combine the 64-bit RA prefix with a 64-bit Interface Identifier (IID), generated via EUI-64 (derived from MAC address) or RFC 7217 cryptographically stable privacy addresses.\n"
+            "- **Neighbor Solicitation (NS, Type 135) & Neighbor Advertisement (NA, Type 136):** Replaces ARP. Hosts query the target's link-layer MAC address by multicasting an NS to the target's Solicited-Node Multicast address (<samp>ff02::1:ffxx:xxxx</samp>). The target unicasts an NA reply.\n"
+            "- **Duplicate Address Detection (DAD):** Before binding an address, a host transmits an NS for its own tentative address from the unspecified source (<samp>::</samp>). If an NA returns, an address collision exists and the interface marks the address invalid.\n\n"
+            "**Relevance to a cloud architect:** In software-defined cloud networks, cloud hypervisors intercept NDP packets. Architects must understand how cloud SDN fabrics (such as Andromeda) emulate NDP to assign guest IP addresses and ensure that guest OS firewalls do not block essential ICMPv6 types (133–136), which would cause silent interface deconfiguration.\n\n"
+            "**Relevance to GCP:** In Google Cloud Compute Engine, guest OS virtual interfaces receive IPv6 gateway and subnet configuration via Andromeda-managed NDP Router Advertisements, as outlined in [Google Cloud Compute Engine network interfaces](https://cloud.google.com/compute/docs/network-interfaces#ipv6).\n\n"
+
+            "### Dual-stack VPC architecture, Happy Eyeballs (RFC 8305), and Google Cloud edge ingress\n"
+            "**What it is in general:** Transitioning to IPv6 requires dual-stack coexistence where endpoints maintain both IPv4 and IPv6 network stacks concurrently. Happy Eyeballs (RFC 8305) is a client-side connection algorithm designed to prevent poor user experience when IPv6 connectivity is impaired: the client initiates simultaneous DNS queries for both A (IPv4) and AAAA (IPv6) records, attempts connection to the IPv6 address first, but starts a fallback IPv4 connection if IPv6 connection setup does not complete within a recommended 250 milliseconds (Connection Attempt Delay).\n\n"
+            "**Relevance to a cloud architect:** Dual-stack architectures eliminate the business risk of IPv6 adoption. By deploying dual-stack Anycast frontend VIPs with Happy Eyeballs-compliant client SDKs, cloud architects ensure zero user-facing degradation during regional ISP routing anomalies or transit peering outages.\n\n"
+            "**Relevance to GCP:** [Google Cloud CDN and Cloud Armor](https://cloud.google.com/armor/docs/security-policy-overview) inspect dual-stack ingress traffic at Google edge Points of Presence (PoPs), applying unified security policies across both IPv4 and IPv6 client sources before traffic reaches backend VPC subnets.\n\n"
+
+            "**Concrete Example:** A microservice container on GKE attempts to connect to an internal cache endpoint whose AAAA record was incorrectly populated with a link-local address (<samp>fe80::a00:27ff:fe8e:7b21</samp>). The application invokes <kbd>socket.connect(('fe80::a00:27ff:fe8e:7b21', 6379))</kbd> without specifying an interface scope index. The Linux kernel immediately returns <samp>[Errno 22] Invalid argument</samp> because the kernel routing table has no default interface for link-local traffic. Appending the scope index <kbd>fe80::a00:27ff:fe8e:7b21%eth0</kbd> or correcting DNS to return a Unique Local Address (<samp>fd20:100::45</samp>) restores immediate socket connectivity.\n\n"
+
+            "**Evidence limit:** A successful DNS AAAA resolution proves only that an IPv6 record exists in a zone database; "
+            "it provides zero proof that the host possesses an IPv6 default route, that NDP resolved the gateway MAC, or that the remote socket is listening."
+        ),
+        "questions": [
+            "Why does initiating a socket connection to a link-local IPv6 address (fe80::/10) require an explicit zone identifier (%interface), and what error occurs if it is omitted?",
+            "What functional mechanism allows Neighbor Discovery Protocol (NDP) to eliminate the network broadcast storms inherent to IPv4 ARP?",
+            "How does Duplicate Address Detection (DAD) prevent silent address collisions on a dual-stack cloud subnet during instance initialization?"
         ],
-        "components": [
-            {"x": 65, "y": 88, "w": 230, "h": 45, "name": "Dual-stack client", "detail": "stub resolver + socket", "stroke": "#38bdf8"},
-            {"x": 430, "y": 88, "w": 250, "h": 45, "name": "Requested DNS name", "detail": "A / AAAA question", "stroke": "#38bdf8"},
-            {"x": 815, "y": 88, "w": 220, "h": 45, "name": "Destination policy", "detail": "scope and route choice", "stroke": "#38bdf8"},
-            {"x": 65, "y": 225, "w": 230, "h": 60, "name": "Recursive resolver", "detail": "cache or recursion", "stroke": "#22c55e"},
-            {"x": 430, "y": 225, "w": 250, "h": 60, "name": "Authoritative zone", "detail": "RRset + TTL", "stroke": "#22c55e"},
-            {"x": 815, "y": 225, "w": 220, "h": 60, "name": "Server socket", "detail": "IP address + port", "stroke": "#22c55e"},
-            {"x": 260, "y": 322, "w": 260, "h": 52, "name": "TCP state machine", "detail": "SYN · SYN-ACK · ACK", "stroke": "#f59e0b"},
-            {"x": 650, "y": 322, "w": 260, "h": 52, "name": "UDP datagram path", "detail": "no connection state", "stroke": "#f59e0b"},
-            {"x": 190, "y": 468, "w": 280, "h": 58, "name": "Evidence worksheet", "detail": "resolution ≠ reachability", "stroke": "#fdba74"},
-            {"x": 650, "y": 468, "w": 280, "h": 58, "name": "Stop condition", "detail": "label unknown cause", "stroke": "#fdba74"},
-        ],
-        "flows": [
-            {"x1": 295, "y1": 110, "x2": 430, "y2": 110, "label": "query", "type": "ok"}, {"x1": 680, "y1": 110, "x2": 815, "y2": 110, "label": "candidate", "type": "ok"},
-            {"x1": 180, "y1": 133, "x2": 180, "y2": 225, "label": "DNS", "type": "ok"}, {"x1": 555, "y1": 133, "x2": 555, "y2": 225, "label": "delegation", "type": "ok"}, {"x1": 925, "y1": 133, "x2": 925, "y2": 225, "label": "destination", "type": "warn"},
-            {"x1": 555, "y1": 285, "x2": 390, "y2": 322, "label": "answer", "type": "ok"}, {"x1": 815, "y1": 255, "x2": 520, "y2": 348, "label": "TCP", "type": "ok"}, {"x1": 780, "y1": 285, "x2": 780, "y2": 322, "label": "UDP", "type": "warn"},
-            {"x1": 390, "y1": 374, "x2": 390, "y2": 468, "label": "record", "type": "ok"}, {"x1": 470, "y1": 497, "x2": 650, "y2": 497, "label": "classify", "type": "ok"},
-        ],
-        "boundaries": [{"x": 40, "y": 425, "w": 1040, "h": 135, "label": "VERIFICATION BOUNDARY · EACH OBSERVATION IS LIMITED TO ITS LAYER", "color": "#f59e0b"}],
-        "probes": [{"cx": 290, "cy": 225, "label": "P1: DNS answer and TTL", "color": "#38bdf8"}, {"cx": 925, "cy": 285, "label": "P2: socket endpoint", "color": "#22c55e"}, {"cx": 910, "cy": 374, "label": "P3: state evidence", "color": "#f59e0b"}],
+        "reference": "https://datatracker.ietf.org/doc/html/rfc4291#section-2",
+        "reference_label": "RFC 4291 §2: IPv6 Addressing Architecture (accessed 2026-10-02)",
+        "scenario": {
+            "scenario": (
+                "Brightloaf's platform engineering team deployed a canary microservice on a dual-stack Kubernetes node pool. "
+                "The internal deployment runbook directed automated deployment verification scripts to query the internal service discovery "
+                "endpoint for an IPv6 destination and test socket connectivity."
+            ),
+            "symptom": (
+                "The deployment pipeline failed immediately during pre-traffic verification. Automated probes logged <samp>socket.error: [Errno 22] Invalid argument</samp> "
+                "when attempting to connect to the target IPv6 address, despite the local DNS service reporting an immediate, valid AAAA response."
+            ),
+            "impact": (
+                "The continuous delivery pipeline halted for 90 minutes across all European deployment regions. Automated canary rollbacks triggered "
+                "falsely, delaying the release of a scheduled fraud detection microservice update."
+            ),
+            "constraints": (
+                "Zero manual modifications to production node routing tables; must support both IPv4-only legacy worker nodes and dual-stack nodes; "
+                "zero downtime permitted on production checkout APIs."
+            ),
+            "evidence": (
+                "Inspecting the deployment probe logs revealed that the client resolved a link-local address without attaching the interface scope index:\n\n"
+                "```text\n"
+                "2026-10-02T04:15:10Z [PROBE] Resolved api.service.internal -> fe80::a00:27ff:fe8e:7b21 (Type: AAAA)\n"
+                "2026-10-02T04:15:10Z [PROBE] Connecting to [fe80::a00:27ff:fe8e:7b21]:8443...\n"
+                "Traceback (most recent call last):\n"
+                "  File \"canary_probe.py\", line 42, in <module>\n"
+                "    s.connect(('fe80::a00:27ff:fe8e:7b21', 8443))\n"
+                "OSError: [Errno 22] Invalid argument\n"
+                "```\n\n"
+                "Verification with <kbd>ip -6 route get fe80::a00:27ff:fe8e:7b21</kbd> confirmed the kernel routing rejection:\n\n"
+                "```text\n"
+                "RTNETLINK answers: Invalid argument\n"
+                "```"
+            ),
+            "root": (
+                "The microservice registration agent registered its link-local interface address (<samp>fe80::/10</samp>) into the internal "
+                "service registry instead of its globally routable Unique Local Address (<samp>fd20::/7</samp>) or GUA. When client pods attempted "
+                "to connect, the Linux socket layer rejected the connection with <samp>EINVAL</samp> because link-local addresses require an explicit "
+                "zone identifier (<samp>%interface</samp>) that cannot be supplied via standard DNS records."
+            ),
+            "diagnostic_steps": [
+                "Step 1: Inspect the resolved address prefix to identify the address scope (<samp>fe80::/10</samp> indicates link-local).",
+                "Step 2: Test raw kernel route selection using <kbd>ip -6 route get [target_ip]</kbd> to verify if the OS can route without a scope identifier.",
+                "Step 3: Audit service registration scripts to inspect how pod and instance IP addresses are harvested from interface metadata.",
+                "Step 4: Verify interface address assignments on the target instance using <kbd>ip -6 addr show</kbd> to identify valid GUA or ULA addresses."
+            ],
+            "remediation_steps": [
+                "Tactical Fix: Update the service registry entry to point to the instance's routable ULA address (<samp>fd20:0:0:10::5</samp>).",
+                "Strategic Control: Implement registration webhooks that filter out non-routable link-local (<samp>fe80::/10</samp>) and multicast addresses before committing to DNS."
+            ],
+            "verify": (
+                "Verify via <kbd>python3 -c \"import socket; s=socket.socket(socket.AF_INET6, socket.SOCK_STREAM); s.connect(('fd20:0:0:10::5', 8443))\"</kbd> "
+                "that connections establish cleanly without scope index arguments."
+            ),
+            "residual": (
+                "ULA routing requires consistent routing table propagation across hybrid interconnects; ensure Cloud Router advertises ULA prefixes."
+            ),
+            "diagram": (
+                "Canary probe resolves link-local AAAA",
+                "Bare connect() lacks zone index (%eth0)",
+                "Kernel returns EINVAL: canary fails",
+                "Filter registry to GUA/ULA prefixes",
+                "Socket connects across routable VPC"
+            ),
+            "icons": (
+                "../assets/icons/generic/event.svg",
+                "../assets/icons/generic/failure.svg",
+                "../assets/icons/generic/failure.svg",
+                "../assets/icons/generic/policy.svg",
+                "../assets/icons/generic/outcome.svg"
+            ),
+            "facts": "DNS returned an fe80::/10 address; socket connect threw OSError [Errno 22] Invalid argument.",
+            "inference": "Link-local addresses require an explicit scope index zone identifier (%eth0); registering link-local IPs in DNS breaks remote callers.",
+            "expected": "Service discovery publishes only routable GUA or ULA IPv6 addresses, enabling remote nodes to establish TCP connections without zone qualifiers."
+        },
+        "lab": make_lab(
+            name="IPv6 Scope Verification and Link-Local Socket Dissection",
+            goal="Demonstrate the architectural necessity of interface scope identifiers on link-local IPv6 addresses and build an automated validator that verifies scope attachment.",
+            expected="A reproducible diagnostic report proving that connecting to an unadorned link-local address fails with EINVAL, while attaching a scope identifier succeeds.",
+            steps=[
+                "**Stage 1: Preflight and Environment Verification** — Verify local IPv6 kernel support and inspect active network interfaces:\n\n```bash\npython3 -c \"import socket; print('IPv6 Supported:', socket.has_ipv6)\"\nip -6 addr show\n```",
+                "**Stage 2: Prepare Target Inputs and Network Fixtures** — Extract the local link-local address and interface name using Python:\n\n```bash\npython3 -c \"\nimport subprocess, json, re\nout = subprocess.check_output(['ip', '-6', 'addr', 'show', 'scope', 'link'], text=True)\nmatches = re.findall(r'inet6 (fe80::[0-9a-f:]+)/\\d+ scope link (?:noprefixroute )?(\\S+)', out)\nif matches:\n    ip, iface = matches[0]\n    print(f'Detected Link-Local IP: {ip} on interface {iface}')\n    with open('target_ipv6.json', 'w') as f:\n        json.dump({'ip': ip, 'iface': iface}, f)\nelse:\n    print('No link-local IPv6 address detected. Ensure IPv6 is enabled.')\n\"\n```",
+                "**Stage 3: Author Dual-Scope Connection Probe Harness** — Create a Python script (<samp>test_ipv6_scope.py</samp>) that tests both bare and scope-attached socket connections:\n\n```bash\ncat <<'EOF' > test_ipv6_scope.py\nimport socket, sys, json, os\n\nwith open('target_ipv6.json') as f:\n    cfg = json.load(f)\n\ntarget_ip = cfg['ip']\niface = cfg['iface']\nport = 9898\n\n# 1. Start a mock IPv6 listener on link-local\nserver = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)\nserver.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)\n# Bind to target IP with interface scope index\ntry:\n    scope_id = socket.if_nametoindex(iface)\n    server.bind((target_ip, port, 0, scope_id))\n    server.listen(1)\n    print(f\"[SERVER] Listening on [{target_ip}%{iface}]:{port}\")\nexcept Exception as e:\n    print(f\"[SERVER ERROR] Bind failed: {e}\")\n    sys.exit(1)\n\n# Test 1: Connect WITHOUT scope index (Expected failure: EINVAL)\nprint(\\n\"--- TEST 1: Bare Link-Local Connect (No Scope) ---\")\nclient1 = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)\nclient1.settimeout(2.0)\ntry:\n    client1.connect((target_ip, port))\n    print(\"[UNEXPECTED SUCCESS] Connected without scope!\")\nexcept OSError as e:\n    print(f\"[EXPECTED REFUSAL] OSError: {e} (Errno: {e.errno})\")\nfinally:\n    client1.close()\n\n# Test 2: Connect WITH scope index (Expected success)\nprint(\\n\"--- TEST 2: Scoped Link-Local Connect (With Scope ID) ---\")\nclient2 = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)\nclient2.settimeout(2.0)\ntry:\n    client2.connect((target_ip, port, 0, scope_id))\n    print(f\"[VERIFIED SUCCESS] Successfully connected to [{target_ip}%{iface}]:{port}!\")\nexcept Exception as e:\n    print(f\"[FAILED] Scoped connect failed: {e}\")\n    sys.exit(1)\nfinally:\n    client2.close()\n    server.close()\nprint(\\n\"[ASSERT PASS] IPv6 scoping invariant verified: Link-local requires explicit zone ID.\")\nEOF\n```",
+                "**Stage 4: Execute IPv6 Scope Verification Probes** — Execute the test script to observe kernel socket behavior:\n\n```bash\npython3 test_ipv6_scope.py\n```",
+                "**Stage 5: Inspect Kernel Neighbor Discovery Tables** — Inspect the kernel IPv6 neighbor cache using <kbd>ip</kbd> to observe link-local resolution state:\n\n```bash\nip -6 neigh show\n```",
+                "**Stage 6: Rehearse Bounded Failure: Synthesize DNS Scope Omission** — Simulate a service discovery failure where an application attempts to query a DNS mock returning an unadorned link-local address:\n\n```bash\npython3 -c \"\nimport socket, json\nwith open('target_ipv6.json') as f:\n    cfg = json.load(f)\n\n# Simulate DNS getaddrinfo returning sockaddr tuple\ntry:\n    res = socket.getaddrinfo(cfg['ip'], 9898, socket.AF_INET6, socket.SOCK_STREAM)\n    sockaddr = res[0][4]\n    print(f'getaddrinfo returned sockaddr: {sockaddr}')\n    # Note that scope_id in sockaddr[3] is 0 from DNS!\n    print(f'Extracted Scope ID from lookup: {sockaddr[3]} (0 = Unspecified / Missing)')\nexcept Exception as e:\n    print(e)\n\"\n```",
+                "**Stage 7: Diagnose Evidence and Record Architectural Mitigation** — Author a structured diagnostic summary documenting why link-local IPv6 addresses must never be published to enterprise DNS zones:\n\n```bash\ncat <<'EOF' > ipv6_scoping_evidence.md\n# Architectural Evidence: IPv6 Address Scoping Boundaries\n\n- Observation 1: Connecting to bare link-local address fe80:: without scope index fails with Errno 22 (EINVAL).\n- Observation 2: Standard DNS AAAA records convey only 128-bit addresses, never interface zone qualifiers.\n- Observation 3: Sockets require explicit 4-tuple (host, port, flowinfo, scope_id) when addressing link-local destinations.\n- Decision: Service discovery, internal DNS, and external ingress MUST strictly publish Global Unicast (GUA) or Unique Local (ULA) addresses.\nEOF\ncat ipv6_scoping_evidence.md\n```",
+                "**Stage 8: Clean Up and Close Out Exercise** — Remove temporary test fixtures and verify no orphaned listeners remain:\n\n```bash\nrm -f target_ipv6.json test_ipv6_scope.py\n```"
+            ],
+            accept="Generated evidence markdown proves that bare link-local connections fail with EINVAL while scoped connections succeed, confirming scope boundaries.",
+            trouble="If no IPv6 address is found on the default interface, verify that IPv6 is enabled in the host kernel via sysctl net.ipv6.conf.all.disable_ipv6.",
+            file_name="ipv6_scoping_evidence.md"
+        )
     },
-    "part3_intro": "These are synthetic Brightloaf tabletop cases. The quoted command outputs are illustrative local evidence formats, not records of a real production event; each diagnosis preserves the distinction between an observed symptom and an architectural inference.",
-    "part4_intro": "The exercises use supplied or local resolver output only. Do not alter DNS zones, firewall rules, routes, or remote services. Save the diagram and answers as an evidence artifact.",
-    "topics": [
-        {
-            "key": "topic-01", "title": "IPv6 addressing and scope",
-            "overview": "IPv6 represents a 128-bit address, normally written as hexadecimal groups, with a prefix length that identifies the network portion. Scope matters: link-local addresses require an interface context, while a global-looking address still needs a usable route and a listening service before it can support an application exchange.",
-            "preview": "A client has an AAAA answer but attempts a link-local destination without an interface scope. The user experiences an apparent name-resolution success followed by no usable connection.",
-            "technical": "#### Address, prefix, and scope\n\nAn IPv6 address is not a route. A host selects a source and next hop according to local interface, addressing, and routing information; Neighbor Discovery replaces IPv4 ARP functions on IPv6 links. Link-local addresses are valid only on their link, so a socket destination may need a zone/interface identifier in local tooling.\n\n- **Control boundary:** interface configuration, prefix and route selection are local network controls.\n- **Data path:** a DNS AAAA answer supplies an address record; packets still require a source address, route, next-hop resolution, and a receiver.\n- **Failure signal:** an AAAA response or a formatted address alone cannot establish which path failed.\n- **Trade-off:** dual stack improves compatibility but creates independent IPv4 and IPv6 paths that must be tested and evidenced separately.\n\n**Evidence limit:** supplied resolver text can show a record; a local IPv6 route-table observation can show a route on that host; neither proves behavior from another network.",
-            "questions": ["Which scope and interface make this IPv6 destination meaningful?", "What evidence separates an AAAA answer from route reachability?", "When is an IPv4 fallback a compatibility choice rather than proof that IPv6 is broken?"],
-            "reference": "https://datatracker.ietf.org/doc/html/rfc4291#section-2", "reference_label": "RFC 4291 §2: IPv6 addressing architecture (accessed 2026-09-30)",
-            "scenario": {"scenario": "Synthetic tabletop: Brightloaf's test client receives an AAAA record for a service and an operator copies a link-local address into a runbook without its interface context.", "impact": "Supplied symptom: the lookup is recorded as successful while the follow-on connection cannot identify a usable destination. Business impact is a delayed test, not a claimed production outage.", "constraints": "Do not modify network configuration or claim a remote service failure; use the supplied output and local route table only.", "evidence": "```text\n$ dig AAAA api.example.test\n;; ANSWER SECTION:\napi.example.test. 300 IN AAAA 2001:db8:1::20\n\n$ ip -6 route\nfe80::/64 dev eth0 proto kernel metric 256\n```\nThis is illustrative local evidence.", "root": "Architectural inference: the runbook confused a DNS record with a scoped, routed socket destination. The supplied documentation prefix is also reserved for examples and must not be treated as a live target.", "diagnostic_steps": ["Label the AAAA answer as name-resolution evidence only.", "Record the destination scope and the local interface/route separately.", "Check whether the test target and socket endpoint are supplied or locally observable.", "Stop at an unknown route or listener rather than assigning an application cause."], "remediation_steps": ["Store address, prefix, scope, and interface as separate runbook fields.", "Require a two-path worksheet: AAAA resolution plus a bounded local route observation."], "verify": "A reviewer can point to distinct fields for DNS answer, chosen interface, route evidence, and TCP state; no field claims that another field proves it.", "residual": "Local routes and remote policy can change after the worksheet is made; repeat observations when the environment changes.", "diagram": ("AAAA lookup returns address", "address treated as reachable endpoint", "connection test is misclassified", "record scope and route separately", "diagram labels resolution and reachability"), "facts": "Synthetic supplied resolver and route snippets.", "inference": "The failure is a documentation/evidence-boundary defect, not proof of a network outage.", "expected": "The next test stops at the first unproven boundary."},
-            "lab": lab("Build an IPv6 scope worksheet", "Separate IPv6 notation, scope, resolver answer, and route evidence.", "One annotated IPv6 branch with an explicit unknown/stop condition where evidence is absent.", ["Stage 1 — Preflight: write `2001:db8:1::20/64` and `fe80::1` in the worksheet; mark the documentation prefix and link-local scope.", "Stage 2 — Prepare inputs: copy the supplied AAAA response and local IPv6 route-table output into two labeled columns.", "Stage 3 — Author analysis: draw client → AAAA answer → selected interface → route → server socket, leaving a blank only for unobserved evidence.", "Stage 4 — Execute bounded observation: run <kbd>ip -6 addr</kbd> and <kbd>ip -6 route</kbd>; record only the local interface and route lines relevant to the worksheet.", "Stage 5 — Inspect result: identify one prefix length, one interface, and whether the supplied address is link-local or documentation/global-formatted.", "Stage 6 — Rehearse edge case: replace the destination with `fe80::1` and state why an interface/zone is required before a local test is meaningful.", "Stage 7 — Diagnose and decide: label the earliest missing proof as DNS, route, neighbor, listener, or unknown; write one next safe observation.", "Stage 8 — Close out: remove copied transient output that contains unrelated local addresses and save the redacted worksheet."], "Artifact contains address/prefix, scope, resolver evidence, route evidence, one stated limitation, and a next-hop/stop decision.", "If the IPv6 route command is unavailable, use supplied output and explicitly mark the local observation unperformed; do not substitute IPv4 output."),
+    {
+        "key": "topic-02",
+        "title": "DNS records, TTL and resolver roles",
+        "overview": (
+            "The Domain Name System (DNS, RFC 1034 / RFC 1035) provides a globally distributed, hierarchical database spanning Root servers "
+            "(<samp>.</samp>, 13 Anycast clusters A–M), Top-Level Domains (gTLDs, ccTLDs, <samp>.arpa</samp>), Second-Level Domains, and "
+            "Authoritative Name Servers. The resolution process coordinates stub resolvers, OS caches, and Recursive Resolvers through iterative "
+            "referral chains, mapping hostnames to typed resource records (A, AAAA, CNAME, MX, TXT, PTR, SRV, NS, SOA) bounded by Time-To-Live (TTL) "
+            "cache policies. Security extensions (DNSSEC, RFC 4033–4035) provide cryptographic authenticity and data integrity via digital signatures "
+            "(RRSIG, DNSKEY, DS), while encrypted transports (DNS over TLS [DoT] and DNS over HTTPS [DoH]) protect against on-path eavesdropping."
+        ),
+        "preview": (
+            "An operations team modifies a DNS A record during a critical database failover but overlooks a 3600-second TTL cached across upstream "
+            "recursive resolvers. Application pods continue directing transactional traffic to the decommissioned primary database for over forty "
+            "minutes, resulting in split-brain data corruption and order reconciliation failures."
+        ),
+        "technical": (
+            "**Subtopics in this discussion:** Hierarchical DNS architecture and authoritative name servers; "
+            "the resolution pipeline (stub resolver, recursive resolver, iterative referral chain); "
+            "core DNS resource record types and TTL caching dynamics; "
+            "DNS security protocols (DNSSEC, DoT, DoH) and Google Cloud DNS managed private zones.\n\n"
+
+            "### Hierarchical DNS architecture and authoritative name servers\n"
+            "**What it is in general:** The Domain Name System (RFC 1034, RFC 1035) is structured as an inverted hierarchical tree starting at the Root Zone (<samp>.</samp>). "
+            "The root zone is served by 13 logical root server identities (A through M), operated across hundreds of globally distributed Anycast instances. "
+            "Beneath the root sit Top-Level Domains (TLDs), divided into generic TLDs (<samp>.com</samp>, <samp>.org</samp>, <samp>.net</samp>), country-code TLDs (<samp>.uk</samp>, <samp>.de</samp>), "
+            "and infrastructure domains (<samp>.arpa</samp>). Authoritative Name Servers hold the master database records (RRsets) for specific zones and have final authority over their namespace.\n\n"
+            "**Relevance to a cloud architect:** Understanding the authoritative chain allows architects to configure domain delegation, manage registrar NS records, "
+            "and design multi-provider DNS resilience. Delegating subdomains to dedicated cloud managed zones decouples developer team operations from corporate root domain controls.\n\n"
+            "**Relevance to GCP:** [Google Cloud DNS public zones](https://cloud.google.com/dns/docs/overview) provide an authoritative DNS service running on Google's Anycast "
+            "global network infrastructure, delivering 100% availability SLA and ultra-low lookup latency worldwide.\n\n"
+
+            "### The resolution pipeline (stub resolver, recursive resolver, iterative referral chain)\n"
+            "**What it is in general:** The resolution pipeline separates query roles into distinct actors:\n"
+            "- **Stub Resolver:** A lightweight client library embedded in the guest OS (<samp>glibc getaddrinfo</samp>, <samp>systemd-resolved</samp>) that does not traverse the DNS hierarchy. It formats a query with the Recursion Desired (<samp>RD=1</samp>) bit and sends it to a designated recursive resolver.\n"
+            "- **Recursive Resolver (Full Resolver):** Traverses the global hierarchy on behalf of the client. It queries a Root server, receives a referral (<samp>NS</samp> records + glue <samp>A/AAAA</samp>) to the TLD servers, queries the TLD server to receive a referral to the authoritative server, and finally queries the authoritative server for the answer.\n"
+            "- **Authoritative Server:** Answers authoritatively (<samp>AA=1</samp>) with the requested RRset or an error code (<samp>NXDOMAIN</samp> if name does not exist, <samp>NODATA</samp> if name exists but record type does not).\n\n"
+            "**Relevance to a cloud architect:** Cloud architects must architect private name resolution paths. Conflating stub resolver behavior with recursive caching can lead to split-brain resolution errors across hybrid Cloud VPN or Cloud Interconnect topologies.\n\n"
+            "**Relevance to GCP:** In Google Cloud Compute Engine, every VM queries the internal metadata resolver at <samp>169.254.169.254</samp> over link-local address space. "
+            "As detailed in [Google Cloud DNS server policies](https://cloud.google.com/dns/docs/zones/manage-dns-routing-policies), Cloud DNS can forward queries to on-premises "
+            "recursive resolvers or accept inbound queries via private Cloud DNS forwarding targets.\n\n"
+
+            "### Core DNS resource record types and TTL caching dynamics\n"
+            "**What it is in general:** Resource Records (RRs) are typed data units grouped into Record Sets (RRsets). Core record types include:\n"
+            "- <samp>A</samp>: 32-bit IPv4 address.\n"
+            "- <samp>AAAA</samp>: 128-bit IPv6 address.\n"
+            "- <samp>CNAME</samp>: Canonical name alias pointing to another fully qualified domain name (FQDN). CNAME records cannot coexist with other records for the same label (RFC 1912), prohibiting CNAME at zone apex (<samp>example.com</samp>).\n"
+            "- <samp>MX</samp>: Mail exchange with 16-bit preference priority.\n"
+            "- <samp>TXT</samp>: Arbitrary text, commonly used for domain verification, SPF (RFC 7208), and DKIM.\n"
+            "- <samp>PTR</samp>: Pointer record in <samp>in-addr.arpa</samp> or <samp>ip6.arpa</samp> mapping IP addresses back to canonical hostnames.\n"
+            "- <samp>SRV</samp>: Service locator specifying priority, weight, port, and target host.\n"
+            "- <samp>SOA</samp>: Start of Authority specifying zone serial number, refresh, retry, expire, and negative caching minimum TTL.\n"
+            "Every RRset has a **Time-To-Live (TTL)** in seconds. Recursive resolvers cache the RRset and count down the TTL, serving subsequent requests directly from cache without querying authoritative servers until TTL reaches zero.\n\n"
+            "**Relevance to a cloud architect:** TTL management is the central operational control for planned maintenance, migrations, and disaster recovery. Lowering TTLs to 60 seconds days before a database migration ensures that traffic redirects immediately upon record modification. Failing to lower TTLs locks application clients to old IP addresses for hours, causing split-brain data corruption during database failovers.\n\n"
+            "**Relevance to GCP:** [Google Cloud DNS routing policies](https://cloud.google.com/dns/docs/zones/manage-dns-routing-policies) enable geo-routing and weighted round-robin policies directly at the DNS layer, allowing architects to shift traffic percentages dynamically between regions during releases.\n\n"
+
+            "### DNS security protocols (DNSSEC, DoT, DoH) and Google Cloud DNS managed private zones\n"
+            "**What it is in general:** Traditional DNS is unauthenticated and unencrypted plaintext over UDP port 53, vulnerable to cache poisoning (Kaminsky attacks) and man-in-the-middle tampering:\n"
+            "- **DNSSEC (RFC 4033–4035):** Provides cryptographic origin authentication and data integrity using public key cryptography. Authoritative zones sign RRsets with Resource Record Signatures (<samp>RRSIG</samp>). Resolvers validate signatures against DNS Public Keys (<samp>DNSKEY</samp>) and verify the trust chain up to the root via Delegation Signer (<samp>DS</samp>) records published in parent zones.\n"
+            "- **DoT (DNS over TLS, RFC 7858):** Encrypts DNS queries over dedicated TCP port 853 with TLS encryption.\n"
+            "- **DoH (DNS over HTTPS, RFC 8484):** Encrypts DNS queries inside HTTP/2 or HTTP/3 frames over standard TCP/UDP port 443, preventing network eavesdropping.\n\n"
+            "**Relevance to a cloud architect:** Implementing DNSSEC prevents attackers from poisoning recursive caches and hijacking sensitive cloud API endpoints. Configuring private DNS zones prevents internal network topologies and database hostnames from leaking to the public internet.\n\n"
+            "**Relevance to GCP:** [Google Cloud DNS managed private zones](https://cloud.google.com/dns/docs/zones/zones-overview#private-zones) isolate internal service discovery to authorized VPCs, supporting cross-VPC DNS peering and Response Policy Zones (RPZ) to block malicious egress domains.\n\n"
+
+            "**Concrete Example:** During a PostgreSQL database cutover from an on-premises data center to Cloud SQL, the database team updates the internal DNS record <samp>db.prod.internal</samp> from <samp>10.10.0.50</samp> to Cloud SQL's IP <samp>10.240.4.12</samp>. However, the record had been provisioned with an unmanaged TTL of 86400 seconds (24 hours). Compute Engine microservices continue querying their local cache and sending transactions to the old database for up to 24 hours, corrupting financial records and forcing an emergency manual service freeze. Reducing the TTL to 60 seconds 48 hours prior to maintenance guarantees seamless cutover within one minute.\n\n"
+
+            "**Evidence limit:** A successful DNS resolution proves only that a record exists in an authoritative or cached database; "
+            "it provides zero evidence that the resolved IP address has an active routing path, that firewalls allow port access, or that the destination service is healthy."
+        ),
+        "questions": [
+            "Why does a CNAME record at zone apex (e.g. example.com) violate RFC 1912, and how do modern cloud DNS providers circumvent this limitation?",
+            "What cryptographic mechanism does DNSSEC use to prove that a requested domain name does NOT exist without signing every possible nonexistent string?",
+            "How does a recursive resolver determine whether to serve a record from cache or perform an iterative query to authoritative name servers?"
+        ],
+        "reference": "https://www.rfc-editor.org/rfc/rfc9293",
+        "reference_label": "RFC 1035 / RFC 9293: Domain Names and Transport Integration (accessed 2026-10-02)",
+        "scenario": {
+            "scenario": (
+                "Brightloaf's infrastructure engineering team executed a scheduled failover of the primary transactional database "
+                "from on-premises to Google Cloud SQL. The migration runbook included updating internal DNS records to redirect traffic."
+            ),
+            "symptom": (
+                "Post-migration application telemetry indicated that 45% of order-processing microservices continued writing transactions "
+                "to the old, read-only on-premises database for over 40 minutes following the DNS change, generating hundreds of transaction rollback errors."
+            ),
+            "impact": (
+                "Split-brain transactional state across environments. Financial reconciliation required 4 hours of database locks, "
+                "costing an estimated $120,000 in delayed batch settlements and merchant SLA penalties."
+            ),
+            "constraints": (
+                "Zero data loss; ACID compliance must be preserved; production services cannot be rebooted simultaneously due to cascading cold-start risk."
+            ),
+            "evidence": (
+                "Inspecting the DNS zone configuration revealed that the record TTL was configured to 3600 seconds (1 hour):\n\n"
+                "```text\n"
+                ";; QUESTION SECTION:\n"
+                ";db-primary.brightloaf.internal. IN A\n\n"
+                ";; ANSWER SECTION:\n"
+                "db-primary.brightloaf.internal. 3540 IN A 10.100.24.50\n"
+                "```\n\n"
+                "Executing <kbd>dig +nocmd +noall +answer @169.254.169.254 db-primary.brightloaf.internal</kbd> on worker nodes showed disparate remaining TTLs, "
+                "proving upstream caches were serving stale records."
+            ),
+            "root": (
+                "The database DNS record had a 3600-second TTL that was not reduced prior to the maintenance window. Upstream recursive "
+                "resolvers and VM-local caches held the old target IP address in memory, continuing to resolve queries to the retired primary "
+                "until their individual TTL timers expired."
+            ),
+            "diagnostic_steps": [
+                "Step 1: Execute <kbd>dig +trace</kbd> against the FQDN to observe authoritative TTL values versus local cached TTL values.",
+                "Step 2: Inspect application connection pool connection lifetimes to determine if connections are long-lived or re-resolved per request.",
+                "Step 3: Query Cloud DNS managed zone API to verify the active SOA and RRset TTL configurations.",
+                "Step 4: Audit JVM and container DNS cache settings (e.g. <samp>networkaddress.cache.ttl</samp>) to detect infinite caching bugs."
+            ],
+            "remediation_steps": [
+                "Tactical Fix: Flush local resolver caches using <kbd>resolvectl flush-caches</kbd> and force connection pool recycling across pods.",
+                "Strategic Control: Establish automated migration runbooks that automatically reduce DNS TTLs to 60 seconds 72 hours prior to cutover."
+            ],
+            "verify": (
+                "Verify via <kbd>dig @169.254.169.254 db-primary.brightloaf.internal</kbd> that all query responses return the new Cloud SQL IP "
+                "and that TTL countdown never exceeds 60 seconds."
+            ),
+            "residual": (
+                "Low TTLs increase query volume against Cloud DNS; ensure Cloud DNS query quotas and billing budgets account for higher resolution frequency."
+            ),
+            "diagram": (
+                "Failover triggers DNS update",
+                "Resolver caches old IP for 3600s TTL",
+                "Split-brain writes hit decommissioned DB",
+                "Lower TTL to 60s & flush resolver",
+                "100% traffic shifts cleanly to Cloud SQL"
+            ),
+            "icons": (
+                "../assets/icons/generic/event.svg",
+                "../assets/icons/generic/failure.svg",
+                "../assets/icons/generic/database.svg",
+                "../assets/icons/gcp/legacy/cloud-dns.svg",
+                "../assets/icons/generic/outcome.svg"
+            ),
+            "facts": "Authoritative DNS record was updated; recursive resolvers served the previous IP until the 3600-second TTL elapsed.",
+            "inference": "DNS is an eventually consistent control plane governed by cache timers; failovers without prior TTL reduction cause split-brain traffic routing.",
+            "expected": "Resolvers refresh cache within 60 seconds, routing all application instances to the active Cloud SQL database."
         },
-        {
-            "key": "topic-02", "title": "DNS records, TTL and resolver roles",
-            "overview": "DNS maps names to typed resource records. A recursive resolver serves a client from cache when permitted or follows delegations to authoritative servers; an authoritative server publishes zone data. A TTL constrains caching of an answer but is not a promise about propagation, reachability, or application availability.",
-            "preview": "A cache returns an older address until its recorded TTL expires after a planned change. Users may be sent to the previous destination even though the zone data was changed.",
-            "technical": "#### Records and roles\n\nA and AAAA records map names to IPv4 and IPv6 addresses. CNAME aliases one name to another; MX, TXT, NS, SOA, and PTR serve mail, text policy, delegation, zone, and reverse-lookup roles. The stub resolver usually asks a recursive resolver; recursive and authoritative are different responsibilities even when an implementation can host both.\n\n- **Control boundary:** zone owner publishes the authoritative data; cache operator controls local resolver behavior; client controls what it queries and records.\n- **Data path:** query → recursive cache or delegation → authoritative answer → TTL-bearing response → client decision.\n- **Failure signal:** NXDOMAIN, SERVFAIL, timeout, or a stale cache answer are different observations requiring different evidence.\n- **Trade-off:** shorter TTL may reduce cache persistence but increases query dependency; it does not make every resolver refresh simultaneously.\n\n**Evidence limit:** `dig` output identifies a responding server and flags in one observation. It does not alone prove which upstream servers were contacted or when every cache will expire.",
-            "questions": ["Which role owns the RRset and which role may serve a cached answer?", "What does the displayed TTL prove and not prove?", "How would you avoid calling a DNS result a reachability test?"],
-            "reference": "https://www.rfc-editor.org/rfc/rfc1034#section-4.3.1", "reference_label": "RFC 1034 §4.3.1: name-server and resolver behavior (accessed 2026-09-30)",
-            "scenario": {"scenario": "Synthetic tabletop: a Brightloaf migration worksheet changes the intended A and AAAA targets, but the test team treats a cached recursive response as proof that the authoritative zone is wrong.", "impact": "Supplied symptom: different test locations show different answers. Operational impact is delayed cutover review; no customer impact or propagation time is asserted.", "constraints": "Use only supplied transcripts and labels; do not edit a public or private DNS zone.", "evidence": "```text\n$ dig www.example.test A\n;; flags: qr rd ra; QUERY: 1, ANSWER: 1\n;; ANSWER SECTION:\nwww.example.test. 120 IN A 192.0.2.44\n;; SERVER: 192.0.2.53#53\n```\nIllustrative output: `ra` indicates recursion available from the responding server.", "root": "Architectural inference: the worksheet lacks resolver-role and TTL fields, so a cache observation is being compared directly with an unobserved authoritative response.", "diagnostic_steps": ["Classify the supplied server as recursive response evidence, not authoritative proof.", "List query name, type, answer, TTL, flags, and responding server.", "Obtain supplied authoritative evidence only if the exercise provides it; otherwise record unknown.", "Compare observations without inventing a propagation interval."], "remediation_steps": ["Add cache-versus-authority columns to the change worksheet.", "Require the cutover decision to cite RR type, answer, TTL, responder, and observation time."], "verify": "The revised worksheet can explain why two answers may differ without declaring either a network failure.", "residual": "Caching behavior and delegation configuration remain environment-dependent and must be observed again during a real, authorized change.", "diagram": ("client asks recursive resolver", "cached result called authoritative", "cutover decision lacks evidence", "record authority, TTL, and cache role", "decision cites bounded DNS evidence"), "facts": "Synthetic dig-style transcript and a supplied migration scenario.", "inference": "Role confusion, rather than a demonstrated authoritative defect, explains the ambiguity.", "expected": "The team defers the claim until the relevant authoritative evidence exists."},
-            "lab": lab("Trace resolver roles and TTL", "Classify DNS records and distinguish cache evidence from authority evidence.", "A resolver worksheet containing A, AAAA, CNAME, MX, TXT, NS, SOA, and PTR roles plus one bounded lookup trace.", ["Stage 1 — Preflight: list A, AAAA, CNAME, MX, TXT, NS, SOA, and PTR with a one-line purpose each.", "Stage 2 — Prepare inputs: paste the supplied `dig` response into the worksheet and label query name, type, flags, server, answer, and TTL.", "Stage 3 — Author analysis: draw stub → recursive resolver → authoritative zone and place the supplied answer at the recursive/cache boundary.", "Stage 4 — Execute bounded observation: run <kbd>dig example.com A</kbd> and <kbd>dig example.com AAAA</kbd>; label output as local observation and keep the server field.", "Stage 5 — Inspect result: identify `rd` and `ra` if shown, one TTL, and whether the output itself names an authoritative source.", "Stage 6 — Rehearse edge case: change the worksheet TTL from 300 to 30 and write what this changes about cache permission, plus what it does not prove about simultaneous refresh.", "Stage 7 — Diagnose and decide: for a stale-looking answer, choose cache, authority, reachability, or unknown as the first boundary needing evidence and record why.", "Stage 8 — Close out: redact any internal names or resolver addresses from the saved artifact and retain only approved/supplied examples."], "Artifact lists all eight record types, shows resolver versus authoritative roles, includes a TTL interpretation, and explicitly separates DNS answer evidence from reachability.", "If `dig` is unavailable, use the supplied transcript; do not infer flags or TTL values not present in it."),
+        "lab": make_lab(
+            name="Recursive DNS Resolution, TTL Dynamics, and DNSSEC Validation",
+            goal="Dissect the DNS resolution chain, analyze TTL cache decrement mechanics, and audit cryptographic DNSSEC authentication chains using command-line diagnostic tools.",
+            expected="A structured DNS evaluation report documenting root referral iterations, cache expiration verification, and DNSSEC RRSIG cryptographic validation.",
+            steps=[
+                "**Stage 1: Preflight and Environment Verification** — Verify installation of DNS diagnostic utilities (<kbd>dig</kbd>, <kbd>delv</kbd>) and test internet DNS reachability:\n\n```bash\nwhich dig || sudo apt-get update && sudo apt-get install -y dnsutils\ndig -v\n```",
+                "**Stage 2: Trace Iterative DNS Referral Chain** — Execute an iterative trace from the DNS Root servers down to the authoritative name server for a target domain:\n\n```bash\ndig +trace +nodnssec google.com A > dns_trace.txt\nhead -n 25 dns_trace.txt\n```",
+                "**Stage 3: Inspect Resource Record Sets and TTL Decrement Mechanics** — Query a public domain repeatedly and observe the TTL counter decrement in real time:\n\n```bash\ndig google.com A | grep -E '^google.com' > ttl_sample1.txt\nsleep 3\ndig google.com A | grep -E '^google.com' > ttl_sample2.txt\ncat ttl_sample1.txt ttl_sample2.txt\n```",
+                "**Stage 4: Author Mock DNS Zone and Validate Negative Caching (SOA MINIMUM)** — Inspect an SOA record to examine negative caching parameters (RFC 2308):\n\n```bash\ndig SOA google.com +noall +answer\n```",
+                "**Stage 5: Audit DNSSEC Cryptographic Trust Chain** — Validate cryptographic authenticity of a signed domain using <kbd>delv</kbd> or <kbd>dig +dnssec</kbd>:\n\n```bash\ndig +dnssec cloudflare.com A | grep -E 'RRSIG' > dnssec_rrsig.txt\ncat dnssec_rrsig.txt\n```",
+                "**Stage 6: Rehearse Bounded Failure: DNSSEC Cryptographic Validation Failure** — Query a domain known to have intentionally broken DNSSEC signatures (<samp>dnssec-failed.org</samp>) to observe <samp>SERVFAIL</samp> behavior:\n\n```bash\ndig @8.8.8.8 dnssec-failed.org A +noall +comments | grep -E 'status:' || true\n```",
+                "**Stage 7: Diagnose Evidence and Record Remediation Decision** — Author a structured diagnostic summary documenting the findings of the DNS resolution audit:\n\n```bash\ncat <<'EOF' > dns_evaluation_evidence.md\n# Architectural Evidence: DNS Resolution, TTL Caching, and DNSSEC\n\n- Observation 1: Iterative resolution walked from Root (.) -> TLD (.com) -> Authoritative server.\n- Observation 2: TTL values decremented on consecutive queries, confirming caching at recursive resolver.\n- Observation 3: Validation failure against dnssec-failed.org returned SERVFAIL, proving the resolver enforces cryptographic integrity.\n- Decision: Critical database endpoints must maintain <= 60s TTL during maintenance windows, and all cloud domains must enforce DNSSEC validation.\nEOF\ncat dns_evaluation_evidence.md\n```",
+                "**Stage 8: Clean Up and Close Out Exercise** — Remove temporary test files generated during the diagnostic probes:\n\n```bash\nrm -f dns_trace.txt ttl_sample1.txt ttl_sample2.txt dnssec_rrsig.txt\n```"
+            ],
+            accept="Generated evidence markdown verifies root referral sequence, TTL cache decrement observation, and DNSSEC validation failure response.",
+            trouble="If outbound UDP port 53 is blocked by a local firewall, test using DNS over HTTPS (DoH) via curl https://dns.google/resolve?name=google.com.",
+            file_name="dns_evaluation_evidence.md"
+        )
+    },
+    {
+        "key": "topic-03",
+        "title": "TCP and UDP, ports, connection states and buffers",
+        "overview": (
+            "The transport layer establishes host-to-host process communication using 16-bit ports and socket abstractions. Endpoints bind "
+            "to specific IP and port combinations across stream (<samp>SOCK_STREAM</samp>), datagram (<samp>SOCK_DGRAM</samp>), and raw "
+            "(<samp>SOCK_RAW</samp>) socket types, governed by the BSD socket lifecycle API and high-performance I/O multiplexing primitives "
+            "(<samp>epoll</samp>, <samp>io_uring</samp>, <samp>SO_REUSEPORT</samp>). The Transmission Control Protocol (TCP, RFC 9293) enforces "
+            "reliability through 3-way connection handshakes, 4-way teardowns (<samp>TIME_WAIT</samp>), sliding-window flow control (<samp>rwnd</samp>), "
+            "and congestion control algorithms (Tahoe, Reno, CUBIC, BBR), while modern transport evolution introduces QUIC (RFC 9000) and HTTP/3 "
+            "(RFC 9114) over UDP to eliminate transport-level Head-of-Line blocking."
+        ),
+        "preview": (
+            "A high-concurrency API service encounters socket accept queue saturation under peak promotional traffic while CPU utilization sits "
+            "at barely thirty percent. Inbound TCP SYN packets are silently dropped by the kernel network stack, causing upstream load balancers "
+            "to log HTTP 504 gateway timeouts and prompting clients to retry aggressively, amplifying the cascade."
+        ),
+        "technical": (
+            "**Subtopics in this discussion:** Transport protocol paradigms (TCP vs UDP vs QUIC); "
+            "BSD socket addressing, socket types, and the complete socket lifecycle API; "
+            "I/O multiplexing architectures (select, poll, epoll, io_uring, SO_REUSEPORT); "
+            "TCP connection management (3-way/4-way handshakes, TIME_WAIT, RST), flow control, congestion algorithms, and socket buffers.\n\n"
+
+            "### Transport protocol paradigms (TCP vs UDP vs QUIC)\n"
+            "**What it is in general:** Transport layer protocols define host-to-host communication semantics across 16-bit port numbers (1–65535):\n"
+            "- **TCP (RFC 9293):** Connection-oriented, reliable, ordered byte-stream protocol. Enforces data integrity via sequence numbers, checksums, and positive acknowledgments with retransmission.\n"
+            "- **UDP (RFC 768):** Connectionless, unreliable, unordered datagram protocol. Minimal 8-byte header overhead with zero handshake delay, ideal for real-time telemetry, DNS lookups, and media streaming.\n"
+            "- **QUIC (RFC 9000):** Modern multiplexed transport running in user space over UDP port 443. Integrates TLS 1.3 encryption directly into the transport handshake (0-RTT / 1-RTT), provides independent stream multiplexing without Head-of-Line blocking, and supports seamless connection migration across IP addresses via 64-bit Connection IDs (CIDs).\n\n"
+            "**Relevance to a cloud architect:** Choosing the appropriate transport protocol governs architectural latency and fault isolation. For video streaming and IoT telemetry, UDP avoids TCP retransmission stalls. For global web APIs and mobile apps, deploying HTTP/3 over QUIC cuts latency by eliminating multi-RTT connection handshakes.\n\n"
+            "**Relevance to GCP:** [Google Cloud HTTP/3 Load Balancing](https://cloud.google.com/load-balancing/docs/https#http3-quic) terminates QUIC connections at Google's global edge network, proxying requests over optimized internal TCP backbones to backend Compute Engine or GKE workloads.\n\n"
+
+            "### BSD socket addressing, socket types, and the complete socket lifecycle API\n"
+            "**What it is in general:** Sockets provide the operating system abstraction for network I/O. Endpoints are bound to a 4-tuple: (Source IP, Source Port, Destination IP, Destination Port). Socket families include <samp>AF_INET</samp> (IPv4), <samp>AF_INET6</samp> (IPv6), and <samp>AF_UNIX</samp> (Unix Domain Sockets). Sockets support stream (<samp>SOCK_STREAM</samp>), datagram (<samp>SOCK_DGRAM</samp>), and raw (<samp>SOCK_RAW</samp>) types.\n"
+            "The server socket lifecycle follows an explicit sequence: (1) <kbd>socket()</kbd> creates the file descriptor; (2) <kbd>bind()</kbd> associates it with a local IP and port; (3) <kbd>listen()</kbd> transitions the socket to passive mode and sizes the backlog queues; (4) <kbd>accept()</kbd> dequeues an established connection and returns a new connected socket; (5) <kbd>recv()</kbd> and <kbd>send()</kbd> transfer byte streams; (6) <kbd>close()</kbd> initiates connection teardown.\n\n"
+            "**Relevance to a cloud architect:** Cloud microservice performance depends on socket lifecycle ergonomics. Socket leaks (failing to call <kbd>close()</kbd>) exhaust file descriptors, crashing application runtimes. Understanding the socket 4-tuple prevents ephemeral port exhaustion on outbound NAT gateways.\n\n"
+            "**Relevance to GCP:** In Google Cloud Compute Engine, guest OS network throughput is throttled by per-VM bandwidth caps and ephemeral port limits. Architects must tune Linux kernel socket allocations (<samp>net.ipv4.ip_local_port_range</samp>) to support high-throughput cloud proxies.\n\n"
+
+            "### I/O multiplexing architectures (select, poll, epoll, io_uring, SO_REUSEPORT)\n"
+            "**What it is in general:** Handling thousands of concurrent connections requires scalable I/O models beyond one-thread-per-connection:\n"
+            "- <samp>select()</samp> / <samp>poll()</samp>: $O(N)$ linear scans across file descriptor arrays, limited to 1024 descriptors in select.\n"
+            "- <samp>epoll()</samp>: Linux-specific $O(1)$ event-driven multiplexing. Kernel registers interest in file descriptors and returns only active events via <kbd>epoll_wait()</kbd>, supporting edge-triggered (<samp>EPOLLET</samp>) and level-triggered modes.\n"
+            "- <samp>io_uring</samp>: Modern Linux asynchronous ring buffer architecture eliminating system call overhead via lockless shared-memory ring queues between user space and kernel.\n"
+            "- <samp>SO_REUSEPORT</samp>: Allows multiple independent server processes or threads to bind to the exact same IP and port, with the kernel automatically load balancing incoming SYN packets across worker queues.\n\n"
+            "**Relevance to a cloud architect:** Cloud reverse proxies (such as NGINX and Envoy) and ingress controllers rely entirely on <samp>epoll</samp> and <samp>SO_REUSEPORT</samp>. Sizing container CPU limits without sufficient worker threads creates unhandled epoll event backlogs that lead to severe tail latency spikes.\n\n"
+            "**Relevance to GCP:** High-performance ingress proxies deployed on [Google Cloud Google Virtual NIC (gVNIC)](https://cloud.google.com/compute/docs/networking/using-gvnic) leverage multi-queue networking combined with <samp>SO_REUSEPORT</samp> to achieve millions of packets per second per instance.\n\n"
+
+            "### TCP connection management (3-way/4-way handshakes, TIME_WAIT, RST), flow control, congestion algorithms, and socket buffers\n"
+            "**What it is in general:** TCP reliability is enforced through sophisticated kernel state machines:\n"
+            "- **Handshake Lifecycle:** Initiated via 3-way handshake (<samp>SYN</samp> &rarr; <samp>SYN-ACK</samp> &rarr; <samp>ACK</samp>). Terminated via 4-way teardown (<samp>FIN</samp> &rarr; <samp>ACK</samp> &rarr; <samp>FIN</samp> &rarr; <samp>ACK</samp>). Abortive closure transmits <samp>RST</samp>. The terminating endpoint enters <samp>TIME_WAIT</samp> state for $2 \\times \\text{MSL}$ (typically 60 seconds) to ensure delayed duplicate segments expire in transit.\n"
+            "- **Kernel Queues:** The **SYN Queue** holds partially open connections (<samp>SYN_RECV</samp>). Upon completing the 3-way handshake, the connection moves to the **Accept Queue** (<samp>listen(backlog)</samp>) waiting for user space to call <kbd>accept()</kbd>. If the accept queue fills, the kernel silently drops subsequent incoming SYN packets.\n"
+            "- **Flow Control:** Receiver advertises window size (<samp>rwnd</samp>) indicating free space in <samp>sk_rcvbuf</samp>. Window Scaling (RFC 7323) scales windows up to 1 GB.\n"
+            "- **Congestion Control:** Sender bounds inflight data by Congestion Window (<samp>cwnd</samp>). Algorithms include loss-based TCP CUBIC (RFC 8312) and rate-based Google BBR, which models bottleneck bandwidth and Round-Trip Propagation Time (BtlBw/RTprop) to prevent bufferbloat.\n\n"
+            "**Relevance to a cloud architect:** When high-throughput microservices report <30% CPU utilization while dropping requests and throwing HTTP 504 timeouts, the bottleneck is almost always accept queue overflow (<samp>somaxconn</samp> exhaustion) or ephemeral port exhaustion from sockets lingering in <samp>TIME_WAIT</samp>. Tuning TCP buffers and enabling BBR maximizes cross-region throughput across Cloud Interconnect.\n\n"
+            "**Relevance to GCP:** Google Cloud's Andromeda SDN and global BGP network are optimized for [TCP BBR congestion control](https://cloud.google.com/blog/products/networking/tcp-bbr-congestion-control-comes-to-gcp-your-internet-just-got-faster). Compute Engine instances can enable BBR via sysctl to maximize transfer speeds over long-haul paths.\n\n"
+
+            "**Concrete Example:** A promotion sends an unexpected burst of 10,000 HTTP requests/second to a Compute Engine web service configured with the default Linux backlog of <samp>somaxconn=128</samp>. The application thread pool cannot invoke <kbd>accept()</kbd> fast enough to clear the accept queue. Once 128 connections queue up, the Linux kernel silently drops all new incoming SYN packets. Upstream Google Cloud Application Load Balancers retry three times, fail to establish TCP handshakes, and return HTTP 504 Gateway Timeout errors to shoppers. Increasing <samp>net.core.somaxconn=4096</samp> and sizing the application server backlog eliminates the drops and absorbs traffic spikes.\n\n"
+
+            "**Evidence limit:** A socket in ESTABLISHED state proves only that the TCP 3-way handshake completed between the host kernels; "
+            "it provides zero evidence that the application layer protocol is functioning, that HTTP requests can be parsed, or that downstream databases are operational."
+        ),
+        "questions": [
+            "What is the functional difference between the kernel SYN Queue and the Accept Queue during TCP connection establishment?",
+            "Why does the TCP TIME_WAIT state linger for 2MSL (60 seconds), and how does enabling tcp_tw_reuse safely alleviate ephemeral port exhaustion?",
+            "How does model-based congestion control (BBR) prevent the bufferbloat and packet drop cycles inherent to loss-based congestion control (CUBIC)?"
+        ],
+        "reference": "https://www.rfc-editor.org/rfc/rfc9293",
+        "reference_label": "RFC 9293: Transmission Control Protocol (accessed 2026-10-02)",
+        "scenario": {
+            "scenario": (
+                "Brightloaf's e-commerce platform experienced an unpredicted 5x surge in checkout traffic following a marketing push. "
+                "The backend API service ran on Compute Engine instances behind an internal Application Load Balancer."
+            ),
+            "symptom": (
+                "Monitoring dashboards showed that while instance CPU utilization remained under 35%, clients experienced high rates of "
+                "HTTP 504 Gateway Timeout errors. Inspection of instance kernel metrics revealed thousands of dropped TCP SYN packets."
+            ),
+            "impact": (
+                "Over 12,000 checkout requests timed out across a 15-minute window, resulting in an estimated $95,000 in abandoned shopping carts "
+                "and an immediate spike in customer support tickets."
+            ),
+            "constraints": (
+                "Zero application code modifications permitted during peak traffic; must resolve via guest OS configuration and infrastructure scaling."
+            ),
+            "evidence": (
+                "Executing <kbd>netstat -s | grep -i listen</kbd> on the backend VM instances showed rapid increments in queue overflow counters:\n\n"
+                "```text\n"
+                "14285 times the listen queue of a socket overflowed\n"
+                "14285 SYNs to LISTEN sockets dropped\n"
+                "```\n\n"
+                "Inspecting the current system limits confirmed severely constrained queue depths:\n\n"
+                "```text\n"
+                "$ sysctl net.core.somaxconn\n"
+                "net.core.somaxconn = 128\n"
+                "```\n\n"
+                "Checking active socket queue depths via <kbd>ss -lnt 'sport = :8080'</kbd> revealed Send-Q saturated at 128:\n\n"
+                "```text\n"
+                "State      Recv-Q Send-Q Local Address:Port  Peer Address:Port\n"
+                "LISTEN     129    128          0.0.0.0:8080       0.0.0.0:*\n"
+                "```"
+            ),
+            "root": (
+                "The Linux kernel parameter <samp>net.core.somaxconn</samp> was left at its default value of 128, and the application server's "
+                "listen backlog was capped at 128. During the sudden burst of ingress connections, the accept queue filled completely. "
+                "By default (<samp>tcp_abort_on_overflow=0</samp>), the Linux kernel silently dropped new incoming SYN packets, forcing upstream "
+                "load balancers into SYN retransmission backoff until timeout."
+            ),
+            "diagnostic_steps": [
+                "Step 1: Check kernel drop counters using <kbd>netstat -s | grep -i listen</kbd> or <kbd>nstat -az TcpExtListenOverflows</kbd>.",
+                "Step 2: Inspect active queue depths using <kbd>ss -lnt</kbd> to compare Recv-Q against Send-Q limits.",
+                "Step 3: Query current system limits via <kbd>sysctl net.core.somaxconn</kbd> and <kbd>sysctl net.ipv4.tcp_max_syn_backlog</kbd>.",
+                "Step 4: Check application server backlog configuration parameters in container runtime definitions."
+            ],
+            "remediation_steps": [
+                "Tactical Fix: Immediately increase kernel socket queue limits via <kbd>sysctl -w net.core.somaxconn=4096</kbd> and restart worker processes.",
+                "Strategic Control: Embed optimized kernel sysctl profiles into VM base images and Kubernetes daemonsets, tuning TCP window scaling and accept queue depths."
+            ],
+            "verify": (
+                "Verify via <kbd>ss -lnt 'sport = :8080'</kbd> that Send-Q displays 4096 and that <kbd>netstat -s</kbd> overflow counters cease incrementing under load."
+            ),
+            "residual": (
+                "Larger accept queues consume additional non-swappable kernel memory during traffic spikes; monitor kernel slab allocations."
+            ),
+            "diagram": (
+                "Traffic surge hits API server",
+                "Accept queue saturates at 128 (somaxconn)",
+                "Kernel silently drops incoming TCP SYNs",
+                "Tune somaxconn=4096 and tcp_max_syn_backlog",
+                "Zero SYN drops; requests process cleanly"
+            ),
+            "icons": (
+                "../assets/icons/generic/event.svg",
+                "../assets/icons/generic/failure.svg",
+                "../assets/icons/generic/queue.svg",
+                "../assets/icons/generic/server.svg",
+                "../assets/icons/generic/outcome.svg"
+            ),
+            "facts": "Recv-Q exceeded Send-Q (128); netstat recorded 14,285 listen queue overflows and dropped SYNs.",
+            "inference": "The application runtime could not accept connections faster than ingress arrival rate, causing accept queue overflow and silent TCP packet drop.",
+            "expected": "Accept queue expands to 4,096; incoming SYNs are buffered in memory and accepted without drops during autoscaling lags."
         },
-        {
-            "key": "topic-03", "title": "TCP and UDP, ports, connection states and buffers",
-            "overview": "A socket endpoint pairs an IP address with a port. TCP creates ordered, reliable byte-stream state through a handshake and teardown states such as ESTABLISHED and TIME_WAIT; UDP sends independent datagrams without creating a TCP-style connection. Socket buffers absorb bounded send/receive work but do not remove application, network, or peer limits.",
-            "preview": "A service name resolves and packets reach the host, but no process is listening on the requested TCP port. The user sees a failed connection even though DNS and IP reachability may be separately healthy.",
-            "technical": "#### Socket and transport boundary\n\nA TCP connection is identified by local and remote address/port pairs. The three-way handshake synchronizes state: client SYN, server SYN-ACK, client ACK; only then is the connection established. TIME_WAIT is a TCP state used during connection termination and is not an application error by itself. UDP has ports and checksum/datagram semantics but no built-in connection establishment, ordering, or retransmission equivalent to TCP's stream behavior.\n\n- **Control boundary:** the operating system owns socket state and buffer limits; the application owns port binding, protocol expectations, and backpressure behavior.\n- **Data path:** DNS answer → route → destination address → transport port → process socket → application protocol.\n- **Failure signal:** refused, timeout, reset, and an application response are distinct signals; they must not be collapsed into a generic “network down.”\n- **Trade-off:** TCP adds ordered delivery and congestion/retransmission behavior; UDP leaves reliability and ordering decisions to the application.\n\n**Evidence limit:** a local `ss` listing can show local socket state. It cannot prove a remote process's state or an application's semantic success.",
-            "questions": ["Which five-tuple fields identify the observed TCP flow?", "What fact distinguishes connection establishment from an application response?", "When is UDP appropriate only if the application can tolerate or implement loss/order handling?"],
-            "reference": "https://www.rfc-editor.org/rfc/rfc9293", "reference_label": "RFC 9293: Transmission Control Protocol (accessed 2026-09-30)",
-            "scenario": {"scenario": "Synthetic tabletop: a Brightloaf integration test uses the right hostname but labels every failure “DNS” without recording the destination port or TCP state.", "impact": "Supplied symptom: the test report cannot tell a refused port from a timeout or an application-level rejection. The business effect is slower triage, not a claimed outage.", "constraints": "No listener is created and no port scan is performed; use supplied socket-state examples and a bounded local observation.", "evidence": "```text\nState      Recv-Q Send-Q Local Address:Port Peer Address:Port\nESTAB      0      0      192.0.2.10:51524  192.0.2.44:443\nTIME-WAIT  0      0      192.0.2.10:51525  192.0.2.44:443\n```\nIllustrative state output; documentation addresses are not live targets.", "root": "Architectural inference: the test evidence skipped the socket endpoint and state transition, collapsing name resolution, IP delivery, transport establishment, and application behavior into one unsupported cause.", "diagnostic_steps": ["Record local and remote address/port separately.", "Place SYN, SYN-ACK, and ACK before ESTABLISHED in the diagram.", "Classify a supplied result as refused, timeout, reset, established, or application response only when the evidence states it.", "Treat buffer pressure as a bounded queue/backpressure question, not proof that packets were lost."], "remediation_steps": ["Use a four-layer triage form: DNS, route, transport state, application protocol.", "Require a destination port and a state/result field before assigning an owner."], "verify": "A reviewer can locate the endpoint pair, handshake, state, and evidence boundary without calling a TCP state an application result.", "residual": "NAT, firewall, load balancer, and remote application behavior can still obscure a path; the form records that uncertainty.", "diagram": ("client uses name and port", "port/state evidence omitted", "all failures blamed on DNS", "record endpoint and handshake state", "triage distinguishes four layers"), "facts": "Synthetic socket-state listing and supplied integration-test scenario.", "inference": "The ambiguity is created by missing transport evidence.", "expected": "The next test names the first failing layer or retains unknown."},
-            "lab": lab("Label socket endpoints and handshake", "Draw the TCP handshake, contrast UDP, and identify the boundary between transport and application evidence.", "A DNS/transport diagram with IPv4 and IPv6 lookup branches, endpoint pairs, SYN/SYN-ACK/ACK, ESTABLISHED, and an explicit evidence limit.", ["Stage 1 — Preflight: write the endpoint template `local-IP:local-port → remote-IP:remote-port` and state that port identifies the transport endpoint, not the application outcome.", "Stage 2 — Prepare inputs: use supplied IPv4 `192.0.2.44`, IPv6 `2001:db8:1::20`, remote port 443, and local port 51524 as documentation-only values.", "Stage 3 — Author analysis: draw separate DNS A and AAAA branches that converge only after a selected destination is paired with port 443.", "Stage 4 — Execute bounded observation: run <kbd>ss -tan</kbd> if available and copy at most one locally relevant TCP state line; otherwise retain the supplied state line.", "Stage 5 — Inspect result: label SYN, SYN-ACK, ACK, ESTABLISHED, and TIME_WAIT in order; circle the evidence that proves only TCP establishment.", "Stage 6 — Rehearse edge case: replace TCP with UDP in the diagram and list the absent handshake plus one reliability/ordering responsibility shifted to the application.", "Stage 7 — Diagnose and decide: classify each supplied result as DNS answer, route evidence, TCP state, application response, or unknown; choose one next bounded observation.", "Stage 8 — Close out: remove any unrelated local endpoints from the artifact and save the final diagram with its evidence-limit note."], "Artifact is the required DNS/transport diagram: it visibly distinguishes name resolution, reachability, established TCP connection, endpoint ports, UDP contrast, and what remains unproven.", "If `ss` is unavailable or permissions restrict it, do not install tools or elevate privileges; use the illustrative supplied state output and mark the limitation."),
-        },
-    ],
-}
+        "lab": make_lab(
+            name="TCP Socket Lifecycle, Accept Queue Overflow, and State Transitions",
+            goal="Instrument the complete BSD socket lifecycle, simulate accept queue saturation under burst load, and observe TCP state transitions using kernel diagnostic tooling.",
+            expected="A comprehensive socket diagnostics log capturing TCP state transitions (SYN_SENT, ESTABLISHED, TIME_WAIT) and quantifying queue drop behavior.",
+            steps=[
+                "**Stage 1: Preflight and Environment Verification** — Verify local socket diagnostic tools (<kbd>ss</kbd>, <kbd>netstat</kbd>, <kbd>sysctl</kbd>) and Python socket capabilities:\n\n```bash\nss -v\nsysctl net.core.somaxconn\n```",
+                "**Stage 2: Prepare Target Inputs and Queue Constrained Server** — Author a Python server (<samp>mock_queue_server.py</samp>) configured with an intentionally constrained backlog of 2 that delays calling <kbd>accept()</kbd>:\n\n```bash\ncat <<'EOF' > mock_queue_server.py\nimport socket, time, sys\n\nport = 9099\ns = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\ns.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)\n# Bind to localhost and set artificially tiny backlog of 2\ns.bind(('127.0.0.1', port))\ns.listen(2)\nprint(f\"[SERVER] Listening on 127.0.0.1:{port} with backlog=2 (Sleeping to simulate overload)\\n\")\n\n# Sleep without accepting connections to force queue overflow\ntime.sleep(10)\nprint(\"[SERVER] Waking up and closing listener.\")\ns.close()\nEOF\n```",
+                "**Stage 3: Author Burst Client Connection Generator** — Author a burst client (<samp>burst_client.py</samp>) that attempts 10 concurrent non-blocking connections:\n\n```bash\ncat <<'EOF' > burst_client.py\nimport socket, sys, time\n\nport = 9099\nconns = []\nsuccess = 0\nfailed = 0\n\nprint(\"[CLIENT] Dispatching burst of 10 TCP connections against backlog=2 server...\")\nfor i in range(10):\n    c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n    c.settimeout(0.5)\n    try:\n        c.connect(('127.0.0.1', port))\n        conns.append(c)\n        success += 1\n        print(f\"Connection {i+1}: ESTABLISHED\")\n    except Exception as e:\n        failed += 1\n        print(f\"Connection {i+1}: FAILED / TIMED OUT ({e})\")\n\nprint(f\"\\n[CLIENT SUMMARY] Established: {success}, Failed/Dropped: {failed}\")\nfor c in conns:\n    c.close()\nEOF\n```",
+                "**Stage 4: Execute Burst Test and Observe Queue Overflow Drops** — Start the constrained server in the background and immediately execute the burst client:\n\n```bash\npython3 mock_queue_server.py &\nSERVER_PID=$!\nsleep 0.5\npython3 burst_client.py\nwait $SERVER_PID 2>/dev/null || true\n```",
+                "**Stage 5: Inspect Kernel Socket Telemetry and TIME_WAIT States** — Inspect local socket telemetry using <kbd>ss</kbd> to observe connections transitioning through <samp>TIME_WAIT</samp>:\n\n```bash\nss -tan 'sport = :9099 or dport = :9099'\n```",
+                "**Stage 6: Rehearse Bounded Failure: Audit Listen Queue Overflow Metrics** — Check kernel statistics for listen queue drop increments:\n\n```bash\nnetstat -s | grep -i listen || true\n```",
+                "**Stage 7: Diagnose Evidence and Record Kernel Tuning Recommendations** — Author a structured diagnostic summary documenting why accept queue sizing is critical for microservice stability:\n\n```bash\ncat <<'EOF' > socket_queue_evidence.md\n# Architectural Evidence: TCP Socket Lifecycle and Accept Queue Depths\n\n- Observation 1: Under constrained backlog=2, incoming TCP connections beyond queue capacity were rejected/timed out.\n- Observation 2: Active connections transition to TIME_WAIT upon close, consuming local socket 4-tuples for 60 seconds.\n- Observation 3: In production, accept queue saturation triggers silent SYN drops that manifest as HTTP 504 timeouts at load balancers.\n- Decision: Production microservice base images must configure net.core.somaxconn >= 4096 and tcp_max_syn_backlog >= 4096.\nEOF\ncat socket_queue_evidence.md\n```",
+                "**Stage 8: Clean Up and Close Out Exercise** — Remove temporary test scripts and verify no orphaned processes remain:\n\n```bash\nrm -f mock_queue_server.py burst_client.py\n```"
+            ],
+            accept="Generated evidence markdown proves that accept queue saturation causes connection drop, and records kernel tuning parameters.",
+            trouble="If port 9099 is already in use, edit the test scripts to use an unprivileged port such as 9105.",
+            file_name="socket_queue_evidence.md"
+        )
+    }
+]

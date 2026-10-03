@@ -61,7 +61,12 @@ def topic_clauses(day: int, study: str) -> list[str]:
     if day == 1:
         return ["Local workspace and evidence repository", "Study sessions and learning baseline", "Synthetic data, budget and cleanup ownership"]
     if day == 2:
-        return ["OSI and TCP/IP layer models", "IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting", "Packet path from NIC to application socket"]
+        return [
+            "OSI and TCP/IP layer models",
+            "IPv4 addressing, private ranges, ARP/NDP and CIDR subnetting",
+            "Packet path from NIC to application socket",
+            "Process communication protocols: IPC, Unix domain sockets, and network RPCs"
+        ]
     if day == 3:
         chunks = ["IPv6 addressing and scope", "DNS records, TTL and resolver roles", "TCP and UDP, ports, connection states and buffers"]
     if day == 4:

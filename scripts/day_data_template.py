@@ -7,6 +7,17 @@ Copy this template to scratch/day_data_{DAY:03d}.py, fill in the fields, and run
 ================================================================================
 CRITICAL AUTHORING MANDATES (NON-NEGOTIABLE):
 ================================================================================
+Follow PAGE_AUTHORING_CONTRACT.md for the complete shared requirements.
+For every topic's Part 2 discussion, first list all in-scope subtopics, then discuss
+each in order with explicit explanations of: what it is in general, its relevance
+to a cloud architect across providers, and its particular application to GCP.
+Give each subtopic a descriptive heading, concrete example, and relevant source;
+do not invent a GCP service equivalent when the concept has none.
+Every node in every topology and incident diagram must have a readable label and
+an appropriate icon: official product icons for GCP services, network component
+icons for generic infrastructure, and concept icons for events/decisions/outcomes.
+Record icon sources, keep assets local or embedded, and verify mapping and layout.
+
 1. 1:1 COVERAGE:
    - If the syllabus specifies N topics (typically 4 to 6), TOPICS must contain
      exactly N entries.
