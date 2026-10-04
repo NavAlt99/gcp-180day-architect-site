@@ -16,6 +16,11 @@ import re
 import subprocess
 import sys
 
+try:
+    from .compact_flow import render_compact_flow
+except ImportError:  # direct CLI
+    from compact_flow import render_compact_flow
+
 from bs4 import BeautifulSoup
 import markdown
 
@@ -23,6 +28,57 @@ ROOT = Path(__file__).resolve().parents[1]
 SITE_CONTENT = ROOT / "content"
 SITE_DAYS = ROOT / "days"
 SCRIPTS = ROOT / "scripts"
+
+# Opt-in structural defaults for new specifications. Legacy specifications that
+# omit lab_defaults keep their historical rendering; helpers still emit TODOs.
+LAB_DEFAULTS = {
+    field: f"TODO: author topic-specific lab {field}"
+    for field in ("mode", "prereq", "preflight", "verification", "trouble", "cleanup", "accept")
+}
+
+
+def find_todo(value, path: str = "spec") -> str | None:
+    """Return the first unfinished field path, including nested metadata/keys."""
+    if isinstance(value, str):
+        return path if "TODO:" in value else None
+    if isinstance(value, dict):
+        for key, item in value.items():
+            field = f"{path}.{key}"
+            if isinstance(key, str) and "TODO:" in key:
+                return field + " (key)"
+            found = find_todo(item, field)
+            if found:
+                return found
+    elif isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            found = find_todo(item, f"{path}[{index}]")
+            if found:
+                return found
+    return None
+
+
+def validate_spec_todos(data: dict) -> None:
+    """Reject unfinished authored content before any compiler output write."""
+    for index, topic in enumerate(data.get("topics", [])):
+        key = topic.get("key", f"index-{index}")
+        found = find_todo(topic, f"topics[{key}]")
+        if found:
+            raise ValueError(f"Unfinished topic {key}, field {found}: replace TODO:")
+    found = find_todo({key: value for key, value in data.items() if key != "topics"})
+    if found:
+        raise ValueError(f"Unfinished day-level field {found}: replace TODO:")
+
+
+def resolve_lab(lab: dict, defaults: dict | None = None) -> dict:
+    """Merge structural slots, rejecting unfilled authored/default lab content."""
+    result = {**LAB_DEFAULTS, **defaults, **lab} if defaults is not None else dict(lab)
+    unfinished = find_todo(result, "lab")
+    if unfinished:
+        raise ValueError(f"Unfinished lab field {unfinished}: replace TODO: with topic-specific content")
+    if defaults is not None and any(not isinstance(result[field], str) or not result[field].strip()
+                                    for field in LAB_DEFAULTS):
+        raise ValueError("Unfinished lab: default slots need explicit topic-specific text")
+    return result
 
 
 def wrap_svg(text: str, limit: int = 22, max_lines: int = 2) -> list[str]:
@@ -50,6 +106,9 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
         return f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{scenario["incident_svg_html"]}</div></figure>'
     if scenario.get("svg_html"):
         return f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{scenario["svg_html"]}</div></figure>'
+
+    if scenario.get("flow"):
+        return render_compact_flow(f"d{day:03d}-case-{index}-flow", scenario["flow"])
 
     diagram = scenario.get("diagram", ("Trigger event", "Root cause", "Impact", "Corrected control", "Expected outcome"))
     event, cause, impact, control, outcome = diagram
@@ -214,6 +273,8 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
 
 def render_topology_svg(day: int, arch_diagram: dict) -> str:
     """Render a full multi-tier infrastructure topology SVG (matching Day 65/67 standards)."""
+    if arch_diagram.get("flow") or "steps" in arch_diagram:
+        return render_compact_flow(f"d{day:03d}-architecture-flow", arch_diagram.get("flow", arch_diagram))
     uid = f"d{day:03d}-top"
     title = arch_diagram.get("title", f"Day {day} System Operations & Infrastructure Topology")
     desc = arch_diagram.get("desc", "Multi-tier operational architecture showing infrastructure layers, request traces, and security boundaries.")
@@ -421,6 +482,8 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
 
 def render_sophisticated_flow_svg(day: int, arch_diagram: dict) -> str:
     """Render a multi-tier architectural flow SVG with Day 67 standards."""
+    if arch_diagram.get("flow") or "steps" in arch_diagram:
+        return render_compact_flow(f"d{day:03d}-architecture-flow", arch_diagram.get("flow", arch_diagram))
     uid = f"d{day:03d}-arch-flow"
     title = arch_diagram.get("title", f"Day {day} Enterprise Architecture Flow")
     desc = arch_diagram.get("desc", "Multi-tier architecture and control evaluation flow.")
@@ -587,6 +650,15 @@ def render_case_depth(day: int, topic: dict) -> str:
 
 def compile_day_page(day_num: int, data: dict) -> None:
     """Compile the day page override from data specification."""
+    # Check before touching overrides; defaults never supply accepted teaching.
+    validate_spec_todos(data)
+    lab_defaults = data.get("lab_defaults")
+    labs = []
+    for index, topic in enumerate(data.get("topics", [])):
+        try:
+            labs.append(resolve_lab(topic.get("lab", {}), lab_defaults))
+        except ValueError as error:
+            raise ValueError(f"Unfinished topic {topic.get('key', index)}: {error}") from error
     override_file = SITE_CONTENT / f"day-{day_num:03d}-page.html"
     source_day_file = SITE_DAYS / f"day-{day_num:03d}.html"
 
@@ -655,6 +727,8 @@ def compile_day_page(day_num: int, data: dict) -> None:
         ref_label = t.get("reference_label", "Google Cloud Documentation")
         ref_html = f'<p><strong>Further study:</strong> <a href="{escape(ref_link)}" target="_blank" rel="noopener">{escape(ref_label)}</a>.</p>' if ref_link else ""
         tech_body = render_code_blocks(t.get("technical", ""))
+        if t.get("flow"):
+            tech_body += render_compact_flow(f"d{day_num:03d}-{key}-flow", t["flow"])
         depth_dossier = render_case_depth(day_num, t)
 
         p2_html.append(
@@ -749,7 +823,7 @@ def compile_day_page(day_num: int, data: dict) -> None:
 
     for i, t in enumerate(topics, 1):
         key = t["key"]
-        lab = t.get("lab", {})
+        lab = labs[i - 1]
         steps_html = []
         for step in lab.get("steps", []):
             rendered_step = render_code_blocks(step)
@@ -869,6 +943,20 @@ def build_and_validate(day_num: int) -> None:
 
 def load_day_module(path: Path) -> dict:
     """Dynamically load day data module."""
+    if path.is_dir():
+        meta = load_day_module(path / "meta.py")
+        if meta.get("topics"):
+            raise ValueError("Directory meta DATA must exclude topics; use topic_NN.py")
+        files = sorted(path.glob("topic_*.py"))
+        if not files or [p.name for p in files] != [f"topic_{i:02d}.py" for i in range(1, len(files)+1)]:
+            raise ValueError("Directory specs need contiguous topic_01.py..topic_0K.py")
+        topics = []
+        for topic_path in files:
+            topic_spec = importlib.util.spec_from_file_location("day_topic_module", topic_path)
+            module = importlib.util.module_from_spec(topic_spec)
+            topic_spec.loader.exec_module(module)
+            topics.append(module.TOPIC)
+        return {**meta, "topics": topics}
     spec = importlib.util.spec_from_file_location("day_data_module", path)
     if not spec or not spec.loader:
         raise ImportError(f"Cannot load module from {path}")
@@ -909,6 +997,9 @@ def parse_range(range_str: str) -> list[int]:
 
 def process_single_day(day_num: int, data_path_override: str = "") -> None:
     data_path = Path(data_path_override) if data_path_override else ROOT / "scratch" / f"day_data_{day_num:03d}.py"
+    directory_path = ROOT / "scratch" / f"day_data_{day_num:03d}"
+    if not data_path_override and directory_path.is_dir():
+        data_path = directory_path
     if data_path.exists():
         print(f"Loading data from {data_path}...")
         data = load_day_module(data_path)
@@ -981,7 +1072,7 @@ def main():
         process_single_day(args.day, args.data)
         print("\nRunning validator...")
         res_val = subprocess.run(
-            [sys.executable, str(SCRIPTS / "validate.py")],
+            [sys.executable, str(SCRIPTS / "validate.py"), "--day", str(args.day)],
             cwd=str(ROOT),
             capture_output=True,
             text=True
