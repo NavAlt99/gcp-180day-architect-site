@@ -18,3 +18,7 @@ Do not reauthor day content while reducing instruction overhead. Any ambiguity
 or requirement with no canonical home must be resolved explicitly, not silently
 substituted. The traceability/report files are audit evidence, not routine
 per-page reading material.
+
+Run `scripts/extract_day_inputs.py --day N` before day-specific reading; use its
+compact output. New specs use contract version 2; follow the update prompt
+command order and fidelity/source/product/visual/spec-diff handoff records.

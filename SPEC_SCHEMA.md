@@ -122,3 +122,15 @@ step text length to half the minimum Day 2 range; never fail on length. These ar
 signals, not quality thresholds or proof of depth non-regression. Source relevance,
 technical accuracy, semantic diagram eligibility, visual clarity, lab executability
 and actual depth require manual review; syntax markers cannot establish them.
+
+## Contract version 2 checks
+
+DATA.contract_version = 2 opts into errors for missing non-empty verbatim
+roadmap_practice/roadmap_exit, per-lab covers (Practice clause), each mode label
+(Observed locally:, Simulated or predicted:, Untested on GCP:), Stage 1–7 code
+failure masking, and source labels without `(accessed YYYY-MM-DD)`.
+Older specs receive WARNs for these new requirements and keep legacy validation.
+External-tool preflight, observation provenance, example address ranges,
+whole-document URLs, coverage publisher hints, committed diagram count and files
+over 100 KB are review WARNs. Git comparison unavailable emits a skip note.
+Use directory form for large revisions. Checks never establish semantic relevance.

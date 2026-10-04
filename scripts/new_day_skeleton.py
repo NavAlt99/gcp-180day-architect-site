@@ -39,8 +39,9 @@ def skeleton(day: int) -> dict:
                 'scenario', 'impact', 'constraints', 'evidence', 'root', 'verify', 'residual',
                 'diagram_enabled', 'facts', 'inference', 'expected')},
             'lab': {field: 'TODO: topic-specific '+field for field in (
-                'name', 'goal', 'expected', 'mode', 'prereq', 'preflight', 'verification', 'trouble', 'cleanup', 'accept')},
+                'name', 'goal', 'expected', 'mode', 'covers', 'prereq', 'preflight', 'verification', 'trouble', 'cleanup', 'accept')},
         })
+        topics[-1]['lab']['mode'] = 'Observed locally: TODO: evidence. Simulated or predicted: TODO: scope. Untested on GCP: TODO: limits.'
         topics[-1]['lab']['file'] = f'day-{day:03d}-{key}.md'
         topics[-1]['scenario'].update(diagnostic_steps=['TODO: diagnostic action'],
                                       remediation_steps=['TODO: fix action'])
@@ -48,7 +49,8 @@ def skeleton(day: int) -> dict:
                                      '**Actions:** TODO: ordered commands/file contents or exact manual steps.\n\n'
                                      '**Expected result:** TODO: observable outcome.\n\n**Save:** TODO: evidence path.'
                                      for i in range(1, 9)]
-    return {'day': day, 'work_block': 'TODO: work block', 'topics': topics,
+    return {'contract_version': 2, 'roadmap_practice': 'TODO: verbatim roadmap Practice',
+            'roadmap_exit': 'TODO: verbatim roadmap Exit evidence', 'day': day, 'work_block': 'TODO: work block', 'topics': topics,
             'lab_defaults': {},
             'part1_html': '\n'.join(overviews),
             **{f'part{i}_intro': 'TODO: day-specific introduction' for i in range(1, 5)},

@@ -132,6 +132,10 @@ class ValidateSpecTests(unittest.TestCase):
         self.assertTrue(legacy)
         errors, _ = validator.validate_data(3, data, legacy=legacy, metadata=metadata)
         self.assertFalse(any('fallback' in e for e in errors))
+        self.assertEqual(errors, [])
+        data = copy.deepcopy(data)
+        data['topics'][0]['lab']['steps'][0] = data['topics'][0]['lab']['steps'][0].replace('Location:', 'Gone:')
+        errors, _ = validator.validate_data(3, data, legacy=legacy, metadata=metadata)
         self.assertTrue(any('Location:' in e for e in errors))
 
     def test_depth_warns_without_failing_on_length(self):

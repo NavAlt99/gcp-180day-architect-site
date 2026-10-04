@@ -287,7 +287,12 @@ def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
         elif isinstance(value, (list, tuple)):
             for i, v in enumerate(value): flows(v, f'{field}[{i}]')
     flows(data)
-    return errors, warnings
+    from scripts.spec_v2_checks import check
+    allow_path = ROOT / 'data/address_allowlist.txt'
+    allow = [line.split()[0] for line in allow_path.read_text().splitlines()
+             if line.strip() and not line.lstrip().startswith('#')] if allow_path.exists() else []
+    strict_errors, strict_warnings = check({**metadata, **data}, list(rows.values()), allow)
+    return errors + strict_errors, warnings + strict_warnings
 
 
 def main(argv=None):
@@ -302,6 +307,9 @@ def main(argv=None):
         baseline, _, _ = load_spec(ROOT / 'scratch/day_data_002.py')
         reference = tuple(min(values) for values in zip(*(metrics(t) for t in baseline['topics'])))
         errors, warnings = validate_data(args.day, data, legacy=legacy, metadata=metadata, reference=reference)
+        from scripts.spec_v2_checks import file_checks
+        if path.exists():
+            warnings.extend(file_checks(args.day, data, path, ROOT))
     except Exception as exc:
         errors, warnings, legacy = [f'ERROR day spec: {type(exc).__name__}: {exc}'], [], False
     for line in errors[:30]: print(line.replace('\n', ' '))

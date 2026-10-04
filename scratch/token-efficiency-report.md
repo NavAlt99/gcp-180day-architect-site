@@ -439,3 +439,199 @@ phase-e-day-003-spec-checks.txt. Validation/schema/test additions claim no token
 saving; they catch structural omissions before expensive compilation/review.
 No full-site build or other-day regression build. STOP after the Phase E commit;
 Phase F and later not started.
+
+## Two-part Day 4 defect prevention and repair — 2026-10-04
+
+Part A and Part B executed serially. No commit or push. Only the Day 4 durable spec and its generated content/page were authored. The following is appended audit evidence; earlier report prose remains intact.
+
+### Protected snapshot and final comparison
+
+Snapshot taken before instruction/day edits; Day 2 equals the Phase 0 hash. All four final SHA-256 comparisons pass.
+
+```text
+86323aef6497c2ec31cf87f9b239f52b04f276532d9294b62610aa5f9c1f584a  days/day-002.html
+4579e0ef1f8c07511acbf239c5de8cf7c3a527b94317b0c645102451cf4abaa0  content/day-003-page.html
+4579e0ef1f8c07511acbf239c5de8cf7c3a527b94317b0c645102451cf4abaa0  days/day-003.html
+77b0aabf62b71bf713f06b295a338e80e0d40b6547388450f9da830b7e894774  scratch/day_data_003.py
+```
+
+### Rule/check justification
+
+| Added rule or check | Day 4 defect it prevents |
+| --- | --- |
+| Practice/Exit verbatim fields; per-lab covers; Practice-to-lab handoff | Day 4 replaced supplied certificate traces and capture annotations with generated exercises; explicit clauses prevent that substitution and retain the worksheet Exit. |
+| Three labelled mode parts; version-2 skeleton TODOs; missing-field errors / legacy WARNs | Day 4 claimed multi-version HTTP and TLS-handshake observations although the server speaks HTTP/1.0 and the certificate exercise checks chains and SAN membership. Labels separate those mechanisms without modifying Days 2/3. |
+| Stages 1–7 reject || true; external-tool command -v WARNs and Stage 1 checks | Day 4 masked both ping failures and server shutdown failures, and ping had no tool check. Explicit expected-failure branches preserve unexpected failure exit codes. |
+| Environment-dependent outputs marked illustrative | Day 4 loopback ping expectations depended on local MTU/kernel behavior; the supplied 1400-byte tunnel is not the local loopback path. |
+| Observation-word WARNs in facts/evidence/captions, including embedded figcaption; provenance rule | Day 4 illustrative incident captions said logs were recorded and a packet capture proved the cause, despite no locally produced capture. |
+| Address-range WARNs with literal/field; comment-only exception allowlist; reserved-name rule | Day 4 used real public 35.200.10.5, 34.100.1.10 and 34.102.15.20 in examples and non-reserved .local names. Documentation addresses and .test names avoid contacting or attributing evidence to real endpoints. |
+| Section URL/fragment rule; whole-document WARNs and reasons | Day 4 broad RFC/product links concealed the specific status-code, header, handshake, MTU, NAT and BGP rules being used. |
+| One (accessed YYYY-MM-DD) label pattern; v2 label errors / legacy WARNs | Day 4 mixed undated source labels with separate access sentences; inline, reference and registry label checks keep the access evidence attached to each source. |
+| RFC Obsoleted by review; checker status metadata output | Day 4 relied on RFC 6125 without checking its replacement RFC 9525. Review also found RFC 8446 obsoleted by RFC 9846. |
+| Status parser uses metadata pairs, not embedded RFC prose; offline regression | During Day 4 live checking, RFC 9293 embedded text falsely looked like an Obsoleted by value for RFC 6298. The corrected parser prevents attributing another RFC’s status to the cited RFC. |
+| At-most-300-character heading/first-paragraph excerpts in stdout/JSON; modern, nested, legacy-anchor and h1 tests | Day 4 link success previously showed no opened section text. Excerpts make the actual section auditable, including legacy RFC span headings; they still cannot establish semantic relevance. |
+| Source ledger headings and no unsupported verified claims; retained checker limitation/exit codes; no caching | Day 4 had broad links and misleading confidence about logs/product behavior. The ledger distinguishes the checker’s URL/fragment evidence from manual section review; fetch failures remain unverified. |
+| Product claims require supporting sections; product-claim handoff | Day 4 invented the Andromeda reason for MTU 1460, hypervisor switch programming, zero-latency/unlimited NAT behavior and timed routing recovery. Section-scoped claims and explicit limits prevent those extrapolations. |
+| Coverage publisher hint rule; publisher mismatch WARN; topic-specific completion URLs | Day 4 coverage rows all pointed to RFC 9110 rather than each topic’s primary protocol source. Only its five rows now use confirmed sections and publisher_section_verified=yes. |
+| Never silently remove a diagram; preserve/convert/ask rule; Visuals handoff | Day 4 had lost the HTTP versions comparison. A numbered setup/request sequence restores explanatory visual depth without inventing a static qualifying flow. |
+| Committed diagram-count comparison and missing-title WARN; unavailable-git skip note | The omitted HTTP comparison could escape normal structural validation. Comparing to HEAD makes future figure losses reviewable without reading current output as curriculum truth. |
+| Targeted str_replace/per-topic edit discipline; spec diff stat and no-prose-removal handoff | Day 4’s omitted visual and substituted exercises need visible additions or corrected fragments; a whole-file replacement would obscure depth regressions. |
+| Over-100-KB directory-revision WARN | The Day 4 single-file spec already exceeded 100 KB before repair, making large rewrites difficult to review. It stays a single file for this expressly targeted-edit task; the warning directs future revisions. |
+| Fail-before-write one-day extractor, robust ## brief / ### roadmap headings and missing/empty tests | Day 4’s brief embeds a nested roadmap heading, while omitted supplied Practice inputs led to incomplete labs. Extraction separates the real heading levels and refuses incomplete canonical inputs. |
+| Wrapper command order and version-2 schema/entry-point pointers | Day 4 was authored without explicit verbatim Practice fields or supplied fixtures. Extraction before skeleton/validation makes the canonical input available before generation. |
+| Passing/failing in-memory strict-check fixtures; legacy compatibility tests; missing-path reporting fix | Day 4 needs new strict gates while Days 2/3 remain unchanged. Tests exercise all nine requested checks and preserve existing error reporting; the Day 3 test now uses a mutated in-memory marker rather than assuming its intentional update is invalid. |
+| Local rerun checks every stage Save path and protocol/model acceptance before cleanup | Day 4 Stage 1 promised preflight.log but wrote preflight.txt; Lab 2 promised openssl_configs.log without creating it. The local wrapper and Stage 2 now create those artifacts. Ping evidence is retained instead of deleted. |
+| Matching service icons and explicit control/data-plane diagram captions | Day 4 NAT/routing service nodes used generic firewall/router icons and implied a NAT appliance next hop or undocumented FIB programming. Existing local official Cloud NAT/Router/Interconnect and core Compute Engine icons make those boundaries explicit. |
+
+### Size, depth and edit discipline
+
+Contract: **12,988 → 15,205 bytes**, growth **2,217 bytes**, below about 2.5 KB. Existing contract wording, depth floor and diagram quality floor remain; only the requested manual-grep Read budget passage was replaced.
+
+Day 4 git diff numstat: `290	156	scratch/day_data_004.py` (added / replaced-old lines / path). Spec bytes: **146,200 → 171,845**. Targeted string replacements/additions only; no file recreation, topic removal, lab removal or diagram removal. No explanatory prose was removed or condensed: old lines in the diff are replaced source metadata, corrected unsupported facts, provenance/limits, example addresses, command fixes or additive lab integration.
+
+| Topic | Technical text before → after | Subtopic headings before → after | Lab stages | Stage text before → after |
+| --- | --- | --- | --- | --- |
+| topic-01 | 10597 → 13061 | 4 → 4 | 8 → 8 | 7309 → 7758 |
+| topic-02 | 10863 → 11828 | 4 → 4 | 8 → 8 | 7719 → 9854 |
+| topic-03 | 10314 → 11220 | 4 → 4 | 8 → 8 | 6210 → 7739 |
+| topic-04 | 10055 → 11219 | 4 → 4 | 8 → 8 | 7379 → 7711 |
+| topic-05 | 10778 → 12323 | 4 → 4 | 8 → 8 | 10994 → 13420 |
+
+All scoped subtopics and eight stages per lab remain. Depth increases: supplied trace comparison, supplied MTU/route annotations, HTTP setup sequence, and product ownership/evidence boundaries. No measured learner duration is available; added work may exceed the 2–3-hour estimate and was not trimmed.
+
+### Practice-to-lab map
+
+Practice (verbatim): Compare a valid and a hostname-mismatched certificate trace; annotate an MTU failure and forward/return routes on supplied captures.
+
+Exit (verbatim): A failure worksheet that separates TLS trust, packet size, routing and HTTP errors.
+
+| Lab | Practice/Exit clause and actual artifact |
+| --- | --- |
+| 1 | Exit HTTP errors: local HTTP/1.0 status artifacts and http_evidence_summary.md; HTTP/2 casing rejection and HTTP/3 are simulations. |
+| 2 | Compare valid/hostname-mismatched trace: supplied-valid-trace.txt requests/presents orders.example.test; supplied-mismatch-trace.txt requests orders.example.test/presents admin.example.test; certificate-trace-comparison.md. Generated CA validation is additional local work. |
+| 3 | Annotate MTU failure on supplied capture: supplied-mtu-capture.txt names DF=1, length=1500, path MTU=1400 and filtered ICMP; calculations predict base-header MSS 1360. Loopback ping is separate locally produced evidence. |
+| 4 | Exit NAT context: local translation/state/capacity model and nat_evidence_summary.md; configured illustrative 64-port allocation, not a universal provider connection limit. |
+| 5 | Annotate supplied forward/return capture: 10.20.1.5 → 10.50.4.8 selects 10.50.4.0/24; remote side lacks a covering return route to 10.20.0.0/16. route_engine.py locally simulates this supplied input; day-004-failure-worksheet.md includes TLS, packet-size, route and HTTP distinctions plus NAT context. |
+
+All five labs executed in temporary directories, each with eight non-empty stage Save artifacts checked before cleanup, plus specific status/chain/MTU/NAT/route acceptance checks. No GCP lab deployment was executed. Evidence paths and stdout/stderr are in scratch/day-004-lab-rerun.json; artifacts in /tmp are temporary.
+
+- Lab 1: exit 0; 8 stage checks; acceptance passed; `/tmp/http_lab.3sldZP`.
+- Lab 2: exit 0; 8 stage checks; acceptance passed; `/tmp/pki_lab.snAQFp`.
+- Lab 3: exit 0; 8 stage checks; acceptance passed; `/tmp/mtu_lab.qQjCBf`.
+- Lab 4: exit 0; 8 stage checks; acceptance passed; `/tmp/nat_lab.RQqYfd`.
+- Lab 5: exit 0; 8 stage checks; acceptance passed; `/tmp/routing_lab.QdYpNc`.
+
+### Visuals list
+
+- Added/restored: **HTTP Versions: Connection Setup and First Request Sequences**. Three independent 1→2→3→4 rows compare TCP+TLS setup for HTTP/1.1/2 against QUIC+integrated TLS for HTTP/3, then request/response; scope excludes packet timing/early data. Raw 1440×690 SVG, complete labels, local generic icons, title/desc IDs, numbered arrows and horizontal scrolling.
+
+- Retained: **TLS 1.3 1-RTT Handshake: Key Exchange and Certificate Validation** and **Path MTU Discovery and TCP MSS Clamping Packet Traversal**; no explanation or sequence removed.
+
+- Retained/corrected: **VPC Private Outbound: SNAT and Return DNAT Packet Lifecycle**: official Cloud NAT icon, internet-gateway next hop, functional translation caption; prevents an appliance-hop interpretation.
+
+- Retained/corrected: **BGP Route Advertisement, Evaluation, and Packet Forwarding**: official Cloud Router/Interconnect/Compute Engine icons, route-creation transition and control/data-plane limit; removes undocumented internals/latency guarantees.
+
+- Retained/corrected incident figures for topics 01 (HTTP), 02 (TLS), 03 (MTU), 04 (NAT), 05 (routing): fixture provenance captions; routing latency is an illustrative target requiring measurement. All five dual-lane incident diagrams remain.
+
+- Removed: **none**. Whole-figure replacements: **none**. Durable-spec technical figures: 4→5; incident figures: 5→5.
+
+Visual limits: source SVG accessibility attributes and local icons pass spec/structure checks. No browser was exposed by cua.getState (browsers=[]); attempting createBrowserTab(iab) returned “Browser is not available: iab”. Desktop/mobile both-theme rendered audits, overlap/arrow review, copy-button interaction and far-edge reachability therefore remain **unverified**. No browser-audit success is claimed.
+
+### Source ledger
+
+Final checker: **36 passing HTML links, 0 unverified links**; every excerpt ≤300 characters. All Further study links are fragment-level; no whole-document study link needs an exception reason. Access label: `(accessed 2026-10-04)`. Headings below were opened/confirmed from live sections; HTTP/fragment pass alone is not semantic verification.
+
+| URL | Scope | Section heading actually opened |
+| --- | --- | --- |
+| https://www.rfc-editor.org/rfc/rfc9110.html#section-15 | fragment-level | 15. Status Codes |
+| https://docs.cloud.google.com/load-balancing/docs/https#http2-over-tls | fragment-level | HTTP/2 over TLS |
+| https://docs.cloud.google.com/load-balancing/docs/https/request-distribution#timeouts_and_retries | fragment-level | Timeouts and retries |
+| https://www.rfc-editor.org/rfc/rfc9113.html#section-8.2.1 | fragment-level | 8.2.1. Field Validity |
+| https://docs.cloud.google.com/load-balancing/docs/https#backend-service | fragment-level | Backend services |
+| https://www.rfc-editor.org/rfc/rfc9114.html#section-3 | fragment-level | 3. Connection Setup and Management |
+| https://www.rfc-editor.org/rfc/rfc9114.html#section-4 | fragment-level | 4. Expressing HTTP Semantics in HTTP/3 |
+| https://www.rfc-editor.org/rfc/rfc9113.html#section-3.2 | fragment-level | 3.2. Starting HTTP/2 for " https " URIs |
+| https://www.rfc-editor.org/rfc/rfc9110.html#section-4.2.2 | fragment-level | 4.2.2. https URI Scheme |
+| https://docs.cloud.google.com/load-balancing/docs/https#http3-negotiation | fragment-level | How HTTP/3 is negotiated |
+| https://www.rfc-editor.org/rfc/rfc8446.html#section-4 | fragment-level | 4 .  Handshake Protocol |
+| https://docs.cloud.google.com/certificate-manager/docs/overview#supported-certificates | fragment-level | Supported TLS certificates |
+| https://docs.cloud.google.com/certificate-manager/docs/overview#benefits | fragment-level | Benefits |
+| https://www.rfc-editor.org/rfc/rfc5280.html#section-6 | fragment-level | 6 .  Certification Path Validation |
+| https://www.rfc-editor.org/rfc/rfc9525.html#section-6 | fragment-level | 6. Verifying Service Identity |
+| https://www.rfc-editor.org/rfc/rfc1191.html#section-2 | fragment-level | 2 . Protocol overview |
+| https://docs.cloud.google.com/vpc/docs/mtu#valid_mtus | fragment-level | Valid VPC network MTU sizes |
+| https://docs.cloud.google.com/vpc/docs/mtu#to-cloudpath | fragment-level | Communication to Google APIs and services |
+| https://www.rfc-editor.org/rfc/rfc9293.html#section-3.7.1 | fragment-level | 3.7.1. Maximum Segment Size Option |
+| https://docs.cloud.google.com/vpc/docs/mtu#through-cloud-vpn | fragment-level | Communication through Cloud VPN tunnels |
+| https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/mtu-considerations#cloud-vpn-payload-mtu-values | fragment-level | Cloud VPN payload MTU values |
+| https://www.rfc-editor.org/rfc/rfc3022.html#section-2 | fragment-level | 2 . Overview of traditional NAT |
+| https://docs.cloud.google.com/nat/docs/overview#architecture | fragment-level | Architecture |
+| https://docs.cloud.google.com/nat/docs/ports-and-addresses#ports | fragment-level | Ports |
+| https://docs.cloud.google.com/nat/docs/ports-and-addresses#dynamic-port | fragment-level | Dynamic port allocation |
+| https://docs.cloud.google.com/nat/docs/overview#benefits | fragment-level | Benefits |
+| https://docs.cloud.google.com/nat/docs/ports-and-addresses#ports-reuse-endpoints | fragment-level | Simultaneous port reuse and endpoint-independent mapping |
+| https://docs.cloud.google.com/nat/docs/monitoring#logging | fragment-level | Logging |
+| https://www.rfc-editor.org/rfc/rfc1918.html#section-3 | fragment-level | 3 . Private Address Space |
+| https://docs.cloud.google.com/nat/docs/monitoring#vm-metrics | fragment-level | VM instance metrics |
+| https://docs.cloud.google.com/nat/docs/monitoring#gateway-metrics | fragment-level | NAT gateway metrics |
+| https://www.rfc-editor.org/rfc/rfc4271.html#section-3 | fragment-level | 3 .  Summary of Operation |
+| https://docs.cloud.google.com/vpc/docs/routes#routeselection | fragment-level | Routing order |
+| https://docs.cloud.google.com/vpc/docs/routes#types_of_routes | fragment-level | Route types |
+| https://docs.cloud.google.com/network-connectivity/docs/router/concepts/overview#key | fragment-level | Key features |
+| https://docs.cloud.google.com/network-connectivity/docs/router/concepts/learned-routes#dynamic-routing-mode | fragment-level | Dynamic routing mode |
+
+RFC 6125 info metadata explicitly says Obsoleted by RFC 9525: hostname matching now cites RFC 9525 §6; RFC 6125 is removed from teaching references. RFC 8446 info metadata says Obsoleted by RFC 9846: the requested roadmap/coverage primary remains historical RFC 8446 §4, with that status in its source label; no claim of current-standard status is made. RFC 9293 has no Obsoleted by metadata value (the corrected parser avoids incidental prose).
+
+Whole-document **status-only** links: rfc-editor.org/info/rfcN, recorded in scratch/day-004-rfc-status-ledger.json; reason: authoritative RFC status metadata is document-wide, not the teaching section. All 22 named RFC/status entries were opened; only 6125→9525 and 8446→9846 have Obsoleted by values. Remaining checked numbers: 1191, 1918, 3022, 4271, 5280, 5880, 6066, 6960, 6996, 7301, 7323, 7541, 9000, 9110, 9112, 9113, 9114, 9293, 9525, 9846.
+
+### Product-claim list and supporting sections
+
+| Product claim / correction | Supporting opened section(s) |
+| --- | --- |
+| External Application Load Balancer terminates client HTTP/2 with TLS ALPN; HTTP/2 backends need TLS/protocol configuration | [Google Cloud HTTP(S) Load Balancing — HTTP/2 over TLS (accessed 2026-10-04)](https://docs.cloud.google.com/load-balancing/docs/https#http2-over-tls) |
+| Client and backend protocol selections can differ; HTTP2 backend protocol uses TLS; no backend protocol fallback promised | [Application Load Balancer — Backend services (accessed 2026-10-04)](https://docs.cloud.google.com/load-balancing/docs/https#backend-service) |
+| Backend-service keepalive 600 seconds; backend software must exceed it; Apache/nginx example 620 seconds; backend buckets differ | [External Application Load Balancers — Timeouts and retries (accessed 2026-10-04)](https://docs.cloud.google.com/load-balancing/docs/https/request-distribution#timeouts_and_retries) |
+| HTTP/3 is advertised using Alt-Svc and clients can fall back when QUIC/UDP is unavailable; no universal QUIC negotiation promised | [Application Load Balancer — How HTTP/3 is negotiated (accessed 2026-10-04)](https://docs.cloud.google.com/load-balancing/docs/https#http3-negotiation) |
+| Certificate Manager manages Google-managed/self-managed certificates; managed issuance/renewal and CA Service pool issuers; no universal 90-day lifetime or chain-completeness promise | [Google Cloud Certificate Manager Overview — Supported TLS certificates (accessed 2026-10-04)](https://docs.cloud.google.com/certificate-manager/docs/overview#supported-certificates) |
+| Domain-based certificate selection and DNS/load-balancer authorization; supports lifecycle design, not arbitrary sidecar/mTLS or split-horizon eligibility | [Certificate Manager — Benefits (accessed 2026-10-04)](https://docs.cloud.google.com/certificate-manager/docs/overview#benefits) |
+| OCSP stapling/zero-client-lookup is not established by the Certificate Manager cited sections; inspect a real handshake before claiming it | [Google Cloud Certificate Manager Overview — Supported TLS certificates (accessed 2026-10-04)](https://docs.cloud.google.com/certificate-manager/docs/overview#supported-certificates) |
+| VPC default MTU 1460, selectable range 1300–8896; base-header IPv4 MSS 1420 is a calculation, not a documented rationale for that default | [Google Cloud VPC Maximum Transmission Unit (MTU) Settings — Valid VPC network MTU sizes (accessed 2026-10-04)](https://docs.cloud.google.com/vpc/docs/mtu#valid_mtus) |
+| Google APIs/services have separate path MTU/MSS behavior; no same-VPC Cloud Storage jumbo-throughput guarantee | [VPC MTU — Communication to Google APIs and services (accessed 2026-10-04)](https://docs.cloud.google.com/vpc/docs/mtu#to-cloudpath) |
+| Cloud VPN gateway and payload MTUs differ | [VPC MTU — Communication through Cloud VPN tunnels (accessed 2026-10-04)](https://docs.cloud.google.com/vpc/docs/mtu#through-cloud-vpn) |
+| VPN payload values depend on cipher, gateway IP version, NAT-T and Interconnect; example 1360 MSS is supplied/configured, not a universal service default | [Cloud VPN — Cloud VPN payload MTU values (accessed 2026-10-04)](https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/mtu-considerations#cloud-vpn-payload-mtu-values) |
+| Cloud NAT is distributed managed Andromeda software providing SNAT and response DNAT, not a proxy VM/appliance or NAT route next hop | [Google Cloud NAT Overview — Architecture (accessed 2026-10-04)](https://docs.cloud.google.com/nat/docs/overview#architecture) |
+| Cloud Router is the NAT control plane holding configuration; VM external IP reduction is subject to egress rules; no zero-hop latency or infinite-capacity guarantee | [Cloud NAT — Benefits (accessed 2026-10-04)](https://docs.cloud.google.com/nat/docs/overview#benefits) |
+| NAT IP offers 64,512 TCP and UDP source ports each; local 64,000 capacity is conservative toy rounding, not a universal connection limit | [Cloud NAT — Ports (accessed 2026-10-04)](https://docs.cloud.google.com/nat/docs/ports-and-addresses#ports) |
+| Dynamic allocation has configured minimum/maximum and usage-based growth; Public NAT static vs Private NAT dynamic defaults differ; EIM is incompatible with dynamic allocation | [Cloud NAT — Dynamic port allocation (accessed 2026-10-04)](https://docs.cloud.google.com/nat/docs/ports-and-addresses#dynamic-port) |
+| Public NAT EIM reuses mappings across differing destination tuples, subject to its documented conflicts/conditions | [Cloud NAT — Simultaneous port reuse and endpoint-independent mapping (accessed 2026-10-04)](https://docs.cloud.google.com/nat/docs/ports-and-addresses#ports-reuse-endpoints) |
+| Configurable NAT connection/error logs go to Cloud Logging; no guarantee of every connection being logged | [Cloud NAT — Logging (accessed 2026-10-04)](https://docs.cloud.google.com/nat/docs/monitoring#logging) |
+| compute.googleapis.com/nat/open_connections and dropped_sent_packets_count are VM metrics; OUT_OF_RESOURCES is a drop reason, not observed production data here | [Cloud NAT — VM instance metrics (accessed 2026-10-04)](https://docs.cloud.google.com/nat/docs/monitoring#vm-metrics) |
+| router.googleapis.com/nat/nat_allocation_failed is a boolean allocation-failure gauge, not a packet-drop counter | [Cloud NAT — NAT gateway metrics (accessed 2026-10-04)](https://docs.cloud.google.com/nat/docs/monitoring#gateway-metrics) |
+| VPC routing is staged; policy/special/subnet/custom rules precede applicable specificity/priority/ECMP decisions; generic LPM model is not full GCP selection | [Google Cloud VPC Routes Overview — Routing order (accessed 2026-10-04)](https://docs.cloud.google.com/vpc/docs/routes#routeselection) |
+| Subnet/system/static/dynamic routes have distinct creation, next-hop and applicability rules; no universal production dynamic-routing mandate | [VPC — Route types (accessed 2026-10-04)](https://docs.cloud.google.com/vpc/docs/routes#types_of_routes) |
+| Cloud Router manages BGP, learned/advertised routes and BFD support; no documented hypervisor FIB hook, 300-ms detection or fixed restoration guarantee | [Google Cloud Cloud Router Overview — Key features (accessed 2026-10-04)](https://docs.cloud.google.com/network-connectivity/docs/router/concepts/overview#key) |
+| Regional/global dynamic mode governs regional learned-route processing and allowable next-hop regions; failover and symmetric return reachability must be checked | [Cloud Router — Dynamic routing mode (accessed 2026-10-04)](https://docs.cloud.google.com/network-connectivity/docs/router/concepts/learned-routes#dynamic-routing-mode) |
+
+Case values (64 ports, 1024 maximum, 4ms/70ms latency, MED/AS-path choices) are supplied illustrative inputs or proposed settings, not defaults, locally measured GCP values or automatic recovery guarantees. 198.51.100.25 is retained because it is in the allowed TEST-NET-2 documentation range. All three real public example literals are replaced; the allowlist contains only its header.
+
+### Final checks and stop boundary
+
+- extract_day_inputs --day 4: passed; final input output includes corrected five coverage rows.
+
+- validate_spec --day 4: 0 errors, 9 WARNs (five diagram manual-review notices, three 0.0.0.0/0 notation notices, one >100-KB revision notice). 0.0.0.0/0 denotes a default route, not a real destination; the requested literal-range checker intentionally reports it.
+
+- validate_spec --day 2: 0 errors, 62 WARNs; original two diagram-review warnings unchanged, additions are new advisory checks. validate_spec --day 3: 0 errors, 49 WARNs; original one diagram-review warning and legacy INFO unchanged, additions are new advisory checks only. No legacy findings were suppressed and no protected spec changed.
+
+- author_engine --day 4, build --day 4, validate --day 4: passed; 0 local link/structure errors. No other day build was requested or run.
+
+- Final uncached check_study_links --day 4: 36 passes, 0 unverified; RFC status values and excerpts in JSON/stdout. Link set unchanged by subsequent caption-only factual corrections; source URLs/labels are the final ones checked.
+
+- All unit tests: 64 pass. Required checker-only unittest discovery: 14 pass. Final labs: five exit 0, all 40 stage artifact checks and specified acceptance checks pass. The temporary runner’s initial NAT assertion expected a reason string that the simulator does not print; corrected to its actual 64 successes / 10 drops / first drop at attempt 65 and dynamic Drops=0.
+
+- Protected SHA-256 comparisons: all four pass. git diff --check passes with core.whitespace including cr-at-eol, preserving coverage.csv’s existing CRLF endings; exactly five CSV rows changed.
+
+- Shared shell/CSS/JS and other day content remain unchanged. Browser rendering checks are unavailable/unverified as disclosed above; structural success is not a visual audit.
+
+Artifacts: scratch/day-004-final-checks.txt, day-004-legacy-validation.txt, day-004-unit-tests.txt, day-004-checker-unit-tests.txt, day-004-study-links.json, day-004-study-links-output.txt, day-004-rfc-status-ledger.json, day-004-lab-rerun.json and protected snapshot/final-check files.
+
+**STOP: no commit or push; no next-day work.**

@@ -103,6 +103,40 @@ and roadmap Exit evidence mapping. Cloud preflight verifies identity/project/API
 permissions/location/inventory/billing/bounded cost. Stage 8 removes only lab-owned
 resources in reverse dependency order or explicitly closes the local artifact.
 
+
+### Fidelity and review records (contract version 2)
+
+Specs carry `contract_version = 2`, `roadmap_practice` and `roadmap_exit` verbatim.
+Labs perform Practice as written and produce Exit: supplied captures/traces need
+supplied fixtures; generated variants supplement them. Each lab's `covers` names
+its Practice clause; handoff includes the Practice-to-lab map.
+Every lab mode labels **Observed locally:**, **Simulated or predicted:** and
+**Untested on GCP:**. Stages 1–7 never mask failures (`|| true`); Stage 1 checks
+every external tool with `command -v`. Environment-dependent expected output is
+illustrative. Illustrative/supplied logs and captions never claim proved, recorded,
+captured or observed evidence unless produced locally in that lab.
+
+Use section URLs with fragments wherever sections exist; whole-document links
+need a stated reason. Check every cited RFC's “Obsoleted by” at rfc-editor.org.
+Source labels use `(accessed YYYY-MM-DD)`; handoff Source ledger names the heading
+actually opened per link. Never say “verified” beyond checker output. Product
+claims (defaults, limits, internals) state only what the cited section says, with
+no invented rationale; handoff Product-claim list maps each to its section.
+Examples use documentation IPv4 ranges (192.0.2.0/24, 198.51.100.0/24,
+203.0.113.0/24), 2001:db8::/32, RFC 1918 private space, loopback and reserved names
+(.test, .example, .invalid). Real public addresses need a one-line reason in
+`data/address_allowlist.txt`.
+
+Never silently remove a diagram. An ineligible diagram under the Diagram
+Generation Rule above must become a qualifying sequence or be referred to the
+user. If depth and eligibility conflict, keep it and ask. Handoff Visuals list
+names every addition/removal/replacement and its reason.
+Edit durable specs with targeted `str_replace` edits or per-topic files; recreate
+only for initial skeleton fill or when over about half changes. Report spec diff
+size and confirm no explanatory prose removed. `coverage.csv` publisher_url is a
+hint; on completion set each topic's primary source and set
+publisher_section_verified only after confirming its section.
+
 ## Typography and inline code
 
 Selected first-use prose terms: `<strong class="keyword">term</strong>` with
@@ -186,9 +220,9 @@ text overlap/arrow/source/eligibility decision; rendered reads follow Read budge
 ## Read budget
 
 After static rules read ONLY the day's roadmap entry, compact brief, coverage.csv
-rows, and durable `scratch/day_data_NNN.py` if present. Extract brief/entry using
-bounded grep/rg and sed, never full 180-day catalog/roadmap, unrelated days or
-selector markup. Give each context only its compact brief. Precedence item 4,
+rows, and durable `scratch/day_data_NNN.py` if present. Use `python3 scripts/extract_day_inputs.py --day N` and read its
+`scratch/day-NNN-inputs.md` instead of manual grep; never read the full catalog,
+unrelated days or selector markup. Give each context only its compact brief. Precedence item 4,
 icon metadata/source sections or flagged CSS/JS are targeted exceptions only when
 needed, not full-file reads.
 

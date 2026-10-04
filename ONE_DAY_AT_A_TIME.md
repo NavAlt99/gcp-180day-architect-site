@@ -25,3 +25,7 @@ the site directory, then extract only the requested brief. Apply the contract's
 precedence/read policy to stale or alternate prompts. Author the durable source,
 run the update prompt's commands, repair introduced failures, and hand off before
 advancing. Do not run a full-site build.
+
+Run `scripts/extract_day_inputs.py --day N` before day-specific reading; use its
+compact output. New specs use contract version 2; follow the update prompt
+command order and fidelity/source/product/visual/spec-diff handoff records.
