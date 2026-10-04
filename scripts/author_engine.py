@@ -893,7 +893,7 @@ def compile_day_page(day_num: int, data: dict) -> None:
         completion.append(BeautifulSoup(f'<p class="exit-summary">Exit artifact: {escape(exit_summary)}</p>', "html.parser"))
 
     # ─── TOC TOPIC SYNCHRONIZATION ──────────────────────────────────────
-    toc = soup.select_one("aside.toc")
+    toc = soup.select_one("aside.toc, nav.toc, .toc")
     if toc:
         for old in toc.select(".toc-topic"):
             old.decompose()
