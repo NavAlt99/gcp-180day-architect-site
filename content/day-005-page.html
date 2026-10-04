@@ -686,244 +686,252 @@
 <a href="#part-4">
      4 · Labs
     </a>
-<div class="toc-topic">
-<span>
-      VPN concepts
-     </span>
-<a href="#topic-01-overview">
-      overview
-     </a>
-     ·
-     <a href="#topic-01-technical">
-      discussion
-     </a>
-     ·
-     <a href="#topic-01-problem">
-      problem
-     </a>
-     ·
-     <a href="#topic-01-lab">
-      lab
-     </a>
-</div>
-<div class="toc-topic">
-<span>
-      Load balancing concepts
-     </span>
-<a href="#topic-02-overview">
-      overview
-     </a>
-     ·
-     <a href="#topic-02-technical">
-      discussion
-     </a>
-     ·
-     <a href="#topic-02-problem">
-      problem
-     </a>
-     ·
-     <a href="#topic-02-lab">
-      lab
-     </a>
-</div>
-<div class="toc-topic">
-<span>
-      Firewalls
-     </span>
-<a href="#topic-03-overview">
-      overview
-     </a>
-     ·
-     <a href="#topic-03-technical">
-      discussion
-     </a>
-     ·
-     <a href="#topic-03-problem">
-      problem
-     </a>
-     ·
-     <a href="#topic-03-lab">
-      lab
-     </a>
-</div>
-</aside>
-<section class="part" id="part-1">
-<h2>
+<div class="toc-topic"><span>VPN concepts</span> <a href="#topic-01-overview">overview</a> · <a href="#topic-01-technical">discussion</a> · <a href="#topic-01-problem">problem</a> · <a href="#topic-01-lab">lab</a></div><div class="toc-topic"><span>Load balancing concepts</span> <a href="#topic-02-overview">overview</a> · <a href="#topic-02-technical">discussion</a> · <a href="#topic-02-problem">problem</a> · <a href="#topic-02-lab">lab</a></div><div class="toc-topic"><span>Firewalls</span> <a href="#topic-03-overview">overview</a> · <a href="#topic-03-technical">discussion</a> · <a href="#topic-03-problem">problem</a> · <a href="#topic-03-lab">lab</a></div></aside>
+<section class="part" id="part-1"><h2>
      1 · Topics of the day
-    </h2>
-<article class="topic-card" id="topic-01-overview">
-<h3>
-      VPN concepts
-     </h3>
-<p>
-     A virtual private network (VPN) connects private networks across an untrusted transport by authenticating peers and protecting traffic in a tunnel. A site-to-site VPN joins network gateways; a client VPN connects an individual device. The tunnel, routes and firewall permissions are separate parts of a working connection.
-     </p>
-<p><strong>Why today and where it sits:</strong> Day 5 combines Day 4 routing evidence with protected hybrid transit. The VPN sits between Brightloaf's cloud network and a peer network; routing and firewall decisions still occur on both sides.</p>
-<p><strong>Problem preview:</strong> The site-to-site tunnel reports established, but the peer network has no return route to the Order API source prefix. Inventory calls time out, delaying checkout and fulfillment decisions.</p>
-<p>
-<a href="#topic-01-technical">
-       Technical discussion
-      </a>
-      ·
-      <a href="#topic-01-problem">
-       Real-world problem
-      </a>
-      ·
-      <a href="#topic-01-lab">
-       Exercise
-      </a>
-</p>
+    </h2><article class="topic-card overview" id="topic-01-overview">
+<h3>VPN concepts</h3>
+<p><strong class="keyword">IPsec VPN</strong> creates encrypted, authenticated network tunnels across untrusted public networks to connect distributed environments. Tunnel establishment verifies gateway credentials and cryptographic negotiation, but operational data reachability requires symmetric return routing, compatible MTU sizing, and coordinated firewall allowances.</p>
+<p><strong class="side-heading">Why today:</strong> Establishes the foundational hybrid connectivity mechanism connecting cloud VPCs with on-premises data centers before deploying multi-tier applications.</p>
+<p class="problem-preview">A site-to-site IPsec tunnel reports established state, but application database queries between cloud services and on-premises systems experience immediate connection timeouts. Engineers discover that while outer encrypted tunnel security associations negotiated successfully, the on-premises router lacked an explicit return route back to the cloud VPC subnet prefix.</p>
 </article>
-<article class="topic-card" id="topic-02-overview">
-<h3>
-      Load balancing concepts
-     </h3>
-<p>
-     A load balancer presents a frontend address or service and distributes connections or requests among backends. Network load balancing makes decisions from transport and network information; application load balancing can use HTTP details such as host and path. Health checks determine which backends are eligible for new traffic.
-     </p>
-<p><strong>Why today and where it sits:</strong> Load balancing sits between clients and Brightloaf's Order API backends, after network policy allows the frontend path. Its layer, proxy model and health-check result determine which traffic can reach which backend.</p>
-<p><strong>Problem preview:</strong> Every backend process is running, but the configured readiness check calls a nonexistent path and marks the pool unhealthy. The load balancer has no eligible Order API backend, so checkout returns a service error.</p>
-<p>
-<a href="#topic-02-technical">
-       Technical discussion
-      </a>
-      ·
-      <a href="#topic-02-problem">
-       Real-world problem
-      </a>
-      ·
-      <a href="#topic-02-lab">
-       Exercise
-      </a>
-</p>
+<article class="topic-card overview" id="topic-02-overview">
+<h3>Load balancing concepts</h3>
+<p><strong class="keyword">Load balancing</strong> distributes network traffic across a resilient pool of backend instances to optimize throughput, prevent single-point overload, and enable zero-downtime rolling updates. Layer 4 passthrough balancing preserves source IPs and optimizes raw packet throughput, while Layer 7 reverse proxying enables URL path routing, TLS termination offload, and deep health check evaluation.</p>
+<p><strong class="side-heading">Why today:</strong> Provides the horizontal scale and high availability boundary for microservices and database tiers in the Google Cloud architecture path.</p>
+<p class="problem-preview">Production API clients receive HTTP 502 bad gateway errors during peak traffic after a rolling application update deploys to healthy virtual machine backends. Investigation shows that the load balancer health check targeted an unconfigured readiness endpoint, causing the health monitor to mark all running backends unhealthy simultaneously.</p>
 </article>
-<article class="topic-card" id="topic-03-overview">
-<h3>
-      Firewalls
-     </h3>
-<p>
-     A firewall evaluates traffic against rules that match properties such as direction, source, destination, protocol, port and target. An allow decision permits a matching flow at that boundary; a deny decision blocks it. A firewall rule does not create a missing route or make an application listen on a port.
-     </p>
-<p><strong>Why today and where it sits:</strong> Firewall evaluation is a separate boundary on the VPN, load-balancer probe and backend paths. Day 5 uses ordered decisions to distinguish policy permission from routing, health and application behavior.</p>
-<p><strong>Problem preview:</strong> A broad higher-priority rule permits direct public TCP 443 traffic to the Order API VM. The intended load-balancer-only boundary is bypassed, increasing exposure and weakening traffic controls.</p>
-<p>
-<a href="#topic-03-technical">
-       Technical discussion
-      </a>
-      ·
-      <a href="#topic-03-problem">
-       Real-world problem
-      </a>
-      ·
-      <a href="#topic-03-lab">
-       Exercise
-      </a>
-</p>
-</article>
-</section>
-<section class="part" id="part-2">
-<figure class="diagram-container foundation-topology"><div style="max-width:100%;overflow-x:auto"><svg aria-labelledby="d005-top-title d005-top-desc" height="auto" role="img" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;" viewbox="0 0 1120 690" width="100%">
-<title id="d005-top-title">Day 5 foundation path — Day 5 — VPN, load balancers and firewalls</title>
-<desc id="d005-top-desc">Three-tier foundation topology for Day 5 — VPN, load balancers and firewalls. It separates ingress and demand, runtime and data, and governance and decision evidence, with probes at each ownership boundary.</desc>
-<defs>
-<marker id="d005-top-arr-ok" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#22c55e" points="0 0, 8 4, 0 8"></polygon></marker>
-<marker id="d005-top-arr-fail" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#f43f5e" points="0 0, 8 4, 0 8"></polygon></marker>
-<marker id="d005-top-arr-warn" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#f59e0b" points="0 0, 8 4, 0 8"></polygon></marker>
-<marker id="d005-top-arr-blue" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#38bdf8" points="0 0, 8 4, 0 8"></polygon></marker>
-</defs>
-<rect fill="#12283b" height="110" opacity="0.45" rx="6" width="1080" x="20" y="55"></rect><rect fill="#090d16" height="18" rx="4" stroke="#7dd3fc" stroke-opacity="0.3" stroke-width="1" width="1080" x="20" y="55"></rect><text fill="#7dd3fc" font-family="monospace" font-size="9.5" font-weight="bold" x="32" y="68">TIER 1 · INGRESS / DEMAND</text><text fill="#94a3b8" font-family="monospace" font-size="8.5" text-anchor="end" x="1086" y="68">request, client, edge</text><rect fill="#1b2038" height="230" opacity="0.45" rx="6" width="1080" x="20" y="185"></rect><rect fill="#090d16" height="18" rx="4" stroke="#c4b5fd" stroke-opacity="0.3" stroke-width="1" width="1080" x="20" y="185"></rect><text fill="#c4b5fd" font-family="monospace" font-size="9.5" font-weight="bold" x="32" y="198">TIER 2 · RUNTIME / DATA</text><text fill="#94a3b8" font-family="monospace" font-size="8.5" text-anchor="end" x="1086" y="198">state, process, path</text><rect fill="#2b1d2f" height="120" opacity="0.45" rx="6" width="1080" x="20" y="435"></rect><rect fill="#090d16" height="18" rx="4" stroke="#f9a8d4" stroke-opacity="0.3" stroke-width="1" width="1080" x="20" y="435"></rect><text fill="#f9a8d4" font-family="monospace" font-size="9.5" font-weight="bold" x="32" y="448">TIER 3 · GOVERNANCE / DECISION</text><text fill="#94a3b8" font-family="monospace" font-size="8.5" text-anchor="end" x="1086" y="448">policy, evidence, exit</text>
-<rect fill="none" height="140" rx="4" stroke="#f59e0b" stroke-dasharray="5,3" stroke-width="2" width="530" x="430" y="230"></rect><rect fill="#0f172a" height="17" rx="3" stroke="#f59e0b" stroke-width="1.5" width="148.39999999999998" x="791.6" y="361"></rect><text fill="#f59e0b" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle" x="865.8" y="373">LIMIT / FAILURE BOUNDARY</text>
-<rect fill="#1e293b" height="52" rx="4" stroke="#38bdf8" stroke-width="1.5" width="190" x="70" y="92"></rect><text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="165" y="114">Client / probe</text><text fill="#94a3b8" font-family="monospace" font-size="9.5" text-anchor="middle" x="165" y="132">input + expectation</text><rect fill="#1e293b" height="52" rx="4" stroke="#f59e0b" stroke-width="1.5" width="250" x="465" y="92"></rect><text fill="#f59e0b" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="590" y="110">Boundary under study</text><text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="590" y="125">Day 5 — VPN, load balancers and</text><text fill="#94a3b8" font-family="monospace" font-size="9" text-anchor="middle" x="590" y="138">fi</text><rect fill="#1e293b" height="52" rx="4" stroke="#34d399" stroke-width="1.5" width="190" x="860" y="92"></rect><text fill="#34d399" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="955" y="114">Observed result</text><text fill="#94a3b8" font-family="monospace" font-size="9.5" text-anchor="middle" x="955" y="132">status / trace / artifact</text><rect fill="#1e293b" height="72" rx="4" stroke="#a78bfa" stroke-width="1.5" width="220" x="180" y="265"></rect><text fill="#a78bfa" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="290" y="287">Control path</text><text fill="#94a3b8" font-family="monospace" font-size="9.5" text-anchor="middle" x="290" y="325">owner + state transition</text><rect fill="#1e293b" height="72" rx="4" stroke="#f59e0b" stroke-width="1.5" width="220" x="450" y="265"></rect><text fill="#f59e0b" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="560" y="287">Runtime or data state</text><text fill="#94a3b8" font-family="monospace" font-size="9.5" text-anchor="middle" x="560" y="325">where the limit appears</text><rect fill="#1e293b" height="72" rx="4" stroke="#34d399" stroke-width="1.5" width="220" x="720" y="265"></rect><text fill="#34d399" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="830" y="287">Return / recovery path</text><text fill="#94a3b8" font-family="monospace" font-size="9.5" text-anchor="middle" x="830" y="325">response + replay safety</text><rect fill="#1e293b" height="52" rx="4" stroke="#f9a8d4" stroke-width="1.5" width="220" x="195" y="480"></rect><text fill="#f9a8d4" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="305" y="502">Decision record</text><text fill="#94a3b8" font-family="monospace" font-size="9.5" text-anchor="middle" x="305" y="520">accept / repair / defer</text><rect fill="#1e293b" height="52" rx="4" stroke="#f59e0b" stroke-width="1.5" width="220" x="710" y="480"></rect><text fill="#f59e0b" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="820" y="502">Verification boundary</text><text fill="#94a3b8" font-family="monospace" font-size="9.5" text-anchor="middle" x="820" y="520">evidence meets exit</text>
-<line marker-end="url(#d005-top-arr-blue)" stroke="#38bdf8" stroke-width="2.0" x1="260" x2="465" y1="118" y2="118"></line><rect fill="#090d16" height="17" rx="3" stroke="#38bdf8" stroke-opacity="0.8" stroke-width="1" width="51.199999999999996" x="336.4" y="109"></rect><text fill="#38bdf8" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle" x="362" y="121">request</text><line marker-end="url(#d005-top-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="715" x2="860" y1="118" y2="118"></line><rect fill="#090d16" height="17" rx="3" stroke="#22c55e" stroke-opacity="0.8" stroke-width="1" width="56.8" x="758.6" y="109"></rect><text fill="#22c55e" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle" x="787" y="121">evidence</text><line marker-end="url(#d005-top-arr-warn)" stroke="#f59e0b" stroke-dasharray="4,3" stroke-width="2.0" x1="590" x2="590" y1="144" y2="265"></line><rect fill="#090d16" height="17" rx="3" stroke="#f59e0b" stroke-opacity="0.8" stroke-width="1" width="51.199999999999996" x="564.4" y="195"></rect><text fill="#f59e0b" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle" x="590" y="207">handoff</text><line marker-end="url(#d005-top-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="400" x2="450" y1="301" y2="301"></line><rect fill="#090d16" height="15" rx="3" stroke="#22c55e" stroke-opacity="0.8" stroke-width="1" width="36.0" x="407.0" y="283"></rect><text fill="#22c55e" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="425" y="294">state</text><line marker-end="url(#d005-top-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="670" x2="720" y1="301" y2="301"></line><rect fill="#090d16" height="15" rx="3" stroke="#22c55e" stroke-opacity="0.8" stroke-width="1" width="41.2" x="674.4" y="283"></rect><text fill="#22c55e" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="695" y="294">return</text><line marker-end="url(#d005-top-arr-blue)" stroke="#38bdf8" stroke-width="2.0" x1="290" x2="305" y1="337" y2="480"></line><rect fill="#090d16" height="17" rx="3" stroke="#38bdf8" stroke-opacity="0.8" stroke-width="1" width="45.599999999999994" x="274.2" y="399"></rect><text fill="#38bdf8" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle" x="297" y="411">record</text><line marker-end="url(#d005-top-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="830" x2="820" y1="337" y2="480"></line><rect fill="#090d16" height="17" rx="3" stroke="#22c55e" stroke-opacity="0.8" stroke-width="1" width="45.599999999999994" x="802.2" y="399"></rect><text fill="#22c55e" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle" x="825" y="411">verify</text>
-<circle cx="248" cy="104" fill="#38bdf8" opacity="0.95" r="10" stroke="#ffffff" stroke-width="1.5"></circle><text fill="white" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle" x="248" y="107">P1</text><circle cx="658" cy="277" fill="#f59e0b" opacity="0.95" r="10" stroke="#ffffff" stroke-width="1.5"></circle><text fill="white" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle" x="658" y="280">P2</text><circle cx="918" cy="492" fill="#34d399" opacity="0.95" r="10" stroke="#ffffff" stroke-width="1.5"></circle><text fill="white" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle" x="918" y="495">P3</text>
-<rect fill="#090d16" height="52" opacity="0.95" rx="4" stroke="#1e293b" stroke-width="1" width="1100" x="10" y="585"></rect><text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" x="24" y="601">SYSTEM PROBES &amp; INVARIANT VERIFICATION CHECKPOINTS:</text><circle cx="32" cy="618" fill="#38bdf8" r="7"></circle><text fill="white" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="32" y="621">P1</text><text fill="#38bdf8" font-family="monospace" font-size="9" x="44" y="621">PROBE 1 · input accepted</text><circle cx="389" cy="618" fill="#f59e0b" r="7"></circle><text fill="white" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="389" y="621">P2</text><text fill="#f59e0b" font-family="monospace" font-size="9" x="401" y="621">PROBE 2 · boundary observed</text><circle cx="746" cy="618" fill="#34d399" r="7"></circle><text fill="white" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle" x="746" y="621">P3</text><text fill="#34d399" font-family="monospace" font-size="9" x="758" y="621">PROBE 3 · exit evidence</text>
-<rect fill="#0f172a" height="36" opacity="0.8" rx="4" stroke="#1e293b" width="1100" x="10" y="646"></rect><line stroke="#22c55e" stroke-width="2.5" x1="22" x2="62" y1="664" y2="664"></line><text fill="#22c55e" font-family="monospace" font-size="11" x="68" y="668">CORRECTED / AUTHORIZED</text><line stroke="#f43f5e" stroke-dasharray="6,4" stroke-width="2" x1="250" x2="290" y1="664" y2="664"></line><text fill="#f43f5e" font-family="monospace" font-size="11" x="296" y="668">FAILED / DENIED</text><rect fill="none" height="12" stroke="#f59e0b" stroke-dasharray="4,2" stroke-width="2" width="12" x="460" y="658"></rect><text fill="#f59e0b" font-family="monospace" font-size="11" x="480" y="668">VERIFY BOUNDARY</text><circle cx="670" cy="664" fill="#f43f5e" r="6"></circle><text fill="#f43f5e" font-family="monospace" font-size="11" x="682" y="668">FI = Fault Injection Point</text>
-</svg></div>
-<figcaption>Scope: a teaching topology for Day 5's day 5 — vpn, load balancers and firewalls path. It shows ownership boundaries and evidence flow; it does not prove a deployed Google Cloud topology, capacity, or production behavior.</figcaption>
-</figure><h2>
+<article class="topic-card overview" id="topic-03-overview">
+<h3>Firewalls</h3>
+<p><strong class="keyword">VPC firewalls</strong> enforce stateful packet filtering rules at the virtual machine hypervisor boundary, inspecting Layer 3/4 traffic and automatically permitting bidirectional return flows for established connections. Rules evaluate strictly by ascending numerical priority where the first matching rule dictates the policy decision.</p>
+<p><strong class="side-heading">Why today:</strong> Enforces network isolation and defense-in-depth perimeters across ingress, egress, and inter-service boundaries in enterprise architectures.</p>
+<p class="problem-preview">Untrusted external clients access internal staging microservices directly over public IP addresses despite team assumptions that the services were private to the load balancer. A broad legacy ingress allow rule at priority 100 matched all incoming traffic before the narrow priority 200 restriction could take effect.</p>
+</article></section>
+<section class="part" id="part-2"><h2>
      2 · Technical discussion of each topic
-    </h2>
-<article class="topic-card" id="topic-01-technical">
-<h3>
-      VPN concepts
-     </h3>
-<p>
-      An IPsec site-to-site VPN encapsulates private traffic between gateways and protects it in transit. The inner packet still has source and destination addresses that must be routed on both sides. Tunnel establishment proves the peers can negotiate protection; it does not prove that the desired subnet prefixes are advertised or that firewalls permit the application. Overlapping private ranges complicate routing even when encryption is healthy. Tunnel overhead also reduces the effective path MTU, so a small packet may succeed while a larger one stalls. In Google Cloud, Cloud VPN extends a peer network to a VPC over IPsec; it is for private-network connectivity, not a general public-internet egress gateway.
-     </p>
-<p>
-     An architect should document the peer endpoints, protected prefixes, route exchange, allowed ports, availability design and owner of each gateway. Verification needs both directions of a representative application flow, not just a tunnel-up indicator.
-     </p>
-<p>IKEv2 authenticates peers and establishes the security associations used by IPsec. Site-to-site and client VPNs differ in where the protected path begins: a site-to-site design joins gateways and routed prefixes, while a client VPN joins one managed endpoint to a private network.</p>
-<table><caption>VPN control and data-path boundaries</caption><thead><tr><th>Boundary</th><th>Owner</th><th>Evidence</th><th>Limit</th></tr></thead><tbody><tr><td>IKEv2 negotiation</td><td>Both VPN peers</td><td>Authenticated security association</td><td>Does not prove application prefixes are routed.</td></tr><tr><td>IPsec tunnel</td><td>Security gateways</td><td>Protected transit between gateways</td><td>Does not create a return route.</td></tr><tr><td>Forward and return routes</td><td>Each routing domain</td><td>Selected next hops for both prefixes</td><td>Does not prove firewall permission.</td></tr><tr><td>Database socket</td><td>Peer host and application</td><td>Connection to TCP 5432</td><td>Does not prove a successful transaction.</td></tr></tbody></table>
-<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="day5-vpn-title day5-vpn-desc" role="img" viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title id="day5-vpn-title">Site-to-site VPN forward and return path</title><desc id="day5-vpn-desc">The Brightloaf cloud host routes the inventory request through two IPsec gateways to the on-premises database. The return side needs a route to the cloud source prefix.</desc><defs><marker id="day5-vpn-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="133" rx="10" stroke="#34d399" width="252" x="18" y="42"></rect><rect height="133" rx="10" stroke="#38bdf8" width="252" x="344" y="42"></rect><rect height="133" rx="10" stroke="#f43f5e" width="252" x="670" y="42"></rect></g><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="144" y="78">Cloud Order API</text><text x="470" y="78">IPsec gateways</text><text x="796" y="78">Inventory database</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="144" y="111">10.20.1.5</text><text x="144" y="142">route to 10.50.0.0/16</text><text x="470" y="111">IKEv2 + protected tunnel</text><text x="470" y="142">tunnel established</text><text x="796" y="111">10.50.4.8:5432</text><text fill="#f43f5e" x="796" y="142">return route missing</text></g><g marker-end="url(#day5-vpn-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M270 104 L339 104"></path><path d="M596 104 L665 104"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="210">Tunnel state, routing, firewall policy and socket reachability are separate checks.</text></svg><figcaption>Figure 5.1: The supplied VPN fixture succeeds at tunnel establishment but lacks the return route to 10.20.0.0/16. It is a tabletop path, not a deployed tunnel measurement.</figcaption></figure>
-<div class="further"><h4>Further Study</h4><p><a href="https://datatracker.ietf.org/doc/html/rfc4301#section-5.1.2">RFC 4301 §5.1.2, tunnel-mode header construction</a>, <a href="https://datatracker.ietf.org/doc/html/rfc7296#section-1.2">RFC 7296 §1.2, IKEv2 initial exchanges</a>, and <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview">Google Cloud VPN overview</a>. No video timestamp is claimed because a matching segment was not verified.</p></div>
-</article>
-<article class="topic-card" id="topic-02-technical">
-<h3>
-      Load balancing concepts
-     </h3>
-<p>
-      Load balancing separates the client-facing endpoint from the set of serving instances. A network load balancer can handle transport flows without understanding HTTP paths; an application load balancer can route different URLs or hostnames to different backend services. Proxy and passthrough products also differ in whether they terminate a connection or preserve its packet properties. Internal versus external exposure is a separate choice about who can reach the frontend. In Google Cloud, the product family includes Application Load Balancers and Network Load Balancers with different scopes and protocol support.
-     </p>
-<p>
-     Health probes test a configured condition, not every customer request. A backend may pass a shallow TCP or HTTP health check while its order-processing dependency is broken. Conversely, a wrong probe path or blocked probe source can mark a healthy application unavailable. The architect must define a useful health condition, backend capacity assumptions, session behavior and a way to inspect frontend, backend and probe results during failure.
-     </p>
-<p>
-      Session affinity can bias later traffic from a client toward one eligible backend when the selected load-balancer family supports it, but it is not durable application state or duplicate suppression. If that backend becomes unavailable, another backend can receive the request, so Brightloaf Fulfillment must still reject a replay by using a stable event identifier in its durable business store.
-     </p>
-<table><caption>Load-balancer decisions and limits</caption><thead><tr><th>Decision</th><th>Input</th><th>Result</th><th>Limit</th></tr></thead><tbody><tr><td>Frontend reachability</td><td>Address, protocol and port</td><td>Client reaches the load balancer</td><td>No backend health proved.</td></tr><tr><td>L4 selection</td><td>Network and transport tuple</td><td>Connection or flow sent to an eligible backend</td><td>No HTTP path routing.</td></tr><tr><td>L7 selection</td><td>HTTP host and path</td><td>Request sent to a matching backend service</td><td>No business transaction proved.</td></tr><tr><td>Health eligibility</td><td>Configured probe path and thresholds</td><td>Backend added to or removed from service</td><td>Probe covers only its configured condition.</td></tr></tbody></table>
-<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="day5-lb-title day5-lb-desc" role="img" viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title id="day5-lb-title">Client request, load balancer and backend readiness</title><desc id="day5-lb-desc">A client request reaches the load balancer. The configured readiness check calls slash ready and receives 404, so the backend is not eligible even though slash health returns 200.</desc><defs><marker id="day5-lb-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="133" rx="10" stroke="#38bdf8" width="252" x="18" y="42"></rect><rect height="133" rx="10" stroke="#f43f5e" width="252" x="344" y="42"></rect><rect height="133" rx="10" stroke="#34d399" width="252" x="670" y="42"></rect></g><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="144" y="78">Checkout client</text><text x="470" y="78">Load balancer</text><text x="796" y="78">Order API backend</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="144" y="111">HTTPS /orders</text><text x="144" y="142">frontend reachable</text><text x="470" y="111">eligible backends only</text><text fill="#f43f5e" x="470" y="142">pool has no healthy member</text><text x="796" y="111">/health → 200</text><text fill="#f43f5e" x="796" y="142">/ready → 404</text></g><g marker-end="url(#day5-lb-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M270 104 L339 104"></path><path d="M665 104 L601 104"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="210">The configured probe result controls eligibility; process state alone does not.</text></svg><figcaption>Figure 5.2: The supplied readiness check removes the backend because /ready returns 404. The diagram does not establish how a live Google Cloud load balancer is configured.</figcaption></figure>
-<div class="further"><h4>Further Study</h4><p><a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#types-of-cloud-load-balancers">Google Cloud load-balancer types</a> and <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state">health-check state</a> describe the current product boundaries. No video timestamp is claimed because a matching segment was not verified.</p></div>
-</article>
-<article class="topic-card" id="topic-03-technical">
-<h3>
-      Firewalls
-     </h3>
-<p>
-     Ingress rules concern traffic entering a target; egress rules concern traffic leaving it. In Google Cloud VPC firewall rules, the applicable rule with the lowest numeric priority value takes precedence, and a deny wins when otherwise matching allow and deny rules have equal priority. Target selection matters as much as a source range or port: a rule for one VM group does not protect every VM. Connection tracking can allow return packets for established permitted flows, while a new reverse-direction flow is a different case. Higher-level firewall policies can also affect evaluation, so a real diagnosis must inspect the effective policy, not just one visible VPC rule.
-     </p>
-<p>
-      A stateful firewall records a permitted connection so its return traffic can be recognized. A stateless access list evaluates packets in each direction independently and therefore needs explicit rules for both directions. This distinction belongs in the failure analysis because a permitted return packet does not prove that a new connection in the reverse direction is permitted.
-     </p>
-<p>
-     Cloud architects use firewall rules to express narrowly allowed paths between tiers. Broad “allow all” rules can hide a route or service defect and enlarge exposure. During an incident, compare the packet tuple and target with the rule's direction, priority and logging; then check whether the packet reached a listening service. A matching allow is evidence of policy permission, not end-to-end success.
-     </p>
-<table><caption>Supplied ingress rule evaluation</caption><thead><tr><th>Priority</th><th>Action and source</th><th>Does 198.51.100.25 match?</th><th>Decision</th></tr></thead><tbody><tr><td>100</td><td>Allow TCP 443 from 0.0.0.0/0</td><td>Yes</td><td>First applicable rule permits traffic.</td></tr><tr><td>200</td><td>Allow TCP 443 from 203.0.113.0/24</td><td>No</td><td>Not reached for this packet.</td></tr><tr><td>300</td><td>Deny TCP 443 from 0.0.0.0/0</td><td>Yes</td><td>Lower precedence than priority 100.</td></tr></tbody></table>
-<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="day5-fw-title day5-fw-desc" role="img" viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title id="day5-fw-title">Ordered firewall decision for direct and load-balancer sources</title><desc id="day5-fw-desc">The original priority 100 broad allow admits both source ranges. After it is removed, the intended load-balancer source matches the narrow allow and the direct source reaches the deny.</desc><defs><marker id="day5-fw-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="133" rx="10" stroke="#f43f5e" width="252" x="18" y="42"></rect><rect height="133" rx="10" stroke="#38bdf8" width="252" x="344" y="42"></rect><rect height="133" rx="10" stroke="#34d399" width="252" x="670" y="42"></rect></g><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="144" y="78">Packet tuple</text><text x="470" y="78">Ordered rules</text><text x="796" y="78">Policy result</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="144" y="111">source + TCP 443</text><text x="144" y="142">target order-api</text><text x="470" y="111">lowest numeric priority</text><text x="470" y="142">first applicable result</text><text x="796" y="111">LB source allowed</text><text fill="#f43f5e" x="796" y="142">direct source denied</text></g><g marker-end="url(#day5-fw-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M270 104 L339 104"></path><path d="M596 104 L665 104"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="210">This prediction assumes no higher-level policy changes the effective result.</text></svg><figcaption>Figure 5.3: The proposed rule set preserves the documented load-balancer source and denies the direct source. It is an offline policy exercise, not a live firewall test.</figcaption></figure>
-<div class="further"><h4>Further Study</h4><p><a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud VPC firewall-rule components and priority</a> documents the effective rule inputs. In <a href="https://www.youtube.com/watch?v=8pqwoZflqPo&amp;t=355s">VPC firewall rules in Google Cloud Platform, 05:55–07:23</a>, review the rule components before applying them to the ordered decision table above.</p></div>
-</article>
-</section>
-<section class="part" id="part-3">
-<h2>
+    </h2><p class="intro">Trace technical control and data boundaries, observable signals, and trade-offs across VPN tunnels, load balancers, and ordered firewall evaluation.</p><figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg aria-labelledby="d005-arch-flow-title d005-arch-flow-desc" height="auto" role="img" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;" viewbox="0 0 1100 490" width="100%">
+<title id="d005-arch-flow-title">Day 5 foundation path — Day 5 — VPN, load balancers and firewalls</title>
+<desc id="d005-arch-flow-desc">Three-tier foundation topology for Day 5 — VPN, load balancers and firewalls. It separates ingress and demand, runtime and data, and governance and decision evidence, with probes at each ownership boundary.</desc>
+<defs>
+<marker id="d005-arch-flow-arr-ok" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#22c55e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d005-arch-flow-arr-fail" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#f43f5e" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d005-arch-flow-arr-warn" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#f59e0b" points="0 0, 8 4, 0 8"></polygon></marker>
+<marker id="d005-arch-flow-arr-blue" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#38bdf8" points="0 0, 8 4, 0 8"></polygon></marker>
+</defs>
+<!-- Header Banner -->
+<rect fill="#1e293b" height="34" opacity="0.8" rx="4" width="1056" x="22" y="12"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="12" font-weight="bold" x="36" y="34">DAY 005 SYSTEM ARCHITECTURE &amp; CONTROL FLOW</text>
+<text fill="#94a3b8" font-family="monospace" font-size="11" text-anchor="end" x="1066" y="34">TIERED PIPELINE · AUTOMATED VERIFICATION</text>
+<rect fill="none" height="388" rx="8" stroke="#f59e0b" stroke-dasharray="6,4" stroke-width="1.5" width="796" x="282" y="52"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="680" y="432">INVARIANT ENFORCEMENT &amp; VERIFICATION BOUNDARY</text>
+<!-- Card 1 -->
+<rect fill="#0c2033" height="275" rx="6" stroke="#38bdf8" stroke-width="1.5" width="246" x="22" y="65"></rect>
+<rect fill="#121526" height="20" rx="3" stroke="#38bdf8" stroke-width="1" width="222" x="34" y="77"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="145" y="91">TIER 1 · INGRESS / VECTOR</text>
+<text fill="#f8fafc" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="145" y="113">1. Ingress &amp; Client Edge</text>
+<text fill="#94a3b8" font-family="monospace" font-size="11" text-anchor="middle" x="145" y="129">Public Traffic &amp; Probe</text>
+<rect fill="#0f172a" height="76" rx="4" stroke="#1e293b" stroke-width="1" width="226" x="32" y="170"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="8" x="36" y="182">RUNTIME SPECIFICATIONS:</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="10" x="36" y="192">• Protocol: HTTPS / TLS 1.3</text><text fill="#cbd5e1" font-family="monospace" font-size="10" x="36" y="208">• Identity: Authenticated Caller</text><text fill="#cbd5e1" font-family="monospace" font-size="10" x="36" y="224">• Ingress: External Gateway</text>
+<rect fill="#121526" height="22" rx="3" stroke="#38bdf8" stroke-width="1" width="218" x="36" y="306"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="145" y="320">[REQUEST VECTOR]</text>
+<!-- Card 2 -->
+<rect fill="#241808" height="275" rx="6" stroke="#f59e0b" stroke-width="1.5" width="246" x="292" y="65"></rect>
+<rect fill="#121526" height="20" rx="3" stroke="#f59e0b" stroke-width="1" width="222" x="304" y="77"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="415" y="91">TIER 2 · SECURITY &amp; POLICY</text>
+<text fill="#f8fafc" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="415" y="113">2. Hybrid Transit &amp; Load Balancer</text>
+<text fill="#94a3b8" font-family="monospace" font-size="11" text-anchor="middle" x="415" y="129">IPsec ESP &amp; Envoy Proxy</text>
+<rect fill="#0f172a" height="76" rx="4" stroke="#1e293b" stroke-width="1" width="226" x="302" y="170"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="8" x="306" y="182">RUNTIME SPECIFICATIONS:</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="10" x="306" y="192">• Validation: Cryptographic Check</text><text fill="#cbd5e1" font-family="monospace" font-size="10" x="306" y="208">• Policy: CEL Attribute Rule</text><text fill="#cbd5e1" font-family="monospace" font-size="10" x="306" y="224">• Intercept: Fail-Closed Gate</text>
+<rect fill="#121526" height="22" rx="3" stroke="#f59e0b" stroke-width="1" width="218" x="306" y="306"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="415" y="320">[AUTHORIZATION GATE]</text>
+<!-- Card 3 -->
+<rect fill="#1e0d2c" height="275" rx="6" stroke="#c084fc" stroke-width="1.5" width="246" x="562" y="65"></rect>
+<rect fill="#121526" height="20" rx="3" stroke="#c084fc" stroke-width="1" width="222" x="574" y="77"></rect>
+<text fill="#c084fc" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="685" y="91">TIER 3 · CONTROL &amp; RUNTIME</text>
+<text fill="#f8fafc" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="685" y="113">3. Target Workload &amp; Enforcement</text>
+<text fill="#94a3b8" font-family="monospace" font-size="11" text-anchor="middle" x="685" y="129">VM Backend &amp; VPC Firewall</text><text fill="#94a3b8" font-family="monospace" font-size="11" text-anchor="middle" x="685" y="143">conntrack</text>
+<rect fill="#0f172a" height="76" rx="4" stroke="#1e293b" stroke-width="1" width="226" x="572" y="170"></rect>
+<text fill="#c084fc" font-family="monospace" font-size="8" x="576" y="182">RUNTIME SPECIFICATIONS:</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="10" x="576" y="192">• Service: GCP Managed Runtime</text><text fill="#cbd5e1" font-family="monospace" font-size="10" x="576" y="208">• Token: Short-Lived Credential</text><text fill="#cbd5e1" font-family="monospace" font-size="10" x="576" y="224">• Boundary: VPC / PSC Network</text>
+<rect fill="#121526" height="22" rx="3" stroke="#c084fc" stroke-width="1" width="218" x="576" y="306"></rect>
+<text fill="#c084fc" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="685" y="320">[CREDENTIAL MINT]</text>
+<!-- Card 4 -->
+<rect fill="#062316" height="275" rx="6" stroke="#22c55e" stroke-width="1.5" width="246" x="832" y="65"></rect>
+<rect fill="#121526" height="20" rx="3" stroke="#22c55e" stroke-width="1" width="222" x="844" y="77"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle" x="955" y="91">TIER 4 · EXECUTION &amp; AUDIT</text>
+<text fill="#f8fafc" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="955" y="113">4. Return Path &amp; Verification</text>
+<text fill="#94a3b8" font-family="monospace" font-size="11" text-anchor="middle" x="955" y="129">Symmetric Route &amp; Decision</text><text fill="#94a3b8" font-family="monospace" font-size="11" text-anchor="middle" x="955" y="143">Evidence</text>
+<rect fill="#0f172a" height="76" rx="4" stroke="#1e293b" stroke-width="1" width="226" x="842" y="170"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="8" x="846" y="182">RUNTIME SPECIFICATIONS:</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="10" x="846" y="192">• Target: Workload Data Plane</text><text fill="#cbd5e1" font-family="monospace" font-size="10" x="846" y="208">• Audit: Structured Cloud Log</text><text fill="#cbd5e1" font-family="monospace" font-size="10" x="846" y="224">• Invariant: Zero Key Leakage</text>
+<rect fill="#121526" height="22" rx="3" stroke="#22c55e" stroke-width="1" width="218" x="846" y="306"></rect>
+<text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="955" y="320">[AUDIT TRACEABLE]</text>
+<line marker-end="url(#d005-arch-flow-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="268" x2="292" y1="195" y2="195"></line>
+<text fill="#22c55e" font-family="monospace" font-size="8" text-anchor="middle" x="280" y="187">ASSERTION</text>
+<line marker-end="url(#d005-arch-flow-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="538" x2="562" y1="195" y2="195"></line>
+<text fill="#22c55e" font-family="monospace" font-size="8" text-anchor="middle" x="550" y="187">EXCHANGE</text>
+<line marker-end="url(#d005-arch-flow-arr-ok)" stroke="#22c55e" stroke-width="2.5" x1="808" x2="832" y1="195" y2="195"></line>
+<text fill="#22c55e" font-family="monospace" font-size="8" text-anchor="middle" x="820" y="187">AUTHORIZE</text>
+<!-- Denial intercept branch -->
+<path d="M415 340 V375 H415" marker-end="url(#d005-arch-flow-arr-fail)" stroke="#f43f5e" stroke-dasharray="4,3" stroke-width="2"></path>
+<rect fill="#2a0a10" height="48" rx="4" stroke="#f43f5e" stroke-width="1.5" width="246" x="292" y="380"></rect>
+<text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="415" y="400">POLICY INTERCEPT: MISMATCH / DENIAL</text>
+<text fill="#fda4af" font-family="monospace" font-size="9" text-anchor="middle" x="415" y="416">HTTP 403 Forbidden · Zero Token Issued</text>
+<!-- Legend Bar -->
+<rect fill="#0f172a" height="32" rx="4" stroke="#1e293b" stroke-width="1" width="1056" x="22" y="448"></rect>
+<line stroke="#22c55e" stroke-width="2.5" x1="36" x2="68" y1="464" y2="464"></line>
+<text fill="#22c55e" font-family="monospace" font-size="10" x="74" y="468">FORWARD AUTHORIZED FLOW</text>
+<line stroke="#f43f5e" stroke-dasharray="4,3" stroke-width="2" x1="260" x2="292" y1="464" y2="464"></line>
+<text fill="#f43f5e" font-family="monospace" font-size="10" x="298" y="468">INTERCEPTED / DENIED PATH</text>
+<rect fill="none" height="12" stroke="#f59e0b" stroke-dasharray="4,2" stroke-width="1.5" width="12" x="495" y="458"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="10" x="515" y="468">VERIFICATION BOUNDARY</text>
+<circle cx="700" cy="464" fill="#38bdf8" r="5"></circle>
+<text fill="#38bdf8" font-family="monospace" font-size="10" x="712" y="468">INGRESS VECTOR</text>
+</svg></div>
+<figcaption>Scope: an illustrative teaching topology for Day 5's day 5 — vpn, load balancers and firewalls path. It shows ownership boundaries and evidence flow; it does not prove a deployed Google Cloud topology, capacity, or production behavior.</figcaption>
+</figure><article class="topic-card technical" id="topic-01-technical"><h3>1. VPN concepts: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
+<ol>
+<li>IPsec architecture, encapsulation modes, and crypto transformations</li>
+<li>IKEv2 negotiation, security associations, and dead peer detection</li>
+<li>Site-to-site VPN versus remote-access client VPN architectures</li>
+<li>BGP dynamic routing, static policy-based routes, and return path symmetry</li>
+<li>Path MTU, TCP MSS clamping, and fragmentation overhead</li>
+</ol>
+<h4>IPsec architecture, encapsulation modes, and crypto transformations</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">IPsec</strong> (Internet Protocol Security) is an open-standard suite of cryptographic protocols operating at Layer 3 (Network Layer) that provides data confidentiality, integrity, origin authentication, and anti-replay protection. In <strong class="keyword">Tunnel Mode</strong>, the original IP packet (payload plus inner header) is completely encapsulated within a new outer IP header and protected by the <strong class="keyword">Encapsulating Security Payload</strong> (ESP) protocol (IP protocol 50). In contrast, Transport Mode only encrypts the transport-layer payload, leaving original IP headers exposed. For example, when host <code>10.20.1.5</code> contacts <code>10.50.4.8</code> across the public internet, the transit routers see only outer gateway IP headers (e.g. <code>198.51.100.1</code> to <code>203.0.113.1</code>) and encrypted ESP payloads.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Architects rely on IPsec tunnel mode to build private site-to-site network interconnects across untrusted public networks without exposing internal RFC 1918 addressing to public internet routing tables. However, IPsec incurs cryptographic processing overhead, adds 50 to 73 bytes of encapsulation headers per packet, and demands careful cipher suite selection (e.g., choosing authenticated encryption such as AES-GCM-128 or AES-GCM-256 over older AES-CBC with HMAC-SHA-256) to optimize throughput and comply with security mandates.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPN encrypts all traffic using IPsec ESP with pre-shared keys or certificates. Cloud VPN supports both HA VPN and Classic VPN, enforcing tunnel-mode encapsulation. Each Cloud VPN tunnel can process up to 250,000 packets per second or up to 3 Gbps egress/ingress depending on packet size. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn">Google Cloud HA VPN overview (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://www.rfc-editor.org/rfc/rfc4301#section-5.1.2">RFC 4301 §5.1.2 Header Construction for Tunnel Mode (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ipsec_and_ike_support">Google Cloud IPsec and IKE support (accessed 2026-10-04)</a>.</p>
+<h4>IKEv2 negotiation, security associations, and dead peer detection</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">IKEv2</strong> (Internet Key Exchange Protocol Version 2, RFC 7296) is the control-plane signaling protocol that authenticates peers, negotiates cryptographic algorithms, and establishes ephemeral session keys. Negotiation proceeds in two phases: the <em>IKE SA</em> (Phase 1) authenticates the gateways and secures the control channel via UDP port 500 (or UDP port 4500 when NAT-Traversal is detected); the <em>Child SA</em> (Phase 2) establishes the unidirectional ESP Security Associations used to encrypt and authenticate data traffic. <strong class="keyword">Dead Peer Detection</strong> (DPD) sends periodic informational probe exchanges to detect peer gateway unavailability within seconds.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Tunnel uptime metrics often mislead: an established Phase 1 IKE SA only proves that gateways can authenticate each other. If Phase 2 Child SA proposals mismatch (such as mismatched Diffie-Hellman groups or traffic selectors), data encryption fails entirely. Furthermore, aggressive DPD timers detect gateway failures rapidly to trigger failover, but uncalibrated timers across high-jitter WAN links cause spurious tunnel renegotiation and dropped sessions.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Cloud VPN strongly recommends IKEv2 for faster rekeying, improved reliability, and support for dynamic route renegotiation. Google Cloud HA VPN enforces IKEv2 exclusively, requiring BGP peering across Cloud Router, whereas legacy Classic VPN supported IKEv1 with static routing. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ike-and-dpd">Google Cloud IKE and Dead Peer Detection (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://www.rfc-editor.org/rfc/rfc7296#section-1.2">RFC 7296 §1.2 IKEv2 Initial Exchanges (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn">Google Cloud HA VPN specifications (accessed 2026-10-04)</a>.</p>
+<h4>Site-to-site VPN versus remote-access client VPN architectures</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Site-to-site VPN</strong> connects two persistent, dedicated network gateways (such as an on-premises enterprise data center router and a cloud VPC gateway), interconnecting entire routed IP subnet ranges so that endpoints communicate transparently without local agent software. In contrast, <strong class="keyword">Client VPN</strong> (remote-access VPN) connects individual roaming user devices running software clients (e.g. OpenVPN, WireGuard, or IPsec client) to a central gateway, dynamically assigning individual virtual IP addresses to each user.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Site-to-site VPN treats the cloud as an extension of the enterprise private WAN, placing trust at the network boundary and demanding robust perimeter firewalls and subnet routing designs. Client VPN enforces identity at the individual device level, often integrating with corporate Identity Providers (IdP) and multi-factor authentication (MFA). Cloud architects avoid client VPN for high-throughput service-to-service automation due to agent management friction, bandwidth limits per tunnel, and poor connection lifecycle predictability.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud provides native managed Site-to-Site VPN through Cloud VPN (HA VPN with two gateway interfaces providing 99.99% service availability). Google Cloud does not provide a multi-tenant managed Client VPN service; instead, architects implement Google Cloud Identity-Aware Proxy (IAP) for zero-trust application access, or host self-managed virtual appliances (e.g. OpenVPN Access Server) on Compute Engine when legacy client VPN tunnels are mandated. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn">Google Cloud VPN topologies and HA architecture (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/topologies#ha-configurations">Google Cloud HA VPN topologies guide (accessed 2026-10-04)</a>; <a href="https://www.rfc-editor.org/rfc/rfc4301#section-5.1.2">RFC 4301 §5.1.2 IPsec architecture (accessed 2026-10-04)</a>.</p>
+<h4>BGP dynamic routing, static policy-based routes, and return path symmetry</h4>
+<p><strong class="side-heading">What it is in general:</strong> For traffic to traverse an IPsec tunnel, both the local and remote networks must install routes directing traffic for the remote subnet into the tunnel interface. In <strong class="keyword">Policy-based VPN</strong>, IPsec traffic selectors define exact subnet pairs, and matching packets trigger encryption. In <strong class="keyword">Route-based VPN</strong> with <strong class="keyword">BGP</strong> (Border Gateway Protocol), a virtual tunnel interface (VTI) routes packets based on standard routing table entries, dynamically exchanging reachability information with peers over TCP port 179.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> IP routing is hop-by-hop and inherently independent in each direction. A common production failure is <em>asymmetric routing failure</em>: the forward packet reaches the remote host via the VPN tunnel, but the remote host or gateway lacks a route for the source subnet pointing back into the tunnel, attempting instead to route return packets out to the public internet or default gateway where they are dropped. BGP dynamic routing automatically advertises subnets, handles link failover, and prevents route desynchronization.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud HA VPN requires Cloud Router and BGP dynamic routing. When a new subnet is created in the VPC, Cloud Router automatically advertises the new CIDR to the on-premises peer over BGP without requiring manual static route updates or tunnel recreation. Static route-based and policy-based VPNs are restricted to legacy Classic VPN. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn">Cloud VPN HA requirements and Cloud Router integration (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://www.rfc-editor.org/rfc/rfc4271#section-3">RFC 4271 §3 BGP concepts and operations (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn-stack-types">Google Cloud HA VPN stack types and BGP sessions (accessed 2026-10-04)</a>.</p>
+<h4>Path MTU, TCP MSS clamping, and fragmentation overhead</h4>
+<p><strong class="side-heading">What it is in general:</strong> The standard Ethernet <strong class="keyword">Maximum Transmission Unit</strong> (MTU) is 1500 bytes. When IPsec encapsulates a packet in tunnel mode, outer IPv4 headers (20 bytes), ESP headers (8 bytes), Initialization Vectors (8–16 bytes), ESP padding and trailer (2–18 bytes), and ICV authentication tags (16 bytes) consume up to 50–73 bytes of overhead. If an inner TCP packet of 1460 bytes is encapsulated, the resulting packet exceeds the physical 1500-byte WAN MTU. If intermediate routers drop packets with the Don't Fragment (DF) bit set without returning ICMP Type 3 Code 4 ("Fragmentation Needed"), a "black hole" occurs. <strong class="keyword">TCP MSS Clamping</strong> dynamically rewrites the Maximum Segment Size option in TCP SYN packets so hosts negotiate smaller segment sizes.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Path MTU issues manifest insidiously: interactive SSH logins and small ping packets succeed, but bulk file transfers or database query result sets freeze mid-transmission. Cloud architects enforce TCP MSS clamping at VPN gateway boundaries to limit TCP segments to 1400 or 1460 bytes, preventing packet fragmentation and silent drop across intermediate carrier paths.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPC virtual networks support MTU values of 1460 or 1500 (and jumbo frames up to 8896). Cloud VPN gateways default to an MTU of 1460 bytes to accommodate IPsec ESP overhead without fragmentation. GCP automatically enforces MSS clamping on Cloud VPN interfaces to prevent MTU black holes. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#specifications">Google Cloud VPN specifications and MTU (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://www.rfc-editor.org/rfc/rfc1191#section-2">RFC 1191 §2 Path MTU Discovery mechanism (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#network-bandwidth">Cloud VPN network bandwidth and packet processing limits (accessed 2026-10-04)</a>.</p>
+<table><caption>VPN control and data-path boundaries</caption>
+<thead><tr><th>Boundary</th><th>Owner</th><th>Evidence</th><th>Limit</th></tr></thead>
+<tbody>
+<tr><td>IKEv2 negotiation</td><td>Both VPN peers</td><td>Authenticated security association</td><td>Does not prove application prefixes are routed.</td></tr>
+<tr><td>IPsec tunnel</td><td>Security gateways</td><td>Protected transit between gateways</td><td>Does not create a return route.</td></tr>
+<tr><td>Forward and return routes</td><td>Each routing domain</td><td>Selected next hops for both prefixes</td><td>Does not prove firewall permission.</td></tr>
+<tr><td>Database socket</td><td>Peer host and application</td><td>Connection to TCP 5432</td><td>Does not prove a successful transaction.</td></tr>
+</tbody></table>
+<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="day5-vpn-title day5-vpn-desc" role="img" viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title id="day5-vpn-title">Site-to-site VPN forward and return path</title><desc id="day5-vpn-desc">The Brightloaf cloud host routes the inventory request through two IPsec gateways to the on-premises database. The return side needs a route to the cloud source prefix.</desc><defs><marker id="day5-vpn-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="133" rx="10" stroke="#34d399" width="252" x="18" y="42"></rect><image height="24" href="../assets/icons/gcp/core/compute-engine.svg" preserveaspectratio="xMidYMid meet" width="24" x="28" y="54"/><rect height="133" rx="10" stroke="#38bdf8" width="252" x="344" y="42"></rect><image height="24" href="../assets/icons/gcp/legacy/cloud-vpn.svg" preserveaspectratio="xMidYMid meet" width="24" x="354" y="54"/><rect height="133" rx="10" stroke="#f43f5e" width="252" x="670" y="42"></rect><image height="24" href="../assets/icons/generic/database.svg" preserveaspectratio="xMidYMid meet" width="24" x="680" y="54"/></g><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="144" y="78">Cloud Order API</text><text x="470" y="78">IPsec gateways</text><text x="796" y="78">Inventory database</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="144" y="111">10.20.1.5</text><text x="144" y="142">route to 10.50.0.0/16</text><text x="470" y="111">IKEv2 + protected tunnel</text><text x="470" y="142">tunnel established</text><text x="796" y="111">10.50.4.8:5432</text><text fill="#f43f5e" x="796" y="142">return route missing</text></g><g marker-end="url(#day5-vpn-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M270 104 L339 104"></path><path d="M596 104 L665 104"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="210">Tunnel state, routing, firewall policy and socket reachability are separate checks.</text></svg><figcaption>Figure 5.1: The supplied VPN fixture succeeds at tunnel establishment but lacks the return route to 10.20.0.0/16. It is a tabletop path, not a deployed tunnel measurement.</figcaption></figure>
+<p><strong class="side-heading">Concrete example:</strong> A Cloud VM instance at <code>10.20.1.5</code> attempts to query an on-premises PostgreSQL inventory database at <code>10.50.4.8:5432</code>. The cloud routing table selects the Cloud VPN tunnel as next hop for prefix <code>10.50.0.0/16</code>. The local Cloud VPN gateway encapsulates the packet with an outer IP header (source <code>198.51.100.1</code>, destination <code>203.0.113.1</code>) and encrypts the payload using ESP. The packet reaches the on-premises gateway, which authenticates the ESP header, decrypts the inner packet, and delivers it to <code>10.50.4.8</code>. The database answers with a TCP SYN-ACK addressed to <code>10.20.1.5</code>. However, the on-premises gateway lacks a routing entry for <code>10.20.0.0/16</code> pointing into the tunnel, and instead forwards the packet to its default internet gateway, where it is discarded. The TCP handshake fails despite a green tunnel status.</p>
+<p><strong class="side-heading">Evidence limit:</strong> A functioning IPsec tunnel and Phase 1/2 IKE security associations establish only that encryption and mutual peer authentication are operational between gateway public IP addresses; they provide no evidence that internal subnets are routed symmetrically, that local firewalls permit the target port, or that the destination database server process is running.</p><h4>Architectural evaluation questions</h4><ul><li>Why does an active IPsec tunnel state (Phase 2 ESP installed) fail to guarantee that application traffic can reach the destination database socket?</li><li>What are the availability and operational trade-offs between static policy-based VPN routing and BGP dynamic routing with Cloud Router when adding new VPC subnets?</li><li>How does IPsec ESP tunnel mode encapsulation affect the effective path MTU, and why must cloud architects configure TCP MSS clamping at 1460 bytes or lower?</li></ul><p><strong>Further study:</strong> <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn" rel="noopener" target="_blank">Google Cloud HA VPN and IPsec overview (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-02-technical"><h3>2. Load balancing concepts: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
+<ol>
+<li>Layer 4 transport versus Layer 7 application load balancing</li>
+<li>Health check state machines, probe types, and threshold evaluation</li>
+<li>Session affinity mechanisms, hashing, and stateful routing trade-offs</li>
+<li>Proxy-based architecture versus Maglev-style direct server return</li>
+<li>Capacity management, traffic shedding, and connection draining</li>
+</ol>
+<h4>Layer 4 transport versus Layer 7 application load balancing</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Load balancing</strong> distributes network traffic across multiple computing resources to optimize throughput, reduce latency, and prevent resource overload. <strong class="keyword">Layer 4 (L4) Load Balancing</strong> routes traffic based strictly on IP protocol and network/transport 5-tuples (source IP, source port, destination IP, destination port, protocol), without terminating or parsing application-layer protocols. <strong class="keyword">Layer 7 (L7) Load Balancing</strong> acts as a full application proxy: it terminates client TCP connections, decrypts TLS, inspects HTTP/HTTPS headers, hostnames, and URL paths, and initiates new backend connections to route requests based on content rules (e.g. directing <code>/api/*</code> to one backend pool and <code>/static/*</code> to another).</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> L4 load balancing provides high throughput, lower latency, and preservation of the original client IP without requiring proxy protocol headers; it is ideal for non-HTTP protocols, gaming, database clusters, and massive packet ingestion. L7 load balancing enables intelligent routing, path-based microservice multiplexing, centralized SSL/TLS termination, HTTP header manipulation, and Web Application Firewall (WAF) integration, but consumes higher memory and CPU per connection.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud provides distinct load balancer categories: <em>Network Load Balancers</em> (regional L4 passthrough balancers built on Maglev) versus <em>Application Load Balancers</em> (global and regional L7 proxies based on Envoy). Application Load Balancers evaluate URL maps to route traffic across distinct backend services. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#load-balancer-types">Google Cloud load balancer types overview (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#application-lb">Google Cloud Application Load Balancers (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#network-lb">Google Cloud Network Load Balancers (accessed 2026-10-04)</a>.</p>
+<h4>Health check state machines, probe types, and threshold evaluation</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Health checks</strong> are automated active probes sent periodically from load-balancing infrastructure to backend instances to determine their operational eligibility. A health check configuration defines a protocol (TCP, SSL, HTTP, HTTPS, or HTTP/2), a port, an optional request path (e.g. <code>/healthz</code>), an <em>interval</em> (seconds between probes), a <em>timeout</em> (maximum seconds to wait for a response), a <em>healthy threshold</em> (consecutive successful probes to mark an instance HEALTHY), and an <em>unhealthy threshold</em> (consecutive failed probes to mark an instance UNHEALTHY). A backend only receives client traffic while in the HEALTHY state.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Health checks form the critical bridge between network routing and application availability. If health check probes test only process binding (such as a simple TCP handshake) rather than deep application readiness, clients may be directed to backends suffering database deadlocks or thread pool exhaustion. Conversely, if a health check tests transitive dependencies (such as external third-party payment gateways), an external outage will trigger a cascading local failure where all backend instances are marked unhealthy simultaneously.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud health check probes originate from distributed Google IP ranges: <code>35.191.0.0/16</code> and <code>130.211.0.0/22</code> for global and regional proxies, and <code>35.191.0.0/16</code> for internal load balancers. VPC firewalls must explicitly allow ingress from these probe ranges on the health check port; failure to permit probe ingress causes the load balancer to mark all backends unhealthy immediately. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state">Google Cloud health check concepts and health state transitions (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#criteria-protocol-http">Google Cloud health check success criteria (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state">Health check state machine transitions (accessed 2026-10-04)</a>.</p>
+<h4>Session affinity mechanisms, hashing, and stateful routing trade-offs</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Session Affinity</strong> (sticky sessions) directs requests from the same client to the same backend instance for the lifetime of a session. In L4 load balancing, affinity is achieved via consistent hashing of the client IP address (2-tuple: source IP, destination IP; or 3-tuple: source IP, destination IP, protocol). In L7 load balancing, affinity can be enforced using client IP or via HTTP cookies: either a server-generated cookie or a load-balancer-generated cookie (such as the <code>GCLB</code> cookie).</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Session affinity simplifies legacy stateful application architectures that store in-memory session states (such as shopping carts or local cache data). However, affinity introduces severe reliability and scaling anti-patterns: client IP affinity causes traffic hotspots when large corporate networks or mobile carriers route thousands of users behind shared NAT gateways; it also frustrates horizontal autoscaling because traffic cannot rebalance dynamically when new instances join the pool, and backend restarts terminate all pinned client sessions.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Cloud Load Balancing supports multiple session affinity modes configured on backend services: <code>NONE</code> (round-robin/least request), <code>CLIENT_IP</code>, <code>GENERATED_COOKIE</code>, and <code>HEADER_FIELD</code>. When a backend instance fails its health check, GCP automatically re-hashes client sessions to remaining healthy instances regardless of affinity settings. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#load-balancer-types">Google Cloud load balancer backend service configuration (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#summary-gclb">Summary of Cloud Load Balancing capabilities (accessed 2026-10-04)</a>; <a href="https://www.rfc-editor.org/rfc/rfc9293#section-3.4">RFC 9293 §3.4 TCP connection establishment (accessed 2026-10-04)</a>.</p>
+<h4>Proxy-based architecture versus Maglev-style direct server return</h4>
+<p><strong class="side-heading">What it is in general:</strong> In a <strong class="keyword">Proxy-based Architecture</strong>, the load balancer acts as a reverse proxy: client connections terminate at the proxy's virtual IP (VIP), and the proxy opens a separate connection to the backend server. The backend sees the proxy's IP address as the source unless forwarded via <code>X-Forwarded-For</code> headers or PROXY protocol. In <strong class="keyword">Direct Server Return (DSR)</strong> or passthrough balancing, the load balancer inspects incoming packets, rewrites Layer 2 MAC addresses or encapsulates packets to backend hosts, but backend servers reply directly to the client IP address, bypassing the load balancer on the return path.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> DSR architectures provide massive asymmetrical throughput efficiency because return traffic (which is typically 10 to 100 times larger than incoming request headers) does not traverse the load balancer, eliminating a major bandwidth bottleneck. However, DSR cannot perform TLS termination, HTTP path inspection, or header rewriting, which requires a reverse proxy architecture.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud's External and Internal Network Load Balancers use Maglev distributed software routing to achieve line-rate passthrough performance: the client IP is preserved directly in the IP packet header received by the VM NIC, and egress traffic routes directly through the VPC virtual network gateway rather than hairpinning through a proxy instance. Google Application Load Balancers use Envoy proxies located at Google Point of Presence (PoP) edge infrastructure. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#tech-gclb">Underlying technologies of Google Cloud load balancers (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#load-balancer-types">Google Cloud load balancer architecture options (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state">Cloud Load Balancing health check concepts (accessed 2026-10-04)</a>.</p>
+<h4>Capacity management, traffic shedding, and connection draining</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Connection Draining</strong> (deregistration delay) allows in-flight TCP connections and HTTP requests to complete gracefully when a backend instance is removed from service (due to autoscaling scale-down, rolling update, or manual maintenance). During the draining period (e.g. 300 seconds), the load balancer stops routing new requests to the draining backend but maintains established connections until they close or the timeout expires. <strong class="keyword">Capacity Management</strong> tracks backend utilization (CPU, requests per second, or connection count) to spill excess traffic over to secondary regions or shed load gracefully.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Without connection draining, rolling application deployments terminate active user transactions, corrupting file uploads, checkout payments, and long-lived WebSocket connections. Architects must tune draining timeouts to match application transaction lifecycles: setting the timeout too low truncates active requests; setting it too high stalls deployment pipelines and auto-healing actions.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Cloud Load Balancing backend services provide configurable connection draining timeouts (defaulting to 300 seconds, configurable from 0 to 3600 seconds). Global Application Load Balancers use balancing modes based on Rate (RPS per instance) or Utilization (target CPU), dynamically routing traffic across global instance groups and overflowing to alternative regions when local instance capacity is exhausted. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#key-features">Key features of Cloud Load Balancing (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#application-lb">Application Load Balancer capacity and routing (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state">Backend health and capacity status (accessed 2026-10-04)</a>.</p>
+<table><caption>Load-balancer decisions and limits</caption>
+<thead><tr><th>Decision</th><th>Input</th><th>Result</th><th>Limit</th></tr></thead>
+<tbody>
+<tr><td>Frontend reachability</td><td>Address, protocol and port</td><td>Client reaches the load balancer</td><td>No backend health proved.</td></tr>
+<tr><td>L4 selection</td><td>Network and transport tuple</td><td>Connection or flow sent to an eligible backend</td><td>No HTTP path routing.</td></tr>
+<tr><td>L7 selection</td><td>HTTP host and path</td><td>Request sent to a matching backend service</td><td>No business transaction proved.</td></tr>
+<tr><td>Health eligibility</td><td>Configured probe path and thresholds</td><td>Backend added to or removed from service</td><td>Probe covers only its configured condition.</td></tr>
+</tbody></table>
+<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="day5-lb-title day5-lb-desc" role="img" viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title id="day5-lb-title">Client request, load balancer and backend readiness</title><desc id="day5-lb-desc">A client request reaches the load balancer. The configured readiness check calls slash ready and receives 404, so the backend is not eligible even though slash health returns 200.</desc><defs><marker id="day5-lb-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="133" rx="10" stroke="#38bdf8" width="252" x="18" y="42"></rect><image height="24" href="../assets/icons/generic/client.svg" preserveaspectratio="xMidYMid meet" width="24" x="28" y="54"/><rect height="133" rx="10" stroke="#f43f5e" width="252" x="344" y="42"></rect><image height="24" href="../assets/icons/gcp/legacy/cloud-load-balancing.svg" preserveaspectratio="xMidYMid meet" width="24" x="354" y="54"/><rect height="133" rx="10" stroke="#34d399" width="252" x="670" y="42"></rect><image height="24" href="../assets/icons/gcp/core/compute-engine.svg" preserveaspectratio="xMidYMid meet" width="24" x="680" y="54"/></g><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="144" y="78">Checkout client</text><text x="470" y="78">Load balancer</text><text x="796" y="78">Order API backend</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="144" y="111">HTTPS /orders</text><text x="144" y="142">frontend reachable</text><text x="470" y="111">eligible backends only</text><text fill="#f43f5e" x="470" y="142">pool has no healthy member</text><text x="796" y="111">/health → 200</text><text fill="#f43f5e" x="796" y="142">/ready → 404</text></g><g marker-end="url(#day5-lb-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M270 104 L339 104"></path><path d="M665 104 L601 104"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="210">The configured probe result controls eligibility; process state alone does not.</text></svg><figcaption>Figure 5.2: The supplied readiness check removes the backend because /ready returns 404. The diagram does not establish how a live Google Cloud load balancer is configured.</figcaption></figure>
+<p><strong class="side-heading">Concrete example:</strong> An e-commerce service runs on an instance group behind an External Application Load Balancer. The application developers implement a liveness endpoint at <code>/health</code> returning HTTP 200, and a readiness probe endpoint at <code>/ready</code> that validates local PostgreSQL database connectivity. During an operational configuration change, the health check configuration in Google Cloud is mistakenly pointed to <code>/api/v1/status</code>, which returns HTTP 404. Within 10 seconds (2 probe intervals), the load balancer marks every instance in the pool UNHEALTHY. Incoming client requests to <code>https://shop.example.com/orders</code> immediately fail with HTTP 502 Bad Gateway responses generated directly by the Envoy edge proxy.</p>
+<p><strong class="side-heading">Evidence limit:</strong> A green load balancer health status proves solely that the configured probe specification (e.g. GET /health) returned an expected HTTP 200 status code within the configured timeout window; it does not prove that application business logic is functional, that database write transactions succeed, or that downstream third-party dependencies are healthy.</p><h4>Architectural evaluation questions</h4><ul><li>When designing a multi-tier web application, what architectural factors dictate choosing an L4 passthrough Network Load Balancer versus an L7 proxy Application Load Balancer?</li><li>Why can a misconfigured health check probe path cause an instantaneous cascading outage across 100% of healthy application backend instances?</li><li>Under what workload conditions does client IP session affinity degrade backend resource utilization and prevent effective horizontal autoscaling?</li></ul><p><strong>Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#load-balancer-types" rel="noopener" target="_blank">Google Cloud load balancer types overview (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-03-technical"><h3>3. Firewalls: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
+<ol>
+<li>Stateful connection tracking versus stateless packet filtering</li>
+<li>Rule evaluation order, priority resolution, and conflict precedence</li>
+<li>Ingress versus egress enforcement and implied baseline policies</li>
+<li>Target identity: IP CIDRs, network tags, and service accounts</li>
+<li>Failure boundaries, bypass vulnerabilities, and defense-in-depth</li>
+</ol>
+<h4>Stateful connection tracking versus stateless packet filtering</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Firewalls</strong> control the flow of network traffic into and out of network security zones based on predetermined security rules. In <strong class="keyword">Stateless Packet Filtering</strong> (such as router Access Control Lists), each packet is evaluated in isolation against the rule table based on header fields (source/destination IP, port, protocol); return traffic requires an explicit reverse rule matching the ephemeral return port. In <strong class="keyword">Stateful Packet Inspection</strong> (SPI), the firewall tracks active connection states (such as TCP SYN, SYN-ACK, ESTABLISHED, FIN/RST) in an internal connection tracking (<strong class="keyword">conntrack</strong>) table. Once an outbound or inbound connection is permitted by a rule, all bidirectional return packets belonging to that established flow are automatically permitted without needing separate reverse rules.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Stateful firewalls significantly reduce policy complexity and prevent security exposures caused by opening wide ephemeral port ranges (ports 1024–65535) for return traffic. However, state tables consume memory per tracked connection: extreme traffic spikes, SYN flood attacks, or asymmetric routing (where return packets bypass the stateful firewall) cause connection drops or state table exhaustion.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPC firewall rules are strictly stateful and enforced distributed across virtual machine hypervisors via Google's Andromeda virtual switch layer. Return traffic is automatically allowed, regardless of any configured ingress or egress deny rules. Andromeda maintains conntrack tables per VM instance, meaning firewalls scale horizontally with compute capacity and avoid centralized network appliance bottlenecks. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud VPC firewall rule components (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules">Google Cloud priority order for firewall rules (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud firewall rule components and attributes (accessed 2026-10-04)</a>.</p>
+<h4>Rule evaluation order, priority resolution, and conflict precedence</h4>
+<p><strong class="side-heading">What it is in general:</strong> When a network packet arrives at a firewall interface, the packet header fields are matched against configured rules in order of precedence. In most systems, rules are assigned an integer <strong class="keyword">Priority</strong> (e.g. from 0 to 65535 in Google Cloud, where 0 is highest precedence and 65535 is lowest). Evaluation follows strict <em>first-match-wins</em> logic: the firewall inspects rules from lowest numeric priority value (highest priority) to highest numeric value; the first rule whose criteria matches the packet determines the action (ALLOW or DENY), and all subsequent rules are ignored.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Rule ordering is one of the most common vectors for security bypass incidents. If a team creates a broad, high-priority rule (e.g. Priority 100 allow all TCP 443 from <code>0.0.0.0/0</code>) intended for troubleshooting or temporary access, it completely nullifies all lower-priority restrictive rules (such as Priority 200 allow only from load balancer IP or Priority 300 deny all). Architects enforce strict priority reservation bands (e.g. 0–999 for security-admin overrides, 1000–1999 for shared infrastructure, 2000+ for application teams) to prevent privilege escalation.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPC firewall rules accept priority values between 0 and 65535 (default priority is 1000). If two rules have identical priority and matching criteria, a DENY rule always takes precedence over an ALLOW rule. Furthermore, Hierarchical Firewall Policies enforced at the Organization or Folder level take precedence over all VPC-level firewall rules. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules">Google Cloud priority order for firewall rules (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud firewall rule components and attributes (accessed 2026-10-04)</a>; <a href="https://www.rfc-editor.org/rfc/rfc9293#section-3.4">RFC 9293 §3.4 TCP connection states (accessed 2026-10-04)</a>.</p>
+<h4>Ingress versus egress enforcement and implied baseline policies</h4>
+<p><strong class="side-heading">What it is in general:</strong> Firewalls distinguish between <strong class="keyword">Ingress</strong> (packets entering the VM or subnet interface from external networks or other VPC instances) and <strong class="keyword">Egress</strong> (packets originating from the VM and leaving the network interface). A secure network model enforces least privilege on both directions: ingress filtering protects internal services from unauthorized access, while egress filtering prevents compromised workloads from exfiltrating data or establishing command-and-control (C2) channels.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Many cloud architectures neglect egress filtering under the mistaken assumption that outbound traffic is benign. However, regulated environments (PCI-DSS, HIPAA, FedRAMP) require strict egress whitelisting. Furthermore, architects must understand the cloud provider's default implied rules: if a provider defaults to allow-all egress, instances can contact arbitrary public endpoints unless explicitly constrained by custom deny rules.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Every Google Cloud VPC network has two unremovable, uneditable implied baseline firewall rules at priority 65535: an <em>implied allow egress</em> rule (permits all outbound traffic from all instances) and an <em>implied deny ingress</em> rule (blocks all inbound traffic to all instances). Default VPCs also include pre-populated priority 65534 rules (e.g. default-allow-internal, default-allow-ssh, default-allow-rdp), which enterprise architects routinely delete or override with custom zero-trust policies. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud implied firewall rules (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules">Google Cloud default and implied rules (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">VPC firewall rule configuration (accessed 2026-10-04)</a>.</p>
+<h4>Target identity: IP CIDRs, network tags, and service accounts</h4>
+<p><strong class="side-heading">What it is in general:</strong> Traditional firewalls bind rules to physical network interfaces or static IP subnet CIDR blocks. In dynamic cloud environments where virtual machines and containers auto-scale and receive dynamic ephemeral IP addresses, firewalls must support logical identity targeting. Logical targets allow rules to apply to instances based on metadata labels, network tags, or cryptographically verified identity constructs.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Relying on static IP addresses in firewall rules introduces extreme operational friction and configuration drift as workloads scale. However, informal metadata mechanisms like network tags pose security risks: any engineer with <code>compute.instances.create</code> or <code>compute.instances.setTags</code> permissions can attach an administrative network tag (such as <code>allow-ssh</code> or <code>bastion</code>) to an instance, effectively bypassing network isolation policies. Using IAM service accounts as firewall targets enforces least-privilege security because attaching a service account requires explicit <code>iam.serviceAccountUser</code> authorization.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPC firewall rules support three target filtering mechanisms: <em>All instances in network</em>, <em>Target network tags</em>, and <em>Target service accounts</em>. Source filtering similarly supports IP CIDR blocks, source tags, and source service accounts. Rules targeting service accounts are strictly validated and cannot be combined with network tags. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud target parameters and service accounts (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules">Google Cloud rule filtering options (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Firewall rule targets and source filtering (accessed 2026-10-04)</a>.</p>
+<h4>Failure boundaries, bypass vulnerabilities, and defense-in-depth</h4>
+<p><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">Failure Boundary</strong> defines the structural limit of protection provided by a specific security control. A firewall failure boundary demarcates where packet filtering ceases to protect an application: while a firewall inspects Layer 3/4 headers (and validates basic protocol compliance), it cannot inspect encrypted payload data, detect application-level SQL injection or cross-site scripting attacks, verify client authorization tokens, or protect against authorized traffic exploiting unpatched application vulnerabilities.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud architects implement <em>defense-in-depth</em> by layering independent, non-redundant controls across tiers: VPC firewall rules restrict Layer 4 network reachability; Cloud Armor provides Layer 7 WAF inspection and rate limiting; Identity-Aware Proxy (IAP) enforces cryptographic user identity and device posture; and internal microservices authenticate via mTLS. If any single control suffers a misconfiguration or priority bypass, downstream layers prevent breach escalation.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> In Google Cloud, firewall rules operate at the VM hypervisor boundary. A common architecture flaw occurs when a public load balancer is placed in front of backend VMs, but the backend VMs retain public IP addresses and a broad priority 100 ingress firewall rule permits traffic from <code>0.0.0.0/0</code>. Attackers discover the backend VM public IPs and connect directly to port 443, completely bypassing the load balancer, Cloud Armor WAF policies, and rate limits. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud firewall architecture and defense boundaries (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules">Google Cloud firewall evaluation hierarchy (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">VPC firewall rule components (accessed 2026-10-04)</a>.</p>
+<table><caption>Supplied ingress rule evaluation</caption>
+<thead><tr><th>Priority</th><th>Action and source</th><th>Does 198.51.100.25 match?</th><th>Decision</th></tr></thead>
+<tbody>
+<tr><td>100</td><td>Allow TCP 443 from 0.0.0.0/0</td><td>Yes</td><td>First applicable rule permits traffic.</td></tr>
+<tr><td>200</td><td>Allow TCP 443 from 203.0.113.0/24</td><td>No</td><td>Not reached for this packet.</td></tr>
+<tr><td>300</td><td>Deny TCP 443 from 0.0.0.0/0</td><td>Yes</td><td>Lower precedence than priority 100.</td></tr>
+</tbody></table>
+<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="day5-fw-title day5-fw-desc" role="img" viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title id="day5-fw-title">Ordered firewall decision for direct and load-balancer sources</title><desc id="day5-fw-desc">The original priority 100 broad allow admits both source ranges. After it is removed, the intended load-balancer source matches the narrow allow and the direct source reaches the deny.</desc><defs><marker id="day5-fw-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="133" rx="10" stroke="#f43f5e" width="252" x="18" y="42"></rect><image height="24" href="../assets/icons/generic/event.svg" preserveaspectratio="xMidYMid meet" width="24" x="28" y="54"/><rect height="133" rx="10" stroke="#38bdf8" width="252" x="344" y="42"></rect><image height="24" href="../assets/icons/gcp/legacy/cloud-firewall-rules.svg" preserveaspectratio="xMidYMid meet" width="24" x="354" y="54"/><rect height="133" rx="10" stroke="#34d399" width="252" x="670" y="42"></rect><image height="24" href="../assets/icons/generic/policy.svg" preserveaspectratio="xMidYMid meet" width="24" x="680" y="54"/></g><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="144" y="78">Packet tuple</text><text x="470" y="78">Ordered rules</text><text x="796" y="78">Policy result</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="144" y="111">source + TCP 443</text><text x="144" y="142">target order-api</text><text x="470" y="111">lowest numeric priority</text><text x="470" y="142">first applicable result</text><text x="796" y="111">LB source allowed</text><text fill="#f43f5e" x="796" y="142">direct source denied</text></g><g marker-end="url(#day5-fw-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M270 104 L339 104"></path><path d="M596 104 L665 104"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="210">This prediction assumes no higher-level policy changes the effective result.</text></svg><figcaption>Figure 5.3: The proposed rule set preserves the documented load-balancer source and denies the direct source. It is an offline policy exercise, not a live firewall test.</figcaption></figure>
+<p><strong class="side-heading">Concrete example:</strong> A production web service runs on backend VMs with network tag <code>order-api</code>. The intended policy is that only the Cloud Load Balancer (source IP range <code>203.0.113.0/24</code>) should access port 443 on these instances, and direct external access should be blocked. However, an old rule <code>allow-all-https</code> at priority 100 allows TCP 443 from source <code>0.0.0.0/0</code>. An untrusted external scanner at <code>198.51.100.25</code> sends TCP SYN packets directly to the backend VM public IP. The firewall evaluates rules in ascending numerical priority: Rule 100 matches the packet and immediately grants ALLOW. The restrictive Rule 200 (priority 200, source <code>203.0.113.0/24</code>) and Rule 300 (priority 300, deny <code>0.0.0.0/0</code>) are never evaluated. When an administrator removes Rule 100, the packet from <code>198.51.100.25</code> fails Rule 200 and matches Rule 300, successfully DENYING direct access while traffic from <code>203.0.113.25</code> matches Rule 200 and is ALLOWED.</p>
+<p><strong class="side-heading">Evidence limit:</strong> A firewall rule decision table accurately models packet evaluation order and boolean tuple matching at the virtual network interface; it does not prove that application software listening on the permitted port is invulnerable to application-layer payload exploits or unauthorized API calls.</p><h4>Architectural evaluation questions</h4><ul><li>Why does Google Cloud VPC firewall stateful connection tracking permit return traffic automatically, and what are the security implications for egress filtering?</li><li>If a VPC network contains an ingress rule at priority 100 allowing 0.0.0.0/0 on port 443 and a rule at priority 200 denying all traffic to tag order-backend, which rule determines the fate of an incoming packet?</li><li>How do hierarchical firewall policies enforced at the organization or folder level interact with VPC-level firewall rules, and where is the immutable failure boundary established?</li></ul><p><strong>Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components" rel="noopener" target="_blank">Google Cloud VPC firewall rule components (accessed 2026-10-04)</a>.</p></article></section>
+<section class="part" id="part-3"><h2>
      3 · Real-world problem and solution for each topic
-    </h2>
-<article class="topic-card" id="topic-01-problem">
-<h3>
-      Case 1 · Tunnel up, return route absent
-     </h3>
-<p>
-<strong>
-       Failure:
-      </strong>
-      A VPN dashboard shows the tunnel up, but Brightloaf's cloud order service cannot reach an on-premises inventory database.
-     </p>
-<p>
-<strong>
-       Cause:
-      </strong>
-      The on-premises side has no route back to the cloud source prefix. The encrypted tunnel is healthy, but the return packet cannot find the tunnel. A blocked database port or overlapping prefixes would be different causes that require their own evidence.
-     </p>
-<p>
-<strong>
-       Fix:
-      </strong>
-      Check the exact source/destination prefixes, forward route, return route and firewall rules. Add the missing approved route advertisement and test a database connection in both directions. Keep tunnel health and application reachability as separate checks. If large responses still hang, investigate tunnel MTU after the route is corrected.
-     </p>
-<p>
-<strong>Constraints and proof:</strong> preserve tunnel and flow logs, change only the missing approved route, and keep a rollback entry for the prior route table. Prove recovery with the effective route, the matching firewall decision and a successful socket connection from the original source. Order replay is a separate control: the Order API must retain a stable event key and Fulfillment must atomically reject a key it has already processed.
-     </p>
-<figure class="diagram-container foundation-incident"><div style="max-width:100%;overflow-x:auto"><svg aria-labelledby="d005-case-1-title d005-case-1-desc" height="auto" role="img" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;" viewbox="0 0 1020 455" width="100%">
-<title id="d005-case-1-title">Case 1 · Tunnel up, return route absent: Failure Cascade vs Corrected Control</title>
+    </h2><p class="intro">Illustrative real-world scenarios and diagnostic failure investigations demonstrating asymmetric routing, health check path mismatch, and priority rule bypass.</p><article class="topic-card problem" id="topic-01-problem"><h3>1. VPN concepts · field case</h3><p><strong>Enterprise scenario:</strong> Tunnel up, return route absent</p><p><strong>Failure symptoms and impact:</strong> On-premises inventory database queries from Cloud Order API time out, halting customer checkout fulfillment.</p><p><strong>Constraints:</strong> No changes permitted to production VPC subnet CIDR; on-premises router maintenance window required for routing changes; encryption parameters must remain compliant with corporate standards.</p><p><strong>Evidence:</strong></p>
+<p><strong>illustrative supplied records</strong></p>
+<pre><code class="language-text">[IPsec Phase 1/IKE SA] ESTABLISHED: local 198.51.100.1[500] peer 203.0.113.1[500] SPI: 0x9b4f2c10...
+[IPsec Phase 2/ESP SA] INSTALLED: tunnel local 198.51.100.1 &lt;=&gt; remote 203.0.113.1 reqid 1 SPI: 0xc871a2e4
+[Client probe] Cloud VM 10.20.1.5 -&gt; On-Prem DB 10.50.4.8:5432 SYN sent (seq=120485910)
+[On-Prem Gateway packet capture] 10.20.1.5:49152 -&gt; 10.50.4.8:5432 TCP SYN decrypted and forwarded
+[On-Prem Host packet capture] 10.50.4.8:5432 -&gt; 10.20.1.5:49152 TCP SYN-ACK sent (seq=48201948, ack=120485911)
+[On-Prem Gateway routing log] DEST UNREACHABLE: No route to destination prefix 10.20.0.0/16, packet dropped
+</code></pre><p><strong>Root cause:</strong> Asymmetric routing failure: the Phase 1 IKEv2 security association and Phase 2 ESP tunnel are established between the gateways, and forward packets reach the target host. However, the on-premises gateway routing table lacks a route for the cloud VPC source prefix (10.20.0.0/16) pointing back into the IPsec tunnel, causing return SYN-ACK packets to be dropped.</p><p><strong>Diagnostic sequence:</strong></p><ol><li>Inspect tunnel status using gateway telemetry (ip xfrm state and IKE daemon status).</li><li>Perform bidirectional ping and tcpdump captures at both cloud and on-premises tunnel interfaces.</li><li>Query the on-premises gateway route table (ip route get 10.20.1.5) to verify the return next-hop.</li><li>Validate firewall rules on both endpoints to confirm TCP 5432 is not silently discarded.</li></ol><p><strong>Defensible remediation:</strong></p><ol><li>Add an explicit route on the on-premises gateway: ip route add 10.20.0.0/16 dev vti0 (or configure dynamic BGP route advertisement via Cloud Router).</li><li>Verify route table propagation on the on-premises border router.</li><li>Validate end-to-end TCP socket connection from cloud host 10.20.1.5 to database 10.50.4.8 on port 5432.</li></ol><p><strong>Verification:</strong> The cloud order client completes a full TCP three-way handshake with 10.50.4.8:5432 with 0% packet loss and round-trip time under 15ms; application queries return inventory status successfully.</p><p><strong>Residual risk:</strong> Static routes require manual updates when new VPC subnets are added; migrating to Cloud Router BGP dynamic routing eliminates manual route desynchronization risk.</p><figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg aria-labelledby="d005-case-1-title d005-case-1-desc" height="auto" role="img" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;" viewbox="0 0 1020 455" width="100%">
+<title id="d005-case-1-title">VPN concepts: Failure Cascade vs Corrected Control</title>
 <desc id="d005-case-1-desc">Dual-lane architectural incident diagram showing the failed path with unmitigated root cause and blast radius, contrasted with the corrected path featuring an enforced defensive control and verified invariant.</desc>
 <defs>
 <marker id="d005-case-1-arr-ok" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#22c55e" points="0 0, 8 4, 0 8"></polygon></marker>
@@ -932,7 +940,7 @@
 </defs>
 <!-- Header Bar -->
 <rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="990" x="15" y="10"></rect>
-<text fill="#cbd5e1" font-family="monospace" font-size="11" font-weight="bold" x="25" y="27">INCIDENT COMPARISON: Case 1 · Tunnel up, return route absent</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" font-weight="bold" x="25" y="27">INCIDENT COMPARISON: VPN concepts</text>
 <!-- UPPER LANE: FAILED PATH -->
 <rect fill="#180b12" height="175" rx="6" stroke="#881337" stroke-width="1.5" width="990" x="15" y="44"></rect>
 <rect fill="#2d0b13" height="20" rx="3" stroke="#f43f5e" stroke-width="1" width="220" x="25" y="52"></rect>
@@ -940,8 +948,9 @@
 <!-- Card 1: Trigger -->
 <g transform="translate(150, 140)">
 <rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<image height="20" href="../assets/icons/gcp/core/compute-engine.svg" preserveaspectratio="xMidYMid meet" width="20" x="-105" y="-42"/>
 <text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. INITIATING EVENT</text>
-<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Trigger event</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">App query to on-prem DB</text>
 <rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
 <text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[UNCHECKED TRIGGER]</text>
 </g>
@@ -953,8 +962,9 @@
 <rect fill="#2a0a10" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="240" x="-120" y="-50"></rect>
 <circle cx="-100" cy="-34" fill="#f43f5e" r="8"></circle>
 <text fill="white" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle" x="-100" y="-31">FI</text>
+<image height="20" href="../assets/icons/generic/failure.svg" preserveaspectratio="xMidYMid meet" width="20" x="90" y="-44"/>
 <text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="10" y="-30">2. ROOT CAUSE DEFECT</text>
-<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Root cause</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Missing return route on</text><text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">gateway</text>
 <rect fill="#3b0d18" height="16" rx="2" width="140" x="-70" y="24"></rect>
 <text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[MISSING CONTROL]</text>
 </g>
@@ -964,8 +974,9 @@
 <!-- Card 3: Impact -->
 <g transform="translate(820, 140)">
 <rect fill="#380914" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<image height="20" href="../assets/icons/generic/failure.svg" preserveaspectratio="xMidYMid meet" width="20" x="-115" y="-42"/>
 <text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. IMPACT &amp; DEGRADATION</text>
-<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Impact</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Checkout connection timeouts</text>
 <rect fill="#4c0519" height="16" rx="2" width="150" x="-75" y="24"></rect>
 <text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[INVARIANT VIOLATION]</text>
 </g>
@@ -976,8 +987,9 @@
 <!-- Card 1: Same Trigger -->
 <g transform="translate(150, 326)">
 <rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<image height="20" href="../assets/icons/gcp/core/compute-engine.svg" preserveaspectratio="xMidYMid meet" width="20" x="-105" y="-42"/>
 <text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. SAME TRIGGER EVENT</text>
-<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Trigger event</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">App query to on-prem DB</text>
 <rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
 <text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[IDENTICAL INPUT]</text>
 </g>
@@ -990,8 +1002,9 @@
 <!-- Card 2: Enforced Control -->
 <g transform="translate(480, 326)">
 <rect fill="#064e3b" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="240" x="-120" y="-50"></rect>
+<image height="20" href="../assets/icons/gcp/legacy/cloud-vpn.svg" preserveaspectratio="xMidYMid meet" width="20" x="-110" y="-42"/>
 <text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">2. DEFENSIVE CONTROL</text>
-<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Corrected control</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Add return route via tunnel</text>
 <rect fill="#022c22" height="16" rx="2" width="150" x="-75" y="24"></rect>
 <text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[ACTIVE GUARDRAIL]</text>
 </g>
@@ -1001,8 +1014,9 @@
 <!-- Card 3: Outcome -->
 <g transform="translate(820, 326)">
 <rect fill="#022c22" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<image height="20" href="../assets/icons/generic/outcome.svg" preserveaspectratio="xMidYMid meet" width="20" x="-115" y="-42"/>
 <text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. VERIFIED OUTCOME</text>
-<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Expected outcome</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Successful TCP handshake</text>
 <rect fill="#064e3b" height="16" rx="2" width="150" x="-75" y="24"></rect>
 <text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[INVARIANT DEFENDED]</text>
 </g>
@@ -1017,43 +1031,17 @@
 <circle cx="560" cy="430" fill="#f43f5e" r="5"></circle>
 <text fill="#f43f5e" font-family="monospace" font-size="10" x="572" y="434">FI = Fault Injection Point</text>
 </svg></div>
-<figcaption><strong>Supplied facts:</strong> Synthetic case scenario.<br/><strong>Architectural inference:</strong> Architectural inference based on observed constraints.<br/><strong>Expected post-fix behavior:</strong> Expected post-fix behavior once verified.</figcaption>
-</figure></article>
-<article class="topic-card" id="topic-02-problem">
-<h3>
-      Case 2 · Wrong health-check path removes every backend
-     </h3>
-<p>
-<strong>
-       Failure:
-      </strong>
-      Customers reach the load balancer but receive a service error. Both order backends are reported unhealthy, although each process is running.
-     </p>
-<p>
-<strong>
-       Cause:
-      </strong>
-      The configured health probe asks for
-      <code>
-       /ready
-      </code>
-      , but the backends only serve
-      <code>
-       /health
-      </code>
-      ; the probe receives a non-success response. A running process is not equivalent to passing the configured probe.
-     </p>
-<p>
-<strong>
-       Fix:
-      </strong>
-      Compare the probe protocol, port and path with what the backend actually serves. Correct the probe or application route, then wait for the configured healthy threshold and verify a customer request. If the probe itself cannot reach the backend, inspect firewall and routing for probe traffic. Do not send all traffic to unhealthy backends just to clear the alert.
-     </p>
-<p>
-<strong>Constraints and proof:</strong> capture the probe's 404 response and backend log before changing the path, record the previous probe as the rollback target, and wait for the configured healthy threshold. Then send more than one new connection through <code>/orders</code> so affinity does not hide a bad member. Confirm both backend eligibility and customer-visible success while Fulfillment continues to deduplicate by event key.
-     </p>
-<figure class="diagram-container foundation-incident"><div style="max-width:100%;overflow-x:auto"><svg aria-labelledby="d005-case-2-title d005-case-2-desc" height="auto" role="img" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;" viewbox="0 0 1020 455" width="100%">
-<title id="d005-case-2-title">Case 2 · Wrong health-check path removes every backend: Failure Cascade vs Corrected Control</title>
+<figcaption><strong>Supplied facts:</strong> Supplied incident capture: Phase 1/2 IKEv2 established, forward SYN delivered, return SYN-ACK dropped by on-prem gateway.<br/><strong>Architectural inference:</strong> Architectural inference: tunnel status indicates cryptographic peering only; bidirectional end-to-end connectivity requires symmetric routing tables across both networks.<br/><strong>Expected post-fix behavior:</strong> Expected post-fix behavior: on-premises router forwards return packets for 10.20.0.0/16 into tunnel, completing TCP handshake.</figcaption>
+</figure></article><article class="topic-card problem" id="topic-02-problem"><h3>2. Load balancing concepts · field case</h3><p><strong>Enterprise scenario:</strong> Wrong health-check path removes every backend</p><p><strong>Failure symptoms and impact:</strong> All backend instances marked unhealthy; load balancer returns HTTP 502 Bad Gateway to 100% of customer requests.</p><p><strong>Constraints:</strong> Zero downtime deployment; health check probe interval is 5 seconds with unhealthy threshold 2; backend web server listens on port 8080.</p><p><strong>Evidence:</strong></p>
+<p><strong>illustrative supplied records</strong></p>
+<pre><code class="language-text">[LB Health Monitor] Backend instance-group-us-central1 health status transition: HEALTHY -&gt; UNHEALTHY
+[LB Probe Log] GET /ready HTTP/1.1 -&gt; Host: 10.20.1.10:8080 -&gt; HTTP/1.1 404 Not Found (response time: 1.2ms)
+[LB Probe Log] Consecutive failed probes: 2 of 2 reached. Marking backend instance-1 UNHEALTHY
+[LB Probe Log] Consecutive failed probes: 2 of 2 reached. Marking backend instance-2 UNHEALTHY
+[Access Log] 198.51.100.42 "POST /orders HTTP/1.1" 502 332 "-" "Mozilla/5.0" response_flags="UH"
+[App Log instance-1] Server active, listening on 0.0.0.0:8080, health endpoint /health returning 200 OK
+</code></pre><p><strong>Root cause:</strong> Health check configuration error: the backend service health check probe path was set to /ready, which was not implemented by the backend application (returning HTTP 404), while the actual application health check endpoint is /health (returning HTTP 200). The load balancer marked all backend instances unhealthy due to the 404 responses.</p><p><strong>Diagnostic sequence:</strong></p><ol><li>Inspect load balancer backend health state using CLI or Console (gcloud compute backend-services get-health).</li><li>Inspect backend application access logs to observe probe requests and status codes.</li><li>Query the application locally on backend VM: curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ready versus /health.</li><li>Compare load balancer health check specification with backend API route table.</li></ol><p><strong>Defensible remediation:</strong></p><ol><li>Update load balancer health check path from /ready to /health: gcloud compute health-checks update http order-hc --request-path=/health.</li><li>Monitor health status transitions as probes resume.</li><li>Verify client requests receive HTTP 200 responses through the load balancer frontend IP.</li></ol><p><strong>Verification:</strong> Load balancer marks backend instances HEALTHY within 10 seconds (2 successful consecutive probes); HTTP 502 errors drop to zero; synthetic probe returns HTTP 200.</p><p><strong>Residual risk:</strong> Misalignment between infrastructure health checks and application deployable artifacts can recur if endpoint paths are not version-controlled alongside application code.</p><figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg aria-labelledby="d005-case-2-title d005-case-2-desc" height="auto" role="img" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;" viewbox="0 0 1020 455" width="100%">
+<title id="d005-case-2-title">Load balancing concepts: Failure Cascade vs Corrected Control</title>
 <desc id="d005-case-2-desc">Dual-lane architectural incident diagram showing the failed path with unmitigated root cause and blast radius, contrasted with the corrected path featuring an enforced defensive control and verified invariant.</desc>
 <defs>
 <marker id="d005-case-2-arr-ok" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#22c55e" points="0 0, 8 4, 0 8"></polygon></marker>
@@ -1062,7 +1050,7 @@
 </defs>
 <!-- Header Bar -->
 <rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="990" x="15" y="10"></rect>
-<text fill="#cbd5e1" font-family="monospace" font-size="11" font-weight="bold" x="25" y="27">INCIDENT COMPARISON: Case 2 · Wrong health-check path removes every backend</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" font-weight="bold" x="25" y="27">INCIDENT COMPARISON: Load balancing concepts</text>
 <!-- UPPER LANE: FAILED PATH -->
 <rect fill="#180b12" height="175" rx="6" stroke="#881337" stroke-width="1.5" width="990" x="15" y="44"></rect>
 <rect fill="#2d0b13" height="20" rx="3" stroke="#f43f5e" stroke-width="1" width="220" x="25" y="52"></rect>
@@ -1070,8 +1058,9 @@
 <!-- Card 1: Trigger -->
 <g transform="translate(150, 140)">
 <rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<image height="20" href="../assets/icons/gcp/core/compute-engine.svg" preserveaspectratio="xMidYMid meet" width="20" x="-105" y="-42"/>
 <text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. INITIATING EVENT</text>
-<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Trigger event</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">App deploy to backend pool</text>
 <rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
 <text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[UNCHECKED TRIGGER]</text>
 </g>
@@ -1083,8 +1072,9 @@
 <rect fill="#2a0a10" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="240" x="-120" y="-50"></rect>
 <circle cx="-100" cy="-34" fill="#f43f5e" r="8"></circle>
 <text fill="white" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle" x="-100" y="-31">FI</text>
+<image height="20" href="../assets/icons/generic/failure.svg" preserveaspectratio="xMidYMid meet" width="20" x="90" y="-44"/>
 <text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="10" y="-30">2. ROOT CAUSE DEFECT</text>
-<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Root cause</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Health probe configured for</text><text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">/ready (404)</text>
 <rect fill="#3b0d18" height="16" rx="2" width="140" x="-70" y="24"></rect>
 <text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[MISSING CONTROL]</text>
 </g>
@@ -1094,8 +1084,9 @@
 <!-- Card 3: Impact -->
 <g transform="translate(820, 140)">
 <rect fill="#380914" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<image height="20" href="../assets/icons/generic/failure.svg" preserveaspectratio="xMidYMid meet" width="20" x="-115" y="-42"/>
 <text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. IMPACT &amp; DEGRADATION</text>
-<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Impact</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">LB marks all backends</text><text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">unhealthy (502)</text>
 <rect fill="#4c0519" height="16" rx="2" width="150" x="-75" y="24"></rect>
 <text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[INVARIANT VIOLATION]</text>
 </g>
@@ -1106,8 +1097,9 @@
 <!-- Card 1: Same Trigger -->
 <g transform="translate(150, 326)">
 <rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<image height="20" href="../assets/icons/gcp/core/compute-engine.svg" preserveaspectratio="xMidYMid meet" width="20" x="-105" y="-42"/>
 <text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. SAME TRIGGER EVENT</text>
-<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Trigger event</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">App deploy to backend pool</text>
 <rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
 <text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[IDENTICAL INPUT]</text>
 </g>
@@ -1120,8 +1112,9 @@
 <!-- Card 2: Enforced Control -->
 <g transform="translate(480, 326)">
 <rect fill="#064e3b" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="240" x="-120" y="-50"></rect>
+<image height="20" href="../assets/icons/gcp/legacy/cloud-load-balancing.svg" preserveaspectratio="xMidYMid meet" width="20" x="-110" y="-42"/>
 <text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">2. DEFENSIVE CONTROL</text>
-<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Corrected control</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Update health check to</text><text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">/health (200)</text>
 <rect fill="#022c22" height="16" rx="2" width="150" x="-75" y="24"></rect>
 <text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[ACTIVE GUARDRAIL]</text>
 </g>
@@ -1131,8 +1124,9 @@
 <!-- Card 3: Outcome -->
 <g transform="translate(820, 326)">
 <rect fill="#022c22" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<image height="20" href="../assets/icons/generic/outcome.svg" preserveaspectratio="xMidYMid meet" width="20" x="-115" y="-42"/>
 <text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. VERIFIED OUTCOME</text>
-<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Expected outcome</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Backends restored to pool</text><text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">(200 OK)</text>
 <rect fill="#064e3b" height="16" rx="2" width="150" x="-75" y="24"></rect>
 <text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[INVARIANT DEFENDED]</text>
 </g>
@@ -1147,35 +1141,18 @@
 <circle cx="560" cy="430" fill="#f43f5e" r="5"></circle>
 <text fill="#f43f5e" font-family="monospace" font-size="10" x="572" y="434">FI = Fault Injection Point</text>
 </svg></div>
-<figcaption><strong>Supplied facts:</strong> Synthetic case scenario.<br/><strong>Architectural inference:</strong> Architectural inference based on observed constraints.<br/><strong>Expected post-fix behavior:</strong> Expected post-fix behavior once verified.</figcaption>
-</figure></article>
-<article class="topic-card" id="topic-03-problem">
-<h3>
-      Case 3 · Broad rule bypasses the intended frontend
-     </h3>
-<p>
-<strong>
-       Failure:
-      </strong>
-      An order API VM should accept HTTPS from the load balancer, but direct connections from the public internet also succeed.
-     </p>
-<p>
-<strong>
-       Cause:
-      </strong>
-      A broad ingress allow rule for TCP 443 targets the VM at a higher priority than the intended narrow rule. The narrow rule does not restrict traffic already allowed by the broader match.
-     </p>
-<p>
-<strong>
-       Fix:
-      </strong>
-      Inspect effective policies and matching rule priorities for the actual VM target and packet source. Remove or narrow the broad rule, preserve the load-balancer source path, and verify both a permitted probe and a denied direct attempt. Keep logs for the transition. Do not rely on the application's login page as the only network boundary.
-     </p>
-<p>
-<strong>Constraints and proof:</strong> first inspect organization, folder, network and VPC policy layers plus the rule target. Stage the narrow load-balancer allow before withdrawing the broad rule. Verify that the documented load-balancer source is allowed, an unrelated direct source is denied, and the Order API still answers through the frontend; test routes and application authorization separately from the firewall result.
-     </p>
-<figure class="diagram-container foundation-incident"><div style="max-width:100%;overflow-x:auto"><svg aria-labelledby="d005-case-3-title d005-case-3-desc" height="auto" role="img" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;" viewbox="0 0 1020 455" width="100%">
-<title id="d005-case-3-title">Case 3 · Broad rule bypasses the intended frontend: Failure Cascade vs Corrected Control</title>
+<figcaption><strong>Supplied facts:</strong> Supplied incident capture: application serves 200 on /health, load balancer probes /ready and receives 404, marking pool unhealthy.<br/><strong>Architectural inference:</strong> Architectural inference: load balancers evaluate process readiness strictly through configured probe contracts; functional application code is unavailable if probe endpoints mismatch.<br/><strong>Expected post-fix behavior:</strong> Expected post-fix behavior: load balancer receives 200 OK on /health, marks instances healthy, and dispatches customer requests.</figcaption>
+</figure></article><article class="topic-card problem" id="topic-03-problem"><h3>3. Firewalls · field case</h3><p><strong>Enterprise scenario:</strong> Broad rule bypasses the intended frontend</p><p><strong>Failure symptoms and impact:</strong> Backend database and API instances are directly accessible from the public internet, bypassing WAF, SSL termination, and rate-limiting protections of the load balancer.</p><p><strong>Constraints:</strong> Maintenance window required for rule changes; external users must continue accessing the service via the load balancer IP; internal microservices require mutual communication.</p><p><strong>Evidence:</strong></p>
+<p><strong>illustrative supplied records</strong></p>
+<pre><code class="language-text">[Security Audit Log] Ingress alert: Direct external TCP connection established to backend VM instance-1:443
+[VPC Flow Log] src=198.51.100.25 src_port=51234 dst=10.20.1.10 dst_port=443 protocol=6 packets=12 bytes=1440 action=ALLOW rule=allow-all-https
+[Firewall Rule Table]
+  Priority 100: allow-all-https | Ingress | Allow | Protocols: tcp:443 | Source: 0.0.0.0/0 | Target: all instances
+  Priority 200: allow-lb-only   | Ingress | Allow | Protocols: tcp:443 | Source: 203.0.113.0/24 | Target: tag=order-backend
+  Priority 300: deny-external   | Ingress | Deny  | Protocols: tcp:443 | Source: 0.0.0.0/0 | Target: tag=order-backend
+[Audit finding] Rule allow-all-https (p=100) takes precedence over allow-lb-only (p=200) and deny-external (p=300).
+</code></pre><p><strong>Root cause:</strong> Firewall rule ordering defect: the broad allow rule allow-all-https with source 0.0.0.0/0 had priority 100, which is numerically lower (higher precedence) than the specific load-balancer-only rule (priority 200) and the defensive deny rule (priority 300). The first matching rule permits the traffic, rendering the subsequent restrictive rules inert.</p><p><strong>Diagnostic sequence:</strong></p><ol><li>Inspect effective firewall rules for target instance (gcloud compute instances describe ... and firewall policy list).</li><li>Sort rules by priority in ascending numerical order.</li><li>Trace packet evaluation for external untrusted IP tuple (source 198.51.100.25:443).</li><li>Confirm that rule priority 100 matches before rule priority 200 or 300 can be evaluated.</li></ol><p><strong>Defensible remediation:</strong></p><ol><li>Delete or narrow the overly permissive priority 100 rule: gcloud compute firewall-rules delete allow-all-https.</li><li>Confirm rule priority 200 allows traffic only from the approved load balancer source range (203.0.113.0/24 or Google Cloud proxy/probe ranges).</li><li>Ensure default or explicit deny rule blocks direct internet access to backend instances.</li></ol><p><strong>Verification:</strong> Connection attempts from external untrusted IP (198.51.100.25) to backend VM port 443 are dropped (SYN packet denied; connection timed out); connections routed through the load balancer frontend IP succeed with HTTP 200.</p><p><strong>Residual risk:</strong> VPC firewall rules are decentralized unless managed through hierarchical firewall policies; team members with network admin privileges could inadvertently introduce broad rules.</p><figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg aria-labelledby="d005-case-3-title d005-case-3-desc" height="auto" role="img" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;" viewbox="0 0 1020 455" width="100%">
+<title id="d005-case-3-title">Firewalls: Failure Cascade vs Corrected Control</title>
 <desc id="d005-case-3-desc">Dual-lane architectural incident diagram showing the failed path with unmitigated root cause and blast radius, contrasted with the corrected path featuring an enforced defensive control and verified invariant.</desc>
 <defs>
 <marker id="d005-case-3-arr-ok" markerheight="8" markerwidth="8" orient="auto" refx="7" refy="4"><polygon fill="#22c55e" points="0 0, 8 4, 0 8"></polygon></marker>
@@ -1184,7 +1161,7 @@
 </defs>
 <!-- Header Bar -->
 <rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="990" x="15" y="10"></rect>
-<text fill="#cbd5e1" font-family="monospace" font-size="11" font-weight="bold" x="25" y="27">INCIDENT COMPARISON: Case 3 · Broad rule bypasses the intended frontend</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" font-weight="bold" x="25" y="27">INCIDENT COMPARISON: Firewalls</text>
 <!-- UPPER LANE: FAILED PATH -->
 <rect fill="#180b12" height="175" rx="6" stroke="#881337" stroke-width="1.5" width="990" x="15" y="44"></rect>
 <rect fill="#2d0b13" height="20" rx="3" stroke="#f43f5e" stroke-width="1" width="220" x="25" y="52"></rect>
@@ -1192,8 +1169,9 @@
 <!-- Card 1: Trigger -->
 <g transform="translate(150, 140)">
 <rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<image height="20" href="../assets/icons/generic/client.svg" preserveaspectratio="xMidYMid meet" width="20" x="-105" y="-42"/>
 <text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. INITIATING EVENT</text>
-<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Trigger event</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Direct external request to</text><text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">backend</text>
 <rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
 <text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[UNCHECKED TRIGGER]</text>
 </g>
@@ -1205,8 +1183,9 @@
 <rect fill="#2a0a10" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="240" x="-120" y="-50"></rect>
 <circle cx="-100" cy="-34" fill="#f43f5e" r="8"></circle>
 <text fill="white" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle" x="-100" y="-31">FI</text>
+<image height="20" href="../assets/icons/generic/failure.svg" preserveaspectratio="xMidYMid meet" width="20" x="90" y="-44"/>
 <text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="10" y="-30">2. ROOT CAUSE DEFECT</text>
-<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Root cause</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Priority 100 broad allow</text><text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">rule matches</text>
 <rect fill="#3b0d18" height="16" rx="2" width="140" x="-70" y="24"></rect>
 <text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[MISSING CONTROL]</text>
 </g>
@@ -1216,8 +1195,9 @@
 <!-- Card 3: Impact -->
 <g transform="translate(820, 140)">
 <rect fill="#380914" height="100" rx="4" stroke="#f43f5e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<image height="20" href="../assets/icons/generic/failure.svg" preserveaspectratio="xMidYMid meet" width="20" x="-115" y="-42"/>
 <text fill="#f43f5e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. IMPACT &amp; DEGRADATION</text>
-<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Impact</text>
+<text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Direct bypass of load</text><text fill="#fda4af" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">balancer WAF</text>
 <rect fill="#4c0519" height="16" rx="2" width="150" x="-75" y="24"></rect>
 <text fill="#fda4af" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[INVARIANT VIOLATION]</text>
 </g>
@@ -1228,8 +1208,9 @@
 <!-- Card 1: Same Trigger -->
 <g transform="translate(150, 326)">
 <rect fill="#121526" height="100" rx="4" stroke="#94a3b8" stroke-width="1.5" width="230" x="-115" y="-50"></rect>
+<image height="20" href="../assets/icons/generic/client.svg" preserveaspectratio="xMidYMid meet" width="20" x="-105" y="-42"/>
 <text fill="#94a3b8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">1. SAME TRIGGER EVENT</text>
-<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Trigger event</text>
+<text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Direct external request to</text><text fill="#cbd5e1" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">backend</text>
 <rect fill="#1e293b" height="16" rx="2" width="140" x="-70" y="24"></rect>
 <text fill="#94a3b8" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[IDENTICAL INPUT]</text>
 </g>
@@ -1242,8 +1223,9 @@
 <!-- Card 2: Enforced Control -->
 <g transform="translate(480, 326)">
 <rect fill="#064e3b" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="240" x="-120" y="-50"></rect>
+<image height="20" href="../assets/icons/gcp/legacy/cloud-firewall-rules.svg" preserveaspectratio="xMidYMid meet" width="20" x="-110" y="-42"/>
 <text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">2. DEFENSIVE CONTROL</text>
-<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Corrected control</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Delete broad rule, enforce</text><text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">priority 200 allow /</text><text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="26">priority 300 deny</text>
 <rect fill="#022c22" height="16" rx="2" width="150" x="-75" y="24"></rect>
 <text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[ACTIVE GUARDRAIL]</text>
 </g>
@@ -1253,8 +1235,9 @@
 <!-- Card 3: Outcome -->
 <g transform="translate(820, 326)">
 <rect fill="#022c22" height="100" rx="4" stroke="#22c55e" stroke-width="2" width="250" x="-125" y="-50"></rect>
+<image height="20" href="../assets/icons/generic/outcome.svg" preserveaspectratio="xMidYMid meet" width="20" x="-115" y="-42"/>
 <text fill="#22c55e" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle" x="0" y="-30">3. VERIFIED OUTCOME</text>
-<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Expected outcome</text>
+<text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="-6">Direct traffic denied, LB</text><text fill="#6ee7b7" font-family="monospace" font-size="11" text-anchor="middle" x="0" y="10">traffic permitted</text>
 <rect fill="#064e3b" height="16" rx="2" width="150" x="-75" y="24"></rect>
 <text fill="#6ee7b7" font-family="monospace" font-size="8" text-anchor="middle" x="0" y="36">[INVARIANT DEFENDED]</text>
 </g>
@@ -1269,187 +1252,410 @@
 <circle cx="560" cy="430" fill="#f43f5e" r="5"></circle>
 <text fill="#f43f5e" font-family="monospace" font-size="10" x="572" y="434">FI = Fault Injection Point</text>
 </svg></div>
-<figcaption><strong>Supplied facts:</strong> Synthetic case scenario.<br/><strong>Architectural inference:</strong> Architectural inference based on observed constraints.<br/><strong>Expected post-fix behavior:</strong> Expected post-fix behavior once verified.</figcaption>
-</figure></article>
-</section>
-<section class="part" id="part-4">
-<h2>
+<figcaption><strong>Supplied facts:</strong> Supplied incident capture: rule priority 100 matches 0.0.0.0/0 before priority 200/300 rules are evaluated, allowing direct internet ingress.<br/><strong>Architectural inference:</strong> Architectural inference: firewall rules evaluate strictly by lowest numerical priority first; broad high-precedence allow rules completely disable downstream zero-trust controls.<br/><strong>Expected post-fix behavior:</strong> Expected post-fix behavior: direct traffic hits priority 300 deny rule, while legitimate traffic from load balancer matches priority 200 allow.</figcaption>
+</figure></article></section>
+<section class="part" id="part-4"><h2>
      4 · Step-by-step labs for each topic
-    </h2>
-<article class="topic-card lab" id="topic-01-lab">
-<h3>
-      Exercise 1 · Trace a site-to-site VPN return path
-     </h3>
-<p>
-<strong>
-       Goal:
-      </strong>
-      Diagnose a supplied site-to-site VPN path without creating a paid tunnel.
-      <strong>
-       Mode:
-      </strong>
-      local diagram.
-     </p>
-<p><strong>Preflight:</strong> bring the completed Day 4 failure worksheet, open a Day 5 evidence note, and confirm that this exercise is offline. It requires no Google Cloud project, VPN, credentials or billable resource.</p>
-<h4>
-      Step 1 — Draw the protected path
-     </h4>
-<pre><code class="language-text">Cloud VM: 10.20.1.5/24
-Cloud route: 10.50.0.0/16 -&gt; VPN gateway
-On-prem database: 10.50.4.8:5432
-On-prem route table: 10.50.0.0/16 local; 0.0.0.0/0 internet
-Tunnel: established; policy permits both prefixes
+    </h2><p class="intro">Hands-on exercises and tabletop verification procedures executing packet routing models, health check state machines, and ordered firewall decision tables.</p><article class="topic-card lab" id="topic-01-lab"><h3>Exercise 1: Lab 5.1: Model and verify IPsec VPN packet flow and routing boundaries</h3><p><strong>Goal:</strong> Validate IPsec tunnel configuration, packet encapsulation overhead, and symmetric routing table entries for hybrid cloud connectivity.</p><p><strong>Expected result:</strong> </p><p><strong>Mode:</strong> Observed locally: local bash test script executes packet routing and MTU calculations. Simulated or predicted: simulated IPsec ESP encapsulation overhead and route lookup decisions. Untested on GCP: live Cloud VPN gateway negotiation, BGP session peering with Cloud Router, and hardware cryptographic offload. · <strong>Prerequisite:</strong> Python 3.10+, bash shell, basic IP networking knowledge.</p><p><strong>Preflight:</strong> Verify python3 availability, create temporary workspace directory, check file permissions.</p><h4>Exact execution</h4><ol><li><strong>Stage 1: Preflight environment and tool verification</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Verify that Python 3 is installed and accessible in the system path:</p>
+<pre><code class="language-bash">command -v python3 &gt;/dev/null 2&gt;&amp;1 || { echo "Python 3 is required"; exit 1; }
+python3 --version
+LAB_DIR=$(mktemp -d /tmp/lab_vpn.XXXXXX)
+export LAB_DIR
+cd "$LAB_DIR"
+echo "Workspace initialized at: $LAB_DIR"
 </code></pre>
-<p>
-      Draw VM → cloud gateway → protected tunnel → on-prem gateway → database, then the return direction. The missing 10.20.0.0/16 return route is the first defect visible in the fixture.
-     </p>
-<h4>
-      Step 2 — Repair and verify
-     </h4>
-<p>
-      Add the approved return route to the diagram, pointing toward the on-prem VPN gateway. State what evidence would prove the fix in a real lab: route table entry, firewall match and a successful connection to port 5432. A tunnel-up light alone is insufficient.
-      <strong>
-       Cleanup and cost:
-      </strong>
-      this is a paper design with no cloud resources; retain the diagram as the Day 5 artifact.
-     </p>
-<p><strong>Troubleshooting:</strong> if both directions appear routed, compare the exact prefixes for overlap, check the database port in both policies and then evaluate MTU with a large-response test. Do not use tunnel status as the application test.</p>
-<p><strong>Artifact acceptance:</strong> the saved diagram shows both directions, identifies the missing <code>10.20.0.0/16</code> return route, names its next hop, and lists route, firewall and socket evidence for the repaired path.</p>
-<p>
-<div><h4>Exact execution</h4><ol class="execution-grid"><li><strong>Stage 1 — Preflight and scope</strong>. Create a note named `day-005-exercise-1-trace-a-site-to-site-vpn-return-path.md`. Record the day, exercise mode, prerequisite artifact, and whether each result will be observed locally or predicted from a fixture.</li><li><strong>Stage 2 — Prepare the fixture</strong>. Copy the supplied request, address, route, socket, or protocol fixture into the note under `Input`. Keep documentation addresses, sample logs, and synthetic Brightloaf identifiers clearly labeled; do not add credentials or contact an endpoint from the page.</li><li><strong>Stage 3 — Author the plan</strong>. Write a table with `input | boundary or owner | expected signal | limit`. Add one acceptance statement and one rejected alternative before running the exercise.</li><li><strong>Stage 4 — Execute the baseline</strong>. Run the existing command or complete the worksheet calculation for the supplied request, address, route, socket, or protocol fixture. Save the exact output, diagram, or table; do not summarize it from memory.</li><li><strong>Stage 5 — Inspect expected state</strong>. Compare the saved result with the expected result in the lab. Mark pass, fail, or not observed, and name the first boundary that the evidence actually proves.</li><li><strong>Stage 6 — Rehearse a bounded failure</strong>. Change exactly one supplied value or inject the lab's named fault. Predict the first changed signal, then perform the local/tabletop check that can confirm or reject that prediction.</li><li><strong>Stage 7 — Diagnose and record</strong>. Write the causal chain from symptom to boundary to correction. Record the business effect, the operational constraint, the verification result, and one residual risk; a prediction must remain labeled as a prediction.</li><li><strong>Stage 8 — Close out the exercise</strong>. Save the note and link it from the day artifact. Remove only disposable local copies or lab resources created by this exercise, confirm no cloud resource or credential was created, and state what still requires a real environment.</li></ol></div><label class="check">
-<input data-progress="lab-5-topic-01" type="checkbox"/>
-       I completed and checked this topic exercise
-      </label>
-</p>
-</article>
-<article class="topic-card lab" id="topic-02-lab">
-<h3>
-      Exercise 2 · Classify load-balancer and health-check decisions
-     </h3>
-<p>
-<strong>
-       Goal:
-      </strong>
-      Choose the right load-balancing layer and repair a failed probe in a supplied design.
-      <strong>
-       Mode:
-      </strong>
-      local worksheet.
-     </p>
-<p><strong>Preflight:</strong> open a Day 5 evidence note and use only the supplied observations. No load balancer, backend, Google Cloud project or credential is required.</p>
-<h4>
-      Step 1 — Classify the traffic
-     </h4>
-<pre><code class="language-text">Requirement A: route HTTPS /orders and /reports to different backend services
-Requirement B: forward a non-HTTP UDP stream to a backend pool
-Backend 1: GET /health -&gt; 200; GET /ready -&gt; 404
-Configured probe: GET /ready, expected success
+<p><strong>Expected result:</strong> Python 3.10+ reported, temporary workspace directory created.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/preflight.log</code></p></li><li><strong>Stage 2: Prepare hybrid addressing and interface configuration</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Define the cloud VPC subnet, on-premises subnet, and public gateway addresses:</p>
+<pre><code class="language-bash">cat &gt; "$LAB_DIR/network_config.json" &lt;&lt;'EOF'
+{
+  "cloud_vpc": {
+    "subnet": "10.20.0.0/16",
+    "gateway_public_ip": "198.51.100.1",
+    "client_host": "10.20.1.5"
+  },
+  "on_premises": {
+    "subnet": "10.50.0.0/16",
+    "gateway_public_ip": "203.0.113.1",
+    "database_host": "10.50.4.8"
+  },
+  "ipsec": {
+    "mtu": 1460,
+    "tcp_mss": 1420,
+    "esp_overhead_bytes": 56
+  }
+}
+EOF
+cat "$LAB_DIR/network_config.json"
 </code></pre>
-<p>
-      Mark A as an application-layer routing need and B as a network/transport need. In Google Cloud, use the product comparison link above to identify compatible families; do not assert that one load balancer type handles both requirements.
-     </p>
-<h4>
-      Step 2 — Diagnose the probe
-     </h4>
-<p>
-      Record the observed 404 for
-      <code>
-       /ready
-      </code>
-      and predict that the backend fails this configured probe. Choose one repair: implement a meaningful
-      <code>
-       /ready
-      </code>
-      endpoint or change the probe to a suitable existing endpoint after checking that it reflects readiness. Explain why
-      <code>
-       /health
-      </code>
-      returning 200 does not automatically satisfy a probe sent to
-      <code>
-       /ready
-      </code>
-      .
-      <strong>
-       Verification:
-      </strong>
-      the worksheet identifies the wrong path and specifies a post-repair customer request.
-      <strong>
-       Cleanup:
-      </strong>
-      no load balancer or backend was deployed.
-     </p>
-<p><strong>Troubleshooting:</strong> if the corrected path still fails, inspect protocol, port, probe source reachability and healthy/unhealthy thresholds in that order. If a backend passes but customer calls fail, inspect frontend and routing evidence instead of weakening the health check.</p>
-<p><strong>Artifact acceptance:</strong> the worksheet maps A to application-layer routing and B to network/transport forwarding, records <code>GET /ready → 404</code>, proposes one justified repair and names the post-repair <code>/orders</code> request.</p>
-<p>
-<div><h4>Exact execution</h4><ol class="execution-grid"><li><strong>Stage 1 — Preflight and scope</strong>. Create a note named `day-005-exercise-2-classify-load-balancer-and-health-che.md`. Record the day, exercise mode, prerequisite artifact, and whether each result will be observed locally or predicted from a fixture.</li><li><strong>Stage 2 — Prepare the fixture</strong>. Copy the supplied topic fixture into the note under `Input`. Keep documentation addresses, sample logs, and synthetic Brightloaf identifiers clearly labeled; do not add credentials or contact an endpoint from the page.</li><li><strong>Stage 3 — Author the plan</strong>. Write a table with `input | boundary or owner | expected signal | limit`. Add one acceptance statement and one rejected alternative before running the exercise.</li><li><strong>Stage 4 — Execute the baseline</strong>. Run the existing command or complete the worksheet calculation for the supplied topic fixture. Save the exact output, diagram, or table; do not summarize it from memory.</li><li><strong>Stage 5 — Inspect expected state</strong>. Compare the saved result with the expected result in the lab. Mark pass, fail, or not observed, and name the first boundary that the evidence actually proves.</li><li><strong>Stage 6 — Rehearse a bounded failure</strong>. Change exactly one supplied value or inject the lab's named fault. Predict the first changed signal, then perform the local/tabletop check that can confirm or reject that prediction.</li><li><strong>Stage 7 — Diagnose and record</strong>. Write the causal chain from symptom to boundary to correction. Record the business effect, the operational constraint, the verification result, and one residual risk; a prediction must remain labeled as a prediction.</li><li><strong>Stage 8 — Close out the exercise</strong>. Save the note and link it from the day artifact. Remove only disposable local copies or lab resources created by this exercise, confirm no cloud resource or credential was created, and state what still requires a real environment.</li></ol></div><label class="check">
-<input data-progress="lab-5-topic-02" type="checkbox"/>
-       I completed and checked this topic exercise
-      </label>
-</p>
-</article>
-<article class="topic-card lab" id="topic-03-lab">
-<h3>
-      Exercise 3 · Evaluate and repair an ordered firewall policy
-     </h3>
-<p>
-<strong>
-       Goal:
-      </strong>
-      Evaluate a supplied ingress rule set and propose a least-privilege repair.
-      <strong>
-       Mode:
-      </strong>
-      local worksheet; no firewall is modified.
-     </p>
-<p><strong>Preflight:</strong> open a Day 5 evidence note, copy the supplied rules exactly, and confirm that no live firewall policy will be changed. No Google Cloud project or credential is required.</p>
-<h4>
-      Step 1 — Evaluate rules in priority order
-     </h4>
-<pre><code class="language-text">Target: order-api VM; packet: source 198.51.100.25 -&gt; TCP 443
-Priority 100: allow ingress TCP 443 from 0.0.0.0/0 to order-api
-Priority 200: allow ingress TCP 443 from 203.0.113.0/24 to order-api
-Priority 300: deny ingress TCP 443 from 0.0.0.0/0 to order-api
+<p><strong>Expected result:</strong> Configuration file written and verified with valid JSON formatting.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/network_config.json</code></p></li><li><strong>Stage 3: Author plan and routing simulation engine</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Create a Python script that models route table lookups and IPsec ESP encapsulation:</p>
+<pre><code class="language-bash">cat &gt; "$LAB_DIR/simulate_vpn.py" &lt;&lt;'EOF'
+import ipaddress
+import json
+import sys
+
+with open("network_config.json") as f:
+    cfg = json.load(f)
+
+cloud_net = ipaddress.ip_network(cfg["cloud_vpc"]["subnet"])
+onprem_net = ipaddress.ip_network(cfg["on_premises"]["subnet"])
+client_ip = ipaddress.ip_address(cfg["cloud_vpc"]["client_host"])
+server_ip = ipaddress.ip_address(cfg["on_premises"]["database_host"])
+
+print("--- FORWARD PATH (Cloud -&gt; On-Prem) ---")
+print(f"Packet: {client_ip}:49152 -&gt; {server_ip}:5432")
+if server_ip in onprem_net:
+    print(f"Route Match: {server_ip} matches {onprem_net} via interface vti0 (IPsec Tunnel)")
+    outer_packet = f"Outer IP: {cfg['cloud_vpc']['gateway_public_ip']} -&gt; {cfg['on_premises']['gateway_public_ip']} [ESP SPI=0x9b4f]"
+    print(f"Encapsulation: {outer_packet}")
+    print("Forward Path: DELIVERED to 10.50.4.8")
+else:
+    print("Forward Path: NO ROUTE")
+
+print("
+--- RETURN PATH (On-Prem -&gt; Cloud) ---")
+return_route_installed = "--fixed" in sys.argv
+print(f"Return Packet: {server_ip}:5432 -&gt; {client_ip}:49152")
+if return_route_installed:
+    print(f"Route Match: {client_ip} matches {cloud_net} via interface vti0 (IPsec Tunnel)")
+    outer_return = f"Outer IP: {cfg['on_premises']['gateway_public_ip']} -&gt; {cfg['cloud_vpc']['gateway_public_ip']} [ESP SPI=0xc871]"
+    print(f"Encapsulation: {outer_return}")
+    print("Return Path: DELIVERED to 10.20.1.5 (Symmetric Flow OK)")
+else:
+    print(f"Route Match: No route for {client_ip} on vti0. Default gateway 0.0.0.0/0 selected (Public WAN).")
+    print("Return Path: DROPPED (Asymmetric Routing Failure)")
+EOF
+python3 -m py_compile "$LAB_DIR/simulate_vpn.py"
 </code></pre>
-<p>
-      The packet matches the priority-100 allow, so it is permitted despite the later deny. The addresses are documentation fixtures. Write this result and the rule that won in your note.
-     </p>
-<h4>
-      Step 2 — Repair and test the policy
-     </h4>
-<p>
-      Remove or narrow the broad priority-100 allow in your
-      <em>
-       proposed
-      </em>
-      rule set. Keep the intended load-balancer source range allowed and direct sources denied. Evaluate two packets: one from 203.0.113.25 and one from 198.51.100.25. Expected: the first is allowed and the second denied, assuming no higher-level policy changes the result.
-      <strong>
-       Cleanup and cost:
-      </strong>
-      no cloud project or firewall rule was touched; save the before/after rule table.
-     </p>
-<p><strong>Troubleshooting:</strong> if the predicted result differs from observed traffic, inspect higher-level firewall policies, target membership, packet direction and route selection before changing another rule. A timeout alone does not identify the firewall as the failing layer.</p>
-<p><strong>Artifact acceptance:</strong> the saved before/after table names the winning rule for each test packet, allows <code>203.0.113.25</code>, denies <code>198.51.100.25</code>, states the higher-level-policy assumption and keeps the rollback action.</p>
-<p>
-<div><h4>Exact execution</h4><ol class="execution-grid"><li><strong>Stage 1 — Preflight and scope</strong>. Create a note named `day-005-exercise-3-evaluate-and-repair-an-ordered-firewa.md`. Record the day, exercise mode, prerequisite artifact, and whether each result will be observed locally or predicted from a fixture.</li><li><strong>Stage 2 — Prepare the fixture</strong>. Copy the supplied request, address, route, socket, or protocol fixture into the note under `Input`. Keep documentation addresses, sample logs, and synthetic Brightloaf identifiers clearly labeled; do not add credentials or contact an endpoint from the page.</li><li><strong>Stage 3 — Author the plan</strong>. Write a table with `input | boundary or owner | expected signal | limit`. Add one acceptance statement and one rejected alternative before running the exercise.</li><li><strong>Stage 4 — Execute the baseline</strong>. Run the existing command or complete the worksheet calculation for the supplied request, address, route, socket, or protocol fixture. Save the exact output, diagram, or table; do not summarize it from memory.</li><li><strong>Stage 5 — Inspect expected state</strong>. Compare the saved result with the expected result in the lab. Mark pass, fail, or not observed, and name the first boundary that the evidence actually proves.</li><li><strong>Stage 6 — Rehearse a bounded failure</strong>. Change exactly one supplied value or inject the lab's named fault. Predict the first changed signal, then perform the local/tabletop check that can confirm or reject that prediction.</li><li><strong>Stage 7 — Diagnose and record</strong>. Write the causal chain from symptom to boundary to correction. Record the business effect, the operational constraint, the verification result, and one residual risk; a prediction must remain labeled as a prediction.</li><li><strong>Stage 8 — Close out the exercise</strong>. Save the note and link it from the day artifact. Remove only disposable local copies or lab resources created by this exercise, confirm no cloud resource or credential was created, and state what still requires a real environment.</li></ol></div><label class="check">
-<input data-progress="lab-5-topic-03" type="checkbox"/>
-       I completed and checked this topic exercise
-      </label>
-</p>
-</article>
-</section>
-<section class="completion">
-<h2>
+<p><strong>Expected result:</strong> Script compiles with zero syntax errors.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/simulate_vpn.py</code></p></li><li><strong>Stage 4: Execute forward path simulation</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Run the simulation script to test the forward path:</p>
+<pre><code class="language-bash">cd "$LAB_DIR"
+python3 simulate_vpn.py &gt; forward_test.log
+cat forward_test.log
+</code></pre>
+<p><strong>Expected result:</strong> Forward path succeeds with ESP encapsulation; return path reports DROPPED due to missing return route.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/forward_test.log</code></p></li><li><strong>Stage 5: Inspect expected state and verify failure mode</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Inspect the log output to verify the asymmetric routing failure point:</p>
+<pre><code class="language-bash">grep "Return Path: DROPPED" "$LAB_DIR/forward_test.log" &amp;&amp; echo "PASS: Failure reproduced as predicted"
+</code></pre>
+<p><strong>Expected result:</strong> Grep matches the dropped return packet message.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/failure_evidence.txt</code></p></li><li><strong>Stage 6: Rehearse bounded failure and MTU sizing check</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Compute effective MTU and check TCP MSS clamping calculations:</p>
+<pre><code class="language-bash">python3 -c '
+mtu = 1460
+esp_hdr = 56
+ip_hdr = 20
+tcp_hdr = 20
+max_payload = mtu - esp_hdr - ip_hdr - tcp_hdr
+print(f"Max Transmission Unit (MTU): {mtu} bytes")
+print(f"IPsec ESP Overhead: {esp_hdr} bytes")
+print(f"Effective TCP MSS: {max_payload} bytes")
+assert max_payload &lt;= 1420, "MSS clamping exceeds recommended boundary"
+print("PASS: TCP MSS clamp safely bounded at 1364-1420 bytes")
+' | tee "$LAB_DIR/mtu_evidence.txt"
+</code></pre>
+<p><strong>Expected result:</strong> Effective TCP MSS calculated and verified within safe limits.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/mtu_evidence.txt</code></p></li><li><strong>Stage 7: Diagnose evidence and apply routing remediation</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Simulate installing the return route on the on-premises gateway:</p>
+<pre><code class="language-bash">cd "$LAB_DIR"
+python3 simulate_vpn.py --fixed &gt; fixed_test.log
+cat fixed_test.log
+grep "Symmetric Flow OK" fixed_test.log &amp;&amp; echo "PASS: Return path restored"
+</code></pre>
+<p><strong>Expected result:</strong> Return path successfully routed via vti0 with symmetric flow confirmed.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/fixed_test.log</code></p></li><li><strong>Stage 8: Clean up and close out local workspace</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Archive test evidence and remove temporary workspace:</p>
+<pre><code class="language-bash">cd /tmp
+cp "$LAB_DIR/fixed_test.log" /tmp/day_005_vpn_evidence.log
+rm -rf "$LAB_DIR"
+echo "Cleaned up workspace. Evidence saved to /tmp/day_005_vpn_evidence.log"
+</code></pre>
+<p><strong>Expected result:</strong> Workspace deleted cleanly without leaving temporary artifacts.</p>
+<p><strong>Save:</strong> <code>/tmp/day_005_vpn_evidence.log</code></p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Review generated routing evaluation table and verify forward and return path next-hops.</p>
+<p><strong>Artifact acceptance:</strong> The routing evaluator confirms that forward packets from 10.20.1.5 reach 10.50.4.8 via vti0, and identifies that return packets drop unless 10.20.0.0/16 is routed via vti0. (File: <code>day-005-topic-01.md</code>).</p></div><div class="callout caution"><strong>Troubleshooting</strong><p>Inspect routing table script output and verify destination CIDR prefix matching logic.</p></div><div class="callout"><strong>Cleanup and cost</strong><p>Remove temporary workspace directory and generated test artifacts.</p></div><label class="check"><input data-progress="lab-5-topic-01" type="checkbox"/> I completed and checked this topic exercise</label></article><article class="topic-card lab" id="topic-02-lab"><h3>Exercise 2: Lab 5.2: Evaluate load balancer health check state machines and backend readiness</h3><p><strong>Goal:</strong> Implement an automated health check state machine evaluator that models probe intervals, healthy/unhealthy thresholds, and HTTP status code matching.</p><p><strong>Expected result:</strong> </p><p><strong>Mode:</strong> Observed locally: local python-based state machine simulation logs state transitions and traffic distribution. Simulated or predicted: simulated multi-instance pool distribution and consecutive failure counts. Untested on GCP: live Maglev packet scheduling, Envoy proxy thread pools, and distributed health check probe aggregation. · <strong>Prerequisite:</strong> Python 3.10+, bash shell.</p><p><strong>Preflight:</strong> Verify python3 availability, initialize workspace directory.</p><h4>Exact execution</h4><ol><li><strong>Stage 1: Preflight environment and tool verification</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Verify that Python 3 is installed and ready:</p>
+<pre><code class="language-bash">command -v python3 &gt;/dev/null 2&gt;&amp;1 || { echo "Python 3 is required"; exit 1; }
+python3 --version
+LAB_DIR=$(mktemp -d /tmp/lab_lb.XXXXXX)
+export LAB_DIR
+cd "$LAB_DIR"
+echo "Workspace initialized at: $LAB_DIR"
+</code></pre>
+<p><strong>Expected result:</strong> Python 3 detected, temporary workspace initialized.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/preflight.log</code></p></li><li><strong>Stage 2: Prepare health check state machine specification</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Define the health check parameters and backend instance pool:</p>
+<pre><code class="language-bash">cat &gt; "$LAB_DIR/lb_policy.json" &lt;&lt;'EOF'
+{
+  "health_check": {
+    "protocol": "HTTP",
+    "port": 8080,
+    "path": "/ready",
+    "interval_sec": 5,
+    "timeout_sec": 2,
+    "healthy_threshold": 2,
+    "unhealthy_threshold": 2
+  },
+  "backends": [
+    {"id": "inst-1", "ip": "10.20.1.10", "routes": {"/health": 200, "/ready": 404}},
+    {"id": "inst-2", "ip": "10.20.1.11", "routes": {"/health": 200, "/ready": 404}}
+  ]
+}
+EOF
+cat "$LAB_DIR/lb_policy.json"
+</code></pre>
+<p><strong>Expected result:</strong> Policy specification written and validated.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/lb_policy.json</code></p></li><li><strong>Stage 3: Author plan and state machine simulator</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Create the state machine simulation script:</p>
+<pre><code class="language-bash">cat &gt; "$LAB_DIR/simulate_lb.py" &lt;&lt;'EOF'
+import json
+import sys
+
+with open("lb_policy.json") as f:
+    policy = json.load(f)
+
+probe_path = "/health" if "--fix-path" in sys.argv else policy["health_check"]["path"]
+unhealthy_threshold = policy["health_check"]["unhealthy_threshold"]
+healthy_threshold = policy["health_check"]["healthy_threshold"]
+
+print(f"Health Check Configuration: probe={probe_path} healthy_thresh={healthy_threshold} unhealthy_thresh={unhealthy_threshold}")
+
+for backend in policy["backends"]:
+    b_id = backend["id"]
+    code = backend["routes"].get(probe_path, 500)
+    print(f"
+Evaluating backend {b_id} (ip={backend['ip']}):")
+    state = "HEALTHY"
+    failures = 0
+    successes = 0
+    for probe_num in range(1, 4):
+        if code == 200:
+            successes += 1
+            failures = 0
+            if successes &gt;= healthy_threshold:
+                state = "HEALTHY"
+            print(f"  Probe {probe_num}: GET {probe_path} -&gt; HTTP {code} (successes={successes}) =&gt; State={state}")
+        else:
+            failures += 1
+            successes = 0
+            if failures &gt;= unhealthy_threshold:
+                state = "UNHEALTHY"
+            print(f"  Probe {probe_num}: GET {probe_path} -&gt; HTTP {code} (failures={failures}) =&gt; State={state}")
+
+    backend["final_state"] = state
+
+healthy_pool = [b["id"] for b in policy["backends"] if b["final_state"] == "HEALTHY"]
+print(f"
+--- LOAD BALANCER ROUTING OUTCOME ---")
+if healthy_pool:
+    print(f"Eligible Backends: {healthy_pool} =&gt; Client Requests: 200 OK")
+else:
+    print(f"Eligible Backends: NONE =&gt; Client Requests: 502 Bad Gateway (All backends unhealthy)")
+EOF
+python3 -m py_compile "$LAB_DIR/simulate_lb.py"
+</code></pre>
+<p><strong>Expected result:</strong> Script compiled successfully.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/simulate_lb.py</code></p></li><li><strong>Stage 4: Execute failure simulation with /ready path</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Run the simulator with the misconfigured <code>/ready</code> path:</p>
+<pre><code class="language-bash">cd "$LAB_DIR"
+python3 simulate_lb.py &gt; failure_simulation.log
+cat failure_simulation.log
+</code></pre>
+<p><strong>Expected result:</strong> Both backends transition to UNHEALTHY; client requests report 502 Bad Gateway.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/failure_simulation.log</code></p></li><li><strong>Stage 5: Inspect expected state and verify 502 condition</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Confirm the 502 Bad Gateway outcome in the simulation log:</p>
+<pre><code class="language-bash">grep "Client Requests: 502 Bad Gateway" "$LAB_DIR/failure_simulation.log" &amp;&amp; echo "PASS: 502 reproduced"
+</code></pre>
+<p><strong>Expected result:</strong> Grep matches the 502 Bad Gateway outcome.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/502_evidence.txt</code></p></li><li><strong>Stage 6: Rehearse bounded failure with mixed backend responses</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Test threshold boundary behavior when one backend recovers:</p>
+<pre><code class="language-bash">python3 -c '
+failures = 1
+unhealthy_threshold = 2
+state = "HEALTHY"
+# Single failure should NOT mark instance unhealthy
+if failures &gt;= unhealthy_threshold:
+    state = "UNHEALTHY"
+assert state == "HEALTHY", "State flipped too early!"
+print("PASS: Single probe failure does not flip state (threshold hysteresis validated)")
+' | tee "$LAB_DIR/threshold_evidence.txt"
+</code></pre>
+<p><strong>Expected result:</strong> Threshold hysteresis verified.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/threshold_evidence.txt</code></p></li><li><strong>Stage 7: Diagnose evidence and execute remediated probe</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Run the simulator with the corrected <code>/health</code> probe path:</p>
+<pre><code class="language-bash">cd "$LAB_DIR"
+python3 simulate_lb.py --fix-path &gt; remediated_simulation.log
+cat remediated_simulation.log
+grep "Client Requests: 200 OK" remediated_simulation.log &amp;&amp; echo "PASS: Backends healthy, traffic restored"
+</code></pre>
+<p><strong>Expected result:</strong> Probes return HTTP 200; instances marked HEALTHY; client requests succeed with 200 OK.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/remediated_simulation.log</code></p></li><li><strong>Stage 8: Clean up and close out local workspace</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Archive evidence and remove temporary workspace:</p>
+<pre><code class="language-bash">cd /tmp
+cp "$LAB_DIR/remediated_simulation.log" /tmp/day_005_lb_evidence.log
+rm -rf "$LAB_DIR"
+echo "Cleaned up workspace. Evidence saved to /tmp/day_005_lb_evidence.log"
+</code></pre>
+<p><strong>Expected result:</strong> Workspace removed cleanly.</p>
+<p><strong>Save:</strong> <code>/tmp/day_005_lb_evidence.log</code></p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Review state transition log demonstrating HEALTHY to UNHEALTHY transitions and recovery.</p>
+<p><strong>Artifact acceptance:</strong> The simulation confirms that 2 consecutive 404 responses transition backends from HEALTHY to UNHEALTHY, producing 502 gateway responses, and 2 consecutive 200 responses restore pool readiness. (File: <code>day-005-topic-02.md</code>).</p></div><div class="callout caution"><strong>Troubleshooting</strong><p>Verify probe response code dictionary and threshold transition logic.</p></div><div class="callout"><strong>Cleanup and cost</strong><p>Remove temporary workspace directory and generated test artifacts.</p></div><label class="check"><input data-progress="lab-5-topic-02" type="checkbox"/> I completed and checked this topic exercise</label></article><article class="topic-card lab" id="topic-03-lab"><h3>Exercise 3: Lab 5.3: Build ordered firewall packet decision table and predict policy mutation effects</h3><p><strong>Goal:</strong> Build an automated firewall policy evaluator that parses ordered rules, computes packet decisions for diverse ingress tuples, changes one rule, and predicts the exact security effect.</p><p><strong>Expected result:</strong> </p><p><strong>Mode:</strong> Observed locally: local Python policy engine evaluates packet tuples against ordered rule priority lists. Simulated or predicted: predicted packet decisions and failure boundary identification. Untested on GCP: live Andromeda hypervisor conntrack table updates, hierarchical firewall policy inheritance, and VPC flow logs generation. · <strong>Prerequisite:</strong> Python 3.10+, bash shell.</p><p><strong>Preflight:</strong> Verify python3 availability, create temporary workspace directory.</p><h4>Exact execution</h4><ol><li><strong>Stage 1: Preflight environment and tool verification</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Verify that Python 3 is installed:</p>
+<pre><code class="language-bash">command -v python3 &gt;/dev/null 2&gt;&amp;1 || { echo "Python 3 is required"; exit 1; }
+python3 --version
+LAB_DIR=$(mktemp -d /tmp/lab_fw.XXXXXX)
+export LAB_DIR
+cd "$LAB_DIR"
+echo "Workspace initialized at: $LAB_DIR"
+</code></pre>
+<p><strong>Expected result:</strong> Python 3 confirmed, temporary workspace created.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/preflight.log</code></p></li><li><strong>Stage 2: Prepare firewall rules and ingress test tuples</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Define the initial firewall rule set and test packet tuples:</p>
+<pre><code class="language-bash">cat &gt; "$LAB_DIR/firewall_data.json" &lt;&lt;'EOF'
+{
+  "rules": [
+    {"name": "allow-all-https", "priority": 100, "action": "ALLOW", "source": "0.0.0.0/0", "proto": "tcp", "port": 443, "target_tag": "order-backend"},
+    {"name": "allow-lb-only",   "priority": 200, "action": "ALLOW", "source": "203.0.113.0/24", "proto": "tcp", "port": 443, "target_tag": "order-backend"},
+    {"name": "deny-external",   "priority": 300, "action": "DENY",  "source": "0.0.0.0/0", "proto": "tcp", "port": 443, "target_tag": "order-backend"}
+  ],
+  "test_packets": [
+    {"desc": "Direct untrusted internet client", "src_ip": "198.51.100.25", "proto": "tcp", "dst_port": 443, "target_tag": "order-backend"},
+    {"desc": "Intended Cloud Load Balancer proxy", "src_ip": "203.0.113.25", "proto": "tcp", "dst_port": 443, "target_tag": "order-backend"},
+    {"desc": "On-premises database query return", "src_ip": "10.50.4.8", "proto": "tcp", "dst_port": 5432, "target_tag": "order-backend"},
+    {"desc": "Cloud health-check probe", "src_ip": "35.191.0.1", "proto": "tcp", "dst_port": 443, "target_tag": "order-backend"}
+  ]
+}
+EOF
+cat "$LAB_DIR/firewall_data.json"
+</code></pre>
+<p><strong>Expected result:</strong> Rule definitions and test packet tuples written to JSON.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/firewall_data.json</code></p></li><li><strong>Stage 3: Author plan and firewall policy evaluator</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Write a Python policy evaluator that performs first-match-wins rule resolution:</p>
+<pre><code class="language-bash">cat &gt; "$LAB_DIR/evaluate_firewall.py" &lt;&lt;'EOF'
+import ipaddress
+import json
+import sys
+
+with open("firewall_data.json") as f:
+    data = json.load(f)
+
+rules = data["rules"]
+if "--remove-p100" in sys.argv:
+    rules = [r for r in rules if r["priority"] != 100]
+
+rules.sort(key=lambda r: r["priority"])
+
+print(f"Active Rules (in evaluation order):")
+for r in rules:
+    print(f"  Priority {r['priority']}: {r['name']} | Action={r['action']} | Source={r['source']} | Port={r['port']}")
+
+print("
+| Packet Description | Source IP | Port | Matched Rule | Priority | Decision | Failure Boundary |")
+print("|---|---|---|---|---|---|---|")
+
+for pkt in data["test_packets"]:
+    src = ipaddress.ip_address(pkt["src_ip"])
+    matched = None
+    for r in rules:
+        r_net = ipaddress.ip_network(r["source"])
+        if src in r_net and pkt["proto"] == r["proto"] and pkt["dst_port"] == r["port"]:
+            matched = r
+            break
+
+    if matched:
+        decision = matched["action"]
+        rule_name = matched["name"]
+        prio = matched["priority"]
+        boundary = "Bypassed LB WAF" if prio == 100 and "untrusted" in pkt["desc"] else ("Protected by LB" if prio == 200 else "Blocked at Boundary")
+    else:
+        decision = "DENY (implied)"
+        rule_name = "implied-deny-ingress"
+        prio = 65535
+        boundary = "Blocked at VPC Boundary"
+
+    print(f"| {pkt['desc']} | {pkt['src_ip']} | {pkt['dst_port']} | {rule_name} | {prio} | **{decision}** | {boundary} |")
+EOF
+python3 -m py_compile "$LAB_DIR/evaluate_firewall.py"
+</code></pre>
+<p><strong>Expected result:</strong> Policy evaluator script authored and compiled.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/evaluate_firewall.py</code></p></li><li><strong>Stage 4: Execute initial policy evaluation</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Execute the initial evaluation with the flawed priority 100 rule in place:</p>
+<pre><code class="language-bash">cd "$LAB_DIR"
+python3 evaluate_firewall.py &gt; initial_evaluation.md
+cat initial_evaluation.md
+</code></pre>
+<p><strong>Expected result:</strong> Decision table generated showing untrusted client allowed via Rule 100.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/initial_evaluation.md</code></p></li><li><strong>Stage 5: Inspect expected state and record flaw</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Verify that the direct untrusted client is improperly allowed:</p>
+<pre><code class="language-bash">grep "Direct untrusted internet client.*ALLOW.*Bypassed LB WAF" "$LAB_DIR/initial_evaluation.md" &amp;&amp; echo "PASS: Flaw verified"
+</code></pre>
+<p><strong>Expected result:</strong> Flaw confirmed: direct untrusted client granted ALLOW at priority 100.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/flaw_verification.txt</code></p></li><li><strong>Stage 6: Rehearse rule mutation and predict effect</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Predict the effect of removing priority 100: direct traffic should hit priority 300 (DENY), while load balancer traffic matches priority 200 (ALLOW):</p>
+<pre><code class="language-bash">echo "PREDICTION: Removing Priority 100 will change Direct untrusted client from ALLOW to DENY, while Intended LB proxy remains ALLOW at Priority 200." | tee "$LAB_DIR/prediction.txt"
+</code></pre>
+<p><strong>Expected result:</strong> Explicit prediction documented before code execution.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/prediction.txt</code></p></li><li><strong>Stage 7: Diagnose evidence and execute remediated policy evaluation</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Execute policy evaluation with Priority 100 removed to verify prediction:</p>
+<pre><code class="language-bash">cd "$LAB_DIR"
+python3 evaluate_firewall.py --remove-p100 &gt; final_packet_decision_table.md
+cat final_packet_decision_table.md
+grep "Direct untrusted internet client.*DENY.*Blocked at Boundary" final_packet_decision_table.md &amp;&amp; echo "PASS: Untrusted client DENIED"
+grep "Intended Cloud Load Balancer proxy.*ALLOW.*Protected by LB" final_packet_decision_table.md &amp;&amp; echo "PASS: LB proxy ALLOWED"
+</code></pre>
+<p><strong>Expected result:</strong> Verified packet decision table confirms both allowed and denied paths and explicit failure boundaries.</p>
+<p><strong>Save:</strong> <code>$LAB_DIR/final_packet_decision_table.md</code></p></li><li><strong>Stage 8: Clean up and close out local workspace</strong>
+<p><strong>Location:</strong> local bash terminal</p>
+<p>Preserve the exit artifact and remove temporary workspace:</p>
+<pre><code class="language-bash">cd /tmp
+cp "$LAB_DIR/final_packet_decision_table.md" /tmp/day_005_packet_decision_table.md
+rm -rf "$LAB_DIR"
+echo "Cleaned up workspace. Exit artifact preserved at: /tmp/day_005_packet_decision_table.md"
+</code></pre>
+<p><strong>Expected result:</strong> Workspace directory removed; final packet decision table preserved.</p>
+<p><strong>Save:</strong> <code>/tmp/day_005_packet_decision_table.md</code></p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Inspect generated markdown packet decision table and verify allowed versus denied outcomes.</p>
+<p><strong>Artifact acceptance:</strong> The policy engine generates the complete packet decision table showing that removing Priority 100 changes direct untrusted packet decisions from ALLOW to DENY while preserving load balancer traffic. (File: <code>day-005-topic-03.md</code>).</p></div><div class="callout caution"><strong>Troubleshooting</strong><p>Check IP address subnet containment logic and ascending priority sorting.</p></div><div class="callout"><strong>Cleanup and cost</strong><p>Remove temporary workspace directory and preserve final packet decision table artifact.</p></div><label class="check"><input data-progress="lab-5-topic-03" type="checkbox"/> I completed and checked this topic exercise</label></article></section>
+<section class="completion"><h2>
      Daily evidence
-    </h2>
-<label class="check">
-<input data-progress="read-5" type="checkbox"/>
-     I read and reviewed the day
-    </label>
-<label class="check">
-<input data-progress="artifact-5" type="checkbox"/>
-     I saved the exit artifact
-    </label>
-</section>
+    </h2><div class="completion-box" id="completion-box-005">
+<h3>Day 5 Acceptance Checklist</h3>
+<ul class="checklist">
+<li><input id="check-5-1" type="checkbox"/> <label for="check-5-1">VPN concepts mastered: IPsec tunnel mode encapsulation, IKEv2 security associations, site-to-site vs client VPN, and symmetric return routing requirements.</label></li>
+<li><input id="check-5-2" type="checkbox"/> <label for="check-5-2">Load balancing concepts mastered: L4 passthrough vs L7 proxy, health check state machines, probe ranges (35.191.0.0/16, 130.211.0.0/22), and session affinity trade-offs.</label></li>
+<li><input id="check-5-3" type="checkbox"/> <label for="check-5-3">Firewall concepts mastered: stateful conntrack evaluation, ascending numerical priority ordering (first match wins), implied rules, and defense-in-depth failure boundaries.</label></li>
+<li><input id="check-5-4" type="checkbox"/> <label for="check-5-4">Practice completed: client-to-backend request flow drawn with health check probes and ordered firewall rules, showing the effect of removing broad rule priority 100.</label></li>
+<li><input id="check-5-5" type="checkbox"/> <label for="check-5-5">Exit evidence verified: packet decision table generated covering allowed load-balancer paths, denied direct internet paths, and identified application failure boundaries.</label></li>
+</ul>
+<div class="completion-actions" style="margin-top:1.5rem;display:flex;gap:1rem;">
+<button class="btn btn-primary" id="btn-read-005" onclick="this.classList.toggle('completed');this.textContent=this.classList.contains('completed')?'✓ Read Day 5 Completed':'Mark Day 5 as Read';">Mark Day 5 as Read</button>
+<button class="btn btn-secondary" id="btn-artifact-005" onclick="this.classList.toggle('verified');this.textContent=this.classList.contains('verified')?'✓ Exit Artifact Verified':'Verify Exit Artifact';">Verify Exit Artifact</button>
+</div>
+</div><p class="exit-summary">Exit artifact: A verified packet decision table with both allowed and denied paths and an explicit failure boundary distinguishing network reachability from process state.</p></section>
 <nav aria-label="Day pagination" class="pager">
 <a href="day-004.html">
      ← Day 4

@@ -20,6 +20,12 @@ python3 scripts/author_engine.py --day N
 python3 scripts/build.py --day N
 python3 scripts/validate.py --day N
 python3 scripts/check_study_links.py --day N --report scratch/day-NNN-study-links.json
+python3 scripts/run_labs.py --day N
+python3 scripts/write_handoff.py --day N
+For an explicitly authorized batch, run after all per-day acceptance checks:
+python3 scripts/batch_gate.py --day N --contract-hash
+Stop the batch on the first FAIL. Commit the completed day only after PASS,
+when commits are authorized; never commit if the user prohibits it.
 If changing the checker, also run:
 python3 -m unittest discover -s tests -p "test_check_study_links.py"
 
@@ -43,3 +49,12 @@ Handoff also includes: Practice-to-lab map; Source ledger (each URL, fragment or
 whole-document reason, heading actually opened, RFC status); Product-claim list
 with supporting sections; Visuals list with reasons; spec diff stat and confirmation
 that no explanatory prose was removed.
+
+Generated handoff: `scratch/handoffs/day-NNN.md`, written by
+`write_handoff.py` from the loaded spec and git HEAD. Record opened headings,
+RFC status, whole-document reasons, product claims and visual-change reasons in
+the spec's `review_records` (see SPEC_SCHEMA.md); never retype generated lists.
+UNRECORDED entries require actual review before claiming completion.
+In authorized batches, finish the gate and per-day commit before advancing. Start
+a fresh isolated context for every day; never carry the preceding day's spec or
+summary into the next. Retain only the day number, gate result and commit ID.
