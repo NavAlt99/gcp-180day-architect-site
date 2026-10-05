@@ -9,6 +9,11 @@ Update Day NNN in gcp-180day-architect-site/ following the canonical contract
 and serial workflow. Run from that directory unless explicitly stated otherwise.
 Author scratch/day_data_NNN.py using only the scoped day inputs. Preserve all
 contract requirements; finish acceptance checks and fix target-introduced errors.
+Preserve the standardized modern layout: retain wide container structure (assets/site.css),
+complete top navigation header (Day index, Glossary, Sources, Artifacts, prev/next links,
+180-day jump, theme toggle), and the section sprint navigation rail (.sprint-rail /
+.foundation-rail) placed directly below the hero section with active step highlighting
+(.rail-step.is-current). Do not add inline <style> overrides or narrow container caps.
 
 Run in order:
 python3 scripts/extract_day_inputs.py --day N
@@ -36,13 +41,15 @@ as proof of technical accuracy.
 
 Handoff only:
 1. Clickable paths to specification, generated override and rendered page.
-2. Reviewed anchors, subtopic depth, diagram eligibility and exercise completeness.
-3. Roadmap exit artifact/acceptance; distinguish instructions from artifacts
+2. Layout & navigation: confirm preserved wide container (assets/site.css), complete top
+   header navigation, and active-step sprint rail (.sprint-rail).
+3. Reviewed anchors, subtopic depth, diagram eligibility and exercise completeness.
+4. Roadmap exit artifact/acceptance; distinguish instructions from artifacts
    actually produced by executed labs.
-4. Checks actually run/results, structural errors, study-link report, semantic
+5. Checks actually run/results, structural errors, study-link report, semantic
    source review and source/lab limits. Claim zero errors only when confirmed;
    blocked/unverified links are not passes. No full-page HTML or content recap.
-5. Depth: list any topic whose depth was increased and any study-time overrun; run git diff on scratch/day_data_NNN.py and state that it removes no explanatory prose (only structure or corrected facts).
+6. Depth: list any topic whose depth was increased and any study-time overrun; run git diff on scratch/day_data_NNN.py and state that it removes no explanatory prose (only structure or corrected facts).
 ```
 
 Handoff also includes: Practice-to-lab map; Source ledger (each URL, fragment or
