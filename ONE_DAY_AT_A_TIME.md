@@ -29,3 +29,16 @@ advancing. Do not run a full-site build.
 Run `scripts/extract_day_inputs.py --day N` before day-specific reading; use its
 compact output. New specs use contract version 2; follow the update prompt
 command order and fidelity/source/product/visual/spec-diff handoff records.
+
+## Batch safety boundary
+
+For explicitly authorized batches, run `python3 scripts/batch_gate.py --day N
+--contract-hash` after each day's build and acceptance checks. Stop immediately
+on the first FAIL; do not advance to N+1. A SKIPPED lab tool, unverified link or
+diagram-count WARN fails the gate. Write `scratch/handoffs/day-NNN.md` using
+`write_handoff.py`. Commit per day after PASS when commits are authorized; an
+explicit no-commit instruction overrides this workflow. Never carry one day's
+spec or summary into the next day's context. The coordinator keeps only current
+day, gate result and commit ID. The gate checks a completed day; it never authors
+or rebuilds any page. A changed pinned contract requires explicit resolution
+before resuming; do not silently reset `scratch/batch-contract.sha256`.

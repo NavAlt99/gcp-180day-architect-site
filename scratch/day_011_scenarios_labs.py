@@ -1,0 +1,667 @@
+"""Day 11 Scenarios and Executable Labs."""
+
+SCENARIOS_AND_LABS = {
+    'topic-01': {
+        'scenario': {
+            'scenario': (
+                'Brightloaf Logistics operates an order status ingestion webhook that receives high-frequency shipping '
+                'notifications from international parcel carriers. During initial cloud migration, the team deployed the '
+                'webhook on a single Compute Engine virtual machine instance running Ubuntu 22.04 LTS with an attached Persistent Disk. '
+                'Over time, carrier traffic surged from 5 requests per second to over 850 requests per second during peak holiday periods. '
+                'Because the workload was deployed on raw IaaS without an automated patch pipeline or autoscaling group, a routine '
+                'manual system update executed by an engineer (<kbd>sudo apt-get upgrade</kbd>) installed an incompatible glibc update '
+                'that caused the application runtime to crash repeatedly upon restart. The single VM crashed, leading to a 14-hour '
+                'unavailability window where 42,000 carrier status webhooks were dropped, causing catastrophic tracking synchronization failures.'
+            ),
+            'impact': (
+                '14 hours of continuous service outage; 42,000 carrier webhooks dropped permanently; estimated business loss of $185,000 '
+                'in expedited carrier re-dispatch penalties and customer support escalation costs.'
+            ),
+            'constraints': (
+                'Webhook must maintain sub-second acknowledgment latency (< 250 ms); incoming traffic exhibits sudden 20x spikes; '
+                'zero dedicated SRE headcount available for ongoing operating system patching or host kernel maintenance; '
+                'application code is written in standard Python/Node.js and can be packaged into an OCI container image.'
+            ),
+            'evidence': (
+                '<p>Illustrative system log captured during the IaaS VM crash:</p>\n'
+                '<pre><code>2026-10-04T02:14:11.102Z compute-engine-vm-01 kernel: [ 4128.912] libc.so.6: segfault at 0x7fff8921 ip 0x7f23a9b1 sp 0x7fff8920 error 4 in libc-2.35.so\n'
+                '2026-10-04T02:14:11.450Z systemd[1]: order-webhook.service: Main process exited, code=dumped, status=11/SEGV\n'
+                '2026-10-04T02:14:11.451Z systemd[1]: order-webhook.service: Failed with result \'core-dump\'.\n'
+                '2026-10-04T02:14:16.890Z nginx[412]: 2026/10/04 02:14:16 [error] 415#415: *8912 connect() failed (111: Connection refused) while connecting to upstream, client: 198.51.100.44, server: webhook.brightloaf.internal, request: "POST /webhook/carrier HTTP/1.1", upstream: "http://127.0.0.1:8080/webhook/carrier", host: "webhook.brightloaf.internal"</code></pre>'
+            ),
+            'root': (
+                'Architectural service model selection mismatch. Deploying a stateless, highly variable HTTP webhook receiver on an IaaS virtual machine '
+                'burdened the application team with guest operating system patching, process supervision, and manual horizontal scaling. The failure occurred '
+                'because manual host-level package updates broke local runtime dependencies in an environment lacking automated canary deployments, '
+                'managed instance groups, and serverless abstraction.'
+            ),
+            'verify': (
+                'Migrate the stateless webhook handler to Google Cloud Run (PaaS/CaaS). Google Cloud manages underlying host OS patching, kernel updates, '
+                'and automatic horizontal autoscaling from 0 to 1,000 container instances. Verify deployment by simulating traffic bursts and validating '
+                'zero host-level maintenance requirements with HTTP 200 responses across all requests.'
+            ),
+            'residual': (
+                'While host OS patching is delegated entirely to Google Cloud, the development team remains responsible for scanning and updating application-level '
+                'dependencies packaged within the container image (via Artifact Registry vulnerability scanning) and configuring appropriate Cloud Run maximum instance '
+                'limits to prevent upstream database connection pool saturation.'
+            ),
+            'diagram_enabled': False,
+            'facts': (
+                'Supplied facts: The webhook microservice is strictly stateless, processes incoming JSON HTTP POST payloads, and writes messages directly to a '
+                'managed Pub/Sub topic. The legacy implementation ran on a single Compute Engine e2-standard-4 VM with manual operating system administration.'
+            ),
+            'inference': (
+                'Architectural inference: Migrating stateless HTTP handlers to PaaS Cloud Run delegates host patching to Google while retaining container portability.'
+            ),
+            'expected': (
+                'Expected post-fix behavior: Webhook requests scale horizontally with zero host maintenance and zero dropped transactions.'
+            )
+        },
+        'lab': {
+            'title': 'Exercise A · Construct a multi-tier cloud service model decision and responsibility matrix',
+            'goal': (
+                'Evaluate a sample enterprise workload portfolio across IaaS, PaaS, FaaS, and SaaS service models, '
+                'assigning OS patching, runtime maintenance, and data durability duties to establish an architectural decision rubric.'
+            ),
+            'result': (
+                'A validated cloud service model classification script and decision matrix output mapping Compute Engine, Cloud Run, '
+                'Cloud Run functions, and BigQuery to their operational maintenance boundaries.'
+            ),
+            'mode': (
+                'Observed locally: Debian Linux terminal running Python 3.12, bash, and standard core utilities. '
+                'Simulated or predicted: Google Cloud service boundaries and SLA guarantees. '
+                'Untested on GCP: live gcloud API mutations and billing account creation.'
+            ),
+            'limits': (
+                'Offline tabletop simulation using local bash and Python tooling without requiring active GCP project billing credentials.'
+            ),
+            'covers': (
+                'Assign OS patching, application security and data recovery responsibilities for VM, managed-container and SaaS examples.'
+            ),
+            'prereq': 'Linux or macOS terminal, Python 3.8+, bash, standard POSIX utilities (mkdir, cat, python3).',
+            'preflight': (
+                'Verify that local terminal tools are available and prepare a dedicated working directory in the user workspace.'
+            ),
+            'trouble': 'If python3 throws FileNotFoundError, verify that paths match the local workspace structure.',
+            'cleanup': 'All generated files reside in scratch/day11_lab/ and can be removed or retained for reference.',
+            'acceptance': 'A fully populated JSON decision matrix classifying IaaS, PaaS, FaaS, and SaaS workloads.',
+            'exit_artifact': 'scratch/day11_lab/service_model_decision_matrix.json',
+            'exit_mapping': 'Maps service model boundaries directly to the roadmap practice evaluation requirements.',
+            'steps': [
+                (
+                    '**Stage 1: Preflight and Environment Baseline**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Verify core CLI utilities and prepare isolated test workspace.\n'
+                    '```bash\n'
+                    'command -v bash\n'
+                    'command -v python3\n'
+                    'command -v cat\n'
+                    'command -v mkdir\n'
+                    'mkdir -p scratch/day11_lab\n'
+                    'cd scratch/day11_lab\n'
+                    'python3 -c "import sys; print(f\'Python runtime ready: {sys.version}\')"\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Paths to bash, python3, cat, and mkdir are displayed, and Python runtime ready message is printed.\n\n'
+                    '**Save:** scratch/day11_lab/stage1_preflight.log'
+                ),
+                (
+                    '**Stage 2: Prepare Target Architecture Inventory and Evaluation Schema**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Author a structured JSON schema representing four core enterprise workloads with differing operational requirements.\n'
+                    '```bash\n'
+                    'cat <<\'EOF\' > scratch/day11_lab/workloads.json\n'
+                    '[\n'
+                    '  {\n'
+                    '    "workload_id": "WL-01",\n'
+                    '    "name": "Legacy Enterprise ERP",\n'
+                    '    "state": "Stateful",\n'
+                    '    "os_customization_needed": true,\n'
+                    '    "traffic_pattern": "Predictable 8am-6pm",\n'
+                    '    "target_gcp_service": "Compute Engine",\n'
+                    '    "recommended_model": "IaaS"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "workload_id": "WL-02",\n'
+                    '    "name": "Carrier Webhook Ingestion API",\n'
+                    '    "state": "Stateless",\n'
+                    '    "os_customization_needed": false,\n'
+                    '    "traffic_pattern": "Unpredictable 20x spikes",\n'
+                    '    "target_gcp_service": "Cloud Run",\n'
+                    '    "recommended_model": "PaaS / CaaS"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "workload_id": "WL-03",\n'
+                    '    "name": "Image Thumbnail Generator",\n'
+                    '    "state": "Ephemeral Stateless",\n'
+                    '    "os_customization_needed": false,\n'
+                    '    "traffic_pattern": "Event-driven bursty",\n'
+                    '    "target_gcp_service": "Cloud Run functions",\n'
+                    '    "recommended_model": "FaaS"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "workload_id": "WL-04",\n'
+                    '    "name": "Corporate Analytics Data Warehouse",\n'
+                    '    "state": "Managed Analytics",\n'
+                    '    "os_customization_needed": false,\n'
+                    '    "traffic_pattern": "Ad-hoc SQL analytics",\n'
+                    '    "target_gcp_service": "BigQuery",\n'
+                    '    "recommended_model": "SaaS"\n'
+                    '  }\n'
+                    ']\n'
+                    'EOF\n'
+                    'cat scratch/day11_lab/workloads.json\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'A validated JSON array containing four workload profiles is written to workloads.json.\n\n'
+                    '**Save:** scratch/day11_lab/workloads.json'
+                ),
+                (
+                    '**Stage 3: Author Service Model Classification and Operational Evaluation Script**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Create a Python simulation script that evaluates each workload against architectural decision rules.\n'
+                    '```bash\n'
+                    'cat <<\'EOF\' > scratch/day11_lab/evaluate_models.py\n'
+                    'import json\n'
+                    '\n'
+                    'with open("scratch/day11_lab/workloads.json", "r") as f:\n'
+                    '    workloads = json.load(f)\n'
+                    '\n'
+                    'print("=" * 80)\n'
+                    'print(f"{\'WORKLOAD ID\':<12} | {\'WORKLOAD NAME\':<28} | {\'MODEL\':<12} | {\'GCP SERVICE\':<18}")\n'
+                    'print("=" * 80)\n'
+                    '\n'
+                    'matrix = []\n'
+                    'for w in workloads:\n'
+                    '    w_id = w["workload_id"]\n'
+                    '    name = w["name"]\n'
+                    '    model = w["recommended_model"]\n'
+                    '    svc = w["target_gcp_service"]\n'
+                    '    print(f"{w_id:<12} | {name:<28} | {model:<12} | {svc:<18}")\n'
+                    '    \n'
+                    '    if model == "IaaS":\n'
+                    '        patch_owner = "Customer DevOps"\n'
+                    '        runtime_owner = "Customer DevOps"\n'
+                    '        infra_owner = "Google SRE (Hypervisor + HW)"\n'
+                    '    elif model in ("PaaS / CaaS", "FaaS"):\n'
+                    '        patch_owner = "Google Cloud (Host OS)"\n'
+                    '        runtime_owner = "Customer (Container / Code)"\n'
+                    '        infra_owner = "Google SRE (Serverless Mesh)"\n'
+                    '    else:\n'
+                    '        patch_owner = "Google Cloud (Complete App)"\n'
+                    '        runtime_owner = "Google Cloud (Managed Engine)"\n'
+                    '        infra_owner = "Google SRE (Global Platform)"\n'
+                    '        \n'
+                    '    matrix.append({\n'
+                    '        "workload_id": w_id,\n'
+                    '        "name": name,\n'
+                    '        "model": model,\n'
+                    '        "service": svc,\n'
+                    '        "os_patch_owner": patch_owner,\n'
+                    '        "app_runtime_owner": runtime_owner,\n'
+                    '        "infrastructure_owner": infra_owner\n'
+                    '    })\n'
+                    '\n'
+                    'with open("scratch/day11_lab/service_model_decision_matrix.json", "w") as out:\n'
+                    '    json.dump(matrix, out, indent=2)\n'
+                    '\n'
+                    'print("=" * 80)\n'
+                    'print("Decision matrix written to service_model_decision_matrix.json successfully.")\n'
+                    'EOF\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Python script evaluate_models.py is created without syntax errors.\n\n'
+                    '**Save:** scratch/day11_lab/evaluate_models.py'
+                ),
+                (
+                    '**Stage 4: Execute Service Model Assignment Simulation**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Run the evaluation script and verify generated decision output.\n'
+                    '```bash\n'
+                    'python3 scratch/day11_lab/evaluate_models.py\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Tabular output displaying 4 classified workloads across IaaS, PaaS, FaaS, and SaaS with matching GCP services.\n\n'
+                    '**Save:** scratch/day11_lab/stage4_evaluation_output.txt'
+                ),
+                (
+                    '**Stage 5: Inspect Expected Classification Results and Verify Tier Boundaries**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Inspect the generated JSON decision matrix and verify ownership assignments.\n'
+                    '```bash\n'
+                    'cat scratch/day11_lab/service_model_decision_matrix.json\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Structured JSON verifying that IaaS assigns OS patching to Customer DevOps, while PaaS, FaaS, and SaaS assign OS patching to Google Cloud.\n\n'
+                    '**Save:** scratch/day11_lab/service_model_decision_matrix.json'
+                ),
+                (
+                    '**Stage 6: Rehearse Bounded Failure: Operational Toil and Patching Overrun**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Simulate an architectural decision challenge where an engineering organization mistakenly deploys all four workloads on IaaS Compute Engine.\n'
+                    '```bash\n'
+                    'cat <<\'EOF\' > scratch/day11_lab/simulate_toil.py\n'
+                    'iaas_only_toil_hours_per_month = 4 * 18\n'
+                    'architected_toil_hours_per_month = (1 * 18) + (3 * 1.5)\n'
+                    '\n'
+                    'saved_hours = iaas_only_toil_hours_per_month - architected_toil_hours_per_month\n'
+                    'toil_reduction_pct = (saved_hours / iaas_only_toil_hours_per_month) * 100\n'
+                    '\n'
+                    'print(f"IaaS-Only Maintenance Toil:      {iaas_only_toil_hours_per_month:.1f} engineering hours/month")\n'
+                    'print(f"Multi-Model Architected Toil:   {architected_toil_hours_per_month:.1f} engineering hours/month")\n'
+                    'print(f"Monthly Operational Time Saved: {saved_hours:.1f} hours ({toil_reduction_pct:.1f}% reduction)")\n'
+                    'EOF\n'
+                    'python3 scratch/day11_lab/simulate_toil.py\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Output demonstrates a 68.8% reduction in monthly maintenance toil by leveraging PaaS, FaaS, and SaaS rather than all-IaaS.\n\n'
+                    '**Save:** scratch/day11_lab/stage6_toil_simulation.txt'
+                ),
+                (
+                    '**Stage 7: Diagnose Evidence and Record Architecture Model Remediation**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Synthesize findings into an architectural recommendation document justifying the migration of stateless services to PaaS.\n'
+                    '```bash\n'
+                    'cat <<\'EOF\' > scratch/day11_lab/architecture_recommendation.md\n'
+                    '# Architectural Decision Record: Cloud Service Model Selection\n'
+                    '\n'
+                    '## Context\n'
+                    'Brightloaf Logistics initially deployed its high-throughput carrier webhook ingestion endpoint on Compute Engine (IaaS).\n'
+                    'Routine OS patching broke glibc libraries and caused a 14-hour outage with 42,000 dropped events.\n'
+                    '\n'
+                    '## Decision\n'
+                    'Migrate the carrier webhook service from Compute Engine (IaaS) to Cloud Run (PaaS/CaaS).\n'
+                    '\n'
+                    '## Consequences & Operational Trade-Offs\n'
+                    '1. **OS Maintenance**: Transferred 100% of guest OS patching, kernel upgrades, and hypervisor maintenance to Google Cloud.\n'
+                    '2. **Scalability**: Sub-second autoscaling from 0 to 1,000 container instances based on incoming HTTP request volume.\n'
+                    '3. **Residual Duty**: Customer retains ownership of Dockerfile container base image vulnerability updates and IAM invoker authentication.\n'
+                    'EOF\n'
+                    'cat scratch/day11_lab/architecture_recommendation.md\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Architectural decision record file is created and printed successfully.\n\n'
+                    '**Save:** scratch/day11_lab/architecture_recommendation.md'
+                ),
+                (
+                    '**Stage 8: Clean Up and Generate Final Service Model Evaluation Artifact**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Consolidate all evaluation files and record completion status.\n'
+                    '```bash\n'
+                    'ls -la scratch/day11_lab/\n'
+                    'printf "Exercise A completed successfully at %s\\n" "$(date -u +\'%Y-%m-%dT%H:%M:%SZ\')" > scratch/day11_lab/exercise_a_status.txt\n'
+                    'cat scratch/day11_lab/exercise_a_status.txt\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Listing shows all 5 generated artifacts with timestamps and non-zero byte sizes.\n\n'
+                    '**Save:** scratch/day11_lab/exercise_a_status.txt'
+                )
+            ]
+        }
+    },
+    'topic-02': {
+        'scenario': {
+            'scenario': (
+                'Brightloaf Logistics launched a high-priority customer portal service on Google Cloud Run to allow customers '
+                'to track delivery packages and update delivery addresses. During configuration, a software engineer assumed that '
+                'because Cloud Run is a fully managed serverless platform, Google Cloud automatically enforces authentication and '
+                'blocks unauthorized external requests. To facilitate internal integration testing with an external carrier partner, '
+                'the engineer executed <kbd>gcloud run services add-iam-policy-binding --member="allUsers" --role="roles/run.invoker"</kbd>. '
+                'Three weeks later, an external threat researcher identified that unauthenticated requests to <kbd>https://portal.brightloaf.example/orders/10492</kbd> '
+                'returned customer names, shipping addresses, phone numbers, and package contents without requiring an authentication token.'
+            ),
+            'impact': (
+                'Catastrophic regulatory data privacy breach exposing 128,000 customer PII records to the public internet; '
+                'mandatory disclosure under GDPR and CCPA; an estimated $420,000 in regulatory legal audits and remediation costs.'
+            ),
+            'constraints': (
+                'API must be accessible to authenticated mobile application clients and verified carrier webhooks; '
+                'zero public unauthenticated access permitted; IAM least privilege must be programmatically verified in CI/CD pipeline.'
+            ),
+            'evidence': (
+                '<p>Illustrative audit log from Cloud Audit Logs demonstrating unauthorized public invocation:</p>\n'
+                '<pre><code>{\n'
+                '  "protoPayload": {\n'
+                '    "@type": "type.googleapis.com/google.cloud.audit.AuditLog",\n'
+                '    "status": {},\n'
+                '    "authenticationInfo": {\n'
+                '      "principalEmail": "allUsers"\n'
+                '    },\n'
+                '    "serviceName": "run.googleapis.com",\n'
+                '    "methodName": "google.cloud.run.v1.Services.GetIamPolicy",\n'
+                '    "resourceName": "namespaces/brightloaf-prod/services/order-portal",\n'
+                '    "serviceData": {\n'
+                '      "policyDelta": {\n'
+                '        "bindingDeltas": [\n'
+                '          {\n'
+                '            "action": "ADD",\n'
+                '            "role": "roles/run.invoker",\n'
+                '            "member": "allUsers"\n'
+                '          }\n'
+                '        ]\n'
+                '      }\n'
+                '    }\n'
+                '  },\n'
+                '  "insertId": "audit-log-20261004-98124",\n'
+                '  "severity": "NOTICE",\n'
+                '  "timestamp": "2026-10-04T04:19:22.184Z"\n'
+                '}</code></pre>'
+            ),
+            'root': (
+                'Fundamental misunderstanding of the Shared Responsibility Model. The engineer assumed Google Cloud manages application-layer authorization. '
+                'In reality, Google Cloud provides the IAM evaluation engine and TLS infrastructure, but defining who is granted <kbd>roles/run.invoker</kbd> '
+                'is 100% the customer\'s responsibility. Granting <kbd>allUsers</kbd> explicitly overrides all security boundaries, exposing private data.'
+            ),
+            'verify': (
+                'Immediately revoke the <kbd>allUsers</kbd> binding. Require incoming requests to present a signed Google-issued OIDC ID token '
+                'or route traffic through an internal Application Load Balancer with Cloud Armor WAF and Identity-Aware Proxy (IAP) authentication.'
+            ),
+            'residual': (
+                'Internal service accounts authorized to invoke Cloud Run must be audited periodically using IAM Recommender to prevent over-privileged '
+                'access tokens from being leaked or misused by compromised microservices.'
+            ),
+            'diagram_enabled': False,
+            'facts': (
+                'Supplied facts: Cloud Run service had <kbd>--ingress=all</kbd> and IAM policy bound to <kbd>allUsers</kbd> with role <kbd>roles/run.invoker</kbd>. '
+                'Unauthenticated HTTP GET requests returned HTTP 200 with sensitive customer payload.'
+            ),
+            'inference': (
+                'Architectural inference: Google provides robust IAM primitives, but the tenant is solely responsible for principal assignment and least privilege policy enforcement.'
+            ),
+            'expected': (
+                'Expected post-fix behavior: Unauthenticated requests receive HTTP 403 Forbidden, and access is permitted exclusively via signed OIDC identity tokens.'
+            )
+        },
+        'lab': {
+            'title': 'Exercise B · Build a comprehensive shared responsibility and access governance matrix',
+            'goal': (
+                'Assign OS patching, application security and data recovery responsibilities for VM, managed-container '
+                'and SaaS examples, producing a complete responsibility matrix with an explicit owner for each task.'
+            ),
+            'result': (
+                'A validated, production-grade shared responsibility matrix spreadsheet and markdown document explicitly assigning '
+                'ownership across VM (Compute Engine), managed-container (Cloud Run / GKE Autopilot), and SaaS (Google Workspace / BigQuery) examples.'
+            ),
+            'mode': (
+                'Observed locally: Local Linux workstation running Python 3.12, bash, and standard core utilities. '
+                'Simulated or predicted: Google Cloud IAM evaluation engine, OS patch management, and data snapshot recovery policies. '
+                'Untested on GCP: Live cloud IAM policy deployment and automated snapshot creation in GCP console.'
+            ),
+            'limits': (
+                'Offline tabletop evaluation and automated matrix generator validating ownership boundaries without billable cloud infrastructure.'
+            ),
+            'covers': (
+                'Assign OS patching, application security and data recovery responsibilities for VM, managed-container and SaaS examples.'
+            ),
+            'prereq': 'Linux or macOS terminal, Python 3.8+, bash.',
+            'preflight': (
+                'Verify that local terminal tools are available and prepare a dedicated working directory in the user workspace.'
+            ),
+            'trouble': 'If audit script fails, inspect responsibility_matrix.json to ensure no null or TBD fields exist.',
+            'cleanup': 'Temporary simulation files remain in scratch/day11_matrix/ and can be removed without affecting the primary exit artifact.',
+            'acceptance': 'A completed, fully attributed shared responsibility matrix with an owner for each task.',
+            'exit_artifact': 'scratch/day-011-responsibility-matrix.md',
+            'exit_mapping': 'Satisfies the Day 11 roadmap exit evidence requirement: "A responsibility matrix with an owner for each task."',
+            'steps': [
+                (
+                    '**Stage 1: Preflight and Environment Baseline**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Confirm that bash and python3 are installed and functioning.\n'
+                    '```bash\n'
+                    'command -v bash\n'
+                    'command -v python3\n'
+                    'command -v cat\n'
+                    'command -v mkdir\n'
+                    'mkdir -p scratch/day11_matrix\n'
+                    'cd scratch/day11_matrix\n'
+                    'python3 -c "import sys; print(f\'Python runtime ready: {sys.version}\')"\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Paths to bash, python3, cat, and mkdir are displayed, and Python runtime ready message is printed.\n\n'
+                    '**Save:** scratch/day11_matrix/stage1_preflight.log'
+                ),
+                (
+                    '**Stage 2: Prepare Shared Responsibility Evaluation Criteria and Task Taxonomy**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Define the exact set of operational and security tasks across OS patching, application security, and data recovery.\n'
+                    '```bash\n'
+                    'cat <<\'EOF\' > scratch/day11_matrix/tasks_taxonomy.json\n'
+                    '[\n'
+                    '  {\n'
+                    '    "category": "OS Patching",\n'
+                    '    "task_id": "TASK-OSP-01",\n'
+                    '    "task_name": "Physical Host OS & Hypervisor Patching",\n'
+                    '    "description": "Remediating hardware-level vulnerabilities and updating KVM hypervisor software"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "category": "OS Patching",\n'
+                    '    "task_id": "TASK-OSP-02",\n'
+                    '    "task_name": "Guest Operating System Kernel & Package Updates",\n'
+                    '    "description": "Applying security errata to Linux/Windows guest OS, glibc, systemd, and openssl"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "category": "Application Security",\n'
+                    '    "task_id": "TASK-SEC-01",\n'
+                    '    "task_name": "IAM Authentication & Role Governance",\n'
+                    '    "description": "Binding least privilege roles, preventing allUsers exposure, and managing service accounts"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "category": "Application Security",\n'
+                    '    "task_id": "TASK-SEC-02",\n'
+                    '    "task_name": "Application Vulnerability & Dependency Scanning",\n'
+                    '    "description": "Remediating OWASP Top 10 vulnerabilities, code injection risks, and third-party CVEs"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "category": "Application Security",\n'
+                    '    "task_id": "TASK-SEC-03",\n'
+                    '    "task_name": "Network Ingress Filtering & WAF Protection",\n'
+                    '    "description": "Configuring Cloud Armor rules, VPC firewall rules, and DDoS protection thresholds"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "category": "Data Recovery",\n'
+                    '    "task_id": "TASK-REC-01",\n'
+                    '    "task_name": "Physical Storage Array Bit-Rot & Media Durability",\n'
+                    '    "description": "Guaranteeing physical hard disk and SSD block replication and hardware survival"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "category": "Data Recovery",\n'
+                    '    "task_id": "TASK-REC-02",\n'
+                    '    "task_name": "Logical Backup Schedules & Point-in-Time Recovery",\n'
+                    '    "description": "Automating snapshots, object versioning, and database point-in-time recovery"\n'
+                    '  },\n'
+                    '  {\n'
+                    '    "category": "Data Recovery",\n'
+                    '    "task_id": "TASK-REC-03",\n'
+                    '    "task_name": "Disaster Recovery Drill & Cross-Region Failover",\n'
+                    '    "description": "Validating RPO and RTO SLAs through simulated regional recovery exercises"\n'
+                    '  }\n'
+                    ']\n'
+                    'EOF\n'
+                    'cat scratch/day11_matrix/tasks_taxonomy.json\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'The tasks_taxonomy.json file is authored containing 8 discrete operational tasks.\n\n'
+                    '**Save:** scratch/day11_matrix/tasks_taxonomy.json'
+                ),
+                (
+                    '**Stage 3: Author Comprehensive Responsibility Matrix Generation Script**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Write a Python script that assigns an explicit owner for each task across VM, managed-container, and SaaS examples.\n'
+                    '```bash\n'
+                    'cat <<\'EOF\' > scratch/day11_matrix/generate_responsibility_matrix.py\n'
+                    'import json\n'
+                    '\n'
+                    'with open("scratch/day11_matrix/tasks_taxonomy.json") as f:\n'
+                    '    tasks = json.load(f)\n'
+                    '\n'
+                    'matrix_rows = []\n'
+                    'for t in tasks:\n'
+                    '    tid = t["task_id"]\n'
+                    '    name = t["task_name"]\n'
+                    '    cat = t["category"]\n'
+                    '    \n'
+                    '    if tid == "TASK-OSP-01":\n'
+                    '        vm_owner = "Google Cloud SRE"\n'
+                    '        container_owner = "Google Cloud SRE"\n'
+                    '        saas_owner = "Google Cloud SRE"\n'
+                    '    elif tid == "TASK-OSP-02":\n'
+                    '        vm_owner = "Customer DevOps / SysAdmin"\n'
+                    '        container_owner = "Google Cloud SRE (Worker Nodes)"\n'
+                    '        saas_owner = "Google Cloud SRE (Fully Abstracted)"\n'
+                    '    elif tid == "TASK-SEC-01":\n'
+                    '        vm_owner = "Customer SecOps / IAM Admin"\n'
+                    '        container_owner = "Customer SecOps / IAM Admin"\n'
+                    '        saas_owner = "Customer Workspace / Data Admin"\n'
+                    '    elif tid == "TASK-SEC-02":\n'
+                    '        vm_owner = "Customer App Engineering"\n'
+                    '        container_owner = "Customer App Engineering"\n'
+                    '        saas_owner = "Google Cloud SRE (Turnkey Software)"\n'
+                    '    elif tid == "TASK-SEC-03":\n'
+                    '        vm_owner = "Customer Network / Cloud Armor"\n'
+                    '        container_owner = "Customer Network / Cloud Armor"\n'
+                    '        saas_owner = "Google Cloud SRE (Front-End Mesh)"\n'
+                    '    elif tid == "TASK-REC-01":\n'
+                    '        vm_owner = "Google Cloud SRE (Persistent Disk)"\n'
+                    '        container_owner = "Google Cloud SRE (Storage Mesh)"\n'
+                    '        saas_owner = "Google Cloud SRE (Colossus Storage)"\n'
+                    '    elif tid == "TASK-REC-02":\n'
+                    '        vm_owner = "Customer SRE (Automated Snapshots)"\n'
+                    '        container_owner = "Customer SRE (Volume / DB Backups)"\n'
+                    '        saas_owner = "Customer Admin (Data Retention / Vault)"\n'
+                    '    elif tid == "TASK-REC-03":\n'
+                    '        vm_owner = "Customer Enterprise Architect"\n'
+                    '        container_owner = "Customer Enterprise Architect"\n'
+                    '        saas_owner = "Customer Enterprise Architect"\n'
+                    '        \n'
+                    '    matrix_rows.append({\n'
+                    '        "task_id": tid,\n'
+                    '        "category": cat,\n'
+                    '        "task_name": name,\n'
+                    '        "vm_owner": vm_owner,\n'
+                    '        "container_owner": container_owner,\n'
+                    '        "saas_owner": saas_owner\n'
+                    '    })\n'
+                    '\n'
+                    'with open("scratch/day11_matrix/responsibility_matrix.json", "w") as jf:\n'
+                    '    json.dump(matrix_rows, jf, indent=2)\n'
+                    '\n'
+                    'with open("scratch/day11_matrix/responsibility_matrix.md", "w") as mf:\n'
+                    '    mf.write("# Cloud Shared Responsibility Matrix\\n\\n")\n'
+                    '    mf.write("| Category | Task ID | Task Description | VM Example (Compute Engine) | Managed-Container Example (Cloud Run) | SaaS Example (Workspace / BigQuery) |\\n")\n'
+                    '    mf.write("| :--- | :--- | :--- | :--- | :--- | :--- |\\n")\n'
+                    '    for r in matrix_rows:\n'
+                    '        mf.write(f"| {r[\'category\']} | {r[\'task_id\']} | {r[\'task_name\']} | **{r[\'vm_owner\']}** | **{r[\'container_owner\']}** | **{r[\'saas_owner\']}** |\\n")\n'
+                    '\n'
+                    'print("Successfully generated responsibility_matrix.json and responsibility_matrix.md")\n'
+                    'EOF\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Python script generate_responsibility_matrix.py created successfully.\n\n'
+                    '**Save:** scratch/day11_matrix/generate_responsibility_matrix.py'
+                ),
+                (
+                    '**Stage 4: Execute Automated Responsibility Matrix Compilation**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Run the generator script to compile the shared responsibility matrix.\n'
+                    '```bash\n'
+                    'python3 scratch/day11_matrix/generate_responsibility_matrix.py\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Confirmation message indicating generation of both JSON and Markdown artifacts.\n\n'
+                    '**Save:** scratch/day11_matrix/stage4_generation.log'
+                ),
+                (
+                    '**Stage 5: Inspect Expected Matrix Output and Verify Task Owner Assignments**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Inspect the generated Markdown responsibility matrix table.\n'
+                    '```bash\n'
+                    'cat scratch/day11_matrix/responsibility_matrix.md\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'A clean Markdown table rendering the complete matrix with explicit owners assigned to each cell across VM, container, and SaaS examples.\n\n'
+                    '**Save:** scratch/day11_matrix/responsibility_matrix.md'
+                ),
+                (
+                    '**Stage 6: Rehearse Bounded Failure: Ambiguous Ownership and Drill**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Execute an automated validation check to detect unassigned tasks or ambiguous ownership definitions.\n'
+                    '```bash\n'
+                    'cat <<\'EOF\' > scratch/day11_matrix/audit_matrix_completeness.py\n'
+                    'import json\n'
+                    '\n'
+                    'with open("scratch/day11_matrix/responsibility_matrix.json") as f:\n'
+                    '    rows = json.load(f)\n'
+                    '\n'
+                    'errors = []\n'
+                    'for r in rows:\n'
+                    '    for target in ["vm_owner", "container_owner", "saas_owner"]:\n'
+                    '        val = r[target]\n'
+                    '        if not val or val.lower() in ("unassigned", "tbd", "shared", "none"):\n'
+                    '            errors.append(f"Ambiguous or missing owner for {r[\'task_id\']} in {target}: {val}")\n'
+                    '\n'
+                    'if errors:\n'
+                    '    print(f"FAILED: Found {len(errors)} ambiguous ownership entries:")\n'
+                    '    for e in errors:\n'
+                    '        print(f" - {e}")\n'
+                    '    exit(1)\n'
+                    'else:\n'
+                    '    print("SUCCESS: 100% of tasks have an unambiguous, single designated owner across all service models.")\n'
+                    'EOF\n'
+                    'python3 scratch/day11_matrix/audit_matrix_completeness.py\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'SUCCESS message confirms that every task in the matrix has an unambiguous single designated owner.\n\n'
+                    '**Save:** scratch/day11_matrix/stage6_audit_output.txt'
+                ),
+                (
+                    '**Stage 7: Diagnose Evidence and Record Operational Governance Controls**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Document the critical governance conclusions derived from the matrix for the enterprise architecture review board.\n'
+                    '```bash\n'
+                    'cat <<\'EOF\' > scratch/day11_matrix/governance_findings.txt\n'
+                    'Shared Responsibility Governance Findings:\n'
+                    '1. VM Workloads (Compute Engine): Customer holds 100% operational ownership of guest OS kernel updates and packages.\n'
+                    '2. Container Workloads (Cloud Run): Google assumes host OS patching; Customer owns container Dockerfile base image updates.\n'
+                    '3. SaaS Workloads (BigQuery / Workspace): Google owns software and infrastructure; Customer owns user access and data governance.\n'
+                    '4. Universal Invariant: IAM least privilege, data classification, and disaster recovery validation NEVER transfer to Google Cloud.\n'
+                    'EOF\n'
+                    'cat scratch/day11_matrix/governance_findings.txt\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'Governance findings document is created and printed.\n\n'
+                    '**Save:** scratch/day11_matrix/governance_findings.txt'
+                ),
+                (
+                    '**Stage 8: Clean Up Temporary Artifacts and Finalize Official Responsibility Matrix**\n\n'
+                    '**Location:** local terminal\n\n'
+                    '**Actions:**\n'
+                    'Verify all generated files, copy the final responsibility matrix artifact to the canonical roadmap exit evidence path, and sign off.\n'
+                    '```bash\n'
+                    'cp scratch/day11_matrix/responsibility_matrix.md scratch/day-011-responsibility-matrix.md\n'
+                    'ls -lh scratch/day-011-responsibility-matrix.md\n'
+                    'printf "Exit artifact verified: %s\\n" "scratch/day-011-responsibility-matrix.md" > scratch/day11_matrix/exit_signoff.txt\n'
+                    'cat scratch/day11_matrix/exit_signoff.txt\n'
+                    '```\n\n'
+                    '**Expected result:**\n'
+                    'The file scratch/day-011-responsibility-matrix.md is created with non-zero size, and signoff text is displayed.\n\n'
+                    '**Save:** scratch/day-011-responsibility-matrix.md'
+                )
+            ]
+        }
+    }
+}

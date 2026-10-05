@@ -47,6 +47,13 @@ def metrics(topic):
             sum(len(soup(s).get_text(' ', strip=True)) for s in steps))
 
 
+def depth_ranges():
+    """Per-topic min/max metrics from the read-only Day 4 durable spec."""
+    baseline, _, _ = load_spec(ROOT / 'scratch/day_data_004.py')
+    return tuple((min(values), max(values)) for values in
+                 zip(*(metrics(topic) for topic in baseline['topics'])))
+
+
 def sentence_count(text):
     text = soup(text).get_text(' ', strip=True)
     # Decimal numbers/IPs and common abbreviations are not sentence boundaries.
@@ -230,9 +237,10 @@ def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
             warnings.append(f'WARN {key} technical diagram present; confirm it is a multi-step sequence, packet traversal or request/response lifecycle (manual eligibility review)')
         if reference:
             values = metrics(topic)
-            for name, value, minimum in zip(('technical text length', 'subtopic count', 'lab step count', 'step text length'), values, reference):
+            for name, value, bounds in zip(('technical text length', 'subtopic count', 'lab stage count', 'stage text length'), values, reference):
+                minimum, maximum = bounds if isinstance(bounds, (tuple, list)) else (bounds, bounds)
                 if value < minimum * .5:
-                    warnings.append(f'WARN {key} depth: {name} far below Day 2 range; signal only, not a quality threshold')
+                    warnings.append(f'WARN {key} depth: {name} {value} far below Day 4 range {minimum}–{maximum}; signal only, not a quality threshold')
     if not legacy:
         for field in ('part1_intro', 'part2_intro', 'part3_intro', 'part4_intro', 'exit_summary'):
             if field == 'part1_intro' and data.get('part1_html'): continue
@@ -304,8 +312,7 @@ def main(argv=None):
     path = args.spec or (directory if directory.is_dir() else directory.with_suffix('.py'))
     try:
         data, legacy, metadata = load_spec(path)
-        baseline, _, _ = load_spec(ROOT / 'scratch/day_data_002.py')
-        reference = tuple(min(values) for values in zip(*(metrics(t) for t in baseline['topics'])))
+        reference = depth_ranges()
         errors, warnings = validate_data(args.day, data, legacy=legacy, metadata=metadata, reference=reference)
         from scripts.spec_v2_checks import file_checks
         if path.exists():

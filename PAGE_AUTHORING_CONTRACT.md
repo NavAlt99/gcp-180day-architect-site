@@ -21,10 +21,16 @@ examples are optional when useful.
 
 ## Content invariants
 
-Preserve shell, navigation, 180-day selector, progress/theme controls, footer,
-and useful eligible visuals. Keep four numbered parts and exact coverage-row
-overview/technical/problem/lab anchors (e.g. `#topic-01-overview`); subtopics
-supplement them. Durable source: `scratch/day_data_NNN.py`; never hand-edit
+Preserve standardized layout, shell, and navigation: retain `assets/site.css`
+(wide container, 1400px width; never introduce inline `<style>` overrides for
+container width, layout, fonts, or palette), complete top navigation header
+(`Day index`, `Glossary`, `Sources`, `Artifacts`, previous/next day links,
+180-day jump selector, theme toggle), and the section sprint navigation rail
+(`.sprint-rail` / `.foundation-rail`) placed directly below the hero section
+with horizontal scrolling, block label, and active step highlighting
+(`.rail-step.is-current`). Keep footer, useful eligible visuals, four numbered parts
+and exact coverage-row overview/technical/problem/lab anchors (e.g. `#topic-01-overview`);
+subtopics supplement them. Durable source: `scratch/day_data_NNN.py`; never hand-edit
 `content/day-NNN-page.html` or `days/day-NNN.html` as source. Build one named day,
 never the full site. Fix only introduced issues and rerun checks before advancing.
 No generic fallback prose/root causes/lab steps or unfilled placeholders.
@@ -212,10 +218,13 @@ its documented unit tests.
 ## Permanent rendering rules
 
 Follow `RENDER_REVIEW.md`: shared fixes/target markup guards, saved desktop/mobile
-both-theme audits, focused diagram/copy checks. Light cards/TOC/tables/rail retain
-active indicator; dark-canvas captions readable; scrolling contained, selector/
-progress keys/copies intact. Fix introduced errors. Audits cannot prove every
-text overlap/arrow/source/eligibility decision; rendered reads follow Read budget.
+both-theme audits, focused diagram/copy checks. Top navigation header and section
+sprint rail are mandatory shell components; retain active indicator
+(`.rail-step.is-current`) on the sprint rail across desktop and mobile in both
+light and dark themes. Light cards/TOC/tables/rail retain active indicator;
+dark-canvas captions readable; scrolling contained, selector/progress keys/copies
+intact. Fix introduced errors. Audits cannot prove every text overlap/arrow/source/
+eligibility decision; rendered reads follow Read budget.
 
 ## Read budget
 

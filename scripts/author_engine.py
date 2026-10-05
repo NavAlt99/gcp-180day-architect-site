@@ -21,6 +21,11 @@ try:
 except ImportError:  # direct CLI
     from compact_flow import render_compact_flow
 
+try:
+    from . import build
+except ImportError:
+    import build
+
 from bs4 import BeautifulSoup
 import markdown
 
@@ -893,7 +898,7 @@ def compile_day_page(day_num: int, data: dict) -> None:
         completion.append(BeautifulSoup(f'<p class="exit-summary">Exit artifact: {escape(exit_summary)}</p>', "html.parser"))
 
     # ─── TOC TOPIC SYNCHRONIZATION ──────────────────────────────────────
-    toc = soup.select_one("aside.toc")
+    toc = soup.select_one("aside.toc, nav.toc, .toc")
     if toc:
         for old in toc.select(".toc-topic"):
             old.decompose()
@@ -909,6 +914,18 @@ def compile_day_page(day_num: int, data: dict) -> None:
                 "html.parser"
             )
             toc.append(topic_div)
+
+    # ─── SPRINT RAIL SYNCHRONIZATION ────────────────────────────────────
+    days_list = build.parse_days()
+    day_obj = next(d for d in days_list if d["number"] == day_num)
+    rail_html = build.render_sprint_rail(day_obj, days_list)
+    existing_rail = soup.select_one("nav.sprint-rail, nav.foundation-rail")
+    if existing_rail:
+        existing_rail.replace_with(BeautifulSoup(rail_html, "html.parser"))
+    else:
+        hero = soup.select_one("section.hero")
+        if hero:
+            hero.insert_after(BeautifulSoup(rail_html, "html.parser"))
 
     override_file.write_text(str(soup), encoding="utf-8")
     print(f"Updated override: {override_file}")

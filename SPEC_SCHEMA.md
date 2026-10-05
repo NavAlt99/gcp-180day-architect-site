@@ -117,8 +117,14 @@ Their structural checks cover resolvable title/desc IDs, figcaptions, local icon
 references and empty wrappers/headings/placeholders, as well as viewBox and role.
 This interpretation preserves the required passing Day 2 case, whose technical
 flows occur on topics with disabled incident diagrams.
-Depth WARNs compare technical text length, subtopic count, lab step count and total
-step text length to half the minimum Day 2 range; never fail on length. These are
+Depth WARNs use per-topic min/max ranges derived at runtime from the canonical
+`scratch/day_data_004.py` (five topics, read-only; no rendered HTML baseline).
+Metrics are technical plain-text character length, subtopic heading count, lab
+stage count, and total stage plain-text character length per topic. The initial
+Day 4 ranges are 11,219–13,061 characters, 4–4 headings, 8–8 stages, and
+7,711–13,420 stage characters. Values below half the corresponding minimum
+warn; values above the maximum are allowed. This stays warn-only and never fails
+on length. `depth_ranges()` recomputes the ranges if the canonical spec changes. These are
 signals, not quality thresholds or proof of depth non-regression. Source relevance,
 technical accuracy, semantic diagram eligibility, visual clarity, lab executability
 and actual depth require manual review; syntax markers cannot establish them.
@@ -134,3 +140,45 @@ External-tool preflight, observation provenance, example address ranges,
 whole-document URLs, coverage publisher hints, committed diagram count and files
 over 100 KB are review WARNs. Git comparison unavailable emits a skip note.
 Use directory form for large revisions. Checks never establish semantic relevance.
+
+## Generated handoff review metadata
+
+Optional `DATA.review_records` is the canonical home for review evidence consumed
+by `scripts/write_handoff.py --day N`. It emits `scratch/handoffs/day-NNN.md`
+from the loaded spec and git HEAD, with Practice clauses/lab covers, source URLs
+and fragments, product-claim candidates, visual additions/removals/replacements
+and their reasons, and the actual spec diff stat. Missing evidence is marked
+UNRECORDED; labels and HTTP success never establish that a heading was opened.
+
+- `source_ledger`: dictionary keyed by exact URL; each value has
+  `heading_opened`, `rfc_status` (for RFCs), `whole_document_reason` (when no fragment).
+- `product_claims`: list of reviewed records, each with `claim`, `section_url`
+  and `heading_opened`; GCP relevance paragraphs are additionally extracted as
+  candidates, with their inline links and GCP section citations from the enclosing
+  subtopic, without claiming that support was reviewed.
+- `visual_reasons`: dictionary keyed by SVG title, explaining each change.
+
+The generator reports removed source lines without asserting that removed prose
+was non-explanatory. Untracked specs and unavailable git baselines stay explicit.
+
+## Batch execution gates
+
+`run_labs.py --day N [--spec PATH] [--timeout SECONDS]` loads the durable spec
+and extracts every stage's shell code blocks using the same Markdown renderer
+as the compiler. Each lab has an isolated temp workspace, persistent Bash state,
+a per-lab timeout and process-group cleanup. Absolute /tmp mktemp templates are
+redirected under that workspace. Save files are checked immediately after each
+stage, before later authored cleanup can delete them, and hashes are recorded in
+`scratch/day-NNN-lab-rerun.json`. Missing tools (including optional command -v
+checks) identify their stage and produce SKIPPED, never PASS. Manual/cloud stages
+and non-shell code blocks are SKIPPED rather than inferred or deployed. Save
+records need explicit filenames; absent/unresolvable paths fail. Authored shell
+commands execute with the current user's privileges; the temp workspace is not
+a security sandbox.
+
+`batch_gate.py --day N [--contract-hash]` runs extract_day_inputs, validate_spec,
+validate, check_study_links and run_labs in that exact order, stopping at the
+first failure. It rejects missing/stale reports, unverified links/RFC status,
+SKIPPED tools/stages and diagram-count WARNs; depth remains warn-only.
+`--contract-hash` creates `scratch/batch-contract.sha256` exclusively on first
+run and rejects subsequent contract changes without overwriting the pin.
