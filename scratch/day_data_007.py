@@ -555,9 +555,13 @@ DATA = {'contract_version': 2,
                                       '252L689 252"></path></g><text fill="#a9b7cb" font-size="12" '
                                       'text-anchor="middle" x="470" y="320">Verify both host identities and remove the '
                                       'accidental public ingress rule.</text></svg><figcaption>Figure 7.5: Supplied '
-                                      'incident example. Dashed final-hop routing marks the failed path; the corrected '
-                                      'row keeps the target private. Actual firewall and host-key evidence must come '
-                                      'from the environment.</figcaption></figure>',
+                                      'incident example. Supplied facts: illustrative records show ssh -A created '
+                                      '/tmp/ssh-8xK19q/agent.18241 on bastion; attacker hijacked socket to access '
+                                      '10.128.0.5. Architectural inference: agent forwarding delegates cryptographic '
+                                      'signing authority to remote hosts; ProxyJump routes raw TCP streams while keeping '
+                                      'cryptographic material strictly local. Expected post-fix behavior: bastion '
+                                      'carries no forwarded agent socket, and client reaches target database via '
+                                      'end-to-end encrypted ProxyJump tunnel.</figcaption></figure>',
                           'root': 'SSH agent forwarding vulnerability: the engineer connected to the shared bastion '
                                   'using ssh -A, creating an authentication socket in /tmp accessible to the bastion '
                                   'root user. When the bastion was compromised, attackers hijacked the forwarded agent '
@@ -1098,9 +1102,14 @@ DATA = {'contract_version': 2,
                                       '252"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" '
                                       'x="470" y="320">The acceptance boundary is the running process, not '
                                       'metadata-download output.</text></svg><figcaption>Figure 7.6: Supplied incident '
-                                      'example separating discovery, installation and runtime state. Package names, '
-                                      'versions and restart requirements must be measured on the target '
-                                      'host.</figcaption></figure>',
+                                      'example separating discovery, installation and runtime state. Supplied facts: '
+                                      'illustrative records show apt-get failed with EXPKEYSIG 8F3B9A107C4D5E21; '
+                                      'startup script exited with status 100. Architectural inference: runtime package '
+                                      'installations create hard external dependencies on third-party repositories; '
+                                      'immutable golden images decouple instance provisioning from external repository '
+                                      'availability. Expected post-fix behavior: instances boot from custom pre-baked '
+                                      'images with zero runtime package downloads, passing health checks '
+                                      'immediately.</figcaption></figure>',
                           'root': 'Repository cryptographic signature failure: the upstream repository signing GPG key '
                                   'expired without prior notification. The package manager rejected the release '
                                   'metadata (EXPKEYSIG) to prevent untrusted software execution, halting the VM '
@@ -1660,9 +1669,13 @@ DATA = {'contract_version': 2,
                                       '252"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" '
                                       'x="470" y="320">Verification observes both emitted messages and the '
                                       'caller-visible exit status.</text></svg><figcaption>Figure 7.7: Supplied '
-                                      'incident example. The labels, not color alone, distinguish the incorrect '
-                                      'publish path and corrected blocking gate. It does not represent a live release '
-                                      'pipeline.</figcaption></figure>',
+                                      'incident example. Supplied facts: illustrative records show rm -rf $BACKUP_DIR '
+                                      'split into /mnt/storage/brightloaf and cache/daily, deleting production storage. '
+                                      'Architectural inference: unquoted variables surrender argument boundaries to '
+                                      'whitespace tokenization; strict double quoting preserves parameter integrity '
+                                      'across shell execution pipelines. Expected post-fix behavior: quoted expansion '
+                                      'passes the exact single path token, preventing accidental word '
+                                      'splitting.</figcaption></figure>',
                           'root': 'Unquoted variable expansion defect: the script author wrote rm -rf $BACKUP_DIR '
                                   'without double quotes. When the variable contained a path with an embedded space '
                                   "(/mnt/storage/brightloaf cache/daily), the shell's Internal Field Separator (IFS) "
@@ -2317,8 +2330,13 @@ DATA = {'contract_version': 2,
                                       'x="470" y="320">Recovery is accepted only after a synthetic order succeeds; a '
                                       'listed PID is insufficient.</text></svg><figcaption>Figure 7.8: Supplied '
                                       'incident example contrasting a name-only PID choice with supervisor-aware '
-                                      'evidence. Live PIDs and descriptors are environment-specific and '
-                                      'transient.</figcaption></figure>',
+                                      'evidence. Supplied facts: illustrative records show batch-app PID 4812 held FD '
+                                      '3 pointing to deleted /var/log/batch.log consuming 82 GB. Architectural '
+                                      'inference: Linux inodes are purged only when link count reaches zero AND all '
+                                      'open file descriptors are closed; procfs provides live direct handles to active '
+                                      'descriptors. Expected post-fix behavior: truncating /proc/[pid]/fd/[n] releases '
+                                      'disk blocks immediately without requiring process termination or VM '
+                                      'reboot.</figcaption></figure>',
                           'root': 'Unlinked open file descriptor defect: an operator ran rm /var/log/batch.log to '
                                   'clear space. However, batch-app (PID 4812) retained an open write file descriptor '
                                   'to the inode. In Linux, unlinking removes the directory entry but retains the disk '
