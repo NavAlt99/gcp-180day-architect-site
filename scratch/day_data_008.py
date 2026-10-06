@@ -612,9 +612,13 @@ DATA = {'contract_version': 2,
                                       '267"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" '
                                       'x="470" y="340">Verification observes stable PID, no new OOM kill and recovered '
                                       'synthetic-order latency.</text></svg><figcaption>Figure 8.3: Supplied incident '
-                                      'example. The before row shows a boundary mismatch; the after row shows the '
-                                      'evidence sequence and expected verification. No production OOM was '
-                                      'triggered.</figcaption></figure>',
+                                      'example. Supplied facts: illustrative records show worker killed with signal 137; '
+                                      'kernel dmesg confirms cgroup OOM for process 4182; host MemAvailable was over 26 '
+                                      'GB; cgroup memory.max was strictly 512 MB. Architectural inference: memory '
+                                      'exhaustion occurred strictly at the cgroup boundary (512 MB) rather than the '
+                                      'physical VM host boundary. Expected post-fix behavior: correlating cgroup '
+                                      'memory.events with process restart timestamps pinpoints the container limit; '
+                                      'adjusting the cgroup boundary eliminates the crash.</figcaption></figure>',
                           'root': 'The worker process was constrained within a cgroup v2 container slice with '
                                   'memory.max configured to 512 MB. While the host VM initially showed low MemFree due '
                                   'to 12 GB of reclaimable page cache, the host actually had ample available memory '
@@ -1363,8 +1367,14 @@ DATA = {'contract_version': 2,
                                       'font-size="12" text-anchor="middle" x="470" y="340">The parser proves one '
                                       'matching record in the supplied fixture, not end-to-end service '
                                       'health.</text></svg><figcaption>Figure 8.4: Supplied incident example '
-                                      'contrasting literal text matching with structured field selection. Counts '
-                                      'remain limited to the fixture and stated time window.</figcaption></figure>',
+                                      'contrasting literal text matching with structured field selection. Supplied facts: '
+                                      'illustrative fixture contains 3 JSON orders with one failed status 503; grep for '
+                                      '"error" returns 0 lines while customers experienced 33% transaction failures. '
+                                      'Architectural inference: flat text pattern searching fails on structured JSON logs '
+                                      'because numeric status codes and non-"error" reason codes bypass substring '
+                                      'filters. Expected post-fix behavior: schema-aware JSON evaluation extracts the '
+                                      'failed record and isolates the exact failure timestamp and gateway timeout '
+                                      'cause.</figcaption></figure>',
                           'root': 'The operational monitoring filter utilized unstructured text grepping for the '
                                   'literal substring "error". The application generates structured JSON logs where '
                                   'failure events are encoded as numeric integer fields (`"status": 503`) accompanied '
