@@ -42,8 +42,11 @@ Depth floor (user decision): conceptual depth may increase but must never decrea
 
 ### Part 1: Topics of the day
 
-Each mapped topic: what it is, why today, where it sits. Closing problem-preview:
-exactly two sentences (symptom/decision, then user/business effect); links may follow.
+Each mapped topic overview must use these three labelled paragraphs in order:
+`<strong class="side-heading">Why today:</strong>`, `<strong class="side-heading">Where it sits:</strong>`,
+and `<strong class="side-heading">Problem preview:</strong>`. The Problem preview
+paragraph keeps `class="problem-preview"` and exactly two sentences (symptom/decision,
+then user/business effect); links may follow. Combined labels are not permitted for new work.
 
 ### Part 2: Subtopic-first technical discussion
 
@@ -147,7 +150,8 @@ publisher_section_verified only after confirming its section.
 
 Selected first-use prose terms: `<strong class="keyword">term</strong>` with
 shared pink/tinted highlight (Kubernetes example); no whole sentences or commands.
-Labels Why today/Where it sits/combined use `<strong class="side-heading">`;
+Labels Why today/Where it sits/Problem preview use `<strong class="side-heading">`;
+separate paragraphs in order are required (no combined labels for new work);
 labels and subtopic headings are blue/bold in both themes via `assets/site.css`,
 not per-day patches. Rich fields accept Markdown/HTML, plain fields are escaped;
 use `part1_html` for rich overview. Copyable commands/multiline contents use

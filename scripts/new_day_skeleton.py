@@ -24,8 +24,9 @@ def skeleton(day: int) -> dict:
             raise ValueError(f'Engine key-derived anchors differ from coverage for {key}')
         overviews.append(f'<article class="topic-card overview" id="{anchors["overview"]}">'
                          f'<h3>{escape(title)}</h3><p><strong class="keyword">TODO: key term</strong> TODO: explanation.</p>'
-                         '<p><strong class="side-heading">Why today:</strong> TODO: scope and position.</p>'
-                         '<p class="problem-preview">TODO: concrete symptom. TODO: user/business effect.</p></article>')
+                         '<p><strong class="side-heading">Why today:</strong> TODO: why this topic is studied today.</p>'
+                         '<p><strong class="side-heading">Where it sits:</strong> TODO: architectural placement and adjacent systems.</p>'
+                         '<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> TODO: concrete symptom. TODO: user/business effect.</p></article>')
         topics.append({
             'key': key, 'title': title, 'anchors': anchors,
             'overview': 'TODO: definition, why today, where it sits',

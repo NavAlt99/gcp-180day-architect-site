@@ -91,6 +91,35 @@ class ValidateSpecTests(unittest.TestCase):
         self.check(lambda d: d['topics'][0].update(technical=d['topics'][0]['technical'] + '<p>Third sentence. Fourth sentence. Fifth sentence.</p>'))
         self.assertEqual(validator.sentence_count('Address 10.240.0.1 is local. Now inspect it.'), 2)
 
+    def test_part1_label_consistency(self):
+        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+
+        # 1. pass: v2 spec with all three labels in order passes
+        errors, _ = validator.validate_data(4, copy.deepcopy(v2_data), metadata=v2_meta)
+        self.assertEqual(errors, [])
+
+        # 2. one missing label: errors for contract_version 2, warns for older specs
+        bad_v2 = copy.deepcopy(v2_data)
+        bad_v2['part1_html'] = bad_v2['part1_html'].replace('<strong class="side-heading">Where it sits:</strong>', '')
+        errors, _ = validator.validate_data(4, bad_v2, metadata=v2_meta)
+        self.assertTrue(any('Where it sits:' in e for e in errors))
+
+        # older spec (v1) missing Where it sits warns, 0 errors
+        bad_v1 = copy.deepcopy(self.data)
+        bad_v1['part1_html'] = bad_v1['part1_html'].replace('<strong class="side-heading">Where it sits:</strong>', '')
+        errors, warnings = validator.validate_data(2, bad_v1, metadata=self.metadata)
+        self.assertEqual(errors, [])
+        self.assertTrue(any('Where it sits:' in w for w in warnings))
+
+        # 3. combined label fails for v2
+        comb_v2 = copy.deepcopy(v2_data)
+        comb_v2['part1_html'] = comb_v2['part1_html'].replace(
+            '<strong class="side-heading">Why today:</strong>',
+            '<strong class="side-heading">Why today and where it sits:</strong>'
+        ).replace('<strong class="side-heading">Where it sits:</strong>', '')
+        errors, _ = validator.validate_data(4, comb_v2, metadata=v2_meta)
+        self.assertTrue(any('combined' in e for e in errors))
+
     def test_error_9_source_metadata(self):
         self.check(lambda d: d['topics'][0].update(reference='http://example.com'), 'https URL')
         self.check(lambda d: d['topics'][0].update(reference_label='TODO: verify doc'), 'unverified source label')

@@ -84,8 +84,14 @@ def load_spec(path):
 def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
     errors, warnings = [], []
     metadata = metadata or {}
+    contract_v2 = (data.get('contract_version') or metadata.get('contract_version', 1)) == 2
     def error(key, field, reason):
         errors.append(f'ERROR {key} {field}: {reason}')
+    def p1_issue(key, field, reason):
+        if contract_v2:
+            error(key, field, reason)
+        else:
+            warnings.append(f'WARN {key} {field}: {reason}')
     def diagrams(key, field, markup):
         document = soup(markup)
         for svg in document.select('svg'):
@@ -214,12 +220,32 @@ def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
             if not card:
                 error(key, 'anchors.overview', 'Part 1 HTML missing coverage anchor')
             else:
+                side_headings = [re.sub(r'\s+', ' ', h.get_text().strip()) for h in card.select('strong.side-heading')]
+                if any(re.search(r'why today.*where it sits|where it sits.*why today|\bcombined\b', s, re.I) for s in side_headings):
+                    p1_issue(key, 'part1', 'combined Why today / Where it sits label not permitted')
+                has_why = any(s == 'Why today:' or s.startswith('Why today:') for s in side_headings)
+                has_where = any(s == 'Where it sits:' or s.startswith('Where it sits:') for s in side_headings)
+                has_prev = any(s == 'Problem preview:' or s.startswith('Problem preview:') for s in side_headings)
+                if not has_why:
+                    p1_issue(key, 'part1', 'missing <strong class="side-heading">Why today:</strong>')
+                if not has_where:
+                    p1_issue(key, 'part1', 'missing <strong class="side-heading">Where it sits:</strong>')
+                if not has_prev:
+                    p1_issue(key, 'part1', 'missing <strong class="side-heading">Problem preview:</strong>')
+                if has_why and has_where and has_prev:
+                    why_idx = next(i for i, s in enumerate(side_headings) if s == 'Why today:' or s.startswith('Why today:'))
+                    where_idx = next(i for i, s in enumerate(side_headings) if s == 'Where it sits:' or s.startswith('Where it sits:'))
+                    prev_idx = next(i for i, s in enumerate(side_headings) if s == 'Problem preview:' or s.startswith('Problem preview:'))
+                    if not (why_idx < where_idx < prev_idx):
+                        p1_issue(key, 'part1', 'Part 1 labels out of order; expected Why today:, Where it sits:, Problem preview:')
                 paragraph = card.select_one('.problem-preview')
                 if paragraph:
                     preview = paragraph.get_text(' ', strip=True)
                     preview = re.sub(r'^Problem preview:\s*', '', preview)
                 else:
                     error(key, 'preview', 'Part 1 HTML missing problem-preview')
+        else:
+            p1_issue(key, 'part1_html', 'Part 1 HTML missing')
         if sentence_count(preview) != 2:
             error(key, 'preview', 'Part 1 requires exactly two sentences')
         if topic.get('reference_label', '').startswith('TODO: verify'):

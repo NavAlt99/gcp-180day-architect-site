@@ -131,14 +131,16 @@ PART1_HTML = '''<article class="topic-card overview" id="topic-01-overview">
 <h3>Linux kernel vs user space, file system navigation, permissions (chmod, chown), users and…</h3>
 <p><strong class="keyword">Linux permissions</strong> enforce mandatory access control boundaries between unprivileged user-space processes and protected kernel resources. Path traversal requires search rights on every parent directory, and process credentials determine mode bit selection before files can be opened.</p>
 <p><strong class="side-heading">Why today:</strong> Establishes the foundational host security and access control boundaries governing application processes, container runtimes, and local configuration files.</p>
-<p class="problem-preview">A deployed order processing daemon crashes on startup with an EACCES permission denied error while reading its configuration file. Investigation reveals that the file was created by an administrative deployer with owner-only read permissions, preventing the unprivileged service user from accessing the configuration.</p>
+<p><strong class="side-heading">Where it sits:</strong> Sits at the base of local host operating system management, establishing directory and credential constraints before supervising background processes.</p>
+<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A deployed order processing daemon crashes on startup with an EACCES permission denied error while reading its configuration file. Investigation reveals that the file was created by an administrative deployer with owner-only read permissions, preventing the unprivileged service user from accessing the configuration.</p>
 </article>
 
 <article class="topic-card overview" id="topic-02-overview">
 <h3>Processes, file descriptors (stdin/stdout/stderr), pipes, redirection, boot-to-service…</h3>
 <p><strong class="keyword">Process supervision</strong> governs the execution, I/O streams, and lifecycle transitions of operating system services from initialization to shutdown. Systemd orchestrates unit dependency graphs, tracks process IDs, captures standard streams into system journals, and manages graceful termination via signals.</p>
 <p><strong class="side-heading">Why today:</strong> Provides the execution runtime and operational observability model underpinning virtual machine daemons, background workers, and containerized microservices.</p>
-<p class="problem-preview">An order fulfillment worker restarted during a deployment generates duplicate customer shipments for in-flight queue messages. A forced SIGKILL termination interrupted the worker after shipping the goods but before committing completion state, causing the message broker to redeliver the unacknowledged event to a replacement instance.</p>
+<p><strong class="side-heading">Where it sits:</strong> Operates on top of filesystem permissions to govern active daemon execution, directly producing the service lifecycle timestamps required for exit evidence.</p>
+<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> An order fulfillment worker restarted during a deployment generates duplicate customer shipments for in-flight queue messages. A forced SIGKILL termination interrupted the worker after shipping the goods but before committing completion state, causing the message broker to redeliver the unacknowledged event to a replacement instance.</p>
 </article>'''
 
 ARCH_DIAGRAM = {
