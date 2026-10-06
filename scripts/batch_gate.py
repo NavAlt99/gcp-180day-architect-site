@@ -47,11 +47,13 @@ def main(argv=None, *, root=ROOT, runner=subprocess.run):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--day', type=int, required=True, choices=range(1, 181))
     parser.add_argument('--contract-hash', action='store_true', help='Pin and check canonical contract sha256')
+    parser.add_argument('--skip-labs', '--no-labs', action='store_true', help='Skip lab re-runs')
     args = parser.parse_args(argv)
+    checks = tuple(c for c in CHECKS if not (args.skip_labs and c == 'run_labs'))
     try:
         if args.contract_hash and not contract_check(root):
             print('FAIL: contract-hash (PAGE_AUTHORING_CONTRACT.md changed)'); return 1
-        for check in CHECKS:
+        for check in checks:
             command = [sys.executable, '-B', str(root / 'scripts' / f'{check}.py'), '--day', str(args.day)]
             if check == 'check_study_links':
                 report_path = root / 'scratch' / f'day-{args.day:03d}-study-links.json'

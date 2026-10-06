@@ -44,6 +44,6 @@ Update `scratch/day_data_009.py` as the durable specification. Generate the over
 
 ```csv
 day,topic_key,topic,scope,source_topic_ids,overview_anchor,technical_anchor,problem_anchor,lab_anchor,expected_artifact,further_study_section,publisher_url,publisher_section_verified
-9,topic-01,Hypervisors and virtual machines,Hypervisors and virtual machines,3,topic-01-overview,topic-01-technical,topic-01-problem,topic-01-lab,An isolation worksheet distinguishing resource enforcement from security isolation.,sources.html#topic-003,https://kubernetes.io/docs/concepts/,no
-9,topic-02,Container isolation,"Container isolation: namespaces, cgroups, seccomp and capabilities",3,topic-02-overview,topic-02-technical,topic-02-problem,topic-02-lab,An isolation worksheet distinguishing resource enforcement from security isolation.,sources.html#topic-003,https://kubernetes.io/docs/concepts/,no
+9,topic-01,Hypervisors and virtual machines,Hypervisors and virtual machines,3,topic-01-overview,topic-01-technical,topic-01-problem,topic-01-lab,An isolation worksheet distinguishing resource enforcement from security isolation.,sources.html#topic-003,https://docs.kernel.org/virt/kvm/api.html#general-description,yes
+9,topic-02,Container isolation,"Container isolation: namespaces, cgroups, seccomp and capabilities",3,topic-02-overview,topic-02-technical,topic-02-problem,topic-02-lab,An isolation worksheet distinguishing resource enforcement from security isolation.,sources.html#topic-003,https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION,yes
 ```

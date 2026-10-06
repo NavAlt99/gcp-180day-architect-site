@@ -179,21 +179,24 @@ PART1_HTML = '''<article class="topic-card overview" id="topic-01-overview">
 <h3>VPN concepts</h3>
 <p><strong class="keyword">IPsec VPN</strong> creates encrypted, authenticated network tunnels across untrusted public networks to connect distributed environments. Tunnel establishment verifies gateway credentials and cryptographic negotiation, but operational data reachability requires symmetric return routing, compatible MTU sizing, and coordinated firewall allowances.</p>
 <p><strong class="side-heading">Why today:</strong> Establishes the foundational hybrid connectivity mechanism connecting cloud VPCs with on-premises data centers before deploying multi-tier applications.</p>
-<p class="problem-preview">A site-to-site IPsec tunnel reports established state, but application database queries between cloud services and on-premises systems experience immediate connection timeouts. Engineers discover that while outer encrypted tunnel security associations negotiated successfully, the on-premises router lacked an explicit return route back to the cloud VPC subnet prefix.</p>
+<p><strong class="side-heading">Where it sits:</strong> Sits between Day 4 routing and transit fundamentals and today's downstream load balancer and firewall boundaries.</p>
+<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A site-to-site IPsec tunnel reports established state, but application database queries between cloud services and on-premises systems experience immediate connection timeouts. Engineers discover that while outer encrypted tunnel security associations negotiated successfully, the on-premises router lacked an explicit return route back to the cloud VPC subnet prefix.</p>
 </article>
 
 <article class="topic-card overview" id="topic-02-overview">
 <h3>Load balancing concepts</h3>
 <p><strong class="keyword">Load balancing</strong> distributes network traffic across a resilient pool of backend instances to optimize throughput, prevent single-point overload, and enable zero-downtime rolling updates. Layer 4 passthrough balancing preserves source IPs and optimizes raw packet throughput, while Layer 7 reverse proxying enables URL path routing, TLS termination offload, and deep health check evaluation.</p>
 <p><strong class="side-heading">Why today:</strong> Provides the horizontal scale and high availability boundary for microservices and database tiers in the Google Cloud architecture path.</p>
-<p class="problem-preview">Production API clients receive HTTP 502 bad gateway errors during peak traffic after a rolling application update deploys to healthy virtual machine backends. Investigation shows that the load balancer health check targeted an unconfigured readiness endpoint, causing the health monitor to mark all running backends unhealthy simultaneously.</p>
+<p><strong class="side-heading">Where it sits:</strong> Positioned between hybrid ingress or public edge traffic and internal workload pools, immediately upstream of hypervisor firewall filtering.</p>
+<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> Production API clients receive HTTP 502 bad gateway errors during peak traffic after a rolling application update deploys to healthy virtual machine backends. Investigation shows that the load balancer health check targeted an unconfigured readiness endpoint, causing the health monitor to mark all running backends unhealthy simultaneously.</p>
 </article>
 
 <article class="topic-card overview" id="topic-03-overview">
 <h3>Firewalls</h3>
 <p><strong class="keyword">VPC firewalls</strong> enforce stateful packet filtering rules at the virtual machine hypervisor boundary, inspecting Layer 3/4 traffic and automatically permitting bidirectional return flows for established connections. Rules evaluate strictly by ascending numerical priority where the first matching rule dictates the policy decision.</p>
 <p><strong class="side-heading">Why today:</strong> Enforces network isolation and defense-in-depth perimeters across ingress, egress, and inter-service boundaries in enterprise architectures.</p>
-<p class="problem-preview">Untrusted external clients access internal staging microservices directly over public IP addresses despite team assumptions that the services were private to the load balancer. A broad legacy ingress allow rule at priority 100 matched all incoming traffic before the narrow priority 200 restriction could take effect.</p>
+<p><strong class="side-heading">Where it sits:</strong> Evaluated at the virtual network interface directly after load balancing transit, forming the failure boundary of the day's packet decision table.</p>
+<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> Untrusted external clients access internal staging microservices directly over public IP addresses despite team assumptions that the services were private to the load balancer. A broad legacy ingress allow rule at priority 100 matched all incoming traffic before the narrow priority 200 restriction could take effect.</p>
 </article>'''
 
 ARCH_DIAGRAM = {
