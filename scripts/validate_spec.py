@@ -149,7 +149,7 @@ def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
     rows = {r['topic_key']: r for r in coverage(day)}
     keys = [t.get('key') for t in topics]
     for key in rows.keys() - set(keys): error(key, 'key', 'missing coverage topic')
-    for topic in topics:
+    for i, topic in enumerate(topics, 1):
         key = topic.get('key', 'unknown')
         row = rows.get(key)
         if row is None: error(key, 'key', 'extra topic not in coverage')
@@ -258,6 +258,44 @@ def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
             error(key, 'scenario', 'diagram present with diagram_enabled False')
         if scenario.get('diagram_enabled') is True and not any(scenario.get(f) for f in incident_fields[:-1]):
             error(key, 'scenario', 'diagram_enabled True requires incident diagram data')
+        if scenario.get('diagram_enabled') is True:
+            incident_figures = []
+            raw = scenario.get('incident_svg_html') or scenario.get('svg_html')
+            if raw:
+                raw_soup = soup(raw)
+                figs = raw_soup.select('figure')
+                if figs:
+                    incident_figures.extend(figs)
+                else:
+                    incident_figures.append(raw_soup)
+            elif not scenario.get('flow'):
+                try:
+                    from scripts.author_engine import render_incident_svg
+                    rendered = render_incident_svg(day, i, topic)
+                    incident_figures.extend(soup(rendered).select('figure'))
+                except Exception:
+                    pass
+            evidence = scenario.get('evidence')
+            if isinstance(evidence, str) and '<figure' in evidence:
+                for fig in soup(evidence).select('figure'):
+                    if fig.select('svg'):
+                        incident_figures.append(fig)
+
+            for fig in incident_figures:
+                fc = fig.select_one('figcaption')
+                fc_text = fc.get_text(' ', strip=True) if fc else ''
+                has_facts = 'Supplied facts' in fc_text
+                has_inf = 'Architectural inference' in fc_text
+                has_exp = bool(re.search(r'Expected post-fix behaviou?r', fc_text))
+                if not (has_facts and has_inf and has_exp):
+                    missing = []
+                    if not has_facts: missing.append('Supplied facts')
+                    if not has_inf: missing.append('Architectural inference')
+                    if not has_exp: missing.append('Expected post-fix behavior')
+                    if contract_v2:
+                        error(key, 'scenario.caption', f'incident figure caption missing {", ".join(missing)}')
+                    else:
+                        warnings.append(f'WARN {key} scenario.caption: incident figure caption missing {", ".join(missing)}')
         technical_diagram = bool(topic.get('flow') or tech.select('svg'))
         if technical_diagram:
             warnings.append(f'WARN {key} technical diagram present; confirm it is a multi-step sequence, packet traversal or request/response lifecycle (manual eligibility review)')
