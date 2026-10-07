@@ -149,7 +149,7 @@ def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
     rows = {r['topic_key']: r for r in coverage(day)}
     keys = [t.get('key') for t in topics]
     for key in rows.keys() - set(keys): error(key, 'key', 'missing coverage topic')
-    for topic in topics:
+    for i, topic in enumerate(topics, 1):
         key = topic.get('key', 'unknown')
         row = rows.get(key)
         if row is None: error(key, 'key', 'extra topic not in coverage')
@@ -258,6 +258,81 @@ def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
             error(key, 'scenario', 'diagram present with diagram_enabled False')
         if scenario.get('diagram_enabled') is True and not any(scenario.get(f) for f in incident_fields[:-1]):
             error(key, 'scenario', 'diagram_enabled True requires incident diagram data')
+        incident_figures = []
+        if scenario.get('diagram_enabled') is True:
+            raw = scenario.get('incident_svg_html') or scenario.get('svg_html')
+            if raw:
+                raw_soup = soup(raw)
+                figs = raw_soup.select('figure')
+                if figs:
+                    incident_figures.extend(figs)
+                else:
+                    incident_figures.append(raw_soup)
+            elif scenario.get('flow'):
+                try:
+                    rendered = render_compact_flow(f"d{day:03d}-case-{i}-flow", scenario["flow"])
+                    incident_figures.extend(soup(rendered).select('figure'))
+                except Exception:
+                    pass
+            else:
+                try:
+                    from scripts.author_engine import render_incident_svg
+                    rendered = render_incident_svg(day, i, topic)
+                    incident_figures.extend(soup(rendered).select('figure'))
+                except Exception:
+                    pass
+
+            for fig in incident_figures:
+                fc = fig.select_one('figcaption')
+                fc_text = fc.get_text(' ', strip=True) if fc else ''
+                has_facts = 'Supplied facts' in fc_text
+                has_inf = 'Architectural inference' in fc_text
+                has_exp = bool(re.search(r'Expected post-fix behaviou?r', fc_text))
+                if not (has_facts and has_inf and has_exp):
+                    missing = []
+                    if not has_facts: missing.append('Supplied facts')
+                    if not has_inf: missing.append('Architectural inference')
+                    if not has_exp: missing.append('Expected post-fix behavior')
+                    if contract_v2:
+                        error(key, 'scenario.caption', f'incident figure caption missing {", ".join(missing)}')
+                    else:
+                        warnings.append(f'WARN {key} scenario.caption: incident figure caption missing {", ".join(missing)}')
+
+        scope_pattern = re.compile(r'\b(does not prove|not a measurement|hypothetical|illustrative|scope)\b', re.IGNORECASE)
+        for field_name, field_val in scenario.items():
+            if scenario.get('diagram_enabled') is True and field_name in ('incident_svg_html', 'svg_html'):
+                continue
+            if isinstance(field_val, str) and '<figure' in field_val:
+                for fig in soup(field_val).select('figure'):
+                    fc = fig.select_one('figcaption')
+                    fc_text = fc.get_text(' ', strip=True) if fc else ''
+                    has_facts = 'Supplied facts' in fc_text
+                    has_inf = 'Architectural inference' in fc_text
+                    has_exp = bool(re.search(r'Expected post-fix behaviou?r', fc_text))
+                    if has_facts and has_inf and has_exp:
+                        continue
+                    if not scope_pattern.search(fc_text):
+                        if contract_v2:
+                            error(key, 'scenario.caption', 'Part 3 figure caption missing scope or limit statement')
+                        else:
+                            warnings.append(f'WARN {key} scenario.caption: Part 3 figure caption missing scope or limit statement')
+
+        topic_figures = []
+        for fld_val in topic.values():
+            if isinstance(fld_val, str) and '<figure' in fld_val:
+                topic_figures.extend(soup(fld_val).select('figure'))
+            elif isinstance(fld_val, dict):
+                for sub_val in fld_val.values():
+                    if isinstance(sub_val, str) and '<figure' in sub_val:
+                        topic_figures.extend(soup(sub_val).select('figure'))
+        if scenario.get('diagram_enabled') is True:
+            topic_figures.extend(incident_figures)
+        for fig in topic_figures:
+            if fig.select('figure'):
+                if contract_v2:
+                    error(key, 'figure', 'nested figure tag detected')
+                else:
+                    warnings.append(f'WARN {key} figure: nested figure tag detected')
         technical_diagram = bool(topic.get('flow') or tech.select('svg'))
         if technical_diagram:
             warnings.append(f'WARN {key} technical diagram present; confirm it is a multi-step sequence, packet traversal or request/response lifecycle (manual eligibility review)')
@@ -304,6 +379,14 @@ def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
                 error('day', 'arch_diagram', f'diagram structure: {exc}')
     if data.get('arch_diagram') or data.get('arch_svg_html') or data.get('arch_diagram_html'):
         warnings.append('WARN day technical diagram present; confirm it is a multi-step sequence, packet traversal or request/response lifecycle (manual eligibility review)')
+    arch_raw = data.get('arch_svg_html')
+    if arch_raw and isinstance(arch_raw, str) and '<figure' in arch_raw:
+        for fig in soup(arch_raw).select('figure'):
+            if fig.select('figure'):
+                if contract_v2:
+                    error('day', 'arch_svg_html', 'nested figure tag detected')
+                else:
+                    warnings.append('WARN day arch_svg_html: nested figure tag detected')
     def flows(value, field='spec'):
         if isinstance(value, dict):
             if 'nodes' in value and 'steps' in value:
