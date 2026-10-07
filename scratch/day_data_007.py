@@ -118,7 +118,53 @@ DATA = {'contract_version': 2,
                     'Exit Artifact Verified\':\'Verify Exit Artifact\';">Verify Exit Artifact</button>\n'
                     '</div>\n'
                     '</div>',
- 'arch_diagram': {},
+ 'arch_diagram': {
+     'type': 'topology',
+     'title': 'Day 7: Cryptographic Shell Ingress, Automated Packaging, and Procfs Hierarchy',
+     'desc': 'Operational topology tracing OpenSSH ProxyJump bastion routing, APT/DNF GPG package repository verification, robust Bash execution pipelines, and /proc diagnostic inspection.',
+     'caption': 'Scope: an illustrative architecture topology for Day 7 SSH bastion access, package management, and procfs inspection; it does not prove a deployed Google Cloud production topology or capacity.',
+     'width': 1120,
+     'height': 690,
+     'nodes': [
+         ('1. Cryptographic Ingress & SSH', 'Keys, Bastions, & Port Forwards'),
+         ('2. Package & System Runtime', 'APT/DNF & Repository Signatures'),
+         ('3. Execution & Script Logic', 'Bash, Quoting, & Exit Codes'),
+         ('4. Kernel Telemetry & Procfs', '/proc Tree & File Descriptors')
+     ],
+     'layers': [
+         {'name': 'TIER 1 · CRYPTOGRAPHIC INGRESS & BASTION', 'desc': 'OpenSSH client, ProxyJump bastion routing, and identity key pairs', 'x': 20, 'y': 55, 'w': 1080, 'h': 110, 'fill': '#12283b', 'title_color': '#7dd3fc'},
+         {'name': 'TIER 2 · PACKAGING & AUTOMATION ENGINE', 'desc': 'APT/DNF package repository GPG verification and Bash script execution', 'x': 20, 'y': 185, 'w': 1080, 'h': 230, 'fill': '#1b2038', 'title_color': '#c4b5fd'},
+         {'name': 'TIER 3 · KERNEL PROCFS & PROCESS TELEMETRY', 'desc': '/proc pseudo-filesystem hierarchy, status records, and file descriptor tables', 'x': 20, 'y': 435, 'w': 1080, 'h': 120, 'fill': '#2b1d2f', 'title_color': '#f9a8d4'}
+     ],
+     'boundaries': [
+         {'x': 100, 'y': 225, 'w': 920, 'h': 140, 'color': '#a78bfa', 'label': 'CRYPTOGRAPHIC ACCESS & BASTION ENCLAVE'},
+         {'x': 100, 'y': 455, 'w': 920, 'h': 85, 'color': '#f59e0b', 'label': 'PROCFS KERNEL MEMORY & TELEMETRY DOMAIN'}
+     ],
+     'components': [
+         {'x': 70, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#38bdf8', 'name': 'OpenSSH Client / Admin', 'detail': 'Ed25519 key auth & ProxyJump', 'icon': '../assets/icons/generic/client.svg'},
+         {'x': 430, 'y': 92, 'w': 260, 'h': 52, 'stroke': '#38bdf8', 'name': 'Bastion Jump Host', 'detail': 'TCP forwarding without agent socket leak', 'icon': '../assets/icons/generic/server.svg'},
+         {'x': 830, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#34d399', 'name': 'Target Workload Node', 'detail': 'sshd port 22 & private VPC interface', 'icon': '../assets/icons/gcp/core/compute-engine.svg'},
+         {'x': 140, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#a78bfa', 'name': 'Package Manager (APT/DNF)', 'detail': 'Release metadata GPG verification', 'icon': '../assets/icons/generic/policy.svg'},
+         {'x': 440, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'Automated Bash Pipeline', 'detail': 'set -euo pipefail & defensive quoting', 'icon': '../assets/icons/generic/event.svg'},
+         {'x': 740, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'procfs Pseudo-Filesystem', 'detail': '/proc/[pid]/status & fd table', 'icon': '../assets/icons/generic/storage.svg'},
+         {'x': 140, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#34d399', 'name': 'Process Runtime State', 'detail': 'RSS memory, state flags & locks', 'icon': '../assets/icons/generic/database.svg'},
+         {'x': 740, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#f9a8d4', 'name': 'Audit & Diagnostic Trace', 'detail': 'Exit codes & telemetry verification', 'icon': '../assets/icons/generic/decision.svg'}
+     ],
+     'flows': [
+         {'x1': 290, 'y1': 118, 'x2': 430, 'y2': 118, 'type': 'blue', 'label': 'ProxyJump'},
+         {'x1': 690, 'y1': 118, 'x2': 830, 'y2': 118, 'type': 'ok', 'label': 'sshd connect'},
+         {'x1': 560, 'y1': 144, 'x2': 265, 'y2': 255, 'type': 'ok', 'label': 'apt update'},
+         {'x1': 390, 'y1': 291, 'x2': 440, 'y2': 291, 'type': 'ok', 'label': 'run script'},
+         {'x1': 690, 'y1': 291, 'x2': 740, 'y2': 291, 'type': 'warn', 'label': 'read /proc'},
+         {'x1': 265, 'y1': 327, 'x2': 265, 'y2': 470, 'type': 'ok', 'label': 'verify RSS'},
+         {'x1': 865, 'y1': 327, 'x2': 865, 'y2': 470, 'type': 'blue', 'label': 'record audit'}
+     ],
+     'probes': [
+         {'cx': 290, 'cy': 118, 'badge': 'P1', 'label': 'PROBE 1 · Bastion ProxyJump session verified without agent forwarding', 'color': '#38bdf8'},
+         {'cx': 690, 'cy': 291, 'badge': 'P2', 'label': 'PROBE 2 · Package metadata signature cryptographically verified', 'color': '#f59e0b'},
+         {'cx': 740, 'cy': 496, 'badge': 'P3', 'label': 'PROBE 3 · Procfs inspection captures open file descriptors and exit code', 'color': '#34d399'}
+     ]
+ },
  'arch_svg_html': '',
  'arch_table_html': '',
  'lab_defaults': {},
