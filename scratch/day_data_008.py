@@ -85,7 +85,53 @@ DATA = {'contract_version': 2,
                     'Exit Artifact Verified\':\'Verify Exit Artifact\';">Verify Exit Artifact</button>\n'
                     '</div>\n'
                     '</div>',
- 'arch_diagram': {},
+ 'arch_diagram': {
+     'type': 'topology',
+     'title': 'Day 8: CFS Process Scheduling, Virtual Memory Allocation, and Diagnostic Signals',
+     'desc': 'Operational topology tracing Linux Completely Fair Scheduler runqueues, MMU virtual memory paging and dirty page cache writeback, Pressure Stall Information (PSI), and CLI diagnostic probe pipelines.',
+     'caption': 'Scope: an illustrative architecture topology for Day 8 CPU scheduling, memory pressure, and diagnostic tooling; it does not prove a deployed Google Cloud production topology or capacity.',
+     'width': 1120,
+     'height': 690,
+     'nodes': [
+         ('1. Workload Demand & Scheduling', 'CPU Run Queues & CFS Context Switches'),
+         ('2. Memory & Virtual Paging', 'Page Cache, Dirty Writeback & Swap'),
+         ('3. Starvation & Saturation Signals', 'PSI Metrics & OOM Killer Heuristics'),
+         ('4. Boundary Diagnostics & Tooling', 'Structured Querying vs Packet Inspection')
+     ],
+     'layers': [
+         {'name': 'TIER 1 · WORKLOAD DEMAND & CPU RUNQUEUES', 'desc': 'CFS scheduling entities, context switches, and CPU quota accounting', 'x': 20, 'y': 55, 'w': 1080, 'h': 110, 'fill': '#12283b', 'title_color': '#7dd3fc'},
+         {'name': 'TIER 2 · MEMORY MANAGEMENT & PAGE CACHE', 'desc': 'MMU address translation, page faults, dirty writeback, and swap mechanics', 'x': 20, 'y': 185, 'w': 1080, 'h': 230, 'fill': '#1b2038', 'title_color': '#c4b5fd'},
+         {'name': 'TIER 3 · SATURATION SIGNALS & DIAGNOSTIC PIPELINE', 'desc': 'PSI pressure metrics, OOM killer heuristics, and CLI diagnostic probes (ss, tcpdump, jq)', 'x': 20, 'y': 435, 'w': 1080, 'h': 120, 'fill': '#2b1d2f', 'title_color': '#f9a8d4'}
+     ],
+     'boundaries': [
+         {'x': 100, 'y': 225, 'w': 920, 'h': 140, 'color': '#a78bfa', 'label': 'CPU SCHEDULING & CONTEXT SWITCH DOMAIN'},
+         {'x': 100, 'y': 455, 'w': 920, 'h': 85, 'color': '#f59e0b', 'label': 'KERNEL PRESSURE STALL & DIAGNOSTIC OBSERVABILITY ENCLAVE'}
+     ],
+     'components': [
+         {'x': 70, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#38bdf8', 'name': 'Workload Task / Thread', 'detail': 'CPU demands & context switch triggers', 'icon': '../assets/icons/generic/client.svg'},
+         {'x': 430, 'y': 92, 'w': 260, 'h': 52, 'stroke': '#38bdf8', 'name': 'Linux CFS Scheduler', 'detail': 'Red-black tree runqueue & timeslices', 'icon': '../assets/icons/generic/server.svg'},
+         {'x': 830, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#34d399', 'name': 'Hardware CPU Core', 'detail': 'Ring 0/3 cycles & instruction execution', 'icon': '../assets/icons/gcp/core/compute-engine.svg'},
+         {'x': 140, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#a78bfa', 'name': 'Virtual Memory & MMU', 'detail': 'Page tables, minor/major faults & TLB', 'icon': '../assets/icons/generic/storage.svg'},
+         {'x': 440, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'Page Cache & Writeback', 'detail': 'Buffer cache, dirty pages & pdflush', 'icon': '../assets/icons/generic/database.svg'},
+         {'x': 740, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'PSI & OOM Engine', 'detail': '/proc/pressure stall signals & oom_score', 'icon': '../assets/icons/generic/monitoring.svg'},
+         {'x': 140, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#34d399', 'name': 'Diagnostic Tools (ss/tcpdump)', 'detail': 'Socket states & raw network packet traces', 'icon': '../assets/icons/generic/event.svg'},
+         {'x': 740, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#f9a8d4', 'name': 'Data Pipelines (jq/awk)', 'detail': 'Structured parsing & metric verification', 'icon': '../assets/icons/generic/decision.svg'}
+     ],
+     'flows': [
+         {'x1': 290, 'y1': 118, 'x2': 430, 'y2': 118, 'type': 'blue', 'label': 'enqueue task'},
+         {'x1': 690, 'y1': 118, 'x2': 830, 'y2': 118, 'type': 'ok', 'label': 'dispatch cycle'},
+         {'x1': 560, 'y1': 144, 'x2': 265, 'y2': 255, 'type': 'ok', 'label': 'allocate page'},
+         {'x1': 390, 'y1': 291, 'x2': 440, 'y2': 291, 'type': 'ok', 'label': 'cache write'},
+         {'x1': 690, 'y1': 291, 'x2': 740, 'y2': 291, 'type': 'warn', 'label': 'pressure stall'},
+         {'x1': 265, 'y1': 327, 'x2': 265, 'y2': 470, 'type': 'ok', 'label': 'probe sockets'},
+         {'x1': 865, 'y1': 327, 'x2': 865, 'y2': 470, 'type': 'blue', 'label': 'filter with jq'}
+     ],
+     'probes': [
+         {'cx': 290, 'cy': 118, 'badge': 'P1', 'label': 'PROBE 1 · CPU runqueue latency & voluntary context switches measured', 'color': '#38bdf8'},
+         {'cx': 690, 'cy': 291, 'badge': 'P2', 'label': 'PROBE 2 · Memory pressure stall (PSI) some/full thresholds evaluated', 'color': '#f59e0b'},
+         {'cx': 740, 'cy': 496, 'badge': 'P3', 'label': 'PROBE 3 · Socket diagnostic ss -tlpn confirms zero queue drops', 'color': '#34d399'}
+     ]
+ },
  'arch_svg_html': '',
  'arch_table_html': '',
  'lab_defaults': {},
