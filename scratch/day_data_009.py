@@ -5,7 +5,50 @@ ACCESS_DATE = '2026-10-04'
 SOURCES = {'topic-01': ('Linux Kernel KVM API General Description (accessed 2026-10-04)', 'https://docs.kernel.org/virt/kvm/api.html#general-description'), 'topic-02': ('namespaces(7) Linux namespaces overview description (accessed 2026-10-04)', 'https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION')}
 
 DATA = { 'access_date': '2026-10-04',
-  'arch_diagram': {},
+  'arch_diagram': {
+      'type': 'topology',
+      'title': 'Day 9: Hardware-Assisted Hypervisor and Kernel Namespace Isolation Architecture',
+      'desc': 'Operational topology contrasting KVM hardware-assisted virtual machine hypervisors with shared-kernel container namespaces, cgroups v2 resource throttles, and seccomp filters.',
+      'caption': 'Scope: an illustrative architecture topology for Day 9 VM and container isolation; it does not prove a deployed Google Cloud production topology or capacity.',
+      'width': 1120,
+      'height': 690,
+      'nodes': [
+          ('1. Workload Ingress & Demarcation', 'Client Ingress & Packaging Boundary'),
+          ('2. Virtual Machine Sovereign Stacks', 'Type 1/KVM Hypervisor & Independent Guest Kernels'),
+          ('3. Kernel Container Isolation Gates', 'Namespaces, cgroups v2, Seccomp & Capabilities'),
+          ('4. Governance & Isolation Verification', 'Resource Enforcement vs Security Boundary Worksheet')
+      ],
+      'layers': [
+          {'name': 'TIER 1 · WORKLOAD DEMAND & DEMARCATION', 'desc': 'Workload input, placement criteria, and tenant separation boundaries', 'x': 20, 'y': 55, 'w': 1080, 'h': 110, 'fill': '#12283b', 'title_color': '#7dd3fc'},
+          {'name': 'TIER 2 · RUNTIME ISOLATION & KERNEL PRIVILEGE', 'desc': 'KVM hypervisor rings, sovereign guest kernels, namespaces, and cgroups v2', 'x': 20, 'y': 185, 'w': 1080, 'h': 230, 'fill': '#1b2038', 'title_color': '#c4b5fd'},
+          {'name': 'TIER 3 · GOVERNANCE & SECURITY VERIFICATION', 'desc': 'Policy enforcement, seccomp syscall filters, and isolation worksheet exit evidence', 'x': 20, 'y': 435, 'w': 1080, 'h': 120, 'fill': '#2b1d2f', 'title_color': '#f9a8d4'}
+      ],
+      'boundaries': [
+          {'label': 'LIMIT / FAILURE BOUNDARY', 'x': 430, 'y': 230, 'w': 530, 'h': 140, 'color': '#f59e0b'}
+      ],
+      'components': [
+          {'name': 'Client / Probe Ingress', 'detail': 'Workload input & isolation criteria', 'icon': '../assets/icons/generic/client.svg', 'stroke': '#38bdf8', 'w': 190, 'h': 52, 'x': 70, 'y': 92},
+          {'name': 'Hypervisor vs Container Gate', 'detail': 'KVM hardware traps & cgroups v2 quotas', 'icon': '../assets/icons/gcp/core/compute-engine.svg', 'stroke': '#f59e0b', 'w': 250, 'h': 52, 'x': 465, 'y': 92},
+          {'name': 'Compute Engine VM Stack', 'detail': 'KVM hypervisor · Sovereign guest kernel', 'icon': '../assets/icons/generic/server.svg', 'stroke': '#38bdf8', 'w': 270, 'h': 64, 'x': 70, 'y': 222},
+          {'name': 'Shared Host Container Stack', 'detail': 'GKE / Cloud Run · Shared host kernel', 'icon': '../assets/icons/gcp/core/gke.svg', 'stroke': '#38bdf8', 'w': 270, 'h': 64, 'x': 70, 'y': 312},
+          {'name': 'Resource vs Security Gate', 'detail': 'cgroups v2 limit vs seccomp sandbox', 'icon': '../assets/icons/generic/policy.svg', 'stroke': '#f43f5e', 'w': 235, 'h': 62, 'x': 455, 'y': 252},
+          {'name': 'Isolated Execution State', 'detail': 'vCPU / Namespaces verified', 'icon': '../assets/icons/generic/endpoint.svg', 'stroke': '#34d399', 'w': 220, 'h': 62, 'x': 715, 'y': 252},
+          {'name': 'Architectural Isolation Policy', 'detail': 'Workload placement rules & criteria', 'icon': '../assets/icons/generic/decision.svg', 'stroke': '#38bdf8', 'w': 280, 'h': 52, 'x': 70, 'y': 472},
+          {'name': 'Isolation Worksheet Exit Artifact', 'detail': 'Resource limits vs Security isolation', 'icon': '../assets/icons/generic/artifact.svg', 'stroke': '#34d399', 'w': 310, 'h': 52, 'x': 465, 'y': 472}
+      ],
+      'flows': [
+          {'label': 'SPECIFY', 'type': 'ok', 'x1': 260, 'x2': 465, 'y1': 118, 'y2': 118},
+          {'label': 'VM PATH', 'type': 'ok', 'x1': 340, 'x2': 455, 'y1': 254, 'y2': 270},
+          {'label': 'CONTAINER', 'type': 'warn', 'x1': 340, 'x2': 455, 'y1': 344, 'y2': 295},
+          {'label': 'ISOLATE', 'type': 'ok', 'x1': 690, 'x2': 715, 'y1': 283, 'y2': 283},
+          {'label': 'VERIFY', 'type': 'ok', 'x1': 350, 'x2': 465, 'y1': 498, 'y2': 498}
+      ],
+      'probes': [
+          {'color': '#38bdf8', 'cx': 250, 'cy': 118, 'label': 'P1: Isolation Contract Criteria'},
+          {'color': '#f59e0b', 'cx': 570, 'cy': 252, 'label': 'P2: Kernel vs User Space Boundary'},
+          {'color': '#34d399', 'cx': 620, 'cy': 472, 'label': 'P3: Resource Throttling vs Security Trap'}
+      ]
+  },
   'completion_html': '<div class="completion-box" id="completion-box-009">\n'
                      '<h3>Day 9 Acceptance Checklist</h3>\n'
                      '<ul class="checklist">\n'
