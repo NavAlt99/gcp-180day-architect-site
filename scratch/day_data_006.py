@@ -143,7 +143,53 @@ PART1_HTML = '''<article class="topic-card overview" id="topic-01-overview">
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> An order fulfillment worker restarted during a deployment generates duplicate customer shipments for in-flight queue messages. A forced SIGKILL termination interrupted the worker after shipping the goods but before committing completion state, causing the message broker to redeliver the unacknowledged event to a replacement instance.</p>
 </article>'''
 
-ARCH_DIAGRAM = {}
+ARCH_DIAGRAM = {
+    'type': 'topology',
+    'title': 'Day 6: Linux System Architecture, Shell Pipelines, and Process Supervision',
+    'desc': 'Operational topology tracing Ring 3 user space execution, Linux system call trapping, file descriptor pipelines, and systemd cgroup service lifecycle supervision.',
+    'caption': 'Scope: an illustrative architecture topology for Day 6 Linux process supervision and shell pipelines; it does not prove a deployed Google Cloud production topology or capacity.',
+    'width': 1120,
+    'height': 690,
+    'nodes': [
+        ('1. User Space & Invocation', 'CLI & Shell Pipelines'),
+        ('2. Kernel Boundary & Credentials', 'UID/GID & System Calls'),
+        ('3. Process & Service Supervision', 'systemd & Signal Handling'),
+        ('4. Durable Audit & Logging', 'Journald & State Evidence')
+    ],
+    'layers': [
+        {'name': 'TIER 1 · USER SPACE & EXECUTION', 'desc': 'Shell command parsing, stdin/stdout/stderr file descriptors, and pipeline subshells', 'x': 20, 'y': 55, 'w': 1080, 'h': 110, 'fill': '#12283b', 'title_color': '#7dd3fc'},
+        {'name': 'TIER 2 · KERNEL BOUNDARY & RUNTIME', 'desc': 'Syscall trapping, VFS file resolution, and credentials (UID/GID)', 'x': 20, 'y': 185, 'w': 1080, 'h': 230, 'fill': '#1b2038', 'title_color': '#c4b5fd'},
+        {'name': 'TIER 3 · PROCESS SUPERVISION & LOGGING', 'desc': 'systemd unit lifecycle, cgroups v2 resource slices, and journald ring buffer', 'x': 20, 'y': 435, 'w': 1080, 'h': 120, 'fill': '#2b1d2f', 'title_color': '#f9a8d4'}
+    ],
+    'boundaries': [
+        {'x': 100, 'y': 225, 'w': 920, 'h': 140, 'color': '#a78bfa', 'label': 'KERNEL TRANSITION & HARDWARE PRIVILEGE BOUNDARY'},
+        {'x': 100, 'y': 455, 'w': 920, 'h': 85, 'color': '#f59e0b', 'label': 'SERVICE SUPERVISION & RESOURCE CONTAINMENT DOMAIN'}
+    ],
+    'components': [
+        {'x': 70, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#38bdf8', 'name': 'Shell Interactive CLI', 'detail': 'Bash parsing, pipes & redirects', 'icon': '../assets/icons/gcp/legacy/cloud-shell.svg'},
+        {'x': 430, 'y': 92, 'w': 260, 'h': 52, 'stroke': '#38bdf8', 'name': 'Linux Syscall Gateway', 'detail': 'Ring 3 to Ring 0 trap (open/execve)', 'icon': '../assets/icons/gcp/core/compute-engine.svg'},
+        {'x': 830, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#34d399', 'name': 'Virtual File System (VFS)', 'detail': 'dentry lookup & POSIX mode octals', 'icon': '../assets/icons/generic/storage.svg'},
+        {'x': 140, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#a78bfa', 'name': 'Credentials & Sudo Delegation', 'detail': 'Effective UID/GID & capability checks', 'icon': '../assets/icons/generic/policy.svg'},
+        {'x': 440, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'File Descriptors & Pipelines', 'detail': 'FD 0/1/2 pipe() ring buffers', 'icon': '../assets/icons/generic/event.svg'},
+        {'x': 740, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'systemd Service Supervisor', 'detail': 'PID 1 unit states & restart logic', 'icon': '../assets/icons/generic/server.svg'},
+        {'x': 140, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#34d399', 'name': 'cgroups v2 & Signal Engine', 'detail': 'Memory limits & SIGTERM/SIGKILL', 'icon': '../assets/icons/generic/database.svg'},
+        {'x': 740, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#f9a8d4', 'name': 'systemd-journald Buffer', 'detail': 'Structured binary log persistence', 'icon': '../assets/icons/gcp/legacy/cloud-logging.svg'}
+    ],
+    'flows': [
+        {'x1': 290, 'y1': 118, 'x2': 430, 'y2': 118, 'type': 'blue', 'label': 'syscall trap'},
+        {'x1': 690, 'y1': 118, 'x2': 830, 'y2': 118, 'type': 'ok', 'label': 'path lookup'},
+        {'x1': 560, 'y1': 144, 'x2': 265, 'y2': 255, 'type': 'ok', 'label': 'verify UID'},
+        {'x1': 390, 'y1': 291, 'x2': 440, 'y2': 291, 'type': 'ok', 'label': 'pipe stream'},
+        {'x1': 690, 'y1': 291, 'x2': 740, 'y2': 291, 'type': 'warn', 'label': 'manage unit'},
+        {'x1': 265, 'y1': 327, 'x2': 265, 'y2': 470, 'type': 'ok', 'label': 'cgroup limit'},
+        {'x1': 865, 'y1': 327, 'x2': 865, 'y2': 470, 'type': 'blue', 'label': 'journal stream'}
+    ],
+    'probes': [
+        {'cx': 290, 'cy': 118, 'badge': 'P1', 'label': 'PROBE 1 · User-to-kernel switch: syscall returns 0', 'color': '#38bdf8'},
+        {'cx': 690, 'cy': 291, 'badge': 'P2', 'label': 'PROBE 2 · Pipeline flow: stderr separated from stdout', 'color': '#f59e0b'},
+        {'cx': 740, 'cy': 496, 'badge': 'P3', 'label': 'PROBE 3 · Service supervisor: SIGTERM gracefully handled', 'color': '#34d399'}
+    ]
+}
 
 DATA = {
     'contract_version': 2,
