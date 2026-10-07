@@ -5,7 +5,50 @@ ACCESS_DATE = '2026-10-04'
 SOURCES = {'topic-01': ('fsync(2) Linux file data synchronization description (accessed 2026-10-04)', 'https://man7.org/linux/man-pages/man2/fsync.2.html#DESCRIPTION'), 'topic-02': ('Why you need Kubernetes and what it can do (accessed 2026-10-04)', 'https://kubernetes.io/docs/concepts/overview/#why-you-need-kubernetes-and-what-can-it-do'), 'topic-03': ('Understanding Kubernetes objects (accessed 2026-10-04)', 'https://kubernetes.io/docs/concepts/overview/working-with-objects/#kubernetes-objects')}
 
 DATA = { 'access_date': '2026-10-04',
-  'arch_diagram': {},
+  'arch_diagram': {
+      'type': 'topology',
+      'title': 'Day 10: Container Storage Durability and Kubernetes Control Plane Topology',
+      'desc': 'Operational topology tracing OCI image layers, OverlayFS copy-on-write storage durability, kube-apiserver declarative reconciliation, and Service-to-Pod routing hierarchy.',
+      'caption': 'Scope: an illustrative architecture topology for Day 10 container storage and Kubernetes orchestration; it does not prove a deployed Google Cloud production topology or capacity.',
+      'width': 1120,
+      'height': 690,
+      'nodes': [
+          ('1. Workload Ingress & Client Traffic', 'External Client Ingress & Packaging Boundary'),
+          ('2. Storage & Filesystem Durability', 'OverlayFS Writable Layers, Mounts & fsync()'),
+          ('3. Declarative Control Plane & Scheduling', 'kube-apiserver, etcd, Scheduler & Kubelet CRI'),
+          ('4. Core Objects & Routing Hierarchy', 'Ingress, Service Selectors, Pods, ConfigMaps & Secrets')
+      ],
+      'layers': [
+          {'name': 'TIER 1 · WORKLOAD INGRESS & PACKAGING', 'desc': 'External client ingress, HTTP checkouts, and OCI image manifests', 'x': 20, 'y': 55, 'w': 1080, 'h': 110, 'fill': '#12283b', 'title_color': '#7dd3fc'},
+          {'name': 'TIER 2 · STORAGE ENGINE & CONTROL PLANE', 'desc': 'OverlayFS COW layers, volume mounts, kube-apiserver, and etcd reconciliation', 'x': 20, 'y': 185, 'w': 1080, 'h': 230, 'fill': '#1b2038', 'title_color': '#c4b5fd'},
+          {'name': 'TIER 3 · ROUTING HIERARCHY & PERSISTENCE GOVERNANCE', 'desc': 'Service VIP routing, EndpointSlices, volume persistence, and ownership diagram artifact', 'x': 20, 'y': 435, 'w': 1080, 'h': 120, 'fill': '#2b1d2f', 'title_color': '#f9a8d4'}
+      ],
+      'boundaries': [
+          {'label': 'LIMIT / FAILURE BOUNDARY', 'x': 430, 'y': 230, 'w': 530, 'h': 140, 'color': '#f59e0b'}
+      ],
+      'components': [
+          {'name': 'Client / Ingress Traffic', 'detail': 'HTTP checkout & API traffic', 'icon': '../assets/icons/generic/client.svg', 'stroke': '#38bdf8', 'w': 190, 'h': 52, 'x': 70, 'y': 92},
+          {'name': 'OCI Packaging & Orchestration Gate', 'detail': 'Image manifests, OverlayFS & GKE control plane', 'icon': '../assets/icons/gcp/core/gke.svg', 'stroke': '#f59e0b', 'w': 250, 'h': 52, 'x': 465, 'y': 92},
+          {'name': 'Docker Storage Engine', 'detail': 'OverlayFS COW layer · fsync() durability', 'icon': '../assets/icons/generic/storage.svg', 'stroke': '#38bdf8', 'w': 270, 'h': 64, 'x': 70, 'y': 222},
+          {'name': 'Kubernetes Control Plane', 'detail': 'etcd desired state · controller reconciliation', 'icon': '../assets/icons/generic/server.svg', 'stroke': '#38bdf8', 'w': 270, 'h': 64, 'x': 70, 'y': 312},
+          {'name': 'Placement & Capacity Gate', 'detail': 'Scheduler filtering · Allocatable RAM/CPU', 'icon': '../assets/icons/generic/decision.svg', 'stroke': '#f43f5e', 'w': 235, 'h': 62, 'x': 455, 'y': 252},
+          {'name': 'Active Core Object Stack', 'detail': 'Service VIP -> Pod EndpointSlice', 'icon': '../assets/icons/generic/endpoint.svg', 'stroke': '#34d399', 'w': 220, 'h': 62, 'x': 715, 'y': 252},
+          {'name': 'Storage & Routing Policy', 'detail': 'Volume persistence & selector rules', 'icon': '../assets/icons/generic/policy.svg', 'stroke': '#38bdf8', 'w': 280, 'h': 52, 'x': 70, 'y': 472},
+          {'name': 'Ownership Diagram Exit Artifact', 'detail': 'Pod/Deployment/Service relationship report', 'icon': '../assets/icons/generic/artifact.svg', 'stroke': '#34d399', 'w': 310, 'h': 52, 'x': 465, 'y': 472}
+      ],
+      'flows': [
+          {'label': 'INGRESS', 'type': 'ok', 'x1': 260, 'x2': 465, 'y1': 118, 'y2': 118},
+          {'label': 'PERSIST', 'type': 'ok', 'x1': 340, 'x2': 455, 'y1': 254, 'y2': 270},
+          {'label': 'RECONCILE', 'type': 'warn', 'x1': 340, 'x2': 455, 'y1': 344, 'y2': 295},
+          {'label': 'ROUTE', 'type': 'ok', 'x1': 690, 'x2': 715, 'y1': 283, 'y2': 283},
+          {'label': 'AUDIT', 'type': 'ok', 'x1': 350, 'x2': 465, 'y1': 498, 'y2': 498}
+      ],
+      'probes': [
+          {'color': '#38bdf8', 'cx': 250, 'cy': 118, 'label': 'P1: Container Packaging & Manifest Check'},
+          {'color': '#f59e0b', 'cx': 570, 'cy': 252, 'label': 'P2: Node Capacity & Bin Packing Check'},
+          {'color': '#34d399', 'cx': 620, 'cy': 472, 'label': 'P3: Service Selector & Endpoint Binding Check'}
+      ]
+  },
   'completion_html': '<div class="completion-box" id="completion-box-010">\n'
                      '<h3>Day 10 Acceptance Checklist</h3>\n'
                      '<ul class="checklist">\n'
