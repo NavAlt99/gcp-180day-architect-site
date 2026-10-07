@@ -114,6 +114,23 @@ def validate_data(day, data, *, legacy=False, metadata=None, reference=None):
                     path = (ROOT / 'days' / href.split('#')[0]).resolve()
                     if not href or not path.is_relative_to(ROOT / 'assets/icons') or not path.is_file():
                         error(key, field, 'SVG icon must exist locally under assets/icons')
+            svg_str = str(svg)
+            title_text = title.get_text(' ', strip=True) if title else ''
+            template_patterns = (
+                'CEL Attribute Rule',
+                'Cryptographic Check',
+                'Boundary under study',
+                'Protocol: HTTPS / TLS 1.3',
+                'TIERED PIPELINE',
+            )
+            matched_template = next((p for p in template_patterns if p in svg_str), None)
+            if not matched_template and re.search(r'Day \d+ foundation path', title_text, re.I):
+                matched_template = 'Day N foundation path'
+            if matched_template:
+                if contract_v2:
+                    error(key, field, f'generic template topology figure not permitted: {matched_template}')
+                else:
+                    warnings.append(f'WARN {key} {field}: generic template topology figure: {matched_template}')
         for wrapper in document.select('.diagram-container'):
             if not wrapper.select_one('svg'):
                 error(key, field, 'empty diagram wrapper/placeholder')

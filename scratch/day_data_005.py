@@ -199,51 +199,7 @@ PART1_HTML = '''<article class="topic-card overview" id="topic-01-overview">
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> Untrusted external clients access internal staging microservices directly over public IP addresses despite team assumptions that the services were private to the load balancer. A broad legacy ingress allow rule at priority 100 matched all incoming traffic before the narrow priority 200 restriction could take effect.</p>
 </article>'''
 
-ARCH_DIAGRAM = {
-    'title': 'Day 5 foundation path — Day 5 — VPN, load balancers and firewalls',
-    'desc': 'Three-tier foundation topology for Day 5 — VPN, load balancers and firewalls. It separates ingress and demand, runtime and data, and governance and decision evidence, with probes at each ownership boundary.',
-    'caption': 'Scope: an illustrative teaching topology for Day 5\'s day 5 — vpn, load balancers and firewalls path. It shows ownership boundaries and evidence flow; it does not prove a deployed Google Cloud topology, capacity, or production behavior.',
-    'width': 1120,
-    'height': 690,
-    'nodes': [
-        ('1. Ingress & Client Edge', 'Public Traffic & Probe'),
-        ('2. Hybrid Transit & Load Balancer', 'IPsec ESP & Envoy Proxy'),
-        ('3. Target Workload & Enforcement', 'VM Backend & VPC Firewall conntrack'),
-        ('4. Return Path & Verification', 'Symmetric Route & Decision Evidence')
-    ],
-    'layers': [
-        {'name': 'TIER 1 · INGRESS / DEMAND', 'desc': 'request, client, edge', 'x': 20, 'y': 55, 'w': 1080, 'h': 110, 'fill': '#12283b', 'title_color': '#7dd3fc'},
-        {'name': 'TIER 2 · RUNTIME / DATA', 'desc': 'state, process, path', 'x': 20, 'y': 185, 'w': 1080, 'h': 230, 'fill': '#1b2038', 'title_color': '#c4b5fd'},
-        {'name': 'TIER 3 · GOVERNANCE / DECISION', 'desc': 'policy, evidence, exit', 'x': 20, 'y': 435, 'w': 1080, 'h': 120, 'fill': '#2b1d2f', 'title_color': '#f9a8d4'}
-    ],
-    'boundaries': [
-        {'x': 430, 'y': 230, 'w': 530, 'h': 140, 'color': '#f59e0b', 'label': 'LIMIT / FAILURE BOUNDARY'}
-    ],
-    'components': [
-        {'x': 70, 'y': 92, 'w': 190, 'h': 52, 'stroke': '#38bdf8', 'name': 'Client / probe', 'detail': 'input + expectation', 'icon': '../assets/icons/generic/client.svg'},
-        {'x': 465, 'y': 92, 'w': 250, 'h': 52, 'stroke': '#f59e0b', 'name': 'Boundary under study', 'detail': 'Day 5 — VPN, load balancers and firewalls', 'icon': '../assets/icons/gcp/legacy/cloud-vpn.svg'},
-        {'x': 860, 'y': 92, 'w': 190, 'h': 52, 'stroke': '#34d399', 'name': 'Observed result', 'detail': 'status / trace / artifact', 'icon': '../assets/icons/generic/outcome.svg'},
-        {'x': 180, 'y': 265, 'w': 220, 'h': 72, 'stroke': '#a78bfa', 'name': 'Control path', 'detail': 'owner + state transition', 'icon': '../assets/icons/generic/server.svg'},
-        {'x': 450, 'y': 265, 'w': 220, 'h': 72, 'stroke': '#f59e0b', 'name': 'Runtime or data state', 'detail': 'where the limit appears', 'icon': '../assets/icons/generic/storage.svg'},
-        {'x': 720, 'y': 265, 'w': 220, 'h': 72, 'stroke': '#34d399', 'name': 'Return / recovery path', 'detail': 'response + replay safety', 'icon': '../assets/icons/generic/event.svg'},
-        {'x': 195, 'y': 480, 'w': 220, 'h': 52, 'stroke': '#f9a8d4', 'name': 'Decision record', 'detail': 'accept / repair / defer', 'icon': '../assets/icons/generic/decision.svg'},
-        {'x': 710, 'y': 480, 'w': 220, 'h': 52, 'stroke': '#f59e0b', 'name': 'Verification boundary', 'detail': 'evidence meets exit', 'icon': '../assets/icons/generic/policy.svg'}
-    ],
-    'flows': [
-        {'x1': 260, 'y1': 118, 'x2': 465, 'y2': 118, 'type': 'blue', 'label': 'request'},
-        {'x1': 715, 'y1': 118, 'x2': 860, 'y2': 118, 'type': 'ok', 'label': 'evidence'},
-        {'x1': 590, 'y1': 144, 'x2': 590, 'y2': 265, 'type': 'warn', 'label': 'handoff'},
-        {'x1': 400, 'y1': 301, 'x2': 450, 'y2': 301, 'type': 'ok', 'label': 'state'},
-        {'x1': 670, 'y1': 301, 'x2': 720, 'y2': 301, 'type': 'ok', 'label': 'return'},
-        {'x1': 290, 'y1': 337, 'x2': 305, 'y2': 480, 'type': 'blue', 'label': 'record'},
-        {'x1': 830, 'y1': 337, 'x2': 820, 'y2': 480, 'type': 'ok', 'label': 'verify'}
-    ],
-    'probes': [
-        {'cx': 248, 'cy': 104, 'badge': 'P1', 'label': 'PROBE 1 · input accepted', 'color': '#38bdf8'},
-        {'cx': 658, 'cy': 277, 'badge': 'P2', 'label': 'PROBE 2 · boundary observed', 'color': '#f59e0b'},
-        {'cx': 918, 'cy': 492, 'badge': 'P3', 'label': 'PROBE 3 · exit evidence', 'color': '#34d399'}
-    ]
-}
+ARCH_DIAGRAM = {}
 
 DATA = {
     'contract_version': 2,
