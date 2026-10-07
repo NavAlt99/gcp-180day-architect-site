@@ -203,6 +203,47 @@ class ValidateSpecTests(unittest.TestCase):
         errors, _ = validator.validate_data(4, bad_v2, metadata=v2_meta)
         self.assertTrue(any('nested figure' in e for e in errors), errors)
 
+    def test_generic_template_topology_rejected(self):
+        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+        template_patterns = [
+            'CEL Attribute Rule',
+            'Cryptographic Check',
+            'Boundary under study',
+            'Protocol: HTTPS / TLS 1.3',
+            'TIERED PIPELINE',
+        ]
+        svg_template = (
+            '<figure><svg viewBox="0 0 100 100" role="img" aria-labelledby="t d">'
+            '<title id="t">{title}</title><desc id="d">Desc</desc>'
+            '<rect width="100" height="100"/><text>{content}</text>'
+            '</svg><figcaption>Scope: illustrative test.</figcaption></figure>'
+        )
+
+        for pat in template_patterns:
+            with self.subTest(pattern=pat):
+                bad_v2 = copy.deepcopy(v2_data)
+                bad_v2['topics'][0]['technical'] += svg_template.format(title='Custom Title', content=pat)
+                errors, _ = validator.validate_data(4, bad_v2, metadata=v2_meta)
+                self.assertTrue(any('generic template topology' in e and pat in e for e in errors), errors)
+
+                bad_v1 = copy.deepcopy(self.data)
+                bad_v1['topics'][0]['technical'] += svg_template.format(title='Custom Title', content=pat)
+                errors_v1, warnings_v1 = validator.validate_data(2, bad_v1, metadata=self.metadata)
+                self.assertEqual(errors_v1, [])
+                self.assertTrue(any('generic template topology' in w and pat in w for w in warnings_v1), warnings_v1)
+
+        with self.subTest(pattern='title'):
+            bad_v2 = copy.deepcopy(v2_data)
+            bad_v2['topics'][0]['technical'] += svg_template.format(title='Day 4 foundation path — Overview', content='Valid content')
+            errors, _ = validator.validate_data(4, bad_v2, metadata=v2_meta)
+            self.assertTrue(any('generic template topology' in e for e in errors), errors)
+
+            bad_v1 = copy.deepcopy(self.data)
+            bad_v1['topics'][0]['technical'] += svg_template.format(title='Day 2 foundation path — Overview', content='Valid content')
+            errors_v1, warnings_v1 = validator.validate_data(2, bad_v1, metadata=self.metadata)
+            self.assertEqual(errors_v1, [])
+            self.assertTrue(any('generic template topology' in w for w in warnings_v1), warnings_v1)
+
     def test_error_9_source_metadata(self):
         self.check(lambda d: d['topics'][0].update(reference='http://example.com'), 'https URL')
         self.check(lambda d: d['topics'][0].update(reference_label='TODO: verify doc'), 'unverified source label')

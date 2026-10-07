@@ -30,10 +30,25 @@ def code(text):
                      [p.get_text() for p in html.select('pre')])
 
 
+TEMPLATE_PATTERNS = (
+    'CEL Attribute Rule',
+    'Cryptographic Check',
+    'Boundary under study',
+    'Protocol: HTTPS / TLS 1.3',
+    'TIERED PIPELINE',
+)
+
+
 def figure_titles(html):
     document = BeautifulSoup(html, 'html.parser')
-    return [s.title.get_text(' ', strip=True) if s.title else '(untitled figure)'
-            for s in document.select('svg[role="img"]')]
+    titles = []
+    for s in document.select('svg[role="img"]'):
+        s_raw = str(s)
+        t = s.title.get_text(' ', strip=True) if s.title else '(untitled figure)'
+        if any(p in s_raw for p in TEMPLATE_PATTERNS) or re.search(r'Day \d+ foundation path', t, re.I):
+            continue
+        titles.append(t)
+    return titles
 
 
 def check(data, rows=(), allowlist=()):
