@@ -556,8 +556,9 @@ DATA = {'contract_version': 2,
                                       'text-anchor="middle" x="470" y="320">Verify both host identities and remove the '
                                       'accidental public ingress rule.</text></svg><figcaption>Figure 7.5: Supplied '
                                       'incident example. Dashed final-hop routing marks the failed path; the corrected '
-                                      'row keeps the target private. Actual firewall and host-key evidence must come '
-                                      'from the environment.</figcaption></figure>',
+                                      'row keeps the target private. Scope is limited to SSH connection routing; the '
+                                      'diagram does not prove bastion host integrity, verified host keys, or network '
+                                      'firewall state.</figcaption></figure>',
                           'root': 'SSH agent forwarding vulnerability: the engineer connected to the shared bastion '
                                   'using ssh -A, creating an authentication socket in /tmp accessible to the bastion '
                                   'root user. When the bastion was compromised, attackers hijacked the forwarded agent '
@@ -1098,8 +1099,9 @@ DATA = {'contract_version': 2,
                                       '252"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" '
                                       'x="470" y="320">The acceptance boundary is the running process, not '
                                       'metadata-download output.</text></svg><figcaption>Figure 7.6: Supplied incident '
-                                      'example separating discovery, installation and runtime state. Package names, '
-                                      'versions and restart requirements must be measured on the target '
+                                      'example separating discovery, installation and runtime state. Scope is limited '
+                                      'to package manager installation stages; the diagram does not prove live daemon '
+                                      'health, runtime configuration, or dependency resolution on the target '
                                       'host.</figcaption></figure>',
                           'root': 'Repository cryptographic signature failure: the upstream repository signing GPG key '
                                   'expired without prior notification. The package manager rejected the release '
@@ -1661,8 +1663,9 @@ DATA = {'contract_version': 2,
                                       'x="470" y="320">Verification observes both emitted messages and the '
                                       'caller-visible exit status.</text></svg><figcaption>Figure 7.7: Supplied '
                                       'incident example. The labels, not color alone, distinguish the incorrect '
-                                      'publish path and corrected blocking gate. It does not represent a live release '
-                                      'pipeline.</figcaption></figure>',
+                                      'publish path and corrected blocking gate. Scope is limited to shell argument '
+                                      'tokenization; the diagram does not prove live pipeline execution or '
+                                      'filesystem recovery.</figcaption></figure>',
                           'root': 'Unquoted variable expansion defect: the script author wrote rm -rf $BACKUP_DIR '
                                   'without double quotes. When the variable contained a path with an embedded space '
                                   "(/mnt/storage/brightloaf cache/daily), the shell's Internal Field Separator (IFS) "
@@ -2317,8 +2320,8 @@ DATA = {'contract_version': 2,
                                       'x="470" y="320">Recovery is accepted only after a synthetic order succeeds; a '
                                       'listed PID is insufficient.</text></svg><figcaption>Figure 7.8: Supplied '
                                       'incident example contrasting a name-only PID choice with supervisor-aware '
-                                      'evidence. Live PIDs and descriptors are environment-specific and '
-                                      'transient.</figcaption></figure>',
+                                      'evidence. Scope is limited to process descriptor inspection; the diagram does '
+                                      'not prove live inode reclamation across system restarts.</figcaption></figure>',
                           'root': 'Unlinked open file descriptor defect: an operator ran rm /var/log/batch.log to '
                                   'clear space. However, batch-app (PID 4812) retained an open write file descriptor '
                                   'to the inode. In Linux, unlinking removes the directory entry but retains the disk '

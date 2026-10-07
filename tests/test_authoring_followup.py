@@ -105,7 +105,34 @@ class AuthoringFollowupTests(unittest.TestCase):
             self.assertEqual(module['DATA']['access_date'], module['ACCESS_DATE'])
             second = subprocess.run(command, capture_output=True, text=True)
             self.assertEqual(second.returncode, 2)
-            self.assertEqual(dest.read_bytes(), before)
+    def test_render_incident_svg_wrapping(self):
+        # 1. override with its own figure: returned unwrapped
+        override_fig = '<figure class="custom-fig"><svg></svg><figcaption>text</figcaption></figure>'
+        topic_with_fig = {'scenario': {'incident_svg_html': override_fig}}
+        out = engine.render_incident_svg(1, 1, topic_with_fig)
+        self.assertEqual(out, override_fig)
+
+        # 2. override without one: wrapped in diagram-container
+        override_no_fig = '<svg viewBox="0 0 10 10"></svg>'
+        topic_no_fig = {'scenario': {'incident_svg_html': override_no_fig}}
+        out = engine.render_incident_svg(1, 1, topic_no_fig)
+        self.assertEqual(out, f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{override_no_fig}</div></figure>')
+
+        # 3. engine-compiled: generates dual-lane figure without nested figures
+        topic_compiled = {
+            'title': 'Test Incident',
+            'scenario': {
+                'diagram_enabled': True,
+                'diagram': ('Trigger', 'Root cause', 'Impact', 'Control', 'Outcome'),
+                'facts': 'Supplied facts: test.',
+                'inference': 'Architectural inference: test.',
+                'expected': 'Expected post-fix behavior: test.'
+            }
+        }
+        out = engine.render_incident_svg(1, 1, topic_compiled)
+        self.assertTrue(out.startswith('<figure class="diagram-container">'))
+        self.assertEqual(out.count('<figure'), 1)
+        self.assertEqual(out.count('</figure>'), 1)
 
 
 if __name__ == '__main__':

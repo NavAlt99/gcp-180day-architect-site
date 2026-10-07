@@ -613,8 +613,9 @@ DATA = {'contract_version': 2,
                                       'x="470" y="340">Verification observes stable PID, no new OOM kill and recovered '
                                       'synthetic-order latency.</text></svg><figcaption>Figure 8.3: Supplied incident '
                                       'example. The before row shows a boundary mismatch; the after row shows the '
-                                      'evidence sequence and expected verification. No production OOM was '
-                                      'triggered.</figcaption></figure>',
+                                      'evidence sequence and expected verification. Scope is limited to memory '
+                                      'boundary comparison; the diagram does not prove host memory headroom or '
+                                      'container memory stability under production load.</figcaption></figure>',
                           'root': 'The worker process was constrained within a cgroup v2 container slice with '
                                   'memory.max configured to 512 MB. While the host VM initially showed low MemFree due '
                                   'to 12 GB of reclaimable page cache, the host actually had ample available memory '
@@ -1363,8 +1364,9 @@ DATA = {'contract_version': 2,
                                       'font-size="12" text-anchor="middle" x="470" y="340">The parser proves one '
                                       'matching record in the supplied fixture, not end-to-end service '
                                       'health.</text></svg><figcaption>Figure 8.4: Supplied incident example '
-                                      'contrasting literal text matching with structured field selection. Counts '
-                                      'remain limited to the fixture and stated time window.</figcaption></figure>',
+                                      'contrasting literal text matching with structured field selection. Scope is '
+                                      'limited to log filter expression matching; the diagram does not prove end-to-end '
+                                      'service availability or downstream error rates.</figcaption></figure>',
                           'root': 'The operational monitoring filter utilized unstructured text grepping for the '
                                   'literal substring "error". The application generates structured JSON logs where '
                                   'failure events are encoded as numeric integer fields (`"status": 503`) accompanied '

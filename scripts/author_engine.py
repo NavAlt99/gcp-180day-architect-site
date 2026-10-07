@@ -108,9 +108,15 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
     if scenario.get("diagram_enabled") is False:
         return ""
     if scenario.get("incident_svg_html"):
-        return f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{scenario["incident_svg_html"]}</div></figure>'
+        override = scenario["incident_svg_html"]
+        if override.lstrip().startswith("<figure"):
+            return override
+        return f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{override}</div></figure>'
     if scenario.get("svg_html"):
-        return f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{scenario["svg_html"]}</div></figure>'
+        override = scenario["svg_html"]
+        if override.lstrip().startswith("<figure"):
+            return override
+        return f'<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto">{override}</div></figure>'
 
     if scenario.get("flow"):
         return render_compact_flow(f"d{day:03d}-case-{index}-flow", scenario["flow"])

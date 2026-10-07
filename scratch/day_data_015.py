@@ -555,7 +555,9 @@ DATA = { 'access_date': '2026-10-04',
                                           '<figcaption>Figure 15.3: Incident retrospective contrasting an un-isolated '
                                           'monolithic process where an ancillary PDF memory leak halts core checkout '
                                           'operations versus decoupled microservice boundaries isolating fault '
-                                          'domains.</figcaption>\n'
+                                          'domains. Scope is limited to service fault domain isolation; the diagram '
+                                          'does not prove host memory capacity or container lifecycle performance '
+                                          'under load.</figcaption>\n'
                                           '</figure>',
                               'expected': 'Decouple PDF rendering into an isolated, asynchronous serverless Cloud Run '
                                           'job; isolate failure domains so crashes in ancillary modules never impact '
@@ -1802,7 +1804,9 @@ DATA = { 'access_date': '2026-10-04',
                                           '<figcaption>Figure 15.4: Incident analysis showing how unsearchable '
                                           'unstructured plain-text logs delay root cause analysis during production '
                                           'outages, contrasted with structured JSON logs and Request ID propagation '
-                                          'enabling sub-minute query resolution.</figcaption>\n'
+                                          'enabling sub-minute query resolution. Scope is limited to log format and '
+                                          'trace propagation comparisons; the diagram does not prove log ingestion '
+                                          'latency or database connection pool health.</figcaption>\n'
                                           '</figure>',
                               'expected': 'All microservices emit structured RFC 8259 JSON to stdout; requests '
                                           'propagate X-Request-Id; Cloud Logging indexes operational fields natively.',
