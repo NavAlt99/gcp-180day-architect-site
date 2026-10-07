@@ -199,7 +199,53 @@ PART1_HTML = '''<article class="topic-card overview" id="topic-01-overview">
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> Untrusted external clients access internal staging microservices directly over public IP addresses despite team assumptions that the services were private to the load balancer. A broad legacy ingress allow rule at priority 100 matched all incoming traffic before the narrow priority 200 restriction could take effect.</p>
 </article>'''
 
-ARCH_DIAGRAM = {}
+ARCH_DIAGRAM = {
+    'type': 'topology',
+    'title': 'Day 5: Hybrid VPN Transit, Load Balancing, and Stateful Firewall Architecture',
+    'desc': 'Operational topology tracing IPsec IKEv2/ESP hybrid transit, Layer 4 and Layer 7 load balancer routing with health check probes, and stateful VPC firewall rule evaluation.',
+    'caption': 'Scope: an illustrative architecture topology for Day 5 hybrid transit and firewall evaluation; it does not prove a deployed Google Cloud production topology or capacity.',
+    'width': 1120,
+    'height': 690,
+    'nodes': [
+        ('1. Ingress & Client Edge', 'Public Traffic & Probe'),
+        ('2. Hybrid Transit & Load Balancer', 'IPsec ESP & Envoy Proxy'),
+        ('3. Target Workload & Enforcement', 'VM Backend & VPC Firewall conntrack'),
+        ('4. Return Path & Verification', 'Symmetric Route & Decision Evidence')
+    ],
+    'layers': [
+        {'name': 'TIER 1 · HYBRID INGRESS & TRANSIT', 'desc': 'IPsec ESP hybrid tunnel and external client edge', 'x': 20, 'y': 55, 'w': 1080, 'h': 110, 'fill': '#12283b', 'title_color': '#7dd3fc'},
+        {'name': 'TIER 2 · TRAFFIC DISTRIBUTION & HEALTH', 'desc': 'L4/L7 load balancing proxies and health check state machines', 'x': 20, 'y': 185, 'w': 1080, 'h': 230, 'fill': '#1b2038', 'title_color': '#c4b5fd'},
+        {'name': 'TIER 3 · FIREWALL & WORKLOAD', 'desc': 'VPC stateful firewall conntrack and Compute Engine backend VMs', 'x': 20, 'y': 435, 'w': 1080, 'h': 120, 'fill': '#2b1d2f', 'title_color': '#f9a8d4'}
+    ],
+    'boundaries': [
+        {'x': 100, 'y': 225, 'w': 920, 'h': 140, 'color': '#a78bfa', 'label': 'HYBRID TRANSIT & LOAD BALANCING DOMAIN'},
+        {'x': 100, 'y': 455, 'w': 920, 'h': 85, 'color': '#f59e0b', 'label': 'VPC FIREWALL & WORKLOAD FAILURE BOUNDARY'}
+    ],
+    'components': [
+        {'x': 70, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#38bdf8', 'name': 'On-Prem / Client Ingress', 'detail': 'TCP 5432 query & HTTPS traffic', 'icon': '../assets/icons/generic/client.svg'},
+        {'x': 430, 'y': 92, 'w': 260, 'h': 52, 'stroke': '#38bdf8', 'name': 'HA VPN Gateway & Tunnel', 'detail': 'IKEv2 Phase 2 ESP & Cloud Router', 'icon': '../assets/icons/gcp/legacy/cloud-vpn.svg'},
+        {'x': 830, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#34d399', 'name': 'Edge Routing & Handover', 'detail': 'VPC transit & route table lookup', 'icon': '../assets/icons/gcp/legacy/cloud-router.svg'},
+        {'x': 140, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#a78bfa', 'name': 'Layer 7 Envoy / L4 Maglev', 'detail': 'URL map & packet forwarding', 'icon': '../assets/icons/gcp/legacy/cloud-load-balancing.svg'},
+        {'x': 440, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'Health Check Probers', 'detail': '35.191.0.0/16 & 130.211.0.0/22 poll', 'icon': '../assets/icons/generic/monitoring.svg'},
+        {'x': 740, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'VPC Stateful Firewall', 'detail': 'Priority-ordered conntrack table', 'icon': '../assets/icons/gcp/legacy/cloud-firewall-rules.svg'},
+        {'x': 140, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#34d399', 'name': 'Target Workload Instances', 'detail': 'Compute Engine VM backend socket', 'icon': '../assets/icons/gcp/core/compute-engine.svg'},
+        {'x': 740, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#f9a8d4', 'name': 'Packet Decision Table', 'detail': 'Allowed/denied audit verification', 'icon': '../assets/icons/generic/decision.svg'}
+    ],
+    'flows': [
+        {'x1': 290, 'y1': 118, 'x2': 430, 'y2': 118, 'type': 'blue', 'label': 'IPsec transit'},
+        {'x1': 690, 'y1': 118, 'x2': 830, 'y2': 118, 'type': 'ok', 'label': 'route lookup'},
+        {'x1': 560, 'y1': 144, 'x2': 265, 'y2': 255, 'type': 'ok', 'label': 'forward to LB'},
+        {'x1': 390, 'y1': 291, 'x2': 440, 'y2': 291, 'type': 'ok', 'label': 'health gate'},
+        {'x1': 690, 'y1': 291, 'x2': 740, 'y2': 291, 'type': 'warn', 'label': 'filter rule'},
+        {'x1': 265, 'y1': 327, 'x2': 265, 'y2': 470, 'type': 'ok', 'label': 'deliver'},
+        {'x1': 865, 'y1': 327, 'x2': 865, 'y2': 470, 'type': 'blue', 'label': 'record log'}
+    ],
+    'probes': [
+        {'cx': 290, 'cy': 118, 'badge': 'P1', 'label': 'PROBE 1 · IPsec SA & path MTU 1460 established', 'color': '#38bdf8'},
+        {'cx': 690, 'cy': 291, 'badge': 'P2', 'label': 'PROBE 2 · Health check probe HTTP 200 pass rate', 'color': '#f59e0b'},
+        {'cx': 740, 'cy': 496, 'badge': 'P3', 'label': 'PROBE 3 · Firewall conntrack allowed vs denied match', 'color': '#34d399'}
+    ]
+}
 
 DATA = {
     'contract_version': 2,
