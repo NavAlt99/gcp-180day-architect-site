@@ -250,22 +250,47 @@ T1_SUBTOPICS = [
         "HTTP Request/Response Semantics and Status Code Taxonomy (RFC 9110)",
         f'{keyword("HTTP semantics")} define an application-layer request-response contract independent of underlying transport framing. '
         'Clients issue requests specifying a target URI, a standardized method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS), '
-        'structured headers containing metadata, and an optional message body. Servers return a three-digit status code partitioned '
-        'into five functional classes: 1xx Informational (e.g. 101 Switching Protocols), 2xx Success (e.g. 200 OK, 201 Created, 204 No Content), '
-        '3xx Redirection (e.g. 301 Moved Permanently, 304 Not Modified), 4xx Client Errors (e.g. 400 Bad Request, 401 Unauthorized, '
-        '403 Forbidden, 404 Not Found, 429 Too Many Requests), and 5xx Server Errors (e.g. 500 Internal Server Error, 502 Bad Gateway, '
-        '503 Service Unavailable, 504 Gateway Timeout). Understanding the exact boundary between 4xx and 5xx codes is vital: 4xx indicates '
-        'the client transmitted an invalid payload, invalid credentials, or exceeded rate quotas, whereas 5xx proves that the receiving '
-        'server or an intermediate reverse proxy encountered an internal crash, unhandled exception, or upstream timeout.',
-        'Cloud architects use status code taxonomy to establish automated health checking, circuit breaking, and Service Level Objective (SLO) '
-        'telemetry. A 502 Bad Gateway response specifically indicates that an intermediate edge proxy or ingress load balancer received an invalid '
-        'or unparseable response from an upstream backend runtime, whereas a 504 Gateway Timeout proves the upstream backend failed to respond within '
-        'the configured timeout deadline. Conflating 502 and 504 errors leads teams to diagnose backend compute timeouts when the true issue is '
-        'premature connection termination or malformed HTTP headers.',
+        'structured headers containing metadata, and an optional message body. '
+        'An HTTP call consists of three foundational architectural segments: the start line, message headers, and an optional payload body. '
+        'In a client request, the start line (the request line) conveys three distinct elements: the HTTP method, the request-target URI, and the protocol version '
+        '(for example: <samp>GET /v1/catalog/items?category=compute&amp;in_stock=true&amp;limit=50&amp;sort=price_desc HTTP/1.1</samp>). '
+        'The request-target URI (RFC 3986) decomposes into the origin-form path (<samp>/v1/catalog/items</samp>) and an optional query string initiated by the '
+        'question mark delimiter (<samp>?</samp>), containing key-value pairs separated by ampersands (<samp>&amp;</samp>). '
+        'Query string parameters must strictly adhere to RFC 3986 percent-encoding rules, escaping reserved octets such as spaces (<samp>%20</samp> or <samp>+</samp>), '
+        'ampersands (<samp>%26</samp>), equals signs (<samp>%3D</samp>), question marks (<samp>%3F</samp>), and slashes (<samp>%2F</samp>). '
+        'HTTP queries fulfill critical architectural functions in distributed systems: (1) resource filtering without exploding URL routing namespaces '
+        '(<samp>?status=active&amp;environment=production</samp>); (2) collection pagination and bounding (<samp>?page=2&amp;limit=100</samp> or cursor-based '
+        '<samp>?starting_after=order_9821</samp>); (3) sorting and field projection (<samp>?sort=created_at:desc&amp;fields=id,sku,amount</samp>); (4) parameterized search expressions '
+        '(<samp>?q=kubernetes+egress+policy</samp>); and (5) edge cache key differentiation across CDN layers. In RESTful system design, HTTP queries must '
+        'respect safety and idempotency invariants (RFC 9110 §9.2.1): safe methods like GET and HEAD must never trigger server-side state mutations, meaning state changes '
+        'must never be driven through query parameters. Furthermore, edge proxies and Content Delivery Networks (CDNs) incorporate the full URI path and query string '
+        'into their edge cache keys by default, enabling granular edge caching across filtered datasets. '
+        'Servers return a three-digit status code partitioned into five functional classes: 1xx Informational (e.g. 101 Switching Protocols), '
+        '2xx Success (e.g. 200 OK, 201 Created, 204 No Content), 3xx Redirection (e.g. 301 Moved Permanently, 304 Not Modified), '
+        '4xx Client Errors (e.g. 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 429 Too Many Requests), '
+        'and 5xx Server Errors (e.g. 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout). '
+        'Understanding the exact boundary between 4xx and 5xx codes is vital: 4xx indicates the client transmitted an invalid payload, invalid credentials, '
+        'or exceeded rate quotas, whereas 5xx proves that the receiving server or an intermediate reverse proxy encountered an internal crash, unhandled exception, '
+        'or upstream timeout.',
+        'Cloud architects use status code taxonomy to establish automated health checking, circuit breaking, and Service Level Objective (SLO) telemetry. '
+        'A 502 Bad Gateway response specifically indicates that an intermediate edge proxy or ingress load balancer received an invalid or unparseable response '
+        'from an upstream backend runtime, whereas a 504 Gateway Timeout proves the upstream backend failed to respond within the configured timeout deadline. '
+        'Conflating 502 and 504 errors leads teams to diagnose backend compute timeouts when the true issue is premature connection termination or malformed HTTP headers. '
+        'Architects must also enforce strict query-processing error boundaries: if a query parameter contains invalid syntax, servers must return 400 Bad Request; '
+        'if parameter syntax is valid but fails semantic business validation (e.g. <samp>limit=-10</samp>), servers should return 422 Unprocessable Entity; '
+        'and if a filtered query returns zero matching records, servers must return 200 OK with an empty collection payload (<samp>[]</samp>), never a 404 Not Found '
+        '(which signifies that the resource endpoint collection itself does not exist). '
+        'Crucially, architects must enforce a strict zero-trust security invariant regarding HTTP queries: credentials, API secret keys, bearer tokens, '
+        'session identifiers, and Personally Identifiable Information (PII) must NEVER be transmitted in query strings. Because query strings form part of the URI, '
+        'they are logged in cleartext across intermediate proxy access logs (e.g. Cloud Logging, Nginx access logs), browser histories, and HTTP <samp>Referer</samp> '
+        'headers, exposing organizations to credential leakage and compliance violations. Sensitive tokens must reside strictly in encrypted HTTP headers '
+        '(e.g. <samp>Authorization: Bearer [token]</samp>) or encrypted POST request bodies.',
         'Google Cloud External Application Load Balancers terminate client HTTP/HTTPS traffic at the edge and generate standardized synthetic status codes. '
         'When all backend instances in a Network Endpoint Group (NEG) fail health checks, Cloud Load Balancing synthesizes an HTTP 502 response '
         'with the response flag <samp>failed_to_pick_backend</samp>. Cloud Monitoring exposes <samp>loadbalancing.googleapis.com/https/request_count</samp> '
-        'broken down by response code class, enabling architects to author alerting policies that isolate client errors from infrastructure faults.',
+        'broken down by response code class, enabling architects to author alerting policies that isolate client errors from infrastructure faults. '
+        'Furthermore, Cloud CDN allows architects to configure cache keys to include or exclude specific query parameters, preventing cache pollution '
+        'from tracking queries while ensuring filtered product queries remain fast and scalable.',
         ['rfc9110', 'gcp_https_lb', 'gcp_lb_timeouts']
     ),
     subtopic(
@@ -366,6 +391,91 @@ TLS_FLOW_SVG = flow_svg('d004-tls-handshake', 'TLS 1.3 1-RTT Handshake: Key Exch
     '5. Client Finished',
 ], 'TLS 1.3 1-RTT cryptographic handshake sequence showing key exchange, certificate chain transmission, and mutual verification.')
 
+CERTIFICATE_TYPES_TABLE_HTML = """<figure class="table-figure">
+<div class="table-container">
+<table class="comparison-table">
+  <caption>Architectural Classification of X.509 Certificate Types, Layers, and Usage Patterns</caption>
+  <thead>
+    <tr>
+      <th scope="col">Certificate Type</th>
+      <th scope="col">Architectural Layer</th>
+      <th scope="col">Scope &amp; Subject Identity</th>
+      <th scope="col">Key Extensions &amp; Constraints (RFC 5280)</th>
+      <th scope="col">How Application Teams Use It</th>
+      <th scope="col">How Load Balancers &amp; Edge Proxies Use It</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Root CA Certificate</strong></td>
+      <td>Layer 7 / Trust Anchor</td>
+      <td>Self-signed root trust anchor representing the root of trust for an entire PKI hierarchy.</td>
+      <td><code>basicConstraints=critical,CA:TRUE</code> (unconstrained or high pathlen), <code>keyUsage=keyCertSign,cRLSign</code></td>
+      <td>Installed into operating system and runtime trust stores (<code>/etc/ssl/certs</code>, Java <code>cacerts</code>); application runtimes use it to validate server certificate chains. Private enterprise roots are injected into container base images.</td>
+      <td>Not deployed directly on edge proxies; Cloud Load Balancer proxies trust public Web PKI roots (or private CA pools) when performing backend re-encryption validation.</td>
+    </tr>
+    <tr>
+      <td><strong>Intermediate / Subordinate CA Certificate</strong></td>
+      <td>Layer 7 / PKI Issuance Tier</td>
+      <td>Issued by a Root CA or superior Intermediate to compartmentalize signing authority and protect Root private keys offline.</td>
+      <td><code>basicConstraints=critical,CA:TRUE,pathlen:0/1</code>, <code>keyUsage=keyCertSign,cRLSign</code>, AKI/SKI key linkage</td>
+      <td>Application teams submit Certificate Signing Requests (CSRs) to Intermediates. Teams must configure their web servers with the full chain bundle (leaf + intermediate) to prevent client validation errors.</td>
+      <td>Configured in Cloud Load Balancer / Certificate Manager as part of the certificate chain bundle served to clients during the TLS handshake to ensure complete chain verification.</td>
+    </tr>
+    <tr>
+      <td><strong>Server / Leaf Certificate (Single-Domain)</strong></td>
+      <td>Layer 7 / TLS Termination</td>
+      <td>End-entity identity binding a single Fully Qualified Domain Name (FQDN, e.g. <code>api.example.com</code>) to a public key.</td>
+      <td><code>basicConstraints=CA:FALSE</code>, <code>extendedKeyUsage=serverAuth</code>, <code>SAN=dNSName:api.example.com</code>, <code>keyUsage=digitalSignature,keyEncipherment</code></td>
+      <td>Deployed directly to application web servers (Envoy, Nginx, Spring Boot) or managed via Kubernetes <code>cert-manager</code> for ingress controllers.</td>
+      <td>Attached to Target HTTPS Proxy on Google Cloud Load Balancer for public edge TLS termination; traffic is decrypted before URL map routing.</td>
+    </tr>
+    <tr>
+      <td><strong>Wildcard Certificate (<code>*.example.com</code>)</strong></td>
+      <td>Layer 7 / Ingress Aggregation</td>
+      <td>Secures an apex domain and all immediate first-level subdomains (e.g. <code>auth.example.com</code>, <code>billing.example.com</code>).</td>
+      <td><code>basicConstraints=CA:FALSE</code>, <code>SAN=dNSName:*.example.com, dNSName:example.com</code>, <code>extendedKeyUsage=serverAuth</code></td>
+      <td>Simplifies secret management across dynamic microservice environments, eliminating the need to issue a new certificate for each microservice deployment.</td>
+      <td>Uploaded to Certificate Manager or provisioned via DNS authorization; matches incoming SNI for dynamic subdomains on a single Anycast frontend VIP.</td>
+    </tr>
+    <tr>
+      <td><strong>Multi-Domain / SAN Certificate (UCC)</strong></td>
+      <td>Layer 7 / Multi-Tenant Edge</td>
+      <td>Secures multiple distinct, unrelated domain names (e.g. <code>example.com</code>, <code>shop.net</code>, <code>api.internal</code>) in a single certificate.</td>
+      <td><code>basicConstraints=CA:FALSE</code>, <code>SAN</code> containing multiple diverse <code>dNSName</code> entries, <code>extendedKeyUsage=serverAuth</code></td>
+      <td>Used by application teams consolidating multi-brand microservices onto a unified ingress controller or shared API gateway.</td>
+      <td>Configured on External Application Load Balancers to serve multiple disparate tenant hostnames from a single shared Target HTTPS Proxy.</td>
+    </tr>
+    <tr>
+      <td><strong>Client Certificate (Mutual TLS / mTLS)</strong></td>
+      <td>Layer 4 / Layer 7 Zero-Trust Identity</td>
+      <td>Authenticates the client identity (service, user, or device) to the server during mutual TLS handshakes.</td>
+      <td><code>basicConstraints=CA:FALSE</code>, <code>extendedKeyUsage=clientAuth</code>, <code>SAN=URI:spiffe://...</code> or <code>dNSName</code> / <code>email</code></td>
+      <td>Application teams configure client HTTP connection pools with private key + client cert to authenticate outbound API requests in zero-trust architectures.</td>
+      <td>Google Cloud Load Balancer / API Gateway configured with mTLS validates incoming client certificate against trusted CA pool before proxying request.</td>
+    </tr>
+    <tr>
+      <td><strong>Private / Internal CA Certificate</strong></td>
+      <td>Layer 7 / Enterprise VPC</td>
+      <td>Issued by internal private PKI (e.g. Google Cloud Certificate Authority Service - CAS) for internal VPC service mesh and database endpoints.</td>
+      <td>Custom enterprise OIDs, <code>basicConstraints=CA:FALSE</code>, <code>extendedKeyUsage=serverAuth,clientAuth</code></td>
+      <td>App teams use automated CAS connectors to mint short-lived certificates for internal database connections, gRPC services, and Cloud SQL SSL.</td>
+      <td>Attached to Internal Application Load Balancers or backend services to encrypt traffic traversing internal VPCs without public Web PKI dependencies.</td>
+    </tr>
+    <tr>
+      <td><strong>Self-Signed Certificate</strong></td>
+      <td>Layer 7 / Dev &amp; Bootstrap</td>
+      <td>Generated locally (<code>openssl req -x509</code>) where the subject and issuer are identical; zero chain of trust.</td>
+      <td><code>basicConstraints=CA:FALSE</code>, <code>keyUsage=digitalSignature</code>, no third-party signature</td>
+      <td>Used strictly in local development environments, unit tests, or ephemeral CI/CD pipelines; rejected by production browsers and default trust stores.</td>
+      <td>Not permitted on public Cloud Load Balancer frontends; can be used for backend re-encryption only if insecure backend verification is explicitly tolerated.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<figcaption>Classification of X.509 certificate types across architectural tiers, contrasting client application workflows with edge load balancer termination mechanisms.</figcaption>
+</figure>"""
+
 T2_SUBTOPICS = [
     subtopic(
         "TLS 1.3 Handshake Protocol and 1-RTT Cryptographic Exchange (RFC 8446)",
@@ -389,15 +499,40 @@ T2_SUBTOPICS = [
     subtopic(
         "X.509 PKI Trust Architecture and Certificate Validation Chains (RFC 5280)",
         f'The <strong class="keyword">X.509 Public Key Infrastructure</strong> (RFC 5280) establishes cryptographic identity through a hierarchical chain '
-        'of digital trust. An end-entity (<strong class="keyword">leaf certificate</strong>) presented by a server is signed by an intermediate Certificate Authority (CA), '
-        'which in turn is signed by a root Certificate Authority (<strong class="keyword">trust anchor</strong>) pre-installed in the client operating system or runtime '
-        'trust store. During certificate validation, the client executes an exhaustive algorithmic verification sequence: (1) validates that the current system time '
-        'falls strictly between each certificate’s <samp>notBefore</samp> and <samp>notAfter</samp> validity timestamps; (2) verifies the cryptographic signature '
-        'of each link in the chain using the issuer’s public key up to a trusted root; (3) verifies that basic constraints identify intermediate certificates '
-        'as valid CAs (<samp>isCA=TRUE</samp>); and (4) verifies that the requested hostname matches the certificate identity. Crucially, modern TLS standards '
-        'strictly deprecate the legacy <samp>Common Name (CN)</samp> attribute in favor of the <strong class="keyword">Subject Alternative Name (SAN)</strong> extension. '
-        'If a server certificate presents a CN matching the requested hostname but lacks a corresponding <samp>dNSName</samp> entry in its SAN extension, modern clients '
-        '(including Go runtimes, Python urllib3, Chrome, and curl) immediately reject the connection with a hostname verification failure.',
+        'of digital trust. A <strong class="keyword">Certificate Authority (CA)</strong> is a trusted third-party organization or internal PKI governance authority '
+        'responsible for verifying applicant identities and issuing cryptographically signed digital certificates. In the Web PKI trust model, trust is anchored '
+        'in curated <strong class="keyword">Trust Stores</strong> maintained by operating systems (Linux NSS, Apple, Microsoft) and browser vendors (Google Chrome Root Program). '
+        'To establish defense-in-depth, CAs employ a strict two-tier architecture: the <strong class="keyword">Root CA</strong> serves as the ultimate trust anchor, '
+        'with its private key protected in air-gapped, offline FIPS 140-2 Level 3 Hardware Security Modules (HSMs) accessed only during formal multi-person key ceremonies. '
+        'The Root CA signs one or more online <strong class="keyword">Intermediate CAs</strong> (subordinate CAs), which handle day-to-day certificate signing requests (CSRs) '
+        'and issue end-entity (<strong class="keyword">leaf certificates</strong>). If an intermediate CA key is ever compromised, only that intermediate is revoked via CRL or OCSP, '
+        'leaving the global Root trust anchor intact. An applicant generates a key pair and submits a <strong class="keyword">Certificate Signing Request (CSR, PKCS#10)</strong>, '
+        'which contains the public key, requested subject domains, and a signature generated by the applicant’s private key proving proof-of-possession. '
+        'CAs issue certificates under three standardized validation tiers: Domain Validation (DV, automated proof of DNS or HTTP control via ACME RFC 8555), '
+        'Organization Validation (OV, vetting legal entity existence), and Extended Validation (EV, comprehensive cross-referenced legal auditing).\n\n'
+        'Under the hood, an X.509 v3 certificate is an ASN.1 (Abstract Syntax Notation One) structured object, serialized in binary Distinguished Encoding Rules (DER) '
+        'or base64-encoded Privacy-Enhanced Mail (PEM) format (<samp>-----BEGIN CERTIFICATE-----</samp>). An X.509 certificate consists of three top-level fields (RFC 5280 §4.1): '
+        '(1) the <strong class="keyword">tbsCertificate</strong> (To-Be-Signed payload); (2) the <strong class="keyword">signatureAlgorithm</strong> identifier; and '
+        '(3) the <strong class="keyword">signatureValue</strong> (the CA’s raw digital signature bit string). The <samp>tbsCertificate</samp> contains the entire '
+        'cryptographic and identity payload: Version (v3 = 0x02); Serial Number (a positive integer up to 20 octets generated with at least 64 bits of cryptographic entropy '
+        'to thwart hash collision attacks); Signature Algorithm OID (e.g. <samp>sha256WithRSAEncryption</samp> or <samp>ecdsa-with-SHA256</samp>); Issuer Distinguished Name (DN); '
+        'Validity period bounded by <samp>notBefore</samp> and <samp>notAfter</samp> timestamps; Subject DN; Subject Public Key Info (specifying the key algorithm OID, '
+        'such as RSA 2048/4096-bit modulus and exponent or ECDSA elliptic curve parameters with coordinate point <samp>(x,y)</samp> on curve <samp>prime256v1</samp>); '
+        'and standard X.509 v3 extensions. Crucial extensions include: <strong class="keyword">Subject Alternative Name (SAN, id-ce-subjectAltName)</strong> enumerating valid <samp>dNSName</samp> '
+        'and <samp>iPAddress</samp> identities; <strong class="keyword">Basic Constraints (id-ce-basicConstraints)</strong> designating whether the certificate is a CA (<samp>cA: TRUE/FALSE</samp>) '
+        'and bounding maximum subordinate chain depth via <samp>pathLenConstraint</samp>; <strong class="keyword">Key Usage (id-ce-keyUsage)</strong> defining permitted cryptographic operations '
+        '(<samp>digitalSignature</samp>, <samp>keyEncipherment</samp>, <samp>keyCertSign</samp>, <samp>cRLSign</samp>); <strong class="keyword">Extended Key Usage (EKU, id-ce-extKeyUsage)</strong> '
+        'restricting purpose to <samp>serverAuth</samp> or <samp>clientAuth</samp>; <strong class="keyword">Authority Key Identifier (AKI)</strong> and <strong class="keyword">Subject Key Identifier (SKI)</strong> '
+        'linking child keys to parent keys; and <strong class="keyword">Authority Information Access (AIA)</strong> providing HTTP URIs for OCSP responders and issuing CA certificates.\n\n'
+        'Cryptographic validation operates via rigorous mathematical verification: the issuing CA hashes the canonical DER-encoded <samp>tbsCertificate</samp> using SHA-256 '
+        '(<samp>H = SHA-256(DER(tbsCertificate))</samp>) and encrypts/signs the hash using the CA’s private key. During connection establishment, the client extracts the '
+        '<samp>tbsCertificate</samp>, independently computes <samp>H\' = SHA-256(DER(tbsCertificate))</samp>, and verifies the signature using the issuer’s public key '
+        'extracted from the parent certificate. If the signature decrypts correctly and matches <samp>H\'</samp>, the certificate is mathematically proven to be authentic and unaltered. '
+        'The client executes an exhaustive algorithmic verification sequence: (1) validates that current system time falls strictly between <samp>notBefore</samp> and <samp>notAfter</samp>; '
+        '(2) verifies cryptographic signatures link-by-link up to a trusted root in the local trust store; (3) verifies basic constraints confirm all intermediate certificates are valid CAs (<samp>isCA=TRUE</samp>); '
+        'and (4) verifies that the requested hostname matches the certificate identity. Modern TLS standards strictly deprecate the legacy <samp>Common Name (CN)</samp> attribute '
+        'in favor of the <strong class="keyword">Subject Alternative Name (SAN)</strong> extension. If a server certificate presents a CN matching the requested hostname but lacks '
+        'a corresponding <samp>dNSName</samp> entry in its SAN extension, modern clients (including Go runtimes, Python urllib3, Chrome, and curl) immediately reject the connection with a hostname verification failure.',
         'Cloud architects must design certificate rotation pipelines that preserve intermediate chain delivery. A common enterprise failure mode is '
         'configuring a web server or load balancer with only the leaf certificate while omitting the intermediate CA certificate. While desktop browsers '
         'frequently mask this error by caching intermediate CAs or performing Authority Information Access (AIA) fetching over HTTP, automated microservice '
@@ -406,7 +541,7 @@ T2_SUBTOPICS = [
         'can be automatically issued and renewed; Supported TLS certificates also permits a Certificate Authority Service CA pool as issuer. '
         'The cited section does not specify a universal 90-day lifetime or promise complete chain provisioning without validation; inspect the deployed certificate chain and authorization state.',
         ['rfc5280', 'rfc9525', 'gcp_cert_mgr']
-    ),
+    ) + CERTIFICATE_TYPES_TABLE_HTML,
     subtopic(
         "Certificate Revocation and Verification Mechanisms: CRLs vs OCSP Stapling",
         f'When a private key is compromised or a server is decommissioned prior to certificate expiration, the certificate must be revoked. '
@@ -433,7 +568,34 @@ T2_SUBTOPICS = [
         '(such as <samp>h2</samp> for HTTP/2 or <samp>http/1.1</samp>) before the handshake completes, avoiding an extra application-layer round trip. '
         'In addition to protocol negotiation, enterprise security policies mandate restricting accepted cipher suites to those offering authenticated encryption '
         'and forward secrecy (e.g., <samp>TLS_AES_128_GCM_SHA256</samp>, <samp>TLS_AES_256_GCM_SHA384</samp>, <samp>ECDHE-ECDSA-AES128-GCM-SHA256</samp>) '
-        'while completely disallowing legacy static RSA key exchanges and CBC mode ciphers vulnerable to padding oracle attacks.',
+        'while completely disallowing legacy static RSA key exchanges and CBC mode ciphers vulnerable to padding oracle attacks.\n\n'
+        'In production engineering, <strong class="keyword">application teams use certificates</strong> across several operational lifecycles: '
+        '(1) <strong class="side-heading">Key &amp; CSR Generation:</strong> Developers generate private keys using modern curves (<samp>prime256v1</samp> / P-256 or <samp>ed25519</samp>) '
+        'or RSA (minimum 2048-bit, 3072-bit recommended) and create PKCS#10 CSRs specifying exact SAN hostnames. '
+        '(2) <strong class="side-heading">Key Protection &amp; Secret Management:</strong> Private keys are never stored in source code repositories or baked into Docker container images; '
+        'they are secured in Google Cloud Secret Manager, HashiCorp Vault, or Kubernetes Secrets, mounted into pods with strict POSIX file permissions (<samp>chmod 0600</samp>). '
+        '(3) <strong class="side-heading">Runtime Configuration:</strong> In Java / Spring Boot microservices, teams package private keys and certificate chains into PKCS#12 bundles '
+        '(<samp>.p12</samp>) and configure <samp>server.ssl.key-store</samp>; in Go runtimes, services configure <samp>tls.LoadX509KeyPair()</samp>; in Node.js, services pass keys and certs to '
+        '<samp>https.createServer()</samp>; and in Python, services initialize <samp>ssl.create_default_context()</samp>. '
+        '(4) <strong class="side-heading">Trust Store Governance:</strong> For internal microservices communicating over private VPC networks, application teams inject internal enterprise CA root certificates '
+        'into base container images (<samp>/etc/ssl/certs</samp> via <samp>update-ca-certificates</samp> or Java <samp>cacerts</samp> via <samp>keytool -importcert</samp>) so workloads trust internal endpoints. '
+        '(5) <strong class="side-heading">Automated Rotation Pipelines:</strong> Teams deploy Kubernetes <samp>cert-manager</samp> to automate issuance and renewal before certificate expiration, '
+        'triggering graceful rolling restarts upon secret update. '
+        '(6) <strong class="side-heading">Client Mutual TLS (mTLS):</strong> For zero-trust service-to-service communication, applications configure outbound HTTP/gRPC connection pools with client certificates '
+        'to cryptographically prove caller identity to downstream microservices.\n\n'
+        'Simultaneously, <strong class="keyword">cloud load balancers and reverse proxies use certificates</strong> to manage traffic at scale: '
+        '(1) <strong class="side-heading">Edge TLS Termination (SSL Offloading):</strong> Google Cloud External Application Load Balancers terminate client TLS sessions at Google’s global edge network (Edge PoPs). '
+        'The load balancer executes compute-intensive cryptographic handshakes and ephemeral key derivation at the edge, decrypts the request payload, evaluates URL map routing rules and Cloud Armor security policies, '
+        'and offloads TLS CPU overhead from backend container instances. '
+        '(2) <strong class="side-heading">Server Name Indication (SNI) Routing:</strong> When multiple disparate customer domains map to a single Anycast external IP address, the load balancer inspects the SNI extension '
+        'in the client’s <samp>ClientHello</samp>, matches the hostname against configured certificate maps, and returns the appropriate server certificate in the <samp>ServerHello</samp>. '
+        '(3) <strong class="side-heading">Google-Managed vs. Self-Managed Certificates:</strong> Google-managed certificates automate domain verification (via DNS or load balancer authorization) and automated 90-day renewals '
+        'with zero administrative toil, whereas self-managed certificates allow enterprise teams to upload custom enterprise certificates, requiring automated CI/CD monitoring to prevent expiration outages. '
+        '(4) <strong class="side-heading">SSL Policies:</strong> Architects attach SSL policies to Target HTTPS Proxies to enforce minimum TLS versions (<samp>TLS 1.2</samp> or <samp>TLS 1.3</samp>) '
+        'and restrict allowed cipher suites (<samp>RESTRICTED</samp> or <samp>MODERN</samp>), preventing protocol downgrade attacks and maintaining PCI-DSS compliance. '
+        '(5) <strong class="side-heading">Backend Encryption Modes:</strong> Architects choose between: (a) Edge Termination with HTTP Backend (decrypted traffic routed over Google’s private Andromeda SDN fabric); '
+        '(b) Edge Termination with Backend Re-Encryption (load balancer initiates a separate TLS handshake to backend instances with backend certificate verification); and '
+        '(c) L4 Passthrough (Network Load Balancers route raw TCP segments directly to backend VMs without decrypting, where application containers terminate TLS directly).',
         'In multi-tenant cloud environments, managing thousands of certificates across microservice domains requires automated lifecycle orchestration. '
         'Architects must implement automated issuance via ACME protocols or cloud-native certificate managers, preventing manual renewal failures '
         'that account for over thirty percent of unplanned enterprise outages.',
@@ -1975,6 +2137,74 @@ COMPLETION_HTML = (
     '<label class="check"><input type="checkbox" data-progress="artifact-4"> I saved the exit artifact</label>'
 )
 
+REVIEW_RECORDS = {
+    'source_ledger': {'https://www.rfc-editor.org/rfc/rfc9110.html#section-15': {'heading_opened': '15. Status Codes The status code of a response is a three-digit intege', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://docs.cloud.google.com/load-balancing/docs/https#http2-over-tls': {'heading_opened': 'HTTP/2 over TLS HTTP/2 over TLS is supported for connections between c', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/load-balancing/docs/https/request-distribution#timeouts_and_retries': {'heading_opened': 'Timeouts and retries External Application Load Balancers support the f', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc9113.html#section-8.2.1': {'heading_opened': '8.2.1. Field Validity The definitions of field names and values in HTT', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://docs.cloud.google.com/load-balancing/docs/https#backend-service': {'heading_opened': 'Backend services A backend service provides configuration information', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc9114.html#section-3': {'heading_opened': '3. Connection Setup and Management HTTP relies on the notion of an aut', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc9114.html#section-4': {'heading_opened': '4. Expressing HTTP Semantics in HTTP/3 A client sends an HTTP request', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc9113.html#section-3.2': {'heading_opened': '3.2. Starting HTTP/2 for " https " URIs A client that makes a request', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc9110.html#section-4.2.2': {'heading_opened': '4.2.2. https URI Scheme The "https" URI scheme is hereby defined for m', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://docs.cloud.google.com/load-balancing/docs/https#http3-negotiation': {'heading_opened': 'How HTTP/3 is negotiated When HTTP/3 is enabled, the load balancer adv', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc8446.html#section-4': {'heading_opened': '4 .  Handshake Protocol The handshake protocol is used to negotiate th', 'rfc_status': 'Obsoleted by value found', 'whole_document_reason': None}, 'https://docs.cloud.google.com/certificate-manager/docs/overview#supported-certificates': {'heading_opened': 'Supported TLS certificates Certificate Manager supports the following', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/certificate-manager/docs/overview#benefits': {'heading_opened': 'Benefits Certificate Manager offers the following benefits:', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc5280.html#section-6': {'heading_opened': '6 .  Certification Path Validation Certification path validation proce', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc9525.html#section-6': {'heading_opened': '6. Verifying Service Identity At a high level, the client verifies the', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc1191.html#section-2': {'heading_opened': '2 . Protocol overview In this memo, we describe a technique for using', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://docs.cloud.google.com/vpc/docs/mtu#valid_mtus': {'heading_opened': 'Valid VPC network MTU sizes Virtual Private Cloud (VPC) networks use a', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/vpc/docs/mtu#to-cloudpath': {'heading_opened': 'Communication to Google APIs and services Compute instances using any', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc9293.html#section-3.7.1': {'heading_opened': '3.7.1. Maximum Segment Size Option TCP endpoints MUST implement both s', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://docs.cloud.google.com/vpc/docs/mtu#through-cloud-vpn': {'heading_opened': 'Communication through Cloud VPN tunnels Cloud VPN has both a gateway M', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/mtu-considerations#cloud-vpn-payload-mtu-values': {'heading_opened': 'Cloud VPN payload MTU values', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc3022.html#section-2': {'heading_opened': '2 . Overview of traditional NAT The Address Translation operation pres', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://docs.cloud.google.com/nat/docs/overview#architecture': {'heading_opened': 'Architecture Cloud NAT is a distributed, software-defined managed serv', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/nat/docs/ports-and-addresses#ports': {'heading_opened': 'Ports Each NAT IP address on a Cloud NAT gateway (both Public NAT and', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/nat/docs/ports-and-addresses#dynamic-port': {'heading_opened': 'Dynamic port allocation When you configure dynamic port allocation, yo', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/nat/docs/overview#benefits': {'heading_opened': 'Benefits Cloud NAT provides the following benefits:', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/nat/docs/ports-and-addresses#ports-reuse-endpoints': {'heading_opened': 'Simultaneous port reuse and endpoint-independent mapping Note: The inf', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/nat/docs/monitoring#logging': {'heading_opened': 'Logging Cloud NAT logging lets you log NAT connections and errors. Whe', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc1918.html#section-3': {'heading_opened': '3 . Private Address Space The Internet Assigned Numbers Authority (IAN', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://docs.cloud.google.com/nat/docs/monitoring#vm-metrics': {'heading_opened': 'VM instance metrics The "metric type" strings in this table must be pr', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/nat/docs/monitoring#gateway-metrics': {'heading_opened': 'NAT gateway metrics The "metric type" strings in this table must be pr', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://www.rfc-editor.org/rfc/rfc4271.html#section-3': {'heading_opened': '3 .  Summary of Operation The Border Gateway Protocol (BGP) is an inte', 'rfc_status': 'No Obsoleted by value found', 'whole_document_reason': None}, 'https://docs.cloud.google.com/vpc/docs/routes#routeselection': {'heading_opened': 'Routing order There might be more than one applicable route for a give', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/vpc/docs/routes#types_of_routes': {'heading_opened': 'Route types The following tables summarize how Google Cloud categorize', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/network-connectivity/docs/router/concepts/overview#key': {'heading_opened': 'Key features Cloud Router offers the following features:', 'rfc_status': 'not applicable', 'whole_document_reason': None}, 'https://docs.cloud.google.com/network-connectivity/docs/router/concepts/learned-routes#dynamic-routing-mode': {'heading_opened': 'Dynamic routing mode The dynamic routing mode of a VPC network affects', 'rfc_status': 'not applicable', 'whole_document_reason': None}},
+    'product_claims': [
+        {
+            'claim': 'Google Cloud External Application Load Balancers terminate client HTTP/HTTPS traffic at the edge and generate standardized synthetic status codes including 502 with failed_to_pick_backend.',
+            'section_url': 'https://docs.cloud.google.com/load-balancing/docs/https#http2-over-tls',
+            'heading_opened': 'HTTP/2 over TLS'
+        },
+        {
+            'claim': 'For external Application Load Balancer backend services, the documented backend HTTP keepalive timeout is 600 seconds, recommending backend web servers configure keep-alive timeouts greater than 600 seconds.',
+            'section_url': 'https://docs.cloud.google.com/load-balancing/docs/https#http2-over-tls',
+            'heading_opened': 'HTTP/2 over TLS'
+        },
+        {
+            'claim': 'Google Cloud External Application Load Balancers provide native HTTP/2 and HTTP/3 support at the global edge network, negotiating protocols via ALPN and advertising HTTP/3 via Alt-Svc headers.',
+            'section_url': 'https://docs.cloud.google.com/load-balancing/docs/https#http3-negotiation',
+            'heading_opened': 'How HTTP/3 is negotiated'
+        },
+        {
+            'claim': 'Google Cloud Certificate Manager provides centralized management of Google-managed and self-managed SSL certificates with Certificate Maps and DNS Authorizations.',
+            'section_url': 'https://docs.cloud.google.com/certificate-manager/docs/overview#supported-certificates',
+            'heading_opened': 'Supported TLS certificates'
+        },
+        {
+            'claim': 'Google Cloud Load Balancing supports SSL policies to enforce minimum TLS versions and curated cipher profiles.',
+            'section_url': 'https://docs.cloud.google.com/certificate-manager/docs/overview#benefits',
+            'heading_opened': 'Benefits'
+        },
+        {
+            'claim': 'Google Cloud VPC networks support configurable MTUs of 1460, 1500, and 8896 bytes, with Cloud VPN defining separate gateway and payload MTU values.',
+            'section_url': 'https://docs.cloud.google.com/vpc/docs/mtu#valid_mtus',
+            'heading_opened': 'Valid VPC network MTU sizes'
+        },
+        {
+            'claim': 'Google Cloud NAT is a software-defined managed service that configures Andromeda SDN to provide source network address translation without proxy VMs.',
+            'section_url': 'https://docs.cloud.google.com/nat/docs/overview#architecture',
+            'heading_opened': 'Architecture'
+        },
+        {
+            'claim': 'Cloud NAT offers static and dynamic port allocation, logging of translated flows, and integration with Cloud Monitoring metrics.',
+            'section_url': 'https://docs.cloud.google.com/nat/docs/ports-and-addresses#ports',
+            'heading_opened': 'Ports'
+        },
+        {
+            'claim': 'Google Cloud VPC routing uses staged routing order where special paths precede subnet and custom routes, with priorities and specificity evaluated in documented order.',
+            'section_url': 'https://docs.cloud.google.com/vpc/docs/routes#routeselection',
+            'heading_opened': 'Routing order'
+        },
+        {
+            'claim': 'Cloud Router manages dynamic routes via BGP peering sessions over Cloud VPN and Cloud Interconnect, supporting regional or global dynamic routing modes.',
+            'section_url': 'https://docs.cloud.google.com/network-connectivity/docs/router/concepts/overview#key',
+            'heading_opened': 'Key features'
+        }
+    ],
+    'visual_reasons': {
+        'BGP Route Advertisement, Evaluation, and Packet Forwarding': 'retained from committed spec',
+        'HTTP Versions: Connection Setup and First Request Sequences': 'retained from committed spec',
+        'HTTP/HTTPS, status codes, HTTP/1.1 vs HTTP/2 vs HTTP/3: Failure Cascade vs Corrected Control': 'retained from committed spec',
+        'MTU and MSS clamping: Failure Cascade vs Corrected Control': 'retained from committed spec',
+        'NAT (SNAT/DNAT) for private outbound: Failure Cascade vs Corrected Control': 'retained from committed spec',
+        'Path MTU Discovery and TCP MSS Clamping Packet Traversal': 'retained from committed spec',
+        'Routing basics: Failure Cascade vs Corrected Control': 'retained from committed spec',
+        'TLS 1.3 1-RTT Handshake: Key Exchange and Certificate Validation': 'retained from committed spec',
+        'TLS 1.3 handshake and certificate validation chains: Failure Cascade vs Corrected Control': 'retained from committed spec',
+        'VPC Private Outbound: SNAT and Return DNAT Packet Lifecycle': 'retained from committed spec'
+    }
+}
+
 DATA = {
     'contract_version': 2,
     'roadmap_practice': 'Compare a valid and a hostname-mismatched certificate trace; annotate an MTU failure and forward/return routes on supplied captures.',
@@ -1994,5 +2224,6 @@ DATA = {
     'topics': TOPICS,
     'completion_html': COMPLETION_HTML,
     'sources': SOURCES,
-    'access_date': ACCESS_DATE
+    'access_date': ACCESS_DATE,
+    'review_records': REVIEW_RECORDS
 }
