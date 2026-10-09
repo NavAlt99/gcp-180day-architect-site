@@ -1667,7 +1667,7 @@ FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">S
 <!-- FCFS TIMELINE -->
 <g font-family="monospace">
   <text fill="#cbd5e1" font-size="11" font-weight="bold" x="25" y="248">FCFS Timeline (Arrival t=0 | Avg Wait: 17.0 ms | Avg Turnaround: 27.0 ms):</text>
-  <g stroke="#0f172a" stroke-width="2">
+  <g stroke="#0f172a" stroke-width="2" font-family="system-ui, -apple-system, sans-serif">
     <rect fill="#38bdf8" height="34" rx="4" width="450" x="140" y="258"></rect>
     <text fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle" x="365" y="279">P1 (Burst: 24 ms | Wait: 0 ms | Turnaround: 24 ms)</text>
     
@@ -1688,7 +1688,7 @@ FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">S
 <!-- SJF TIMELINE -->
 <g font-family="monospace">
   <text fill="#cbd5e1" font-size="11" font-weight="bold" x="25" y="332">SJF Timeline (Shortest Job First | Avg Wait: 3.0 ms | Avg Turnaround: 13.0 ms):</text>
-  <g stroke="#0f172a" stroke-width="2">
+  <g stroke="#0f172a" stroke-width="2" font-family="system-ui, -apple-system, sans-serif">
     <rect fill="#f59e0b" height="34" rx="4" width="80" x="140" y="342"></rect>
     <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="180" y="363">P2 (3ms)</text>
     
