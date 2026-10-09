@@ -2897,3 +2897,31 @@ DATA = {'arch_diagram': {'boundaries': [{'color': '#a78bfa',
                           'descriptors or that data streams are free of application protocol corruption.</p>',
              'title': '/proc virtual filesystem and process trees'}],
  'work_block': 'Days 1–17 — Foundations'}
+
+import re
+
+for _topic in DATA['topics']:
+    _technical = _topic['technical']
+    _headings = re.findall(r'<h4>(.*?)</h4>', _technical, re.S)
+    _links = []
+    for _number, _heading in enumerate(_headings, 1):
+        _anchor = f"{_topic['key']}-subtopic-{_number:02d}"
+        _technical = _technical.replace(
+            '<h4>' + _heading + '</h4>',
+            f'<h4 id="{_anchor}">' + _heading + '</h4>', 1
+        )
+        _links.append(f'<li><a href="#{_anchor}">{_heading}</a></li>')
+    _linked_list = '<ul>' + ''.join(_links) + '</ul>'
+    _technical = re.sub(
+        r'(<p><strong class="side-heading">Subtopics in this discussion:</strong></p>)\s*<ol>.*?</ol>',
+        lambda match: match.group(1) + _linked_list,
+        _technical, count=1, flags=re.S
+    )
+    _topic['technical'] = _technical
+    _nav_links = f'<p><a href="#{_topic["key"]}-technical">Technical discussion →</a> <a href="#{_topic["key"]}-problem">Real-world problem →</a> <a href="#{_topic["key"]}-lab">Step-by-step lab →</a></p>'
+    _card_pat = r'(<article class="topic-card overview" id="' + _topic['key'] + r'-overview">.*?)(</article>)'
+    DATA['part1_html'] = re.sub(
+        _card_pat,
+        lambda m: m.group(1) + '<p><strong class="side-heading">Linked subtopics:</strong></p>' + _linked_list + '\n' + _nav_links + '\n' + m.group(2),
+        DATA['part1_html'], count=1, flags=re.S
+    )
