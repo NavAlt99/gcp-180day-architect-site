@@ -1607,9 +1607,172 @@ DATA = {'contract_version': 2,
 import re
 import urllib.parse
 
-FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-sched-title d8-sched-desc" role="img" viewbox="0 0 940 380" xmlns="http://www.w3.org/2000/svg"><title id="d8-sched-title">Process scheduling lifecycle states and FCFS versus SJF execution timeline</title><desc id="d8-sched-desc">Upper tier illustrates process transitions between ready, running, and waiting states coordinated by context switching. Lower tier shows FCFS execution with 17 ms average wait time contrasted with SJF scheduling yielding 3 ms average wait time.</desc><defs><marker id="d8-sched-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"></path></marker><marker id="d8-sched-arrow-warn" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" fill="#f59e0b"></path></marker></defs><text fill="#38bdf8" font-size="14" font-weight="700" x="25" y="28">PROCESS SCHEDULING STATE MACHINE &amp; CONTEXT SWITCHING LIFECYCLE</text><g fill="#121526" stroke-width="2"><rect height="80" rx="8" stroke="#38bdf8" width="220" x="25" y="45"></rect><image height="24" href="../assets/icons/generic/queue.svg" preserveaspectratio="xMidYMid meet" width="24" x="35" y="55"/><rect height="80" rx="8" stroke="#34d399" width="220" x="360" y="45"></rect><image height="24" href="../assets/icons/gcp/core/compute-engine.svg" preserveaspectratio="xMidYMid meet" width="24" x="370" y="55"/><rect height="80" rx="8" stroke="#f59e0b" width="220" x="695" y="45"></rect><image height="24" href="../assets/icons/generic/storage.svg" preserveaspectratio="xMidYMid meet" width="24" x="705" y="55"/></g><g fill="#fce7f3" font-size="13" font-weight="700" text-anchor="middle"><text x="145" y="75">READY QUEUE</text><text x="480" y="75">RUNNING STATE</text><text x="815" y="75">WAITING / BLOCKED</text></g><g fill="#a9b7cb" font-size="11" text-anchor="middle"><text x="145" y="98">Runnable tasks awaiting CPU</text><text x="480" y="98">Active instruction execution</text><text x="815" y="98">Blocked on I/O or lock</text></g><g marker-end="url(#d8-sched-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M245 75 L350 75"></path><path d="M580 75 L685 75"></path></g><text fill="#38bdf8" font-size="11" text-anchor="middle" x="297" y="68">Dispatch</text><text fill="#f59e0b" font-size="11" text-anchor="middle" x="637" y="68">I/O Wait</text><path d="M805 125 L805 145 L135 145 L135 125" fill="none" marker-end="url(#d8-sched-arrow)" stroke="#38bdf8" stroke-width="2"></path><text fill="#38bdf8" font-size="11" text-anchor="middle" x="470" y="140">I/O Complete (Context Switch restores PCB to Ready Queue)</text><text fill="#38bdf8" font-size="14" font-weight="700" x="25" y="195">SCHEDULING ALGORITHM COMPARISON: FCFS (AVG WAIT: 17 ms) vs SJF (AVG WAIT: 3 ms)</text><g font-size="12"><text fill="#cbd5e1" font-weight="700" x="25" y="225">FCFS Timeline:</text><g stroke="#0f172a" stroke-width="2"><rect fill="#38bdf8" height="36" rx="4" width="460" x="140" y="208"></rect><text fill="#0f172a" font-weight="700" text-anchor="middle" x="370" y="231">P1 (Burst: 24 ms | Wait: 0 ms)</text><rect fill="#f59e0b" height="36" rx="4" width="100" x="600" y="208"></rect><text fill="#0f172a" font-weight="700" text-anchor="middle" x="650" y="231">P2 (3 ms | 24 ms)</text><rect fill="#34d399" height="36" rx="4" width="100" x="700" y="208"></rect><text fill="#0f172a" font-weight="700" text-anchor="middle" x="750" y="231">P3 (3 ms | 27 ms)</text></g><text fill="#94a3b8" font-size="11" x="140" y="258">0 ms</text><text fill="#94a3b8" font-size="11" x="590" y="258">24 ms</text><text fill="#94a3b8" font-size="11" x="690" y="258">27 ms</text><text fill="#94a3b8" font-size="11" x="790" y="258">30 ms</text><text fill="#cbd5e1" font-weight="700" x="25" y="300">SJF Timeline:</text><g stroke="#0f172a" stroke-width="2"><rect fill="#f59e0b" height="36" rx="4" width="100" x="140" y="283"></rect><text fill="#0f172a" font-weight="700" text-anchor="middle" x="190" y="306">P2 (3 ms | 0 ms)</text><rect fill="#34d399" height="36" rx="4" width="100" x="240" y="283"></rect><text fill="#0f172a" font-weight="700" text-anchor="middle" x="290" y="306">P3 (3 ms | 3 ms)</text><rect fill="#38bdf8" height="36" rx="4" width="460" x="340" y="283"></rect><text fill="#0f172a" font-weight="700" text-anchor="middle" x="570" y="306">P1 (Burst: 24 ms | Wait: 6 ms)</text></g><text fill="#94a3b8" font-size="11" x="140" y="333">0 ms</text><text fill="#94a3b8" font-size="11" x="235" y="333">3 ms</text><text fill="#94a3b8" font-size="11" x="335" y="333">6 ms</text><text fill="#94a3b8" font-size="11" x="790" y="333">30 ms</text></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="365">Scheduling discipline dictates queue latency: SJF slashes average waiting time by 82% over FCFS for identical workload bursts.</text></svg><figcaption>Figure 8.5: CPU scheduling process state transitions and FCFS versus SJF Gantt chart timelines. Process bursts illustrate queue latency impact under non-preemptive arrival at t=0; live Linux CFS adjusts dynamic vruntime rather than static burst lengths.</figcaption></figure>'''
+FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-sched-title d8-sched-desc" role="img" viewbox="0 0 940 420" xmlns="http://www.w3.org/2000/svg"><title id="d8-sched-title">Process scheduling lifecycle states and FCFS versus SJF execution timeline</title><desc id="d8-sched-desc">Upper tier illustrates process transitions between ready, running, and waiting states coordinated by context switching. Lower tier shows FCFS execution with 17 ms average wait time contrasted with SJF scheduling yielding 3 ms average wait time.</desc><defs><marker id="d8-sched-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker><marker id="d8-sched-arrow-warn" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#f59e0b"></path></marker><marker id="d8-sched-arrow-ok" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"></path></marker></defs>
+<!-- SECTION 1 HEADER -->
+<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="900" x="20" y="12"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" x="32" y="29">TIER 1 · PROCESS SCHEDULING STATE MACHINE &amp; CONTEXT SWITCHING LIFECYCLE</text>
 
-FIG_8_6_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-fault-title d8-fault-desc" role="img" viewbox="0 0 940 320" xmlns="http://www.w3.org/2000/svg"><title id="d8-fault-title">Four-stage page fault interrupt, disk swap fetch, and frame mapping lifecycle</title><desc id="d8-fault-desc">Illustrates the hardware MMU missing-page interrupt trap, kernel context switch to waiting queue, synchronous secondary storage retrieval into free RAM frame, and page table remap restoring process to ready queue.</desc><defs><marker id="d8-fault-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"></path></marker><marker id="d8-fault-arrow-ok" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" fill="#34d399"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="130" rx="8" stroke="#f43f5e" width="195" x="25" y="45"></rect><image height="24" href="../assets/icons/generic/decision.svg" preserveaspectratio="xMidYMid meet" width="24" x="35" y="55"/><rect height="130" rx="8" stroke="#38bdf8" width="195" x="260" y="45"></rect><image height="24" href="../assets/icons/generic/server.svg" preserveaspectratio="xMidYMid meet" width="24" x="270" y="55"/><rect height="130" rx="8" stroke="#f59e0b" width="195" x="495" y="45"></rect><image height="24" href="../assets/icons/generic/storage.svg" preserveaspectratio="xMidYMid meet" width="24" x="505" y="55"/><rect height="130" rx="8" stroke="#34d399" width="195" x="720" y="45"></rect><image height="24" href="../assets/icons/generic/outcome.svg" preserveaspectratio="xMidYMid meet" width="24" x="730" y="55"/></g><g fill="#fce7f3" font-size="12" font-weight="700" text-anchor="middle"><text x="122" y="80">1. MMU TRAP</text><text x="357" y="80">2. CONTEXT SWITCH</text><text x="592" y="80">3. SWAP / DISK I/O</text><text x="817" y="80">4. REMAP &amp; DISPATCH</text></g><g fill="#a9b7cb" font-size="11" text-anchor="middle"><text x="122" y="105">Present bit = 0</text><text x="122" y="125">Hardware trap to kernel</text><text x="122" y="145">Interrupt Vector 14</text><text x="357" y="105">Save process registers</text><text x="357" y="125">Save PCB to blocked queue</text><text x="357" y="145">Dispatch ready thread</text><text x="592" y="105">Allocate free RAM frame</text><text x="592" y="125">Read 4 KB page from disk</text><text x="592" y="145">I/O controller completion</text><text x="817" y="105">Update Page Table Entry</text><text x="817" y="125">Set Present bit = 1</text><text x="817" y="145">Move task to Ready Queue</text></g><g marker-end="url(#d8-fault-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M220 110 L250 110"></path><path d="M455 110 L485 110"></path><path d="M690 110 L710 110"></path></g><path d="M817 175 L817 225 L122 225 L122 175" fill="none" marker-end="url(#d8-fault-arrow-ok)" stroke="#34d399" stroke-width="2"></path><text fill="#34d399" font-size="12" text-anchor="middle" x="470" y="215">Execution restarts at original instruction: MMU virtual translation now hits physical RAM frame without trap</text><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="280">Thrashing threshold: when major page faults overwhelm disk IOPS, context switches spike and system execution halts.</text></svg><figcaption>Figure 8.6: Four-stage page fault interrupt, disk swap fetch, and frame mapping lifecycle. Illustrative sequence outlines kernel memory virtualization recovery; physical SSD latency dictates whether page load takes microseconds or milliseconds.</figcaption></figure>'''
+<!-- STATE BOXES -->
+<g fill="#121526" stroke-width="2">
+  <rect height="100" rx="8" stroke="#38bdf8" width="240" x="25" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/queue.svg" preserveaspectratio="xMidYMid meet" width="24" x="37" y="58"/>
+  <rect height="100" rx="8" stroke="#34d399" width="240" x="350" y="48"></rect>
+  <image height="24" href="../assets/icons/gcp/core/compute-engine.svg" preserveaspectratio="xMidYMid meet" width="24" x="362" y="58"/>
+  <rect height="100" rx="8" stroke="#f59e0b" width="240" x="675" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/storage.svg" preserveaspectratio="xMidYMid meet" width="24" x="687" y="58"/>
+</g>
+
+<!-- STATE TITLES -->
+<g fill="#fce7f3" font-family="monospace" font-size="13" font-weight="bold" text-anchor="middle">
+  <text x="145" y="76">READY QUEUE</text>
+  <text x="470" y="76">RUNNING STATE</text>
+  <text x="795" y="76">WAITING / BLOCKED</text>
+</g>
+
+<!-- STATE DETAILS -->
+<g fill="#a9b7cb" font-family="monospace" font-size="10.5" text-anchor="middle">
+  <text x="145" y="100">Runnable tasks awaiting CPU</text>
+  <text x="145" y="118">Sorted by vruntime (CFS tree)</text>
+  <text x="145" y="136">PCB queued in runqueue</text>
+
+  <text x="470" y="100">Active instruction execution</text>
+  <text x="470" y="118">User Ring 3 / Kernel Ring 0</text>
+  <text x="470" y="136">Hardware core allocated</text>
+
+  <text x="795" y="100">Blocked on disk or socket I/O</text>
+  <text x="795" y="118">Uninterruptible sleep (D state)</text>
+  <text x="795" y="136">Awaiting hardware interrupt</text>
+</g>
+
+<!-- TRANSITION ARROWS -->
+<g fill="none" stroke-width="2">
+  <path d="M265 85 L350 85" marker-end="url(#d8-sched-arrow)" stroke="#38bdf8"></path>
+  <path d="M350 115 L265 115" marker-end="url(#d8-sched-arrow)" stroke="#38bdf8"></path>
+  <path d="M590 85 L675 85" marker-end="url(#d8-sched-arrow-warn)" stroke="#f59e0b"></path>
+  <path d="M795 148 L795 172 L145 172 L145 148" marker-end="url(#d8-sched-arrow-ok)" stroke="#34d399"></path>
+</g>
+
+<!-- TRANSITION LABELS -->
+<g font-family="monospace" font-size="9.5" font-weight="bold" text-anchor="middle">
+  <text fill="#38bdf8" x="307" y="78">Dispatch</text>
+  <text fill="#94a3b8" x="307" y="130">Preempt</text>
+  <text fill="#f59e0b" x="632" y="78">I/O Wait</text>
+  <text fill="#34d399" x="470" y="167">I/O Complete (Interrupt handler restores PCB to Ready Queue)</text>
+</g>
+
+<!-- SECTION 2 HEADER -->
+<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="900" x="20" y="195"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" x="32" y="212">TIER 2 · CPU SCHEDULING ALGORITHM BENCHMARK: FCFS vs SJF METRIC ANALYSIS</text>
+
+<!-- FCFS TIMELINE -->
+<g font-family="monospace">
+  <text fill="#cbd5e1" font-size="11" font-weight="bold" x="25" y="248">FCFS Timeline (Arrival t=0 | Avg Wait: 17.0 ms | Avg Turnaround: 27.0 ms):</text>
+  <g stroke="#0f172a" stroke-width="2">
+    <rect fill="#38bdf8" height="34" rx="4" width="450" x="140" y="258"></rect>
+    <text fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle" x="365" y="279">P1 (Burst: 24 ms | Wait: 0 ms | Turnaround: 24 ms)</text>
+    
+    <rect fill="#f59e0b" height="34" rx="4" width="80" x="590" y="258"></rect>
+    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="630" y="279">P2 (3ms)</text>
+    
+    <rect fill="#34d399" height="34" rx="4" width="80" x="670" y="258"></rect>
+    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="710" y="279">P3 (3ms)</text>
+  </g>
+  <g fill="#94a3b8" font-size="10">
+    <text x="140" y="306">0 ms</text>
+    <text x="580" y="306">24 ms</text>
+    <text x="660" y="306">27 ms</text>
+    <text x="740" y="306">30 ms</text>
+  </g>
+</g>
+
+<!-- SJF TIMELINE -->
+<g font-family="monospace">
+  <text fill="#cbd5e1" font-size="11" font-weight="bold" x="25" y="332">SJF Timeline (Shortest Job First | Avg Wait: 3.0 ms | Avg Turnaround: 13.0 ms):</text>
+  <g stroke="#0f172a" stroke-width="2">
+    <rect fill="#f59e0b" height="34" rx="4" width="80" x="140" y="342"></rect>
+    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="180" y="363">P2 (3ms)</text>
+    
+    <rect fill="#34d399" height="34" rx="4" width="80" x="220" y="342"></rect>
+    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="260" y="363">P3 (3ms)</text>
+    
+    <rect fill="#38bdf8" height="34" rx="4" width="450" x="300" y="342"></rect>
+    <text fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle" x="525" y="363">P1 (Burst: 24 ms | Wait: 6 ms | Turnaround: 30 ms)</text>
+  </g>
+  <g fill="#94a3b8" font-size="10">
+    <text x="140" y="390">0 ms</text>
+    <text x="215" y="390">3 ms</text>
+    <text x="295" y="390">6 ms</text>
+    <text x="740" y="390">30 ms</text>
+  </g>
+</g>
+
+<!-- FOOTER INVARIANT NOTE -->
+<text fill="#a9b7cb" font-family="monospace" font-size="11" text-anchor="middle" x="470" y="412">Scheduling discipline dictates queue latency: SJF slashes average waiting time by 82% over FCFS for identical workload bursts.</text>
+</svg><figcaption>Figure 8.5: CPU scheduling process state transitions and FCFS versus SJF Gantt chart timelines. Process bursts illustrate queue latency impact under non-preemptive arrival at t=0; live Linux CFS adjusts dynamic vruntime rather than static burst lengths.</figcaption></figure>'''
+
+FIG_8_6_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-fault-title d8-fault-desc" role="img" viewbox="0 0 940 330" xmlns="http://www.w3.org/2000/svg"><title id="d8-fault-title">Four-stage page fault interrupt, disk swap fetch, and frame mapping lifecycle</title><desc id="d8-fault-desc">Illustrates the hardware MMU missing-page interrupt trap, kernel context switch to waiting queue, synchronous secondary storage retrieval into free RAM frame, and page table remap restoring process to ready queue.</desc><defs><marker id="d8-fault-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker><marker id="d8-fault-arrow-ok" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"></path></marker></defs>
+<!-- HEADER BAR -->
+<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="900" x="20" y="12"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" x="32" y="29">FOUR-STAGE PAGE FAULT INTERRUPT TRAP, DISK SWAP FETCH, AND FRAME MAPPING SEQUENCE</text>
+
+<!-- 4 STAGE BOXES -->
+<g fill="#121526" stroke-width="2">
+  <rect height="145" rx="8" stroke="#f43f5e" width="205" x="20" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/decision.svg" preserveaspectratio="xMidYMid meet" width="24" x="30" y="58"/>
+  <rect height="145" rx="8" stroke="#38bdf8" width="205" x="255" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/server.svg" preserveaspectratio="xMidYMid meet" width="24" x="265" y="58"/>
+  <rect height="145" rx="8" stroke="#f59e0b" width="205" x="490" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/storage.svg" preserveaspectratio="xMidYMid meet" width="24" x="500" y="58"/>
+  <rect height="145" rx="8" stroke="#34d399" width="205" x="720" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/outcome.svg" preserveaspectratio="xMidYMid meet" width="24" x="730" y="58"/>
+</g>
+
+<!-- STAGE TITLES -->
+<g fill="#fce7f3" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">
+  <text x="122" y="80">1. MMU TRAP</text>
+  <text x="357" y="80">2. CONTEXT SWITCH</text>
+  <text x="592" y="80">3. SWAP / DISK I/O</text>
+  <text x="822" y="80">4. REMAP &amp; DISPATCH</text>
+</g>
+
+<!-- STAGE DESCRIPTIONS -->
+<g fill="#a9b7cb" font-family="monospace" font-size="10.5" text-anchor="middle">
+  <text x="122" y="106">Present bit = 0</text>
+  <text x="122" y="126">Hardware trap triggered</text>
+  <text x="122" y="146">CPU transfers to Ring 0</text>
+  <text x="122" y="166">Interrupt Vector 14</text>
+
+  <text x="357" y="106">Preserve CPU registers</text>
+  <text x="357" y="126">Move task to Blocked</text>
+  <text x="357" y="146">Save PCB state context</text>
+  <text x="357" y="166">Dispatch runnable task</text>
+
+  <text x="592" y="106">Allocate free RAM frame</text>
+  <text x="592" y="126">Read 4 KB page block</text>
+  <text x="592" y="146">Persistent Disk I/O wait</text>
+  <text x="592" y="166">I/O interrupt signals ready</text>
+
+  <text x="822" y="106">Update Page Table Entry</text>
+  <text x="822" y="126">Set Present bit = 1</text>
+  <text x="822" y="146">Move task to Ready Queue</text>
+  <text x="822" y="166">Resume faulting opcode</text>
+</g>
+
+<!-- CONNECTING ARROWS -->
+<g fill="none" marker-end="url(#d8-fault-arrow)" stroke="#38bdf8" stroke-width="2">
+  <path d="M225 120 L255 120"></path>
+  <path d="M460 120 L490 120"></path>
+  <path d="M695 120 L720 120"></path>
+</g>
+
+<!-- RETURN LOOP -->
+<path d="M822 193 L822 225 L122 225 L122 193" fill="none" marker-end="url(#d8-fault-arrow-ok)" stroke="#34d399" stroke-width="2"></path>
+<text fill="#34d399" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="470" y="242">Execution restarts seamlessly: MMU address translation now hits newly populated RAM frame with zero trap</text>
+
+<!-- FOOTER CALLOUT -->
+<rect fill="#1e293b" height="34" opacity="0.6" rx="4" width="900" x="20" y="260"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="10.5" text-anchor="middle" x="470" y="281">Thrashing threshold: When major page faults overwhelm storage IOPS, context switches spike and system throughput collapses.</text>
+</svg><figcaption>Figure 8.6: Four-stage page fault interrupt, disk swap fetch, and frame mapping lifecycle. Illustrative sequence outlines kernel memory virtualization recovery; physical SSD latency dictates whether page load takes microseconds or milliseconds.</figcaption></figure>'''
 
 _subtopic_1_addition = f'''<p><strong class="side-heading">Process scheduling foundations and execution state machine:</strong> <strong class="keyword">CPU Scheduling</strong> is the core operating system subsystem (governed by the short-term dispatcher) that continuously evaluates the ready queue to decide which runnable process is dispatched onto an available physical processor core. The kernel coordinates execution across three fundamental lifecycle states:</p>
 <ul>
