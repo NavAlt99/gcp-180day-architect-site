@@ -127,9 +127,9 @@ DATA = {'contract_version': 2,
          {'x1': 865, 'y1': 327, 'x2': 865, 'y2': 470, 'type': 'blue', 'label': 'filter with jq'}
      ],
      'probes': [
-         {'cx': 290, 'cy': 118, 'badge': 'P1', 'label': 'PROBE 1 · CPU runqueue latency & voluntary context switches measured', 'color': '#38bdf8'},
-         {'cx': 690, 'cy': 291, 'badge': 'P2', 'label': 'PROBE 2 · Memory pressure stall (PSI) some/full thresholds evaluated', 'color': '#f59e0b'},
-         {'cx': 740, 'cy': 496, 'badge': 'P3', 'label': 'PROBE 3 · Socket diagnostic ss -tlpn confirms zero queue drops', 'color': '#34d399'}
+         {'cx': 290, 'cy': 118, 'badge': 'P1', 'label': 'PROBE 1 · CPU runqueue & context switch', 'color': '#38bdf8'},
+         {'cx': 690, 'cy': 291, 'badge': 'P2', 'label': 'PROBE 2 · Memory PSI stall thresholds', 'color': '#f59e0b'},
+         {'cx': 740, 'cy': 496, 'badge': 'P3', 'label': 'PROBE 3 · Socket diagnostic zero drops', 'color': '#34d399'}
      ]
  },
  'arch_svg_html': '',
