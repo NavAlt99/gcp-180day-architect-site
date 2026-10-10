@@ -282,42 +282,42 @@
 </section>
 <section class="part" id="part-2"><h2>2 · Technical discussion of each topic</h2><p class="intro">The following subtopic discussions explore the service model abstraction spectrum, Google Cloud service classifications, the security demarcation between provider and customer, and the non-delegable customer invariants of IAM, encryption, and data recovery.</p><article class="topic-card technical" id="topic-01-technical"><h3>1. IaaS, PaaS, FaaS, SaaS, and where GCP services fall: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
 <ul>
-<li><strong>Infrastructure as a Service (IaaS): Virtual Machines, Persistent Disks, and Network Virtualization</strong></li>
-<li><strong>Platform as a Service (PaaS) and Container as a Service (CaaS): Managed Runtimes and Orchestration</strong></li>
-<li><strong>Function as a Service (FaaS): Event-Driven Ephemeral Execution</strong></li>
-<li><strong>Software as a Service (SaaS): Fully Managed Application and Data Solutions</strong></li>
-<li><strong>The Abstraction Spectrum Decision Matrix: Trade-offs between Operational Control and Development Velocity</strong></li>
+<li><a href="#topic-01-subtopic-1">Infrastructure as a Service (IaaS): Virtual Machines, Persistent Disks, and Network Virtualization</a></li>
+<li><a href="#topic-01-subtopic-2">Platform as a Service (PaaS) and Container as a Service (CaaS): Managed Runtimes and Orchestration</a></li>
+<li><a href="#topic-01-subtopic-3">Function as a Service (FaaS): Event-Driven Ephemeral Execution</a></li>
+<li><a href="#topic-01-subtopic-4">Software as a Service (SaaS): Fully Managed Application and Data Solutions</a></li>
+<li><a href="#topic-01-subtopic-5">The Abstraction Spectrum Decision Matrix: Trade-offs between Operational Control and Development Velocity</a></li>
 </ul>
 <p>Cloud computing provides scalable computing resources delivered over high-speed networks, fundamentally categorised by the degree of abstraction separating application logic from physical hardware. The National Institute of Standards and Technology (<strong class="keyword">NIST</strong>) Special Publication 800-145 (<a href="https://csrc.nist.gov/publications/detail/sp/800-145/final" rel="noopener noreferrer">NIST SP 800-145 (accessed 2026-10-04)</a>) establishes the canonical classification of cloud computing into three primary service models: <strong class="keyword">Infrastructure as a Service (IaaS)</strong>, <strong class="keyword">Platform as a Service (PaaS)</strong>, and <strong class="keyword">Software as a Service (SaaS)</strong>. In contemporary cloud architecture, specialized variants—notably <strong class="keyword">Function as a Service (FaaS)</strong> and <strong class="keyword">Container as a Service (CaaS)</strong>—refine this abstraction spectrum by introducing sub-second autoscaling, managed container runtimes, and event-driven invocation semantics (<a href="https://cloud.google.com/learn/paas-vs-iaas-vs-saas#what-are-iaas-paas-saas-and-caas" rel="noopener noreferrer">Google Cloud — PaaS vs. IaaS vs. SaaS (accessed 2026-10-04)</a>).</p>
-<h3>Infrastructure as a Service (IaaS): Virtual Machines, Persistent Disks, and Network Virtualization</h3>
+<h4 id="topic-01-subtopic-1">Infrastructure as a Service (IaaS): Virtual Machines, Persistent Disks, and Network Virtualization</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 <strong class="keyword">Infrastructure as a Service (IaaS)</strong> is a cloud service delivery model where a cloud service provider delivers fundamental computing resources—including physical server hardware, CPU virtualization, system memory, block storage volumes, and software-defined network switches—on demand over the network. In an IaaS deployment, the hypervisor abstracts physical server blades into isolated virtual machines (<strong class="keyword">VMs</strong>). The tenant receives raw administrative control over the guest operating system (typically Linux or Windows Server), filesystem layouts, kernel parameter tuning, installed system packages, network interface bindings, and background system services. The tenant is responsible for everything from the operating system upward, while the provider maintains the physical data center, power, cooling, host physical server blades, and low-level hypervisor layer.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
 An architect selects IaaS when an enterprise workload requires legacy operating system dependencies, customized kernel modules (such as custom network drivers or legacy file systems like XFS with specific mount flags), non-standard port listeners, direct block-level device management, or complex distributed clustering protocols that rely on raw broadcast or specific POSIX locking mechanics. The key architectural trade-off of IaaS is maximum control in exchange for high ongoing operational maintenance. The enterprise engineering organization assumes complete operational ownership for operating system security patch cycles, zero-day kernel vulnerabilities, backup schedule automation, file system corruption recovery, and host configuration drift management.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong>
 In Google Cloud Platform (<strong class="keyword">GCP</strong>), IaaS is instantiated through <strong class="keyword">Compute Engine</strong> virtual machine instances, <strong class="keyword">Persistent Disk</strong> (Standard, Balanced, SSD, and Extreme block storage), and <strong class="keyword">Cloud Virtual Private Cloud (VPC)</strong> networks. Google Cloud manages the physical hardware facilities, Andromeda software-defined networking mesh, and the custom Linux Kernel-based Virtual Machine (<strong class="keyword">KVM</strong>) hypervisor. The tenant provisions instances using commands such as <kbd>gcloud compute instances create</kbd>, defines custom machine types, selects public or custom OS images, configures persistent disk attachments, and manages guest OS security updates via the OS Config agent and Patch management service.</p>
-<h3>Platform as a Service (PaaS) and Container as a Service (CaaS): Managed Runtimes and Orchestration</h3>
+<h4 id="topic-01-subtopic-2">Platform as a Service (PaaS) and Container as a Service (CaaS): Managed Runtimes and Orchestration</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 <strong class="keyword">Platform as a Service (PaaS)</strong> delivers a managed computing environment where the cloud provider provisions, configures, patches, and scales the underlying operating system, runtime interpreters, container runtimes, web servers, and infrastructure frameworks. In modern cloud-native systems, this model has evolved into <strong class="keyword">Container as a Service (CaaS)</strong>, where the developer packages application code and its user-space dependencies into an Open Container Initiative (<strong class="keyword">OCI</strong>) container image. The cloud platform accepts this packaged container, schedules it across elastic compute pools, routes incoming HTTP or gRPC requests, manages TLS termination, and automatically scales container instances up or down based on incoming request concurrency or CPU utilization metrics.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
 PaaS and CaaS eliminate operational maintenance toil related to guest operating system patch cycles, hypervisor configurations, and physical node failure recovery. Architects select PaaS/CaaS for standard web services, REST/GraphQL APIs, microservices, and asynchronous batch worker applications. By decoupling the application code from specific host virtual machines, deployment velocity increases dramatically, and autoscaling responds to traffic spikes within seconds rather than minutes. The primary trade-off is architectural constraint: workloads must conform to twelve-factor app principles, listen on standard network ports, remain stateless across horizontal restarts, write logs strictly to standard output (<kbd>stdout</kbd>) or standard error (<kbd>stderr</kbd>), and avoid relying on host-local persistent filesystems.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong>
 Google Cloud offers two industry-defining PaaS/CaaS services: <strong class="keyword">Cloud Run</strong> and <strong class="keyword">Google Kubernetes Engine (GKE)</strong>. Cloud Run represents a fully managed serverless container platform built on the Knative open standard, where Google manages all cluster control planes, worker nodes, and autoscaling from zero to thousands of instances. The tenant simply provides an OCI container image and deploys with <kbd>gcloud run deploy</kbd>. GKE provides managed Kubernetes orchestration, where in <strong class="keyword">GKE Autopilot</strong> mode, Google provisions, hardens, autoscales, and patches the worker node infrastructure and operating systems, leaving the architect to manage only Kubernetes object manifests (Deployments, Services, and Ingress).</p>
-<h3>Function as a Service (FaaS): Event-Driven Ephemeral Execution</h3>
+<h4 id="topic-01-subtopic-3">Function as a Service (FaaS): Event-Driven Ephemeral Execution</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 <strong class="keyword">Function as a Service (FaaS)</strong>, frequently termed serverless compute, abstracts execution down to discrete, single-purpose blocks of code triggered by asynchronous system events or synchronous HTTP calls. In a FaaS platform, the developer writes an isolated function handler (e.g., in Python, Go, Node.js, or Java). The cloud provider automatically compiles or packages the code into an ephemeral execution sandbox, routes incoming events from message buses or cloud storage buckets, allocates memory and CPU dynamically for the duration of execution, and terminates or freezes the sandbox immediately after execution completes. Billing is strictly metered to the millisecond of active execution time, with absolute zero cost during idle periods.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
 FaaS is the architectural pattern of choice for event-driven integration glue, real-time file processing pipelines, webhook ingestion endpoints, IoT sensor telemetry filtering, and lightweight ETL tasks. The benefits are total operational abstraction, zero host or container infrastructure management, and sub-second scale-to-zero economics. However, architects must design around definitive operational boundaries: cold-start latency when initializing idle runtimes, strict maximum execution timeouts (e.g., 60 minutes for HTTP or event processing), completely stateless local memory, and bounded concurrency quotas per cloud region.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong>
 In GCP, FaaS is delivered via <strong class="keyword">Cloud Run functions</strong> (formerly Cloud Functions 2nd gen). Cloud Run functions are built natively on top of Cloud Run and Google Cloud Buildpacks. When a developer deploys a function using <kbd>gcloud functions deploy</kbd>, GCP automatically packages the source code into an OCI container image, registers it in Artifact Registry, deploys it to a dedicated Cloud Run service, and wires up event listeners via <strong class="keyword">Eventarc</strong> to capture events from Cloud Storage object mutations, Pub/Sub topic publications, or Cloud Audit Logs.</p>
-<h3>Software as a Service (SaaS): Fully Managed Application and Data Solutions</h3>
+<h4 id="topic-01-subtopic-4">Software as a Service (SaaS): Fully Managed Application and Data Solutions</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 <strong class="keyword">Software as a Service (SaaS)</strong> provides a complete, turnkey software application or fully managed analytical engine accessed over the internet, typically via a web browser or specialized API client. In a SaaS model, the cloud provider owns and manages the entire technology stack: underlying server hardware, networking, hypervisor, operating system, middleware, application binaries, database storage engine, software updates, feature releases, and high-availability replication. The customer is solely responsible for user identity provisioning, role-based access governance, data ingestion, and consumption configuration.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
 Architects leverage SaaS to satisfy business and analytical capabilities without dedicating engineering capacity to undifferentiated infrastructure management. By choosing SaaS over building bespoke platforms on IaaS or PaaS, organizations achieve near-zero time to market, guaranteed vendor service level agreements (<strong class="keyword">SLAs</strong>), and predictable operational expenditure (<strong class="keyword">OpEx</strong>). Architectural trade-offs include vendor lock-in, limited customization of internal application algorithms, reliance on vendor-provided API rate limits, and the absolute necessity of strict tenant-side data access governance.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong>
 Google Cloud offers enterprise SaaS across productivity and managed analytical platforms. <strong class="keyword">Google Workspace</strong> (Gmail, Docs, Drive, Meet) exemplifies enterprise collaboration SaaS. In data engineering, <strong class="keyword">BigQuery</strong> serves as a serverless analytical SaaS data warehouse: users execute SQL queries across petabytes of structured data without ever provisioning a server, tuning a database index, configuring a disk array, or managing a cluster. Other GCP SaaS offerings include <strong class="keyword">Looker</strong> for business intelligence and <strong class="keyword">Firebase</strong> authentication and app services.</p>
-<h3>The Abstraction Spectrum Decision Matrix: Trade-offs between Operational Control and Development Velocity</h3>
+<h4 id="topic-01-subtopic-5">The Abstraction Spectrum Decision Matrix: Trade-offs between Operational Control and Development Velocity</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 The cloud abstraction spectrum defines an inverse relationship between infrastructure control and developer velocity. At the left end of the spectrum (IaaS), the enterprise maintains full granular control over operating system versions, low-level network topologies, and system libraries, but bears the full weight of ongoing operational toil. Moving rightward through PaaS, FaaS, and SaaS, the cloud provider assumes increasing responsibility for infrastructure management, operating system updates, clustering, and high availability, freeing engineering teams to focus exclusively on business logic and customer value.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
@@ -329,9 +329,6 @@ GCP empowers architects to mix and match service models within a single solution
 <svg aria-labelledby="day11-models-title day11-models-desc" height="370" role="img" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#0d1117;border-radius:8px;" viewbox="0 0 940 370" width="940">
 <title id="day11-models-title">Cloud service model abstraction spectrum and operational division</title>
 <desc id="day11-models-desc">A four-column architectural diagram comparing IaaS, PaaS, FaaS, and SaaS, showing which layers are customer-managed versus Google-managed across the compute stack, with authentic service icons.</desc>
-<defs>
-<marker id="day11-models-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker>
-</defs>
 <!-- Column 1: IaaS -->
 <rect fill="#161b22" height="305" rx="10" stroke="#38bdf8" stroke-width="2" width="205" x="20" y="25"></rect>
 <image height="24" href="../assets/icons/gcp/core/compute-engine.svg" width="24" x="35" y="38"/>
@@ -469,44 +466,50 @@ GCP empowers architects to mix and match service models within a single solution
 <p><strong class="side-heading">Concrete example:</strong>
 Consider an enterprise e-commerce platform processing customer credit card payments and shipping notifications. Deploying the payment gateway microservice on Compute Engine (IaaS) requires the engineering team to configure Ubuntu LTS, apply periodic Linux kernel security errata using <kbd>apt-get update &amp;&amp; apt-get upgrade -y</kbd>, configure iptables firewall rules, and maintain high availability across zones with regional Managed Instance Groups. In contrast, migrating the same service to Cloud Run (PaaS) packages the compiled Go binary into an unprivileged container. Google handles host OS patching, hypervisor security, and TLS certificate renewal, while the engineering team manages only container dependencies and IAM invocation bindings.</p>
 <p><strong class="side-heading">Evidence limit:</strong>
-While PaaS and FaaS abstract host operating system updates and hardware maintenance, they do not alleviate the architect's duty to patch application-level dependencies, manage database connection pool exhaustion, design for eventual consistency across distributed storage, or audit IAM privilege assignments. A vulnerability inside a packaged application container library (such as a vulnerable log parser or unpatched web framework) remains 100% exploitable on PaaS and FaaS unless mitigated by the tenant.</p><h4>Architectural evaluation questions</h4><ul><li>How do the operational maintenance duties of Compute Engine compare directly against Cloud Run and Cloud Run functions?</li><li>Under what architectural conditions is an enterprise justified in accepting the higher maintenance toil of IaaS over PaaS?</li><li>Why does serverless FaaS/PaaS eliminate host OS patching while leaving container dependency vulnerabilities entirely within the customer domain?</li></ul><p><strong>Further study:</strong> <a href="https://cloud.google.com/learn/paas-vs-iaas-vs-saas#what-are-iaas-paas-saas-and-caas" rel="noopener" target="_blank">Google Cloud — PaaS vs. IaaS vs. SaaS (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-02-technical"><h3>2. Shared responsibility model (what Google secures vs what you secure): technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
+While PaaS and FaaS abstract host operating system updates and hardware maintenance, they do not alleviate the architect's duty to patch application-level dependencies, manage database connection pool exhaustion, design for eventual consistency across distributed storage, or audit IAM privilege assignments. A vulnerability inside a packaged application container library (such as a vulnerable log parser or unpatched web framework) remains 100% exploitable on PaaS and FaaS unless mitigated by the tenant.</p>
+<div><strong>Keyword searches</strong></div>
 <ul>
-<li><strong>Security OF the Cloud vs Security IN the Cloud: Demarcation of Hardware, Hypervisor, and Tenant Workloads</strong></li>
-<li><strong>Workload-Specific Responsibility Boundaries across IaaS, PaaS, and SaaS</strong></li>
-<li><strong>Identity, Access Management (IAM), and Ingress Protection as Customer Invariants</strong></li>
-<li><strong>Data Protection, Encryption, and Backup Lifecycle Ownership</strong></li>
-<li><strong>Google Cloud Shared Fate: From Contractual Liability to Collaborative Posture Management</strong></li>
+<li><a href="https://www.google.com/search?q=IaaS+PaaS+SaaS+FaaS+GCP" rel="noopener" target="_blank">IaaS vs PaaS vs SaaS vs FaaS on GCP (accessed 2026-10-11)</a> — discovery aid; verify behavior against official section citations.</li>
+<li><a href="https://www.google.com/search?q=Compute+Engine+vs+Cloud+Run+operational+toil" rel="noopener" target="_blank">Compute Engine vs Cloud Run operational toil (accessed 2026-10-11)</a> — discovery aid; verify behavior against official section citations.</li>
+<li><a href="https://www.google.com/search?q=Cloud+Run+functions+Eventarc+triggers" rel="noopener" target="_blank">Cloud Run functions Eventarc triggers (accessed 2026-10-11)</a> — discovery aid; verify behavior against official section citations.</li>
+</ul><h4>Architectural evaluation questions</h4><ul><li>How do the operational maintenance duties of Compute Engine compare directly against Cloud Run and Cloud Run functions?</li><li>Under what architectural conditions is an enterprise justified in accepting the higher maintenance toil of IaaS over PaaS?</li><li>Why does serverless FaaS/PaaS eliminate host OS patching while leaving container dependency vulnerabilities entirely within the customer domain?</li></ul><p><strong>Further study:</strong> <a href="https://cloud.google.com/learn/paas-vs-iaas-vs-saas#what-are-iaas-paas-saas-and-caas" rel="noopener" target="_blank">Google Cloud — PaaS vs. IaaS vs. SaaS (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-02-technical"><h3>2. Shared responsibility model (what Google secures vs what you secure): technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
+<ul>
+<li><a href="#topic-02-subtopic-1">Security OF the Cloud vs Security IN the Cloud: Demarcation of Hardware, Hypervisor, and Tenant Workloads</a></li>
+<li><a href="#topic-02-subtopic-2">Workload-Specific Responsibility Boundaries across IaaS, PaaS, and SaaS</a></li>
+<li><a href="#topic-02-subtopic-3">Identity, Access Management (IAM), and Ingress Protection as Customer Invariants</a></li>
+<li><a href="#topic-02-subtopic-4">Data Protection, Encryption, and Backup Lifecycle Ownership</a></li>
+<li><a href="#topic-02-subtopic-5">Google Cloud Shared Fate: From Contractual Liability to Collaborative Posture Management</a></li>
 </ul>
 <p>Public cloud security operates under a collaborative legal and operational governance contract known as the <strong class="keyword">Shared Responsibility Model</strong>. Under this framework, security obligations are partitioned between the cloud service provider and the cloud consumer. As articulated in the Google Cloud Architecture Framework (<a href="https://docs.cloud.google.com/architecture/framework/security/shared-responsibility-shared-fate#shared_responsibility" rel="noopener noreferrer">Google Cloud Architecture Framework — Shared responsibility and shared fate (accessed 2026-10-04)</a>), the provider is responsible for the security <em>of</em> the cloud, whereas the tenant retains non-delegable responsibility for the security <em>in</em> the cloud. To assist organizations in implementing defenses effectively, Google Cloud extends this paradigm into <strong class="keyword">Shared Fate</strong>, actively providing hardened enterprise landing zones, continuous posture tooling, and cyber-risk insurance protections.</p>
-<h3>Security OF the Cloud vs Security IN the Cloud: Demarcation of Hardware, Hypervisor, and Tenant Workloads</h3>
+<h4 id="topic-02-subtopic-1">Security OF the Cloud vs Security IN the Cloud: Demarcation of Hardware, Hypervisor, and Tenant Workloads</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 The foundational division in cloud security separates infrastructure provider obligations from customer tenant responsibilities. <strong class="keyword">Security OF the Cloud</strong> encompasses physical facility access, perimeter fencing, biometric authentication at data centers, hardware manufacturing supply chains, custom silicon security chips, secure server decommissioning, physical disk destruction, physical fiber-optic cables, hypervisor multi-tenancy boundaries, and provider network isolation (<a href="https://docs.cloud.google.com/docs/security/overview/whitepaper#custom_server_hardware_and_software" rel="noopener noreferrer">Google Cloud Security Overview — Custom server hardware and software (accessed 2026-10-04)</a>). Conversely, <strong class="keyword">Security IN the Cloud</strong> encompasses all operational choices made by the customer: operating system configuration, patch management, runtime application code, user identities, IAM role bindings, network firewall rules, encryption key protection, and data governance policies.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
 A cloud architect must design enterprise architectures with the explicit realization that Google Cloud does not inspect customer network traffic payloads, validate application business logic, enforce password complexity within tenant directories, or verify that storage buckets are appropriately restricted. Believing that hosting an application on Google Cloud automatically makes it secure is the single most common cause of cloud security breaches. The architect must construct defense-in-depth layers inside the customer domain to prevent misconfigurations, privilege creep, and data exfiltration.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong>
 Google Cloud guarantees security <em>of</em> the cloud through purpose-built server hardware, the proprietary <strong class="keyword">Titan security chip</strong> (which cryptographically verifies system firmware and bootloaders via Hardware Root of Trust), and the KVM-based virtualization layer that enforces strict memory and CPU isolation between tenant VMs. Google also guarantees default encryption at rest using AES-256 for all Persistent Disks and Cloud Storage buckets, and default encryption in transit across Google's private global fiber network using MACsec and TLS. Everything configured within the project—including IAM policies, service accounts, VPC firewalls, and OS patching—remains 100% the customer's duty.</p>
-<h3>Workload-Specific Responsibility Boundaries across IaaS, PaaS, and SaaS</h3>
+<h4 id="topic-02-subtopic-2">Workload-Specific Responsibility Boundaries across IaaS, PaaS, and SaaS</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 The exact dividing line between customer and cloud provider shifts based on the chosen cloud service model. In <strong class="keyword">IaaS</strong>, the customer manages the entire software stack above the hypervisor: operating system selection, kernel updates, system libraries, middleware, application binaries, and firewall ports. In <strong class="keyword">PaaS / CaaS</strong>, the cloud provider manages host server operating systems, container orchestration engines, and physical clustering; the customer is responsible for the container image layers, application source code, configuration variables, and API authentication. In <strong class="keyword">SaaS</strong>, the provider manages the entire application, database, and infrastructure; the customer is responsible only for user authorization, data input, and access policy governance.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
 Understanding these shifting boundaries allows an architect to minimize operational risk and maintenance overhead. For instance, selecting Compute Engine (IaaS) for an enterprise application requires budgeting engineering resources for periodic kernel CVE remediation, automated OS patch management schedules, and vulnerability scanning on virtual machine disk images. In contrast, selecting Cloud Run (PaaS) shifts host kernel vulnerability mitigation entirely to Google SREs, reducing the customer's security surface to application container dependencies and IAM invoker controls.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong>
 In Compute Engine, Google provides the <strong class="keyword">VM Manager</strong> suite (comprising OS Config, OS Patch management, and OS Inventory management) to help customers fulfill their OS patching duty, but Google does not execute patches automatically without customer policy configuration. In GKE Standard, the customer must manage node pool upgrade schedules, whereas in GKE Autopilot, Google automatically upgrades node operating systems and worker Kubernetes versions. In Cloud Run, Google manages 100% of the underlying container execution host, guaranteeing that host kernel vulnerabilities (e.g., Dirty Pipe or Spectre/Meltdown mitigations) are patched without customer intervention.</p>
-<h3>Identity, Access Management (IAM), and Ingress Protection as Customer Invariants</h3>
+<h4 id="topic-02-subtopic-3">Identity, Access Management (IAM), and Ingress Protection as Customer Invariants</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 Regardless of whether an architect deploys IaaS, PaaS, FaaS, or SaaS, <strong class="keyword">Identity and Access Management (IAM)</strong>, authentication, and network ingress controls remain strict customer invariants. The cloud provider cannot know which employees should access a payroll database, which third-party APIs require webhook access, or which external IP addresses represent legitimate traffic versus attackers. Defining who can invoke an API, what roles are assigned to service accounts, and how network perimeter firewalls filter traffic is always a tenant responsibility.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
 A failure in IAM or network ingress instantly invalidates all underlying infrastructure security controls. If an architect grants <kbd>roles/run.invoker</kbd> or <kbd>roles/storage.objectViewer</kbd> to <kbd>allUsers</kbd>, unauthenticated internet clients can query private APIs or exfiltrate sensitive data, regardless of how secure Google's physical data centers or hypervisors are. Architects must strictly enforce the principle of least privilege, disable automatic default service account editor permissions, mandate multi-factor authentication (<strong class="keyword">MFA</strong>), and deploy Web Application Firewalls (<strong class="keyword">WAF</strong>) to inspect application-layer requests.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong>
 In Google Cloud, customer access governance is enforced via <strong class="keyword">Cloud IAM</strong>, utilizing fine-grained roles and condition-based bindings (such as restricting access by client IP or date/time). Service-to-service communication is secured via OpenID Connect (<strong class="keyword">OIDC</strong>) ID tokens generated by Google Cloud's OAuth 2.0 infrastructure. Network ingress is protected by <strong class="keyword">Cloud Armor</strong> security policies, which provide Layer 7 WAF inspection, DDoS mitigation, and IP allowlisting/denylisting, while <strong class="keyword">VPC Service Controls</strong> establish a cryptographic security perimeter around Google APIs to eliminate data exfiltration risks.</p>
-<h3>Data Protection, Encryption, and Backup Lifecycle Ownership</h3>
+<h4 id="topic-02-subtopic-4">Data Protection, Encryption, and Backup Lifecycle Ownership</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 Data protection encompasses three distinct architectural domains: encryption at rest, encryption in transit, and business continuity through data recovery. While cloud providers guarantee baseline storage durability and transparent encryption, the customer retains sole ownership over data classification, retention lifecycle policies, cryptographic key governance, and backup recovery validation. If data is accidentally deleted, overwritten by an application bug, or locked by tenant-level ransomware, the cloud provider's underlying infrastructure durability cannot restore business operations unless the customer designed and maintained an independent backup strategy.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
 Architects must distinguish between high availability (replicating state across zones to survive hardware failure) and disaster recovery (recovering state after data corruption or accidental deletion). Replicating corrupted data across three zones simply produces three copies of corrupted data in real time. The architect must formulate explicit Recovery Point Objectives (<strong class="keyword">RPO</strong>) and Recovery Time Objectives (<strong class="keyword">RTO</strong>), configure automated snapshots, implement immutable backups, and determine whether regulatory requirements necessitate Customer-Managed Encryption Keys (<strong class="keyword">CMEK</strong>) rather than default Google-managed keys.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong>
 Google Cloud encrypts all customer data at rest by default using Google-owned keys. However, for complete cryptographic governance, architects use <strong class="keyword">Cloud Key Management Service (Cloud KMS)</strong> to create CMEK or Customer-Supplied Encryption Keys (<strong class="keyword">CSEK</strong>), enabling instant data crypto-shredding by revoking the KMS key. For data recovery, architects configure automated <strong class="keyword">Persistent Disk snapshots</strong> with cross-region replication, Object Versioning and Lifecycle Management on <strong class="keyword">Cloud Storage</strong> buckets, and point-in-time recovery (<strong class="keyword">PITR</strong>) on Cloud SQL and Spanner databases.</p>
-<h3>Google Cloud Shared Fate: From Contractual Liability to Collaborative Posture Management</h3>
+<h4 id="topic-02-subtopic-5">Google Cloud Shared Fate: From Contractual Liability to Collaborative Posture Management</h4>
 <p><strong class="side-heading">What it is in general:</strong>
 While traditional cloud contracts treat shared responsibility as a legal boundary to disclaim provider liability when a customer misconfigures a service, Google Cloud pioneered the concept of <strong class="keyword">Shared Fate</strong>. Shared Fate recognizes that a security breach caused by customer misconfiguration still damages trust in the cloud ecosystem. Under Shared Fate, Google actively partners with customers by providing opinionated security foundations, automated misconfiguration detectors, continuous compliance posture management, and cyber-insurance underwriting partnerships.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong>
@@ -518,29 +521,26 @@ Google operationalizes Shared Fate through several flagship enterprise offerings
 <svg aria-labelledby="day11-shared-title day11-shared-desc" height="360" role="img" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#0d1117;border-radius:8px;" viewbox="0 0 940 360" width="940">
 <title id="day11-shared-title">Google Cloud shared responsibility and shared fate security boundaries</title>
 <desc id="day11-shared-desc">A stacked architectural diagram showing the boundary between Google Cloud infrastructure security and Customer workload security across IaaS, PaaS, and SaaS environments, featuring authentic Google Cloud and generic icons.</desc>
-<defs>
-<marker id="day11-shared-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker>
-</defs>
 <!-- Upper Box: Customer Responsibility -->
-<rect fill="#161b22" height="135" rx="10" stroke="#f43f5e" stroke-width="2" width="900" x="20" y="20"></rect>
-<text fill="#f43f5e" font-size="13" font-weight="700" x="40" y="44">CUSTOMER RESPONSIBILITY (Security IN the Cloud — ALWAYS Tenant Owned)</text>
+<rect fill="#161b22" height="135" rx="10" stroke="#818cf8" stroke-width="2" width="900" x="20" y="20"></rect>
+<text fill="#818cf8" font-size="13" font-weight="700" x="40" y="44">CUSTOMER RESPONSIBILITY (Security IN the Cloud — ALWAYS Tenant Owned)</text>
 <!-- Customer Controls Cards -->
-<rect fill="#21262d" height="82" rx="6" stroke="#f43f5e" stroke-width="1.2" width="200" x="40" y="58"></rect>
+<rect fill="#21262d" height="82" rx="6" stroke="#818cf8" stroke-width="1.2" width="200" x="40" y="58"></rect>
 <image height="22" href="../assets/icons/generic/storage.svg" width="22" x="52" y="70"/>
 <text fill="#fce7f3" font-size="11" font-weight="700" x="82" y="85">Data &amp; Encryption</text>
 <text fill="#94a3b8" font-size="10" x="52" y="108">CMEK Key Rotation</text>
 <text fill="#94a3b8" font-size="10" x="52" y="124">Classification &amp; DLP</text>
-<rect fill="#21262d" height="82" rx="6" stroke="#f43f5e" stroke-width="1.2" width="200" x="260" y="58"></rect>
+<rect fill="#21262d" height="82" rx="6" stroke="#818cf8" stroke-width="1.2" width="200" x="260" y="58"></rect>
 <image height="22" href="../assets/icons/gcp/legacy/identity-and-access-management.svg" width="22" x="272" y="70"/>
 <text fill="#fce7f3" font-size="11" font-weight="700" x="302" y="85">Identity &amp; Access (IAM)</text>
 <text fill="#94a3b8" font-size="10" x="272" y="108">Least Privilege Policies</text>
 <text fill="#94a3b8" font-size="10" x="272" y="124">Service Account Keys</text>
-<rect fill="#21262d" height="82" rx="6" stroke="#f43f5e" stroke-width="1.2" width="200" x="480" y="58"></rect>
+<rect fill="#21262d" height="82" rx="6" stroke="#818cf8" stroke-width="1.2" width="200" x="480" y="58"></rect>
 <image height="22" href="../assets/icons/generic/endpoint.svg" width="22" x="492" y="70"/>
 <text fill="#fce7f3" font-size="11" font-weight="700" x="522" y="85">Application &amp; Logic</text>
 <text fill="#94a3b8" font-size="10" x="492" y="108">Input Validation &amp; Auth</text>
 <text fill="#94a3b8" font-size="10" x="492" y="124">Dependency Patching</text>
-<rect fill="#21262d" height="82" rx="6" stroke="#f43f5e" stroke-width="1.2" width="200" x="700" y="58"></rect>
+<rect fill="#21262d" height="82" rx="6" stroke="#818cf8" stroke-width="1.2" width="200" x="700" y="58"></rect>
 <image height="22" href="../assets/icons/generic/firewall.svg" width="22" x="712" y="70"/>
 <text fill="#fce7f3" font-size="11" font-weight="700" x="742" y="85">Network &amp; Firewalls</text>
 <text fill="#94a3b8" font-size="10" x="712" y="108">VPC Ingress/Egress Rules</text>
@@ -636,7 +636,13 @@ Google operationalizes Shared Fate through several flagship enterprise offerings
 <p><strong class="side-heading">Concrete example:</strong>
 An enterprise running a critical financial ledger on a Compute Engine instance attached to a regional Persistent Disk experiences an accidental human error where a junior engineer deletes the production database directory using <kbd>rm -rf /var/lib/postgresql/data</kbd>. Because Google Cloud does not manage files inside the customer filesystem, Google SREs cannot recover the files. However, because the enterprise architect established an automated daily snapshot schedule using <kbd>gcloud compute resource-policies create snapshot-schedule</kbd> and tested recovery procedures, the engineering team restores the snapshot to a new persistent disk within 18 minutes, meeting the company's 30-minute RTO commitment.</p>
 <p><strong class="side-heading">Evidence limit:</strong>
-Google Cloud's 99.999999999% (11 9s) annual storage durability SLA for Cloud Storage guarantees that an object written to Google storage will not be lost due to physical hardware failures or magnetic bit rot. It provides zero contractual guarantee against accidental customer deletion, application logic bugs overwriting valid data, ransomware encrypting files, or unauthorized IAM principals invoking bucket deletion APIs. Durability of hardware is a provider responsibility; disaster recovery and retention governance remain 100% customer obligations.</p><h4>Architectural evaluation questions</h4><ul><li>What exact hardware, hypervisor, and network security guarantees does Google provide under Security OF the Cloud?</li><li>Why does the 99.999999999% durability SLA of Cloud Storage fail to protect an enterprise against accidental data deletion or ransomware?</li><li>How does Google Cloud Shared Fate transform compliance and security posture management through Security Command Center and curated blueprints?</li></ul><p><strong>Further study:</strong> <a href="https://docs.cloud.google.com/architecture/framework/security/shared-responsibility-shared-fate#shared_responsibility" rel="noopener" target="_blank">Google Cloud Architecture Framework — Shared responsibility and shared fate (accessed 2026-10-04)</a>.</p></article></section>
+Google Cloud's 99.999999999% (11 9s) annual storage durability SLA for Cloud Storage guarantees that an object written to Google storage will not be lost due to physical hardware failures or magnetic bit rot. It provides zero contractual guarantee against accidental customer deletion, application logic bugs overwriting valid data, ransomware encrypting files, or unauthorized IAM principals invoking bucket deletion APIs. Durability of hardware is a provider responsibility; disaster recovery and retention governance remain 100% customer obligations.</p>
+<div><strong>Keyword searches</strong></div>
+<ul>
+<li><a href="https://www.google.com/search?q=Google+Cloud+shared+responsibility+model" rel="noopener" target="_blank">Google Cloud shared responsibility model (accessed 2026-10-11)</a> — discovery aid; verify behavior against official section citations.</li>
+<li><a href="https://www.google.com/search?q=Google+Cloud+Shared+Fate+risk+protection" rel="noopener" target="_blank">Google Cloud Shared Fate risk protection (accessed 2026-10-11)</a> — discovery aid; verify behavior against official section citations.</li>
+<li><a href="https://www.google.com/search?q=Security+Command+Center+misconfiguration+scanning" rel="noopener" target="_blank">Security Command Center misconfiguration scanning (accessed 2026-10-11)</a> — discovery aid; verify behavior against official section citations.</li>
+</ul><h4>Architectural evaluation questions</h4><ul><li>What exact hardware, hypervisor, and network security guarantees does Google provide under Security OF the Cloud?</li><li>Why does the 99.999999999% durability SLA of Cloud Storage fail to protect an enterprise against accidental data deletion or ransomware?</li><li>How does Google Cloud Shared Fate transform compliance and security posture management through Security Command Center and curated blueprints?</li></ul><p><strong>Further study:</strong> <a href="https://docs.cloud.google.com/architecture/framework/security/shared-responsibility-shared-fate#shared_responsibility" rel="noopener" target="_blank">Google Cloud Architecture Framework — Shared responsibility and shared fate (accessed 2026-10-04)</a>.</p></article></section>
 <section class="part" id="part-3"><h2>3 · Real-world problem and solution for each topic</h2><p class="intro">Real-world operational incidents demonstrate the catastrophic business and security consequences of service model mismatches and shared responsibility misunderstandings, followed by defensible, verified remediations.</p><article class="topic-card problem" id="topic-01-problem"><h3>1. IaaS, PaaS, FaaS, SaaS, and where GCP services fall · field case</h3><p><strong>Enterprise scenario:</strong> Brightloaf Logistics operates an order status ingestion webhook that receives high-frequency shipping notifications from international parcel carriers. During initial cloud migration, the team deployed the webhook on a single Compute Engine virtual machine instance running Ubuntu 22.04 LTS with an attached Persistent Disk. Over time, carrier traffic surged from 5 requests per second to over 850 requests per second during peak holiday periods. Because the workload was deployed on raw IaaS without an automated patch pipeline or autoscaling group, a routine manual system update executed by an engineer (&lt;kbd&gt;sudo apt-get upgrade&lt;/kbd&gt;) installed an incompatible glibc update that caused the application runtime to crash repeatedly upon restart. The single VM crashed, leading to a 14-hour unavailability window where 42,000 carrier status webhooks were dropped, causing catastrophic tracking synchronization failures.</p><p><strong>Failure symptoms and impact:</strong> 14 hours of continuous service outage; 42,000 carrier webhooks dropped permanently; estimated business loss of $185,000 in expedited carrier re-dispatch penalties and customer support escalation costs.</p><p><strong>Constraints:</strong> Webhook must maintain sub-second acknowledgment latency (&lt; 250 ms); incoming traffic exhibits sudden 20x spikes; zero dedicated SRE headcount available for ongoing operating system patching or host kernel maintenance; application code is written in standard Python/Node.js and can be packaged into an OCI container image.</p><p>Illustrative system log captured during the IaaS VM crash:</p>
 <pre><code>2026-10-04T02:14:11.102Z compute-engine-vm-01 kernel: [ 4128.912] libc.so.6: segfault at 0x7fff8921 ip 0x7f23a9b1 sp 0x7fff8920 error 4 in libc-2.35.so
 2026-10-04T02:14:11.450Z systemd[1]: order-webhook.service: Main process exited, code=dumped, status=11/SEGV
@@ -661,7 +667,7 @@ Google Cloud's 99.999999999% (11 9s) annual storage durability SLA for Cloud Sto
 <rect fill="#161b22" height="95" rx="8" stroke="#f43f5e" stroke-width="2" width="225" x="230" y="25"></rect>
 <image height="22" href="../assets/icons/gcp/core/compute-engine.svg" width="22" x="245" y="38"/>
 <image height="20" href="../assets/icons/generic/failure.svg" width="20" x="272" y="38"/>
-<text fill="#f43f5e" font-size="11" font-weight="700" text-anchor="middle" x="345" y="52">[FAILED: IaaS Compute Engine]</text>
+<text fill="#f43f5e" font-size="11" font-weight="700" text-anchor="middle" x="360" y="52">[FAILED: IaaS Compute Engine]</text>
 <text fill="#fce7f3" font-size="10" text-anchor="middle" x="345" y="70">Customer manages guest OS</text>
 <text fill="#94a3b8" font-size="9.5" text-anchor="middle" x="345" y="86">Manual apt-get maintenance</text>
 <text fill="#f43f5e" font-size="9.5" text-anchor="middle" x="345" y="102">Fault injection: broken glibc</text>
@@ -676,7 +682,7 @@ Google Cloud's 99.999999999% (11 9s) annual storage durability SLA for Cloud Sto
 <rect fill="#161b22" height="95" rx="8" stroke="#34d399" stroke-width="2" width="225" x="230" y="195"></rect>
 <image height="22" href="../assets/icons/gcp/core/cloud-run.svg" width="22" x="245" y="208"/>
 <image height="20" href="../assets/icons/generic/decision.svg" width="20" x="272" y="208"/>
-<text fill="#34d399" font-size="11" font-weight="700" text-anchor="middle" x="345" y="222">[CORRECTED: PaaS Cloud Run]</text>
+<text fill="#34d399" font-size="11" font-weight="700" text-anchor="middle" x="360" y="222">[CORRECTED: PaaS Cloud Run]</text>
 <text fill="#fce7f3" font-size="10" text-anchor="middle" x="345" y="240">Google manages runtime &amp; host</text>
 <text fill="#94a3b8" font-size="9.5" text-anchor="middle" x="345" y="256">Stateless container contract</text>
 <text fill="#34d399" font-size="9.5" text-anchor="middle" x="345" y="272">Zero host patching toil</text>
@@ -750,7 +756,7 @@ Google Cloud's 99.999999999% (11 9s) annual storage durability SLA for Cloud Sto
 <rect fill="#161b22" height="95" rx="8" stroke="#f43f5e" stroke-width="2" width="225" x="230" y="25"></rect>
 <image height="22" href="../assets/icons/gcp/legacy/identity-and-access-management.svg" width="22" x="245" y="38"/>
 <image height="20" href="../assets/icons/generic/failure.svg" width="20" x="272" y="38"/>
-<text fill="#f43f5e" font-size="11" font-weight="700" text-anchor="middle" x="345" y="52">[FAILED: Misconfigured IAM]</text>
+<text fill="#f43f5e" font-size="11" font-weight="700" text-anchor="middle" x="360" y="52">[FAILED: Misconfigured IAM]</text>
 <text fill="#fce7f3" font-size="10" text-anchor="middle" x="345" y="70">allUsers -&gt; roles/run.invoker</text>
 <text fill="#94a3b8" font-size="9.5" text-anchor="middle" x="345" y="86">Assumed Google blocks callers</text>
 <text fill="#f43f5e" font-size="9.5" text-anchor="middle" x="345" y="102">Fault injection: open invoker</text>
@@ -765,7 +771,7 @@ Google Cloud's 99.999999999% (11 9s) annual storage durability SLA for Cloud Sto
 <rect fill="#161b22" height="95" rx="8" stroke="#34d399" stroke-width="2" width="225" x="230" y="195"></rect>
 <image height="22" href="../assets/icons/gcp/legacy/identity-and-access-management.svg" width="22" x="245" y="208"/>
 <image height="20" href="../assets/icons/generic/decision.svg" width="20" x="272" y="208"/>
-<text fill="#34d399" font-size="11" font-weight="700" text-anchor="middle" x="345" y="222">[CORRECTED: Least Privilege]</text>
+<text fill="#34d399" font-size="11" font-weight="700" text-anchor="middle" x="360" y="222">[CORRECTED: Least Privilege]</text>
 <text fill="#fce7f3" font-size="10" text-anchor="middle" x="345" y="240">Dedicated Service Account</text>
 <text fill="#94a3b8" font-size="9.5" text-anchor="middle" x="345" y="256">OIDC ID Token Validation</text>
 <text fill="#34d399" font-size="9.5" text-anchor="middle" x="345" y="272">Ingress: Internal + LB only</text>
@@ -798,13 +804,14 @@ Google Cloud's 99.999999999% (11 9s) annual storage durability SLA for Cloud Sto
 <p><strong>Location:</strong> local terminal</p>
 <p><strong>Actions:</strong>
 Verify core CLI utilities and prepare isolated test workspace.</p>
-<pre><code class="language-bash">command -v bash
-command -v python3
-command -v cat
-command -v mkdir
-mkdir -p scratch/day11_lab
-cd scratch/day11_lab
-python3 -c "import sys; print(f'Python runtime ready: {sys.version}')"
+<pre><code class="language-bash">mkdir -p scratch/day11_lab
+{
+  command -v bash
+  command -v python3
+  command -v cat
+  command -v mkdir
+  python3 -c "import sys; print(f'Python runtime ready: {sys.version}')"
+} | tee scratch/day11_lab/stage1_preflight.log
 </code></pre>
 <p><strong>Expected result:</strong>
 Paths to bash, python3, cat, and mkdir are displayed, and Python runtime ready message is printed.</p>
@@ -914,7 +921,7 @@ Python script evaluate_models.py is created without syntax errors.</p>
 <p><strong>Location:</strong> local terminal</p>
 <p><strong>Actions:</strong>
 Run the evaluation script and verify generated decision output.</p>
-<pre><code class="language-bash">python3 scratch/day11_lab/evaluate_models.py
+<pre><code class="language-bash">python3 scratch/day11_lab/evaluate_models.py | tee scratch/day11_lab/stage4_evaluation_output.txt
 </code></pre>
 <p><strong>Expected result:</strong>
 Tabular output displaying 4 classified workloads across IaaS, PaaS, FaaS, and SaaS with matching GCP services.</p>
@@ -941,7 +948,7 @@ print(f"IaaS-Only Maintenance Toil:      {iaas_only_toil_hours_per_month:.1f} en
 print(f"Multi-Model Architected Toil:   {architected_toil_hours_per_month:.1f} engineering hours/month")
 print(f"Monthly Operational Time Saved: {saved_hours:.1f} hours ({toil_reduction_pct:.1f}% reduction)")
 EOF
-python3 scratch/day11_lab/simulate_toil.py
+python3 scratch/day11_lab/simulate_toil.py | tee scratch/day11_lab/stage6_toil_simulation.txt
 </code></pre>
 <p><strong>Expected result:</strong>
 Output demonstrates a 68.8% reduction in monthly maintenance toil by leveraging PaaS, FaaS, and SaaS rather than all-IaaS.</p>
@@ -982,13 +989,14 @@ Listing shows all 5 generated artifacts with timestamps and non-zero byte sizes.
 <p><strong>Location:</strong> local terminal</p>
 <p><strong>Actions:</strong>
 Confirm that bash and python3 are installed and functioning.</p>
-<pre><code class="language-bash">command -v bash
-command -v python3
-command -v cat
-command -v mkdir
-mkdir -p scratch/day11_matrix
-cd scratch/day11_matrix
-python3 -c "import sys; print(f'Python runtime ready: {sys.version}')"
+<pre><code class="language-bash">mkdir -p scratch/day11_matrix
+{
+  command -v bash
+  command -v python3
+  command -v cat
+  command -v mkdir
+  python3 -c "import sys; print(f'Python runtime ready: {sys.version}')"
+} | tee scratch/day11_matrix/stage1_preflight.log
 </code></pre>
 <p><strong>Expected result:</strong>
 Paths to bash, python3, cat, and mkdir are displayed, and Python runtime ready message is printed.</p>
@@ -1129,7 +1137,7 @@ Python script generate_responsibility_matrix.py created successfully.</p>
 <p><strong>Location:</strong> local terminal</p>
 <p><strong>Actions:</strong>
 Run the generator script to compile the shared responsibility matrix.</p>
-<pre><code class="language-bash">python3 scratch/day11_matrix/generate_responsibility_matrix.py
+<pre><code class="language-bash">python3 scratch/day11_matrix/generate_responsibility_matrix.py | tee scratch/day11_matrix/stage4_generation.log
 </code></pre>
 <p><strong>Expected result:</strong>
 Confirmation message indicating generation of both JSON and Markdown artifacts.</p>
@@ -1166,7 +1174,7 @@ if errors:
 else:
     print("SUCCESS: 100% of tasks have an unambiguous, single designated owner across all service models.")
 EOF
-python3 scratch/day11_matrix/audit_matrix_completeness.py
+python3 scratch/day11_matrix/audit_matrix_completeness.py | tee scratch/day11_matrix/stage6_audit_output.txt
 </code></pre>
 <p><strong>Expected result:</strong>
 SUCCESS message confirms that every task in the matrix has an unambiguous single designated owner.</p>
