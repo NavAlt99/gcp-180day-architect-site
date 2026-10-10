@@ -270,21 +270,21 @@
 <p><strong class="side-heading">Why today:</strong> Cloud architects must recognize the physical boundary between ephemeral container execution and durable enterprise storage to prevent silent data loss during container restarts, rolling updates, and node migrations.</p>
 <p><strong class="side-heading">Where it sits:</strong> Builds on Day 9 container runtime boundaries to establish image packaging and durable storage before coordinating multi-node clusters.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> An order checkout microservice writes transaction recovery markers to its local container directory, but an automatic pod restart wipes out all active markers and causes duplicate order charges. The engineering team attaches a persistent volume with explicit filesystem synchronization calls, ensuring transaction markers survive container replacement and prevent duplicate processing.</p>
-</article>
+<p><strong class="side-heading">Linked subtopics:</strong></p><ul><li><a href="#topic-01-subtopic-1">OCI Image Layers, Inodes, and the Copy-on-Write (OverlayFS) Rootfs</a></li><li><a href="#topic-01-subtopic-2">Dockerfile Directives and Buildkit Layer Caching Architecture</a></li><li><a href="#topic-01-subtopic-3">Container Registries, Content Addressability, and Artifact Registry</a></li><li><a href="#topic-01-subtopic-4">Bind Mounts vs Volumes vs Ephemeral Container Storage</a></li><li><a href="#topic-01-subtopic-5">POSIX Filesystem Semantics: Page Cache, sync(), and fsync() Durability</a></li></ul></article>
 <article class="topic-card overview" id="topic-02-overview">
 <h3>Container orchestration: why Kubernetes exists</h3>
 <p><strong class="keyword">Container orchestration</strong> automates the operational lifecycle of distributed containerized applications across fleets of virtual machine nodes. Managing individual containers imperatively on bare hosts introduces severe architectural failure modes: unhandled host hardware crashes, manual port allocation conflicts, lack of automated rollouts and rollbacks, and inability to reconcile desired capacity against node resources. Kubernetes solves these challenges through a centralized declarative control plane that continuously reconciles actual runtime telemetry against desired state stored in etcd.</p>
 <p><strong class="side-heading">Why today:</strong> Modern cloud-native architectures require automated placement, self-healing, bin packing, and declarative rollouts that manual host-level container tooling cannot deliver at enterprise scale.</p>
 <p><strong class="side-heading">Where it sits:</strong> Bridges single-node container runtime mechanics with the declarative cluster control plane primitives defined in topic 3.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A surge in user checkout requests causes a production order service to exhaust host memory on a standalone virtual machine, crashing all collocated containers and dropping user requests. Migrating the service to a managed Kubernetes cluster allows the scheduler to distribute replicas across multiple worker nodes and automatically restart failed instances without operator intervention.</p>
-</article>
+<p><strong class="side-heading">Linked subtopics:</strong></p><ul><li><a href="#topic-02-subtopic-1">The Failure Modes of Standalone Host Container Management</a></li><li><a href="#topic-02-subtopic-2">Declarative Desired State vs Imperative Container Commands</a></li><li><a href="#topic-02-subtopic-3">Continuous Reconciliation Loops and the Control Plane Architecture</a></li><li><a href="#topic-02-subtopic-4">Automated Scheduling, Bin Packing, and Resource Constraint Enforcement</a></li><li><a href="#topic-02-subtopic-5">Self-Healing: Liveness/Readiness Probes, Restarts, and Rescheduling</a></li></ul></article>
 <article class="topic-card overview" id="topic-03-overview">
 <h3>Kubernetes core objects: Pod, Deployment, Service, Ingress, ConfigMap, Secret</h3>
 <p><strong class="keyword">Kubernetes core objects</strong> represent the foundational declarative primitives used to model cloud-native applications: <strong>Pods</strong> represent the atomic unit of collocated container scheduling; <strong>Deployments</strong> manage declarative replica scaling and zero-downtime rolling updates; <strong>Services</strong> provide stable virtual IP addresses and load-balanced endpoint routing across ephemeral pods; <strong>Ingress</strong> routes external HTTP/HTTPS traffic into internal cluster services; and <strong>ConfigMaps</strong> and <strong>Secrets</strong> decouple configuration and sensitive credentials from container image binaries.</p>
 <p><strong class="side-heading">Why today:</strong> Mastering the ownership hierarchy and traffic routing pathways linking Ingress, Services, and Pods is required to design reliable multi-tier cloud architectures and rapidly diagnose routing breakdowns.</p>
 <p><strong class="side-heading">Where it sits:</strong> Translates orchestration requirements into deployable API primitives, providing the structural model for the day's exit ownership diagram.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A newly deployed microservice passes all readiness checks but external client requests fail immediately with HTTP 503 Service Unavailable errors. An inspection reveals that a subtle typo in the Service selector label prevented the controller from attaching pod IP addresses to the routing endpoint slice.</p>
-</article></section>
+<p><strong class="side-heading">Linked subtopics:</strong></p><ul><li><a href="#topic-03-subtopic-1">Pods: The Atomic Unit of Kubernetes Scheduling and Collocation</a></li><li><a href="#topic-03-subtopic-2">Deployments and ReplicaSets: Declarative Rollouts and Rollbacks</a></li><li><a href="#topic-03-subtopic-3">Services and EndpointSlices: Stable Networking and Service Discovery</a></li><li><a href="#topic-03-subtopic-4">Ingress Controllers and Cloud Load Balancing Integration</a></li><li><a href="#topic-03-subtopic-5">ConfigMaps and Secrets: Decoupling Configuration and Sensitive Credentials</a></li></ul></article></section>
 <section class="part" id="part-2"><h2>2 · Technical discussion of each topic</h2><p class="intro">Analyze the technical mechanics governing container storage layering, BuildKit layer caching, POSIX page cache synchronization, declarative control loops, two-phase scheduler bin packing, and service discovery routing.</p><figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg aria-labelledby="d010-top-title d010-top-desc" height="auto" role="img" style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;display:block;" viewbox="0 0 1120 690" width="100%">
 <title id="d010-top-title">Day 10: Container Storage Durability and Kubernetes Control Plane Topology</title>
 <desc id="d010-top-desc">Operational topology tracing OCI image layers, OverlayFS copy-on-write storage durability, kube-apiserver declarative reconciliation, and Service-to-Pod routing hierarchy.</desc>
@@ -304,39 +304,101 @@
 </svg></div>
 <figcaption>Scope: an illustrative architecture topology for Day 10 container storage and Kubernetes orchestration; it does not prove a deployed Google Cloud production topology or capacity.</figcaption>
 </figure><article class="topic-card technical" id="topic-01-technical"><h3>1. Docker: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
-<ol>
-<li>OCI Image Layers, Inodes, and the Copy-on-Write (OverlayFS) Rootfs</li>
-<li>Dockerfile Directives and Buildkit Layer Caching Architecture</li>
-<li>Container Registries, Content Addressability, and Artifact Registry</li>
-<li>Bind Mounts vs Volumes vs Ephemeral Container Storage</li>
-<li>POSIX Filesystem Semantics: Page Cache, sync(), and fsync() Durability</li>
-</ol>
-<h4>OCI Image Layers, Inodes, and the Copy-on-Write (OverlayFS) Rootfs</h4>
-<p><strong class="side-heading">What it is in general:</strong> An Open Container Initiative (<strong class="keyword">OCI</strong>) container image is an immutable collection of tarball archives containing filesystem diffs, an image configuration JSON blob, and a cryptographic manifest. When a container runtime (such as containerd or Docker) launches a container, it constructs the container's root filesystem using a union filesystem driver, predominantly <strong class="keyword">OverlayFS</strong>. OverlayFS merges multiple underlying read-only image layers (referred to as <kbd>lowerdir</kbd>) with a single ephemeral, writable top layer (<kbd>upperdir</kbd>) and an internal coordination directory (<kbd>workdir</kbd>) into a single unified mount point (<kbd>merged</kbd>). Filesystem metadata and disk allocation are tracked via index nodes (<strong class="keyword">inodes</strong>). When a process reads a file, OverlayFS looks top-down through the layers and reads directly from the lowest read-only layer where the file exists. When a process attempts to modify a file belonging to a lower layer, OverlayFS performs a <strong class="keyword">Copy-on-Write</strong> (CoW) operation: it copies the entire file up to <kbd>upperdir</kbd> before permitting modifications, allocating a new inode in the writable layer while leaving the base image layer unchanged.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Union filesystem dynamics dictate container runtime performance and node storage stability. Performing heavy random writes or appending to massive log files inside the thin writable layer causes severe disk fragmentation, inode exhaustion, and significant I/O latency due to the synchronous copy-up overhead of large files. Furthermore, because <kbd>upperdir</kbd> is bound to the container's lifecycle, any file written to the container layer is deleted permanently when the container is replaced or rescheduled by Kubernetes. Architects must mandate that all stateful write paths bypass the CoW layer entirely via external volume mounts.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Google Kubernetes Engine (GKE) nodes running Container-Optimized OS (COS) mount the local boot disk with OverlayFS backed by <kbd>ext4</kbd>. When multiple Pods on a GKE node pull the same base image (such as Debian or distroless), the node stores only a single copy of each layer digest in the local containerd snapshotter, saving gigabytes of disk space across collocated workloads. GKE Node Auto-repair monitors local inode exhaustion on the node root filesystem and drains unhealthy nodes if rogue containers consume all available filesystem inodes.</p>
-<h4>Dockerfile Directives and Buildkit Layer Caching Architecture</h4>
-<p><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">Dockerfile</strong> is a text manifest specifying the sequential assembly instructions used by container build engines (such as Docker BuildKit or Kaniko) to produce an OCI image. Each directive that modifies filesystem state (<kbd>FROM</kbd>, <kbd>COPY</kbd>, <kbd>ADD</kbd>, <kbd>RUN</kbd>) generates a new immutable filesystem layer. Build engines utilize content-addressable layer caching: before executing a directive, the builder calculates a SHA-256 cache key based on the instruction string and the checksums of any input files. If an exact cache hit exists in the local or remote cache, the builder skips execution and reuses the cached layer digest. If any layer cache is invalidated (for example, if a source code file copied via <kbd>COPY . .</kbd> changes), all subsequent layers are invalidated and must be rebuilt sequentially. Multi-stage builds separate build-time dependencies (compilers, SDKs, test suites) from final runtime artifacts, drastically reducing attack surfaces and final image sizes.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Dockerfile design directly impacts CI/CD pipeline velocity, network egress bandwidth, and security vulnerability profiles. Ordering directives from least-frequently changing (base OS packages, language dependencies) to most-frequently changing (application source code) maximizes layer cache hit rates, dropping build times from 10 minutes to 15 seconds. Employing multi-stage builds ensures that compilers, debug symbols, and package managers (e.g., <kbd>gcc</kbd>, <kbd>npm</kbd>, <kbd>pip</kbd>) are excluded from production containers, preventing attackers from compiling exploits inside compromised production pods.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud Build uses Kaniko and BuildKit cache backends to build container images directly on Google Cloud infrastructure. Google provides minimal, secure "Distroless" base images that contain only the runtime application and its immediate runtime dependencies—omitting package managers, shells, and standard Linux utilities—which integrate seamlessly into Artifact Registry vulnerability scanning to maintain high security compliance across GKE and Cloud Run deployments.</p>
-<h4>Container Registries, Content Addressability, and Artifact Registry</h4>
-<p><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">container registry</strong> is an OCI-compliant distributed content-addressable storage service that stores, versions, and serves container image layers and manifests. Images are addressed not merely by mutable human-readable tags (such as <kbd>:latest</kbd> or <kbd>:v1.2.0</kbd>), but by their immutable cryptographic digest: the SHA-256 hash of the image manifest (e.g., <kbd>sha256:7b9...8f4</kbd>). When a container runtime pulls an image, it retrieves the manifest, checks which layer digests already exist in its local snapshotter, and downloads only the missing layer blobs in parallel. Content addressability ensures that if two distinct images share identical base layers, the registry and node store and transfer that layer blob exactly once.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Relying on mutable image tags (such as deploying <kbd>my-app:prod</kbd>) introduces non-deterministic deployment failures: different nodes in a Kubernetes cluster can pull different underlying image digests under the same tag, causing phantom bugs and impossible rollbacks. Enterprise architecture standards mandate referencing container images by their cryptographic SHA-256 digest in production Kubernetes manifests to guarantee immutability, auditability, and binary reproducibility across staging and production environments.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud <strong class="keyword">Artifact Registry</strong> is the enterprise evolution of Container Registry (GCR), providing regional and multi-regional OCI repositories with native IAM integration, customer-managed encryption keys (CMEK), and automated Container Analysis vulnerability scanning. Artifact Registry integrates natively with Google Cloud Binary Authorization, allowing architects to enforce deploy-time policy controls: GKE clusters automatically reject Pod deployments whose container images lack cryptographic provenance attestations signed by approved CI/CD build keys.</p>
-<h4>Bind Mounts vs Volumes vs Ephemeral Container Storage</h4>
-<p><strong class="side-heading">What it is in general:</strong> Container runtimes provide three distinct storage mechanisms to expose filesystems to containerized processes:
+<ul><li><a href="#topic-01-subtopic-1">OCI Image Layers, Inodes, and the Copy-on-Write (OverlayFS) Rootfs</a></li><li><a href="#topic-01-subtopic-2">Dockerfile Directives and Buildkit Layer Caching Architecture</a></li><li><a href="#topic-01-subtopic-3">Container Registries, Content Addressability, and Artifact Registry</a></li><li><a href="#topic-01-subtopic-4">Bind Mounts vs Volumes vs Ephemeral Container Storage</a></li><li><a href="#topic-01-subtopic-5">POSIX Filesystem Semantics: Page Cache, sync(), and fsync() Durability</a></li></ul>
+<h4 id="topic-01-subtopic-1">OCI Image Layers, Inodes, and the Copy-on-Write (OverlayFS) Rootfs</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> An Open Container Initiative (<strong class="keyword">OCI</strong>) container image is an immutable collection of tarball archives containing filesystem diffs, an image configuration JSON blob, and a cryptographic manifest. When a container runtime (such as containerd or Docker) launches a container, it constructs the container's root filesystem using a union filesystem driver, predominantly <strong class="keyword">OverlayFS</strong>. OverlayFS merges multiple underlying read-only image layers (referred to as <kbd>lowerdir</kbd>) with a single ephemeral, writable top layer (<kbd>upperdir</kbd>) and an internal coordination directory (<kbd>workdir</kbd>) into a single unified mount point (<kbd>merged</kbd>). Filesystem metadata and disk allocation are tracked via index nodes (<strong class="keyword">inodes</strong>). When a process reads a file, OverlayFS looks top-down through the layers and reads directly from the lowest read-only layer where the file exists. When a process attempts to modify a file belonging to a lower layer, OverlayFS performs a <strong class="keyword">Copy-on-Write</strong> (CoW) operation: it copies the entire file up to <kbd>upperdir</kbd> before permitting modifications, allocating a new inode in the writable layer while leaving the base image layer unchanged.</li></ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Union filesystem dynamics dictate container runtime performance and node storage stability. Performing heavy random writes or appending to massive log files inside the thin writable layer causes severe disk fragmentation, inode exhaustion, and significant I/O latency due to the synchronous copy-up overhead of large files. Furthermore, because <kbd>upperdir</kbd> is bound to the container's lifecycle, any file written to the container layer is deleted permanently when the container is replaced or rescheduled by Kubernetes. Architects must mandate that all stateful write paths bypass the CoW layer entirely via external volume mounts.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> Google Kubernetes Engine (GKE) nodes running Container-Optimized OS (COS) mount the local boot disk with OverlayFS backed by <kbd>ext4</kbd>. When multiple Pods on a GKE node pull the same base image (such as Debian or distroless), the node stores only a single copy of each layer digest in the local containerd snapshotter, saving gigabytes of disk space across collocated workloads. GKE Node Auto-repair monitors local inode exhaustion on the node root filesystem and drains unhealthy nodes if rogue containers consume all available filesystem inodes.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://docs.docker.com/build/building/multi-stage/#use-multi-stage-builds">Use multi-stage builds (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-01-subtopic-2">Dockerfile Directives and Buildkit Layer Caching Architecture</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">Dockerfile</strong> is a text manifest specifying the sequential assembly instructions used by container build engines (such as Docker BuildKit or Kaniko) to produce an OCI image. Each directive that modifies filesystem state (<kbd>FROM</kbd>, <kbd>COPY</kbd>, <kbd>ADD</kbd>, <kbd>RUN</kbd>) generates a new immutable filesystem layer. Build engines utilize content-addressable layer caching: before executing a directive, the builder calculates a SHA-256 cache key based on the instruction string and the checksums of any input files. If an exact cache hit exists in the local or remote cache, the builder skips execution and reuses the cached layer digest. If any layer cache is invalidated (for example, if a source code file copied via <kbd>COPY . .</kbd> changes), all subsequent layers are invalidated and must be rebuilt sequentially. Multi-stage builds separate build-time dependencies (compilers, SDKs, test suites) from final runtime artifacts, drastically reducing attack surfaces and final image sizes.</li></ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Dockerfile design directly impacts CI/CD pipeline velocity, network egress bandwidth, and security vulnerability profiles. Ordering directives from least-frequently changing (base OS packages, language dependencies) to most-frequently changing (application source code) maximizes layer cache hit rates, dropping build times from 10 minutes to 15 seconds. Employing multi-stage builds ensures that compilers, debug symbols, and package managers (e.g., <kbd>gcc</kbd>, <kbd>npm</kbd>, <kbd>pip</kbd>) are excluded from production containers, preventing attackers from compiling exploits inside compromised production pods.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> Google Cloud Build uses Kaniko and BuildKit cache backends to build container images directly on Google Cloud infrastructure. Google provides minimal, secure "Distroless" base images that contain only the runtime application and its immediate runtime dependencies—omitting package managers, shells, and standard Linux utilities—which integrate seamlessly into Artifact Registry vulnerability scanning to maintain high security compliance across GKE and Cloud Run deployments.</li></ul>
+<div class="callout" id="docker-multistage-comparison" style="margin-top:1.5rem;">
+<p><strong style="font-size:1.1rem; color:#7dd3fc;">Operational Lab Comparison: Single-Stage vs Optimized Multi-Stage Docker Packaging</strong></p>
+<p><strong>Goal &amp; Overview:</strong> Empirically demonstrate the layer immutability trap, image bloat, and attack surface expansion of naive single-stage builds versus minimal multi-stage Distroless packaging.</p>
+<table style="width:100%; border-collapse:collapse; margin:1rem 0;">
+<thead>
+<tr style="border-bottom:2px solid #334155; text-align:left;">
+<th style="padding:8px;">Metric / Architectural Invariant</th>
+<th style="padding:8px;">Single-Stage Build (Debian Base)</th>
+<th style="padding:8px;">Multi-Stage Build (Distroless / Scratch)</th>
+</tr>
+</thead>
+<tbody>
+<tr style="border-bottom:1px solid #1e293b;">
+<td style="padding:8px;"><strong>Final Image Size on Disk</strong></td>
+<td style="padding:8px; color:#f43f5e;">~68.4 MB (Retains hidden compiler SDK in lower layer)</td>
+<td style="padding:8px; color:#10b981;">~2.4 MB (&gt;96% storage reduction)</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b;">
+<td style="padding:8px;"><strong>Layer Immutability Trap (<kbd>RUN rm -rf</kbd>)</strong></td>
+<td style="padding:8px; color:#f43f5e;"><strong>FAILED</strong>: Deleting files creates whiteout markers; bytes stay in layer 1</td>
+<td style="padding:8px; color:#10b981;"><strong>AVOIDED</strong>: Build tools isolated in ephemeral builder stage</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b;">
+<td style="padding:8px;"><strong>Attack Surface (Compilers &amp; Shells)</strong></td>
+<td style="padding:8px; color:#f43f5e;">Includes <kbd>gcc</kbd>, <kbd>apt-get</kbd>, and <kbd>/bin/sh</kbd> (Living-off-the-land exploit vector)</td>
+<td style="padding:8px; color:#10b981;">Zero compilers, zero package managers, zero interactive shells</td>
+</tr>
+<tr style="border-bottom:1px solid #1e293b;">
+<td style="padding:8px;"><strong>GKE Autoscaling Pull Latency</strong></td>
+<td style="padding:8px; color:#f43f5e;">High network egress and node containerd decompression time (15–30s)</td>
+<td style="padding:8px; color:#10b981;">Sub-second layer pull and snapshot unpack (&lt;2s)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Concrete Code &amp; Manifest Fixtures:</strong></p>
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:0.5rem;">
+<div>
+<p><strong>Single-Stage Dockerfile (Anti-Pattern):</strong></p>
+<pre><code>FROM debian:12-slim
+WORKDIR /app
+# Installs heavy compiler SDK (65MB)
+COPY src/build_sdk /build_tools/
+COPY src/order_dispatch_bin /app/order_dispatch
+# Layer Immutability Trap: rm -rf does NOT reclaim layer size!
+RUN rm -rf /build_tools
+ENTRYPOINT ["/app/order_dispatch"]</code></pre>
+</div>
+<div>
+<p><strong>Optimized Multi-Stage Dockerfile (Best Practice):</strong></p>
+<pre><code># Stage 1: Build &amp; Compilation Environment
+FROM debian:12-slim AS builder
+WORKDIR /workspace
+COPY src/build_sdk /build_tools/
+COPY src/order_dispatch_bin /workspace/order_dispatch
+
+# Stage 2: Minimal Distroless Runtime
+FROM gcr.io/distroless/static-debian12:nonroot
+WORKDIR /app
+COPY --from=builder /workspace/order_dispatch /app/order_dispatch
+USER nonroot:nonroot
+ENTRYPOINT ["/app/order_dispatch"]</code></pre>
+</div>
+</div>
+</div>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://docs.docker.com/build/building/multi-stage/#use-multi-stage-builds">Use multi-stage builds (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-01-subtopic-3">Container Registries, Content Addressability, and Artifact Registry</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">container registry</strong> is an OCI-compliant distributed content-addressable storage service that stores, versions, and serves container image layers and manifests. Images are addressed not merely by mutable human-readable tags (such as <kbd>:latest</kbd> or <kbd>:v1.2.0</kbd>), but by their immutable cryptographic digest: the SHA-256 hash of the image manifest (e.g., <kbd>sha256:7b9...8f4</kbd>). When a container runtime pulls an image, it retrieves the manifest, checks which layer digests already exist in its local snapshotter, and downloads only the missing layer blobs in parallel. Content addressability ensures that if two distinct images share identical base layers, the registry and node store and transfer that layer blob exactly once.</li></ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Relying on mutable image tags (such as deploying <kbd>my-app:prod</kbd>) introduces non-deterministic deployment failures: different nodes in a Kubernetes cluster can pull different underlying image digests under the same tag, causing phantom bugs and impossible rollbacks. Enterprise architecture standards mandate referencing container images by their cryptographic SHA-256 digest in production Kubernetes manifests to guarantee immutability, auditability, and binary reproducibility across staging and production environments.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> Google Cloud <strong class="keyword">Artifact Registry</strong> is the enterprise evolution of Container Registry (GCR), providing regional and multi-regional OCI repositories with native IAM integration, customer-managed encryption keys (CMEK), and automated Container Analysis vulnerability scanning. Artifact Registry integrates natively with Google Cloud Binary Authorization, allowing architects to enforce deploy-time policy controls: GKE clusters automatically reject Pod deployments whose container images lack cryptographic provenance attestations signed by approved CI/CD build keys.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://docs.docker.com/build/building/multi-stage/#use-multi-stage-builds">Use multi-stage builds (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-01-subtopic-4">Bind Mounts vs Volumes vs Ephemeral Container Storage</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> Container runtimes provide three distinct storage mechanisms to expose filesystems to containerized processes:
 1. <strong class="keyword">Ephemeral container storage</strong>: the default writable OverlayFS layer (<kbd>upperdir</kbd>). Data written here is strictly bound to the container lifecycle; when the container process terminates or the pod is rescheduled, all written data is permanently deleted.
 2. <strong class="keyword">Bind mounts</strong>: an exact file or directory on the host operating system is mounted directly into the container filesystem namespace (<kbd>mount --bind</kbd>). The container process reads and writes directly to host storage, bypassing OverlayFS CoW entirely.
-3. <strong class="keyword">Named volumes</strong>: managed storage directories created and governed by the container runtime or storage plugin (in Kubernetes, PersistentVolumes managed by Container Storage Interface, <strong class="keyword">CSI</strong>, drivers). Volumes decouple the storage lifecycle entirely from container and node lifecycles, enabling independent backup, snapshotting, and reattachment across different physical hosts.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Choosing the wrong storage abstraction leads to immediate disaster. Storing transactional state in ephemeral storage guarantees data loss during routine rolling updates or node maintenance. Using bind mounts couples the container to specific host filesystem paths, breaking container portability and violating cluster security policies. Architects must mandate named volumes backed by managed network block storage for stateful workloads (databases, message brokers) while treating ephemeral container storage strictly as disposable scratch space.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> GKE utilizes the Google Compute Engine Persistent Disk CSI Driver to dynamically provision zonal and regional Persistent Disks (<kbd>pd-balanced</kbd>, <kbd>pd-ssd</kbd>, <kbd>hyperdisk-balanced</kbd>) in response to Kubernetes PersistentVolumeClaims (PVCs). GKE also provides the Cloud Storage FUSE CSI driver to mount Cloud Storage buckets as filesystems directly inside Pods, and the Filestore CSI driver for multi-writer NFS shared filesystem access across hundreds of distributed pods.</p>
-<h4>POSIX Filesystem Semantics: Page Cache, sync(), and fsync() Durability</h4>
-<p><strong class="side-heading">What it is in general:</strong> In modern operating systems, when an application invokes the standard POSIX <kbd>write()</kbd> system call, data is NOT written immediately to physical storage hardware. Instead, the Linux kernel copies the data into volatile kernel RAM known as the <strong class="keyword">page cache</strong>, marks the memory pages as "dirty", and returns success to the application in microseconds. The kernel's background flusher threads (<kbd>kworker</kbd> / <kbd>flusher</kbd>) periodically flush dirty pages to disk asynchronously based on sysctl thresholds (<kbd>vm.dirty_background_ratio</kbd>). If the host operating system crashes or power fails before dirty pages are flushed, all buffered data is permanently lost. To guarantee that data has physically reached non-volatile persistent media, the application must issue explicit POSIX synchronization calls:
+3. <strong class="keyword">Named volumes</strong>: managed storage directories created and governed by the container runtime or storage plugin (in Kubernetes, PersistentVolumes managed by Container Storage Interface, <strong class="keyword">CSI</strong>, drivers). Volumes decouple the storage lifecycle entirely from container and node lifecycles, enabling independent backup, snapshotting, and reattachment across different physical hosts.</li></ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Choosing the wrong storage abstraction leads to immediate disaster. Storing transactional state in ephemeral storage guarantees data loss during routine rolling updates or node maintenance. Using bind mounts couples the container to specific host filesystem paths, breaking container portability and violating cluster security policies. Architects must mandate named volumes backed by managed network block storage for stateful workloads (databases, message brokers) while treating ephemeral container storage strictly as disposable scratch space.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> GKE utilizes the Google Compute Engine Persistent Disk CSI Driver to dynamically provision zonal and regional Persistent Disks (<kbd>pd-balanced</kbd>, <kbd>pd-ssd</kbd>, <kbd>hyperdisk-balanced</kbd>) in response to Kubernetes PersistentVolumeClaims (PVCs). GKE also provides the Cloud Storage FUSE CSI driver to mount Cloud Storage buckets as filesystems directly inside Pods, and the Filestore CSI driver for multi-writer NFS shared filesystem access across hundreds of distributed pods.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/fsync.2.html#DESCRIPTION">DESCRIPTION (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-01-subtopic-5">POSIX Filesystem Semantics: Page Cache, sync(), and fsync() Durability</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> In modern operating systems, when an application invokes the standard POSIX <kbd>write()</kbd> system call, data is NOT written immediately to physical storage hardware. Instead, the Linux kernel copies the data into volatile kernel RAM known as the <strong class="keyword">page cache</strong>, marks the memory pages as "dirty", and returns success to the application in microseconds. The kernel's background flusher threads (<kbd>kworker</kbd> / <kbd>flusher</kbd>) periodically flush dirty pages to disk asynchronously based on sysctl thresholds (<kbd>vm.dirty_background_ratio</kbd>). If the host operating system crashes or power fails before dirty pages are flushed, all buffered data is permanently lost. To guarantee that data has physically reached non-volatile persistent media, the application must issue explicit POSIX synchronization calls:
 <kbd>sync()</kbd> schedules all dirty page cache buffers across the entire system for writeback;
 <strong class="keyword">fsync()</strong> flushes all modified in-core data and filesystem metadata for a specific file descriptor to non-volatile storage and blocks until the physical disk controller confirms persistence; and
-<kbd>fdatasync()</kbd> flushes only the modified data and necessary retrieval metadata (omitting timestamps), reducing disk I/O operations.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Understanding POSIX persistence semantics is critical when designing stateful systems on cloud infrastructure. High-throughput ingestion microservices that buffer records in RAM without invoking <kbd>fsync()</kbd> will report successful transaction writes to clients, only to suffer silent data corruption or loss when the cloud provider executes live migration or preempts a spot instance. Architects must ensure database engines (PostgreSQL, MySQL, Kafka) configure Write-Ahead Logging (WAL) with calibrated <kbd>fsync</kbd> commit intervals, and recognize that cloud block storage latency is directly tied to IOPS and sync flush throughput.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine Persistent Disks (PD) and Hyperdisk volumes emulate SCSI/NVMe storage controllers that acknowledge <kbd>fsync()</kbd> flushes only when data has been written to redundant non-volatile physical storage across Google's storage network. In GKE, write-heavy databases that issue frequent <kbd>fsync()</kbd> calls require <kbd>pd-ssd</kbd> or <kbd>hyperdisk-balanced</kbd> volumes with high provisioned IOPS to avoid queue depth saturation and transaction commit latency spikes.</p>
+<kbd>fdatasync()</kbd> flushes only the modified data and necessary retrieval metadata (omitting timestamps), reducing disk I/O operations.</li></ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Understanding POSIX persistence semantics is critical when designing stateful systems on cloud infrastructure. High-throughput ingestion microservices that buffer records in RAM without invoking <kbd>fsync()</kbd> will report successful transaction writes to clients, only to suffer silent data corruption or loss when the cloud provider executes live migration or preempts a spot instance. Architects must ensure database engines (PostgreSQL, MySQL, Kafka) configure Write-Ahead Logging (WAL) with calibrated <kbd>fsync</kbd> commit intervals, and recognize that cloud block storage latency is directly tied to IOPS and sync flush throughput.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> Compute Engine Persistent Disks (PD) and Hyperdisk volumes emulate SCSI/NVMe storage controllers that acknowledge <kbd>fsync()</kbd> flushes only when data has been written to redundant non-volatile physical storage across Google's storage network. In GKE, write-heavy databases that issue frequent <kbd>fsync()</kbd> calls require <kbd>pd-ssd</kbd> or <kbd>hyperdisk-balanced</kbd> volumes with high provisioned IOPS to avoid queue depth saturation and transaction commit latency spikes.</li></ul>
 <figure class="diagram-figure">
 <p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
 <svg aria-labelledby="day10-storage-title day10-storage-desc" role="img" viewbox="0 0 940 330">
@@ -435,51 +497,99 @@
 </tbody>
 </table>
 </div>
-<p><strong class="side-heading">Concrete example:</strong> Consider an order processing microservice that generates transaction verification tokens before dispatching payment events. In the legacy version, the developer writes tokens to <kbd>/tmp/tokens.log</kbd> inside the container without mounting a volume. When GKE triggers a rolling update to deploy a new container version, Kubernetes terminates the old pod, destroying its OverlayFS writable layer. The new replacement pod starts with an empty <kbd>/tmp</kbd>, leaving incoming checkout verification requests with missing token files and causing duplicate customer charges. The architect remediates the service by attaching a Kubernetes PersistentVolumeClaim backed by <kbd>pd-balanced</kbd> mounted to <kbd>/var/lib/tokens</kbd>. Furthermore, the application code is updated to invoke <kbd>os.fsync(f.fileno())</kbd> immediately after appending each token record. When the pod is redeployed, the Persistent Disk dynamically unmounts from the old node, reattaches to the replacement pod's node, and all transaction tokens are read intact, preserving at-most-once payment processing.</p>
-<p><strong class="side-heading">Evidence limit:</strong> Observing successful execution of an application <kbd>write()</kbd> system call proves data transfer into the operating system kernel's memory page cache; it does NOT prove that data has been committed to non-volatile physical storage media without verifying that <kbd>fsync()</kbd> completed successfully without returning <kbd>EIO</kbd> or <kbd>EROFS</kbd> errors.</p><h4>Architectural evaluation questions</h4><ul><li>How does the OverlayFS copy-on-write mechanism impact I/O performance during random write operations?</li><li>Why does the standard POSIX write() system call fail to guarantee durability across sudden container terminations?</li><li>What architectural criteria dictate choosing between Kubernetes emptyDir, PersistentVolumes, and Cloud Storage FUSE mounts?</li></ul><p><strong>Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/fsync.2.html#DESCRIPTION" rel="noopener" target="_blank">fsync(2) Linux file data synchronization description (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-02-technical"><h3>2. Container orchestration: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
-<ol>
-<li>The Failure Modes of Standalone Host Container Management</li>
-<li>Declarative Desired State vs Imperative Container Commands</li>
-<li>Continuous Reconciliation Loops and the Control Plane Architecture</li>
-<li>Automated Scheduling, Bin Packing, and Resource Constraint Enforcement</li>
-<li>Self-Healing: Liveness/Readiness Probes, Restarts, and Rescheduling</li>
-</ol>
-<h4>The Failure Modes of Standalone Host Container Management</h4>
-<p><strong class="side-heading">What it is in general:</strong> Managing containers imperatively on standalone host servers (using raw Docker CLI commands or static systemd unit files) introduces catastrophic failure modes when operating distributed microservices at enterprise scale. On a standalone host:
-1. <strong class="keyword">No automated failover</strong>: if the underlying physical host or VM suffers a kernel panic, hardware fault, or network partition, all containers running on that host terminate and remain down indefinitely until human operators manually intervene.
-2. <strong class="keyword">Host port collision</strong>: running multiple replicas of the same service requires manual, error-prone host port mappings (e.g., binding container port 8080 to host port 8081, 8082), severely limiting replica density.
-3. <strong class="keyword">No bin packing or global scheduling</strong>: operators must guess which host has sufficient spare CPU and memory headroom, leading to extreme resource fragmentation where some nodes are starved while others sit idle.
-4. <strong class="keyword">Brittle zero-downtime upgrades</strong>: executing rolling updates requires custom shell scripts to stop old containers and launch new ones sequentially, with no automated health checking, rollback capabilities, or traffic draining.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Relying on standalone container hosting (e.g., a fleet of Compute Engine VMs running Docker daemons with bash deploy scripts) creates an operational bottleneck that caps organization velocity and destroys Service Level Objectives (SLOs). Mean Time to Recovery (MTTR) is measured in hours rather than seconds because failure detection and remediation depend on human on-call engineers. Architects adopt container orchestrators to transform compute infrastructure from brittle, pet-like individual servers into a fungible, self-healing utility fabric.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Google pioneered large-scale container orchestration over two decades ago with its internal Borg system, which manages millions of containers running Google Search, Gmail, and YouTube. Kubernetes was designed by Google based on the architectural lessons of Borg. In GCP, Google Kubernetes Engine (GKE) provides fully managed, production-grade Kubernetes, eliminating the operational overhead of installing, patching, and scaling master nodes and worker node pools.</p>
-<h4>Declarative Desired State vs Imperative Container Commands</h4>
-<p><strong class="side-heading">What it is in general:</strong> In imperative systems, the operator issues a sequence of discrete procedural instructions telling the system *how* to execute a change (e.g., <kbd>docker run -d -p 80:8080 my-image</kbd>, <kbd>docker stop my-container</kbd>). If an intermediate command fails or the system state drifts, the script cannot self-correct. In contrast, <strong class="keyword">declarative configuration</strong> specifies *what* the desired end state of the system should be (e.g., "there must be exactly 5 replicas of <kbd>my-image</kbd> running with 512 MB memory requests, exposed on port 80"). The declaration is written as a structured YAML or JSON document and submitted to the centralized API server. The platform compares the declared desired state against the actual observed state of the cluster and computes the minimal set of transitions needed to align reality with the declaration.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Declarative management is the foundational prerequisite for GitOps and infrastructure-as-code (IaC). Because the entire desired state of the application architecture is stored as text manifests in Git repositories, auditing, code review, drift detection, and catastrophic disaster recovery become deterministic: an entire multi-region cluster can be recreated identically in minutes simply by applying the declared manifests against a fresh cluster.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> GKE integrates natively with declarative deployment tooling, including Google Cloud Config Sync (part of GKE Enterprise) which continuously reconciles cluster state against Git repositories. GKE also supports Anthos Config Management to enforce uniform security policies and compliance guardrails across hybrid and multi-cloud GKE clusters using declarative constraints.</p>
-<h4>Continuous Reconciliation Loops and the Control Plane Architecture</h4>
-<p><strong class="side-heading">What it is in general:</strong> The core architectural engine of Kubernetes is the <strong class="keyword">declarative control loop</strong> (or reconciliation loop), implemented across the Kubernetes control plane components:
-1. <strong class="keyword">kube-apiserver</strong>: the central REST API gateway and sole component that communicates directly with the persistent cluster data store.
-2. <strong class="keyword">etcd</strong>: a distributed, highly available, consistent key-value store (using the Raft consensus algorithm) that acts as the single source of truth for all cluster object state.
-3. <strong class="keyword">kube-controller-manager</strong>: a daemon that embeds the core control loops (Deployment controller, ReplicaSet controller, Node controller). Each controller executes an infinite loop:
-   <kbd>Observe actual state -&gt; Compare with desired state in etcd -&gt; Calculate divergence -&gt; Issue corrective API calls</kbd>.
-4. <strong class="keyword">kube-scheduler</strong>: watches for unscheduled Pods and assigns them to optimal worker nodes based on resource filtering and scoring algorithms.
-5. <strong class="keyword">kubelet</strong>: the node-level agent running on every worker node that watches the API server for Pods assigned to its node and instructs the Container Runtime Interface (<strong class="keyword">CRI</strong>, e.g., containerd) to pull images, create containers, and mount volumes.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Because reconciliation is asynchronous, continuous, and level-triggered (reacting to current state rather than edge-triggered events), the system is naturally resilient to transient failures, network partitions, and dropped messages. If a worker node crashes, the Node controller detects the missing heartbeat, marks the node as unreachable, and the ReplicaSet controller notices that the observed replica count is below the desired count, automatically scheduling replacement Pods onto healthy surviving nodes.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> In GKE, Google manages the entire control plane (<kbd>kube-apiserver</kbd>, <kbd>etcd</kbd>, controller managers, schedulers) as a high-availability, multi-zone service with automated upgrades, repair, and backup backed by Google's Site Reliability Engineering (SRE) teams. GKE Autopilot takes this further by completely managing node provisioning, hardening, and scaling, exposing only the declarative Kubernetes API to the customer.</p>
-<h4>Automated Scheduling, Bin Packing, and Resource Constraint Enforcement</h4>
-<p><strong class="side-heading">What it is in general:</strong> The <strong class="keyword">kube-scheduler</strong> is responsible for assigning unscheduled Pods to available worker nodes in a two-phase algorithmic cycle:
-1. <strong class="keyword">Filtering (Predicates)</strong>: evaluates whether a node satisfies the mandatory requirements of the Pod. Checks include <kbd>NodeResourcesFit</kbd> (does the node have sufficient unallocated Allocatable CPU and Memory to satisfy the Pod's <kbd>resources.requests</kbd>?), <kbd>NodeName</kbd>, <kbd>NodePorts</kbd>, <kbd>NodeAffinity</kbd>, and <kbd>Tolerations</kbd> against node <kbd>Taints</kbd>. If a node fails any predicate, it is discarded.
-2. <strong class="keyword">Scoring (Priorities)</strong>: ranks the remaining candidate nodes using scoring plugins (e.g., <kbd>NodeResourcesBalancedAllocation</kbd> to achieve uniform resource utilization, <kbd>ImageLocality</kbd> to favor nodes that already have image layers cached). The node with the highest aggregate score is selected, and a binding object is written to etcd.
-This automated <strong class="keyword">bin packing</strong> packs heterogeneous workloads onto the minimal number of compute nodes required, maximizing compute utilization.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Kubernetes scheduling decisions are strictly governed by resource *requests*, not resource *limits*. If developers omit <kbd>resources.requests</kbd> in Pod specifications, the scheduler treats the Pod as requiring zero CPU and zero RAM, scheduling dozens of pods onto a single node until the node suffers severe memory pressure and invokes the kernel OOM killer. Architects must establish mandatory Admission Controllers (ValidatingAdmissionWebhooks or Kyverno) to reject any Pod that lacks declared resource requests, ensuring predictable bin packing and preventing node starvation.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> GKE integrates the Kubernetes scheduler directly with the GKE Cluster Autoscaler. When the scheduler cannot place a Pod because all nodes fail the filtering phase (e.g., <kbd>0/3 nodes available: 3 Insufficient memory</kbd>), the Cluster Autoscaler detects the unschedulable Pod and automatically triggers the provisioning of new Compute Engine VM worker nodes in the appropriate node pool, scaling down instances when workloads subside.</p>
-<h4>Self-Healing: Liveness/Readiness Probes, Restarts, and Rescheduling</h4>
-<p><strong class="side-heading">What it is in general:</strong> Kubernetes implements autonomous <strong class="keyword">self-healing</strong> through active container health telemetry and decoupled lifecycle probes:
-1. <strong class="keyword">Liveness probe</strong>: periodically interrogates the running container (via HTTP GET, TCP socket, or exec command). If the probe fails consecutively beyond <kbd>failureThreshold</kbd> (e.g., if the application is deadlocked or trapped in an infinite loop), kubelet kills the container and restarts it according to the Pod's <kbd>restartPolicy</kbd>.
-2. <strong class="keyword">Readiness probe</strong>: determines whether the container is ready to accept incoming network traffic (e.g., during database connection warm-up or cache loading). If the readiness probe fails, the container is NOT restarted; instead, the endpoints controller immediately removes the Pod's IP address from all matching Service EndpointSlices, preventing external traffic from reaching the unready container.
-3. <strong class="keyword">Startup probe</strong>: protects slow-starting legacy applications by temporarily disabling liveness and readiness probes until the application completes initial startup.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Decoupling liveness from readiness is an architectural masterpiece. Conflating the two causes cascading outages: if an overloaded application starts failing HTTP requests due to downstream database latency, killing the container (liveness) simply exacerbates the overload by forcing cold container restarts. Correctly configuring readiness probes removes overloaded pods from the load balancing pool while allowing them to process existing requests, while liveness probes restart only genuinely crashed or deadlocked processes.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> GKE health checks integrate directly with Google Cloud external and internal HTTP(S) Load Balancers via container-native load balancing (using Network Endpoint Groups, NEGs). When a readiness probe fails on a GKE pod, the Google Cloud Load Balancer stops routing packets to that specific pod IP within milliseconds at the network edge, providing sub-second traffic diversion without proxy hop latency.</p>
+<ul><li><strong class="side-heading">Concrete example:</strong> Consider an order processing microservice that generates transaction verification tokens before dispatching payment events. In the legacy version, the developer writes tokens to <kbd>/tmp/tokens.log</kbd> inside the container without mounting a volume. When GKE triggers a rolling update to deploy a new container version, Kubernetes terminates the old pod, destroying its OverlayFS writable layer. The new replacement pod starts with an empty <kbd>/tmp</kbd>, leaving incoming checkout verification requests with missing token files and causing duplicate customer charges. The architect remediates the service by attaching a Kubernetes PersistentVolumeClaim backed by <kbd>pd-balanced</kbd> mounted to <kbd>/var/lib/tokens</kbd>. Furthermore, the application code is updated to invoke <kbd>os.fsync(f.fileno())</kbd> immediately after appending each token record. When the pod is redeployed, the Persistent Disk dynamically unmounts from the old node, reattaches to the replacement pod's node, and all transaction tokens are read intact, preserving at-most-once payment processing.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Observing successful execution of an application <kbd>write()</kbd> system call proves data transfer into the operating system kernel's memory page cache; it does NOT prove that data has been committed to non-volatile physical storage media without verifying that <kbd>fsync()</kbd> completed successfully without returning <kbd>EIO</kbd> or <kbd>EROFS</kbd> errors.</li></ul>
+<div><strong>Keyword searches</strong></div>
+<ul><li><a href="https://www.google.com/search?q=OCI%20image%20layers" rel="noopener" target="_blank">OCI image layers (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=Docker%20multi-stage%20builds" rel="noopener" target="_blank">Docker multi-stage builds (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=OverlayFS%20whiteouts" rel="noopener" target="_blank">OverlayFS whiteouts (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=POSIX%20fsync" rel="noopener" target="_blank">POSIX fsync (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/fsync.2.html#DESCRIPTION">DESCRIPTION (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul><h4>Architectural evaluation questions</h4><ul><li>How does the OverlayFS copy-on-write mechanism impact I/O performance during random write operations?</li><li>Why does the standard POSIX write() system call fail to guarantee durability across sudden container terminations?</li><li>What architectural criteria dictate choosing between Kubernetes emptyDir, PersistentVolumes, and Cloud Storage FUSE mounts?</li></ul><p><strong>Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/fsync.2.html#DESCRIPTION" rel="noopener" target="_blank">fsync(2) Linux file data synchronization description (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-02-technical"><h3>2. Container orchestration: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
+<ul><li><a href="#topic-02-subtopic-1">The Failure Modes of Standalone Host Container Management</a></li><li><a href="#topic-02-subtopic-2">Declarative Desired State vs Imperative Container Commands</a></li><li><a href="#topic-02-subtopic-3">Continuous Reconciliation Loops and the Control Plane Architecture</a></li><li><a href="#topic-02-subtopic-4">Automated Scheduling, Bin Packing, and Resource Constraint Enforcement</a></li><li><a href="#topic-02-subtopic-5">Self-Healing: Liveness/Readiness Probes, Restarts, and Rescheduling</a></li></ul>
+<h4 id="topic-02-subtopic-1">The Failure Modes of Standalone Host Container Management</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> Managing container runtimes (<strong class="keyword">containerd</strong>, <strong class="keyword">dockerd</strong>, <strong class="keyword">runc</strong>) imperatively on standalone compute hosts relies on localized host process isolation without a distributed cluster orchestrator. In this architecture, operations are governed by localized system daemons (e.g., <strong class="keyword">systemd</strong>) or ad-hoc shell commands. Standalone container hosting exhibits four catastrophic operational and architectural failure modes when operating distributed microservices:</li></ul>
+<ul>
+<li><strong>Unmanaged Host Crashes &amp; Lack of Automated Failover:</strong> A standalone host has no distributed heartbeat mechanism or cluster-wide membership consensus. If the underlying bare-metal hardware, hypervisor, or Linux kernel panics (<kbd>kernel.panic</kbd>), suffers an uncorrectable memory fault, or experiences network interface card (<strong class="keyword">NIC</strong>) isolation, all resident containers terminate immediately. The mean time to recovery (<strong class="keyword">MTTR</strong>) is bounded by human detection, manual triage, and manual container re-provisioning on an alternate host.</li>
+<li><strong>Host Port Space Saturation &amp; EADDRINUSE Collisions:</strong> Standalone host bridge networking relies on Linux network namespace boundary traversal via <strong class="keyword">iptables DNAT</strong> mapping (e.g., binding container port <kbd>8080/tcp</kbd> to host port <kbd>0.0.0.0:8080</kbd>). Schedulers cannot collocate multiple replicas of the same service on the same host without assigning static, arbitrary high-port offsets (<kbd>8081</kbd>, <kbd>8082</kbd>), causing <kbd>bind()</kbd> system calls to fail with <kbd>EADDRINUSE</kbd> (errno 98) and fracturing ingress proxy configurations.</li>
+<li><strong>Resource Fragmentation &amp; Absence of Global Bin Packing:</strong> Without a multi-dimensional bin packing algorithm, workload placement is determined by manual operator assignment. Operators inevitably strand compute resources—such as running a memory-bound workload on a node with abundant free CPU, while exhausting RAM and starving neighbor containers—leading to severe under-utilization or node thrashing.</li>
+<li><strong>Brittle Imperative Rollouts:</strong> Executing zero-downtime rolling updates via shell scripts (<kbd>docker stop old &amp;&amp; docker run -d new</kbd>) lacks transactional atomicity. If the new container experiences runtime initialization failure (e.g., failed configuration parse or library linkage defect), client traffic is dropped instantly; automated health validation, traffic draining, and deterministic rollbacks do not exist.</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Relying on standalone container hosting (e.g., a fleet of Compute Engine VMs running Docker daemons with bash deploy scripts) creates an operational bottleneck that caps organizational velocity and destroys Service Level Objectives (<strong class="keyword">SLOs</strong>). Consider a microservices topology consisting of $M = 15$ interdependent services. On standalone VMs with a 99.9% VM availability SLA and manual failover taking an average of 45 minutes, composite application availability decays exponentially ($A_{\text{composite}} = \prod_{i=1}^{M} A_i \approx 0.999^{15} \approx 98.51\%$). This results in over 10.8 hours of unplanned downtime per month, violating standard enterprise three-nines (99.9%) SLOs. Blast radius is maximized because a single VM failure drops 100% of collocated containers. Architects adopt container orchestrators to transform compute infrastructure from brittle, pet-like individual servers into a fungible, self-healing utility fabric.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> Deploying standalone Docker containers on <strong class="keyword">Compute Engine</strong> running Container-Optimized OS (<strong class="keyword">COS</strong>) without an orchestration tier leaves workloads vulnerable to zonal hardware faults and live migration interrupts. <strong class="keyword">Google Kubernetes Engine (GKE)</strong> eliminates standalone host vulnerabilities by abstracting raw Compute Engine instances into elastic, self-healing Node Pools distributed across multiple GCP Availability Zones. GKE node auto-repair continuously monitors worker node health through the node problem detector, automatically draining and recreating failing VMs without operator intervention.</li></ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> An un-orchestrated payment service container running via <kbd>docker run -d -p 443:8443 gcr.io/corp/pay:v1</kbd> on a Compute Engine VM experiences a memory leak. The Linux kernel <strong class="keyword">OOM killer</strong> terminates the process with <kbd>SIGKILL</kbd> (exit code 137). Because the host lacks an active supervisor control loop, the service port remains unresponsive for 52 minutes until an on-call engineer restarts the container manually.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Standalone VM experiments verify container termination on host failure, but local environments cannot simulate large-scale cloud provider fabric reboots, undercloud top-of-rack (ToR) switch outages, or cross-zone optical fiber cuts handled by GKE control planes.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://kubernetes.io/docs/concepts/overview/#why-you-need-kubernetes-and-what-can-it-do">Why you need Kubernetes and what can it do (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-02-subtopic-2">Declarative Desired State vs Imperative Container Commands</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> Container systems operate under two diametrically opposed management philosophies: imperative execution and declarative desired state convergence.</li></ul>
+<ul>
+<li><strong>Imperative Execution:</strong> The system state is altered via a chronological sequence of imperative mutation commands (e.g., <kbd>docker run</kbd>, <kbd>docker scale</kbd>, <kbd>docker network connect</kbd>). If step 4 of a 6-step imperative deployment script fails due to an API timeout, the infrastructure is left in an unknown, non-deterministic intermediate state. Re-running the script is non-idempotent and often produces fatal conflicts.</li>
+<li><strong>Declarative Desired State:</strong> The engineer specifies the complete, target end-state schema in an immutable text manifest (JSON/YAML). The declarative schema is submitted to a centralized API server, which stores the specification as the canonical source of truth.</li>
+<li><strong>Diff Reconciliation Engine:</strong> The orchestrator continuously calculates the mathematical delta between desired state ($S_{\text{desired}}$) and observed actual runtime state ($S_{\text{actual}}$):
+$$\Delta = S_{\text{desired}} \setminus S_{\text{actual}}$$
+If $\Delta \neq \emptyset$, the orchestrator executes idempotent state transitions until the system converges to $\Delta = \emptyset$.</li>
+<li><strong>Three-Way Merge Patching:</strong> When applying manifest updates, Kubernetes executes a <strong class="keyword">three-way merge patch</strong> comparing: (1) the <kbd>last-applied-configuration</kbd> annotation, (2) the current live configuration stored in <strong class="keyword">etcd</strong>, and (3) the incoming modified manifest. This prevents destructive field overwrites while allowing dynamic controllers (e.g., autoscalers) to manage runtime fields without configuration conflicts.</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Declarative state enforcement eliminates configuration drift caused by operator debugging sessions directly on nodes. By storing declarative manifests in Git repositories (<strong class="keyword">GitOps</strong>), every production infrastructure change is backed by cryptographic Git commit hashes. Rollbacks require a single <kbd>git revert</kbd> commit rather than complex, reverse-engineered operational shell rollback scripts. An architectural anti-pattern is using imperative CLI flags (<kbd>kubectl run --image=...</kbd> or <kbd>kubectl expose</kbd>) inside production deployment pipelines instead of version-controlled, declarative manifests validated by schema linters.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> <strong class="keyword">Google Cloud Config Sync</strong> (part of GKE Enterprise) enforces declarative GitOps across fleet-wide GKE clusters. Config Sync runs an in-cluster root reconciler that continuously pulls declarative configurations from Git or OCI registries, detects and reconciles drift for managed resources; convergence depends on source polling, API availability and reconciliation health rather than a guaranteed number of seconds or a multi-object transaction. Config Sync integrates with <strong class="keyword">Policy Controller (OPA Gatekeeper)</strong> on GKE, rejecting non-declarative mutations that violate organization guardrails directly at the <kbd>kube-apiserver</kbd> admission gate.</li></ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> An operator imperatively updates a GKE production Deployment's replica count from 12 to 2 via <kbd>kubectl scale deployment/frontend --replicas=2</kbd> during an incident investigation. On a subsequent successful reconciliation, Config Sync detects the drift against the canonical Git repository (<kbd>replicas: 12</kbd>), triggers a reconciliation event, and scales the Deployment back to 12 replicas automatically.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Local <kbd>kubectl diff</kbd> commands demonstrate manifest comparisons against local clusters, but do not capture multi-cluster GitOps webhook serialization delays or large-scale OCI registry sync latencies across global GCP regions.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/kubernetes-engine/config-sync/docs/overview#how-config-sync-works">How Config Sync works (accessed 2026-10-10)</a>; <a href="https://kubernetes.io/docs/concepts/architecture/controller/#control-via-api-server">Control via API server (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-02-subtopic-3">Continuous Reconciliation Loops and the Control Plane Architecture</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> The Kubernetes control plane is an asynchronous, level-triggered distributed control system designed to continuously drive current infrastructure state toward declared desired state.</li></ul>
+<ul>
+<li><strong>Level-Triggered vs Edge-Triggered Semantics:</strong> Edge-triggered systems react only to state transition boundaries (e.g., "container stopped event"). If a network partition causes an edge event to be dropped, the system remains permanently out of sync. Kubernetes implements <strong class="keyword">level-triggered control loops</strong>: components periodically poll and stream full state representations via HTTP/2 chunked streams, ensuring that missed transient events are corrected during the subsequent reconciliation pass.</li>
+<li><strong>Control Plane Components:</strong>
+<ul>
+<li><kbd>kube-apiserver</kbd>: The stateless, horizontally scalable gateway for the cluster. It intercepts HTTP REST operations, handles authentication (<strong class="keyword">x509 client certificates</strong>, webhook tokens), executes authorization (<strong class="keyword">RBAC</strong>), triggers Mutating/Validating Admission Controllers, and serves as the sole component permitted to communicate with etcd.</li>
+<li><kbd>etcd</kbd>: A distributed, strongly consistent key-value datastore implementing the <strong class="keyword">Raft consensus algorithm</strong>. All cluster objects are stored under key hierarchies (e.g., <kbd>/registry/pods/default/pod-1</kbd>) with multi-version concurrency control (<strong class="keyword">MVCC</strong>) and 64-bit resource versions to guarantee linearizable consistency.</li>
+<li><kbd>kube-controller-manager</kbd>: A monolithic binary packaging multiple decoupled continuous reconciliation loops (<kbd>DeploymentController</kbd>, <kbd>ReplicaSetController</kbd>, <kbd>NodeLifecycleController</kbd>, <kbd>EndpointSliceController</kbd>).</li>
+<li><kbd>kube-scheduler</kbd>: The placement engine that assigns unscheduled Pods (<kbd>spec.nodeName == ""</kbd>) to candidate worker nodes based on two-phase filtering and scoring.</li>
+<li><kbd>kubelet</kbd>: The primary node agent. Watches <kbd>kube-apiserver</kbd> for Pod specs scheduled to its host, interacts with the Container Runtime Interface (<strong class="keyword">CRI</strong>) to spawn/destroy containers, configures the Container Network Interface (<strong class="keyword">CNI</strong>), and handles volume mounts via the Container Storage Interface (<strong class="keyword">CSI</strong>).</li>
+</ul>
+</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> etcd Raft consensus needs a majority of voting members; an odd membership size is normally chosen to tolerate $F$ failures with $N = 2F + 1$ voters. A 3-node etcd cluster tolerates 1 failure; a 5-node cluster tolerates 2 failures. Writing to etcd requires synchronous disk <strong class="keyword">fdatasync</strong> operations; sustained disk or network delays can delay heartbeats and provoke leader elections; the outcome depends on election timeouts and workload, not a universal 10 ms threshold. Crucially, the control plane is decoupled from the data plane: if <kbd>kube-apiserver</kbd> or etcd becomes unavailable, running data plane workloads, established TCP streams, and iptables routing on worker nodes continue executing uninterrupted, though autoscaling, rolling deployments, and self-healing rescheduling are temporarily halted.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> GKE abstracts the entire control plane as a Google-managed service. In GKE Regional Clusters, Google provisions multi-master <kbd>kube-apiserver</kbd> and etcd replicas spanning three distinct GCP Availability Zones for control-plane availability; upgrades and the applicable SLA have documented conditions, and zero downtime for every application is not guaranteed. <strong class="keyword">GKE Autopilot</strong> manages both the control plane and worker nodes, dynamically provisioning compute resources and configuring hardened kernel security profiles according to Google SRE best practices.</li></ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> A worker node hosting 3 Pod replicas experiences a localized kernel lockup. The GKE <kbd>NodeLifecycleController</kbd> misses <kbd>kubelet</kbd> node lease heartbeats for <kbd>node-monitor-grace-period</kbd> (inspect the running controller configuration rather than assume a fixed default), marks the node <kbd>NotReady</kbd>, and schedules pod eviction. The <kbd>ReplicaSetController</kbd> notices that observed active pods (2) is less than desired replicas (3), generates a replacement Pod specification, and commits it to <kbd>kube-apiserver</kbd>.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Local controller inspection exposes Informer queue metrics and API audit logs, but internal multi-master etcd Raft leader election latencies and Google-managed control plane VM telemetry are inaccessible in managed GKE environments.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://kubernetes.io/docs/concepts/architecture/controller/#control-via-api-server">Control via API server (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-02-subtopic-4">Automated Scheduling, Bin Packing, and Resource Constraint Enforcement</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> The <strong class="keyword">kube-scheduler</strong> assigns Pods to worker nodes through a deterministic two-phase pipeline executed for every unscheduled Pod:</li></ul>
+<ul>
+<li><strong>Filtering Phase (Predicates):</strong> Evaluates candidate nodes against hard binary constraints. Nodes failing any predicate plugin are eliminated:
+  <ul>
+<li><kbd>NodeResourcesFit</kbd>: Verifies that the node's allocatable CPU, memory, and ephemeral storage exceed the Pod's declared <kbd>resources.requests</kbd>.</li>
+<li><kbd>NodeName</kbd> &amp; <kbd>NodePorts</kbd>: Enforces explicit node bindings and checks host port availability.</li>
+<li><kbd>NodeAffinity</kbd> &amp; <kbd>PodTopologySpread</kbd>: Evaluates hard node labels and zone balance constraints.</li>
+<li><kbd>Taints</kbd> &amp; <kbd>Tolerations</kbd>: Verifies that the Pod possesses tolerations matching any taints applied to nodes (e.g., dedicated GPU pools or maintenance cordons).</li>
+</ul>
+</li>
+<li><strong>Scoring Phase (Priorities):</strong> Ranks the remaining candidate nodes on a scale of 0 to 100 using weighted evaluation plugins:
+  <ul>
+<li><kbd>NodeResourcesBalancedAllocation</kbd>: Scores nodes higher when placing the Pod achieves an equal ratio of CPU to memory allocation, preventing compute resource stranding.</li>
+<li><kbd>ImageLocality</kbd>: Assigns higher scores to nodes that already have the required container image layers cached locally, minimizing container pull latency.</li>
+</ul>
+</li>
+<li><strong>Resource Contracts (Requests vs Limits):</strong>
+<ul>
+<li><kbd>requests</kbd>: Represents guaranteed minimum capacity. Used exclusively by <kbd>kube-scheduler</kbd> during the <kbd>NodeResourcesFit</kbd> filtering phase and by the Linux kernel Completely Fair Scheduler (<strong class="keyword">CFS</strong>) to allocate relative CPU shares (<kbd>cpu.shares</kbd>).</li>
+<li><kbd>limits</kbd>: Represents maximum ceiling enforced by Linux kernel cgroups. CPU limits enforce hard CFS quota windows (<kbd>cpu.cfs_quota_us</kbd> over <kbd>cpu.cfs_period_us</kbd>), throttling threads that exceed quota. Memory limits configure hard cgroup ceilings (<kbd>memory.max</kbd>); if a container exceeds its memory limit, the Linux kernel invokes <kbd>oom_killer</kbd> to terminate processes inside the container.</li>
+</ul>
+</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Quality of Service (<strong class="keyword">QoS</strong>) classes govern workload survivability during resource pressure. Guaranteed QoS (<kbd>requests == limits</kbd>) provides highest stability and immunity to node eviction during memory pressure, but minimizes bin packing efficiency. Burstable QoS (<kbd>requests &lt; limits</kbd>) balances cost efficiency with headroom, but risks CPU throttling and OOM termination if neighbor workloads spike simultaneously. BestEffort QoS (no requests or limits) is first to be evicted by <kbd>kubelet</kbd> when node allocatable memory drops below eviction thresholds. Setting memory limits significantly higher than requests creates an overcommitted node memory pool, risking node kernel panics if multiple burstable containers peak concurrently.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> <strong class="keyword">GKE Cluster Autoscaler (CA)</strong> integrates directly with the scheduler queue. When a Pod fails <kbd>NodeResourcesFit</kbd> across all existing nodes, it enters <kbd>Pending</kbd> state with a <kbd>FailedScheduling</kbd> event. CA intercepts this event, simulates node placement across configured node pools, and triggers the Compute Engine API to provision new VMs within 60–90 seconds. <strong class="keyword">GKE Node Auto-Provisioning (NAP)</strong> analyzes unscheduled Pod requirements (CPU architecture, memory ratios, GPU accelerators) and automatically constructs new GKE node pools with custom machine shapes on-demand.</li></ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> A batch analytics Pod requesting <kbd>cpu: 4000m</kbd> and <kbd>memory: 16Gi</kbd> cannot fit onto a cluster of three <kbd>e2-standard-4</kbd> worker nodes (each possessing only <kbd>1200m</kbd> allocatable CPU remaining). The scheduler marks the Pod <kbd>Pending</kbd>; GKE Cluster Autoscaler detects the unschedulable workload and triggers Compute Engine to launch an additional <kbd>e2-standard-8</kbd> instance into the regional node pool.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Standalone scheduler simulation scripts demonstrate filtering and scoring logic mathematically, but cannot test physical cloud VM API rate limits, GCP quota exhaustion errors, or live compute engine stockouts in constrained zones.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/#framework-workflow">Framework workflow (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-02-subtopic-5">Self-Healing: Liveness/Readiness Probes, Restarts, and Rescheduling</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> Kubernetes separates process health into three distinct probe lifecycles evaluated by <kbd>kubelet</kbd> via HTTP GET, TCP socket connection, or in-container <kbd>exec</kbd> commands:</li></ul>
+<ul>
+<li><kbd>startupProbe</kbd>: Inhibits liveness and readiness probes while a legacy or complex application initializes (e.g., JVM class loading, database schema validation). This prevents premature container restarts during slow boot sequences.</li>
+<li><kbd>livenessProbe</kbd>: Determines whether the container application is alive or fundamentally broken (e.g., process deadlock, unrecoverable thread starvation, memory corruption). If a liveness probe fails <kbd>failureThreshold</kbd> times consecutively (default 3), <kbd>kubelet</kbd> issues <kbd>SIGTERM</kbd> to PID 1, waits <kbd>terminationGracePeriodSeconds</kbd> (default 30s), sends <kbd>SIGKILL</kbd>, and restarts the container runtime sandbox according to the Pod's <kbd>restartPolicy</kbd>.</li>
+<li><kbd>readinessProbe</kbd>: Determines whether the container is ready to accept inbound network traffic. <strong>Readiness probe failures NEVER trigger container restarts</strong>. When a readiness probe fails, the <kbd>EndpointSliceController</kbd> immediately removes the Pod's IP address from active <strong class="keyword">EndpointSlices</strong>. Network proxies (kube-proxy and cloud load balancers) stop routing traffic to the Pod within milliseconds, allowing it to drain in-flight requests or finish background processing while preserving process memory state.</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Coupling liveness probes to downstream external dependencies (e.g., querying a PostgreSQL database in <kbd>/healthz</kbd>) is an architectural anti-pattern. If the database experiences transient latency or downtime, all application Pods fail their liveness probes simultaneously, inducing a cluster-wide restart storm (<strong class="keyword">thundering herd</strong>) that overwhelms CRI runtimes, saturates registries with image pulls, and prevents database recovery. Decoupled readiness probes prevent 502 Bad Gateway and 503 Service Unavailable errors during traffic spikes: overloaded Pods fail readiness, shedding load to healthy replicas, while avoiding crash loops.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> In <strong class="keyword">GKE Container-Native Load Balancing with Network Endpoint Groups (NEGs)</strong>, readiness probe states are mirrored directly to Google Cloud External Application Load Balancers. When a Pod fails its readiness check, Google Cloud Load Balancer health checkers detect the endpoint failure and withdraw edge routing within sub-second intervals, avoiding node proxy double-hops and isolating failed backends at the Google edge network.</li></ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> A Go microservice suffers a mutex deadlock in an HTTP handler thread pool. The <kbd>readinessProbe</kbd> fails, causing GKE to detach the Pod from its NEG; 10 seconds later, the <kbd>livenessProbe</kbd> (<kbd>GET /live</kbd>) fails 3 consecutive checks. <kbd>kubelet</kbd> sends <kbd>SIGKILL</kbd> to the deadlocked PID 1 and re-spawns the container, logging a restart count increment in <kbd>kubectl get pods</kbd>.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Local container probe testing verifies iptables endpoint detachment and process restarts, but cannot reproduce BGP edge route withdrawal latencies or Google Cloud Load Balancer health check probe intervals from distributed edge points of presence (<strong class="keyword">PoPs</strong>).</li></ul>
 <figure class="diagram-figure">
 <p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
 <svg aria-labelledby="day10-reconcile-title day10-reconcile-desc" role="img" viewbox="0 0 940 300">
@@ -536,85 +646,117 @@ This automated <strong class="keyword">bin packing</strong> packs heterogeneous 
 </svg>
 <figcaption>Figure 10.2: Declarative reconciliation loop in Kubernetes. The control plane watches declared desired state, detects divergence, calculates placement across worker nodes, and executes autonomous convergence.</figcaption>
 </figure>
-<div class="topic-card">
-<table>
-<caption>Table 10.2: Standalone Host Management vs Kubernetes Container Orchestration</caption>
-<thead>
-<tr>
-<th>Operational Capability</th>
-<th>Standalone Docker Host</th>
-<th>Kubernetes Orchestration (GKE)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>System State Model</strong></td>
-<td>Imperative (<kbd>docker run</kbd>, shell scripts)</td>
-<td>Declarative (desired YAML state reconciled via etcd)</td>
-</tr>
-<tr>
-<td><strong>Host Hardware Failure</strong></td>
-<td>Manual detection; downtime until operator rebuilds VM</td>
-<td>Autonomous rescheduling of pods onto healthy nodes</td>
-</tr>
-<tr>
-<td><strong>Port &amp; IP Allocation</strong></td>
-<td>Host port collision risk; manual port mapping required</td>
-<td>Software-defined pod IP per container; virtual Services</td>
-</tr>
-<tr>
-<td><strong>Replica Scheduling</strong></td>
-<td>Manual node placement; uneven host utilization</td>
-<td>Two-tier algorithmic filtering &amp; scoring bin packing</td>
-</tr>
-<tr>
-<td><strong>Health Telemetry</strong></td>
-<td>Basic process exit monitoring (<kbd>restart: always</kbd>)</td>
-<td>Multi-stage liveness, readiness, and startup probes</td>
-</tr>
-<tr>
-<td><strong>Horizontal Scaling</strong></td>
-<td>Manual VM provisioning and container launching</td>
-<td>Horizontal Pod Autoscaler (HPA) &amp; Cluster Autoscaler</td>
-</tr>
-</tbody>
-</table>
-</div>
-<p><strong class="side-heading">Concrete example:</strong> Consider an e-commerce checkout deployment that scales from 2 to 5 replicas during a Black Friday flash sale. In a standalone environment, an operator manually executes <kbd>docker run</kbd> on a single VM, only to breach host RAM limits, triggering kernel OOM terminations that crash all checkout containers simultaneously and drop hundreds of customer orders. Under Kubernetes orchestration on GKE, the deployment controller declares <kbd>replicas: 5</kbd>. The scheduler evaluates all cluster nodes: it places 2 replicas on Node 1, 1 replica on Node 2, and identifies that Node 3 lacks sufficient allocatable memory. Instead of crashing, the remaining 2 pods enter <kbd>Pending</kbd>, which immediately signals the GKE Cluster Autoscaler. Within 90 seconds, GKE spins up an additional Compute Engine node, the scheduler binds the pending pods, readiness probes pass, and customer traffic scales smoothly across all 5 instances.</p>
-<p><strong class="side-heading">Evidence limit:</strong> Observing that all Pods in a Deployment have reached <kbd>Running</kbd> status proves that the scheduler successfully assigned nodes and kubelet started the containers; it does NOT prove that application containers are serving valid HTTP traffic without verifying that readiness probes have passed and EndpointSlices contain healthy target IP addresses.</p><h4>Architectural evaluation questions</h4><ul><li>How does a declarative reconciliation loop differ from traditional imperative infrastructure automation scripts?</li><li>What distinct operational roles do kube-scheduler, kube-controller-manager, and kubelet execute during pod placement?</li><li>Under what failure conditions will a Kubernetes Pod become trapped indefinitely in Pending status?</li></ul><p><strong>Further study:</strong> <a href="https://kubernetes.io/docs/concepts/overview/#why-you-need-kubernetes-and-what-can-it-do" rel="noopener" target="_blank">Why you need Kubernetes and what it can do (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-03-technical"><h3>3. Kubernetes core objects: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
-<ol>
-<li>Pods: The Atomic Unit of Kubernetes Scheduling and Collocation</li>
-<li>Deployments and ReplicaSets: Declarative Rollouts and Rollbacks</li>
-<li>Services and EndpointSlices: Stable Networking and Service Discovery</li>
-<li>Ingress Controllers and Cloud Load Balancing Integration</li>
-<li>ConfigMaps and Secrets: Decoupling Configuration and Sensitive Credentials</li>
+<div><strong>Worked reconciliation and scheduling boundaries</strong></div>
+<ul><li><strong class="side-heading">Concrete example:</strong> A Deployment declares three replicas; its controller manages ReplicaSets, whose controller creates missing Pods. The scheduler filters nodes before scoring eligible candidates; kubelet starts bound Pods through the runtime. Each controller retries from observed state, so a watch event is a prompt to reconcile, not a transaction spanning all components.</li><li>A 2 CPU / 1 GiB request must fit remaining allocatable requests. Limits constrain runtime use: CPU is throttled; a memory limit can trigger OOM termination. NodeAffinity constrains placement, and tolerating a taint permits but does not guarantee it. NodeResourcesBalancedAllocation balances resource fractions; ImageLocality favors cached images. Neither plugin name alone proves a globally optimal bin packing policy. GKE Cluster Autoscaler evaluates whether more eligible nodes could place pending Pods within configured constraints; adding nodes cannot repair impossible affinity or invalid storage topology.</li><li>Liveness failure can restart the container; readiness failure changes its readiness condition without inherently restarting it. A failed Pod is not moved: controllers create replacements with new UIDs. EndpointSlice readiness and GKE load-balancer backend health/readiness gates are distinct signals, so propagation and connection draining must be considered before claiming zero downtime.</li><li>Config Sync is the current configuration reconciliation product associated with the historical Anthos Config Management name. GitOps rollback restores versioned configuration, but requires immutable image references and compatible database/configuration state; reverting Git does not reverse external side effects.</li><li><strong class="side-heading">Evidence limit:</strong> The scheduler lab is a deliberately simplified Python placement model; it does not execute upstream scheduler plugins, Raft or GKE autoscaling.</li></ul>
+<div><strong>Keyword searches</strong></div>
+<ul><li><a href="https://www.google.com/search?q=Kubernetes%20reconciliation%20controllers" rel="noopener" target="_blank">Kubernetes reconciliation controllers (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=etcd%20Raft%20consensus" rel="noopener" target="_blank">etcd Raft consensus (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=NodeResourcesFit%20NodeAffinity%20TaintToleration" rel="noopener" target="_blank">NodeResourcesFit NodeAffinity TaintToleration (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=NodeResourcesBalancedAllocation%20ImageLocality" rel="noopener" target="_blank">NodeResourcesBalancedAllocation ImageLocality (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=GKE%20Cluster%20Autoscaler" rel="noopener" target="_blank">GKE Cluster Autoscaler (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=Config%20Sync%20Anthos%20Config%20Management" rel="noopener" target="_blank">Config Sync Anthos Config Management (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://kubernetes.io/docs/concepts/workloads/pods/probes/#readiness-probe">Readiness probe (accessed 2026-10-10)</a>; <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/ingress#container-native-load-balancing">Container-native load balancing (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul><h4>Architectural evaluation questions</h4><ul><li>How does a declarative reconciliation loop differ from traditional imperative infrastructure automation scripts?</li><li>What distinct operational roles do kube-scheduler, kube-controller-manager, and kubelet execute during pod placement?</li><li>Under what failure conditions will a Kubernetes Pod become trapped indefinitely in Pending status?</li></ul><p><strong>Further study:</strong> <a href="https://kubernetes.io/docs/concepts/overview/#why-you-need-kubernetes-and-what-can-it-do" rel="noopener" target="_blank">Why you need Kubernetes and what it can do (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-03-technical"><h3>3. Kubernetes core objects: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
+<ul><li><a href="#topic-03-subtopic-1">Pods: The Atomic Unit of Kubernetes Scheduling and Collocation</a></li><li><a href="#topic-03-subtopic-2">Deployments and ReplicaSets: Declarative Rollouts and Rollbacks</a></li><li><a href="#topic-03-subtopic-3">Services and EndpointSlices: Stable Networking and Service Discovery</a></li><li><a href="#topic-03-subtopic-4">Ingress Controllers and Cloud Load Balancing Integration</a></li><li><a href="#topic-03-subtopic-5">ConfigMaps and Secrets: Decoupling Configuration and Sensitive Credentials</a></li></ul>
+<h4 id="topic-03-subtopic-1">Pods: The Atomic Unit of Kubernetes Scheduling and Collocation</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">Pod</strong> is the fundamental schedulable and deployable unit in Kubernetes. Rather than scheduling isolated Linux containers, Kubernetes instantiates a Pod as a shared execution sandbox that bundles one or more application containers.</li></ul>
+<ul>
+<li><strong>The Pause / Infra Container Architecture:</strong> When a Pod is scheduled, <kbd>kubelet</kbd> instructs the CRI runtime to instantiate an "infra" or "pause" container (<kbd>registry.k8s.io/pause</kbd>). The pause container allocates the underlying Linux kernel namespaces and enters an infinite sleep loop. Application containers then join the namespaces established by the pause container.</li>
+<li><strong>Namespace Sharing Dynamics:</strong>
+<ul>
+<li><em>Network Namespace (Shared):</em> All containers within a Pod share identical virtual network interfaces (<kbd>eth0</kbd>), loopback (<kbd>lo</kbd>), IP address, and TCP/UDP port spaces. Container A running on port <kbd>8080</kbd> communicates with Container B on port <kbd>5432</kbd> via <kbd>127.0.0.1</kbd> (localhost) with no inter-Pod network hop; loopback still has processing cost.</li>
+<li><em>IPC Namespace (Shared):</em> Containers share POSIX shared memory (<kbd>/dev/shm</kbd>) and System V IPC primitives, enabling high-performance inter-process communication.</li>
+<li><em>Mount Namespace (Isolated):</em> Each container maintains its own distinct filesystem rootfs. Persistent volumes and ConfigMaps are mounted at explicitly declared directory paths within individual container mount tables.</li>
+<li><em>PID Namespace (Isolated by default):</em> Process trees are isolated per container, but can be unified across the Pod by declaring <kbd>spec.shareProcessNamespace: true</kbd> to allow helper containers to inspect or signal primary application processes.</li>
+</ul>
+</li>
+<li><strong>Common Multi-Container Pod Patterns:</strong>
+<ul>
+<li><em>Init Containers:</em> Execute sequentially to completion before primary application containers initialize (e.g., running database migrations or validating DNS availability).</li>
+<li><em>Sidecar Containers:</em> Run concurrently alongside the main application container to provide supplemental operational capabilities (e.g., Envoy proxies for service meshes, Fluentbit log forwarders, or Google Cloud SQL Auth Proxies).</li>
+</ul>
+</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Multi-container Pods must adhere strictly to the single-responsibility lifecycle principle. Collocating two independent business microservices in the same Pod is an anti-pattern: it forces them to share vertical CPU/memory scaling constraints, creates shared fate during node failures, and prevents independent CI/CD release lifecycles. Furthermore, direct point-to-point communication targeting Pod IP addresses is fundamentally fragile because Pod IPs are dynamically assigned upon creation and discarded upon termination. Architects mandate that all ingress and internal traffic traverse abstracted Service VIPs or headless discovery records.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> <strong class="keyword">GKE VPC-Native Clusters</strong> assign Pod IP addresses directly from dedicated secondary IP subnets within the customer's Google Cloud Virtual Private Cloud (<strong class="keyword">VPC</strong>) using <strong class="keyword">VPC Alias IP ranges</strong>. This architecture eliminates traditional software overlay networks (<strong class="keyword">VXLAN / Geneve</strong>). Every GKE Pod IP is natively routable across the VPC, allowing direct, low-latency connectivity to Compute Engine VMs, on-premises systems via Cloud Interconnect, and managed services like Cloud SQL without NAT translation or gateway proxies.</li></ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> A web application container running in a GKE Pod connects to a local Cloud SQL Auth Proxy sidecar container at <kbd>127.0.0.1:5432</kbd>. The sidecar intercepts the local traffic, establishes a mutual TLS tunnel using Google Cloud IAM credentials, and forwards requests to a managed Cloud SQL instance across the VPC.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Local namespace tools (<kbd>ip netns</kbd>, <kbd>lsns</kbd>) inspect network and IPC sharing on a single Linux kernel, but cannot test VPC Alias IP route table synchronization across Google's global Andromeda Software-Defined Network (<strong class="keyword">SDN</strong>).</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://kubernetes.io/docs/concepts/workloads/pods/#pod-networking">Pod networking (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-03-subtopic-2">Deployments and ReplicaSets: Declarative Rollouts and Rollbacks</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> Kubernetes manages scalable, stateless workloads through a multi-tier declarative ownership hierarchy:</li></ul>
+<p style="text-align:center; font-family:monospace; background:#0f172a; padding:8px; border-radius:6px; border:1px solid #1e293b;">Deployment ──► ReplicaSet ──► Pods</p>
+<ul>
+<li><strong>The Deployment Controller:</strong> A Deployment does not create or manage Pods directly. Instead, it owns and orchestrates one or more <strong class="keyword">ReplicaSets</strong>. The active ReplicaSet is responsible for maintaining the declared number of identical Pod replicas (<kbd>spec.replicas</kbd>) using label selectors.</li>
+<li><strong>Rolling Update Mechanics:</strong> When a Deployment's pod template (<kbd>spec.template</kbd>) is modified:
+  <ol>
+<li>The Deployment controller creates a <em>new</em>, distinct ReplicaSet with a unique hash suffix (<kbd>pod-template-hash</kbd>).</li>
+<li>The controller computes rollout progression bounded by two parameters:
+    <ul>
+<li><kbd>maxSurge</kbd>: The maximum number or percentage of Pods that can be scheduled above desired capacity during the rollout (e.g., <kbd>25%</kbd> or <kbd>1</kbd>).</li>
+<li><kbd>maxUnavailable</kbd>: The maximum number or percentage of Pods that can be offline during the update (e.g., <kbd>0</kbd> or <kbd>25%</kbd>).</li>
+</ul>
+</li>
+<li>The controller incrementally scales up the new ReplicaSet while scaling down the old ReplicaSet, waiting for newly created Pods to pass readiness probes before terminating previous generation replicas.</li>
 </ol>
-<h4>Pods: The Atomic Unit of Kubernetes Scheduling and Collocation</h4>
-<p><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">Pod</strong> is the smallest deployable and schedulable compute unit in Kubernetes. A Pod encapsulates one or more application containers that share a common context: specifically, they share the same Linux Network namespace (meaning all containers in a Pod share the same IP address and port space, communicating with each other over <kbd>localhost</kbd>), the same IPC namespace, and can mount shared volumes. In contrast, containers within a Pod maintain independent Mount and PID namespaces (unless process namespace sharing is explicitly enabled). Multi-container Pod patterns include the Sidecar (logging/telemetry agents running alongside the main service), the Ambassador (local proxy abstracting external database connections), and the Init Container (runs to completion before main application containers initialize).</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Pods must be designed with single-responsibility principles. Placing multiple unrelated services into the same Pod couples their scaling, lifecycle, and failure domains: if Container A crashes or leaks memory, the entire Pod is terminated or rescheduled. Architects restrict multi-container Pods strictly to tightly coupled helper sidecars (e.g., Envoy proxies in service meshes, cloud storage sync sidecars) while decoupling independent microservices into their own dedicated Pods and Deployments.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> In GKE, every Pod receives an IP address natively routable within the Google Cloud Virtual Private Cloud (VPC) through VPC-native clusters (using alias IP ranges). This architecture eliminates double overlay encapsulation (e.g., VXLAN/Geneve overhead), allowing GKE Pods to communicate directly with Compute Engine VMs, Cloud SQL databases, and on-premises systems at native network speeds.</p>
-<h4>Deployments and ReplicaSets: Declarative Rollouts and Rollbacks</h4>
-<p><strong class="side-heading">What it is in general:</strong> In production Kubernetes, bare Pods are virtually never created directly; instead, they are managed by higher-level controllers. A <strong class="keyword">Deployment</strong> is a declarative object that manages the lifecycle of a stateless application. The Deployment controller does not manage Pods directly; rather, it manages intermediate <strong class="keyword">ReplicaSets</strong>, which in turn ensure that a specified number of identical Pod replicas are running at any given time. When a Deployment is updated (e.g., changing the container image from <kbd>v1</kbd> to <kbd>v2</kbd>), the Deployment controller creates a new ReplicaSet and orchestrates a zero-downtime rolling update based on two parameters:
-<kbd>maxSurge</kbd> (how many extra pods can be created above the desired replica count during the update) and
-<kbd>maxUnavailable</kbd> (how many pods can be unavailable during the update).
-If the new version fails health probes or throws runtime exceptions, Kubernetes supports instant rollback (<kbd>kubectl rollout undo</kbd>) to the previous ReplicaSet revision without rebuilding container images.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Deployments provide the mathematical guarantees governing service availability during production releases. Configuring <kbd>maxSurge: 25%</kbd> and <kbd>maxUnavailable: 0</kbd> ensures that existing traffic capacity is never degraded while new versions are provisioned. For canary and blue-green deployment strategies, architects leverage multiple Deployments with shared Service selectors or service mesh traffic splitters (Istio/Anthos Service Mesh) to route small percentages of live traffic to canary releases before initiating full rollouts.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> GKE integrates Deployment rollouts directly with Cloud Deploy and Cloud Build. Google Cloud Deploy provides managed, continuous delivery pipelines that automate canary progressions, approval gates, and rollback policies across development, staging, and multi-region production GKE clusters.</p>
-<h4>Services and EndpointSlices: Stable Networking and Service Discovery</h4>
-<p><strong class="side-heading">What it is in general:</strong> Because Kubernetes Pods are ephemeral entities that receive dynamic, unpredictable IP addresses upon creation and destruction, clients cannot connect directly to individual Pod IPs. A <strong class="keyword">Service</strong> provides an immutable, long-lived network abstraction: a stable virtual IP address (ClusterIP), a stable DNS name (e.g., <kbd>my-service.default.svc.cluster.local</kbd>), and load balancing across all matching Pods. The Service identifies target Pods using a key-value <strong class="keyword">label selector</strong> (e.g., <kbd>selector: app: orders</kbd>). The Kubernetes <strong class="keyword">EndpointSlice</strong> controller continuously queries the API server for Pods carrying matching labels and populates the Service's EndpointSlice with the active IP addresses and port combinations of all healthy, ready pods. Under the hood, <kbd>kube-proxy</kbd> translates the Service virtual IP into backend Pod IPs using kernel <kbd>iptables</kbd> or <kbd>IPVS</kbd> connection tracking rules.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> The decoupling of Services from Pod IPs via label selectors is the cornerstone of cloud-native resilience. However, this decoupling introduces a classic operational vulnerability: a single typographical error in a Service selector label (e.g., matching <kbd>app: order</kbd> instead of <kbd>app: orders</kbd>) leaves the EndpointSlice completely empty. The Service continues to exist and resolve in DNS, but all incoming client requests immediately fail with HTTP 503 or connection refused, even while all backend Pods report 100% healthy status. Architects must implement automated manifest linting and integration testing to validate selector alignment before deployment.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> In GKE VPC-native clusters, Google Cloud implements container-native load balancing: Google Cloud Load Balancers bypass <kbd>kube-proxy</kbd> iptables entirely, programming network endpoint groups (NEGs) directly with Pod IP addresses. This eliminates double load balancing hops, preserves client source IP addresses, and enables advanced Google Cloud traffic steering at the network perimeter.</p>
-<h4>Ingress Controllers and Cloud Load Balancing Integration</h4>
-<p><strong class="side-heading">What it is in general:</strong> While a Service operating in <kbd>ClusterIP</kbd> mode provides internal cluster networking, exposing HTTP/HTTPS applications to external Internet clients requires an <strong class="keyword">Ingress</strong> object. An Ingress is an API resource that defines external HTTP routing rules, host-based routing (e.g., <kbd>api.example.com</kbd> vs <kbd>shop.example.com</kbd>), path-based routing (e.g., <kbd>/orders/*</kbd> vs <kbd>/users/*</kbd>), and TLS termination. The Ingress resource alone is merely a static rule declaration; it requires an active <strong class="keyword">Ingress Controller</strong> running in the cluster to translate the declaration into actual proxy configurations (e.g., NGINX, Envoy) or cloud infrastructure load balancers.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Utilizing a centralized Ingress controller is vastly superior to exposing individual microservices via raw <kbd>LoadBalancer</kbd> Services. Creating a <kbd>LoadBalancer</kbd> Service for every microservice provisions a dedicated cloud load balancer and public IP address for each service, multiplying cloud networking costs and complicating centralized TLS certificate management. A unified Ingress controller consolidates hundreds of backend microservices behind a single public IP and unified edge security perimeter.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> The GKE Ingress Controller (GCE Ingress) automatically provisions Google Cloud External HTTP(S) Load Balancers or Internal Application Load Balancers in response to Ingress resources. GKE Ingress natively integrates with Google-managed SSL certificates (automatically provisioning and renewing free Let's Encrypt certificates), Cloud Armor for Layer 7 WAF and DDoS mitigation, and Cloud CDN for edge content caching.</p>
-<h4>ConfigMaps and Secrets: Decoupling Configuration and Sensitive Credentials</h4>
-<p><strong class="side-heading">What it is in general:</strong> The cloud-native Twelve-Factor App methodology mandates strict separation of configuration code from executable binaries. Kubernetes implements this through two declarative storage objects:
-1. <strong class="keyword">ConfigMaps</strong>: store non-confidential configuration data as key-value pairs (e.g., database connection strings, feature flags, application port numbers).
-2. <strong class="keyword">Secrets</strong>: store sensitive data (e.g., API keys, database passwords, TLS private keys). By default, Kubernetes stores Secrets as base64-encoded strings in etcd.
-Both ConfigMaps and Secrets can be consumed by Pods either as environment variables (<kbd>env</kbd> / <kbd>envFrom</kbd>) or mounted as read-only filesystem volumes (<kbd>volumeMounts</kbd>). Mounted volumes update dynamically in near-real-time when the underlying ConfigMap or Secret is edited in etcd, whereas environment variables require a Pod restart to reflect changes.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Baking configuration values or API tokens into container images is an extreme security and operational anti-pattern. If a database password changes, the team must rebuild, retest, and redeploy container images. More critically, hardcoding credentials in images exposes secrets to anyone with read access to the container registry. Architects mandate injecting all configuration and secrets dynamically at runtime, ensuring that images remain strictly generic, environment-agnostic, and secure across development, staging, and production tiers.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> GKE provides multiple enterprise secret management patterns. By default, GKE supports Database Encryption for etcd, encrypting Secrets at rest using Google Cloud Key Management Service (Cloud KMS) keys. Furthermore, architects leverage the Google Cloud Secret Manager CSI driver and Workload Identity to mount secrets directly from Secret Manager into GKE pods, eliminating the need to store sensitive credentials in etcd altogether.</p>
+</li>
+<li><strong>Deterministic Rollbacks:</strong> If the new image crashes or fails readiness checks, the operator triggers <kbd>kubectl rollout undo deployment/&lt;name&gt;</kbd>. The Deployment controller reverses the reconciliation direction, immediately scaling the previous healthy ReplicaSet back up to 100% capacity and decommissioning the failing new ReplicaSet without modifying underlying image artifacts.</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Capacity planning during rollouts requires budgeting for surge capacity. Setting <kbd>maxSurge: 50%</kbd> requires 50% additional spare cluster CPU and RAM capacity during deployments. If a cluster lacks sufficient spare headroom or compute autoscaling is throttled, rolling updates stall in an unresolved <kbd>Pending</kbd> state. Setting <kbd>maxUnavailable: 0</kbd> guarantees that baseline traffic capacity is never degraded below desired scale, protecting transaction throughput during high-volume business hours. An anti-pattern is using <kbd>kubectl edit</kbd> directly in production or failing to specify <kbd>revisionHistoryLimit</kbd>, which can cause hundreds of obsolete ReplicaSet objects to accumulate in etcd, degrading API server serialization performance.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> <strong class="keyword">Google Cloud Deploy</strong> provides a fully managed continuous delivery platform for GKE. Cloud Deploy uses declarative render and deploy targets (via Skaffold), automating progressive delivery pipelines (Dev → Staging → Production) and providing one-click rollbacks with audit trails stored in Google Cloud Logging. GKE Release Channels (Rapid, Regular, Stable) coordinate with Deployment controllers to ensure worker node upgrades respect PodDisruptionBudgets (<strong class="keyword">PDBs</strong>), preventing node drains from violating minimum application replica requirements.</li></ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> A Deployment with <kbd>replicas: 4</kbd>, <kbd>maxSurge: 1</kbd>, and <kbd>maxUnavailable: 0</kbd> is updated to image <kbd>gcr.io/corp/checkout:v2</kbd>. The Deployment controller scales the new ReplicaSet to 1 pod (total cluster pods: 5). Once the new pod passes its <kbd>readinessProbe</kbd>, the old ReplicaSet is scaled down to 3 pods (total: 4). This sequence repeats until all 4 pods run <kbd>v2</kbd>.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Local cluster rollouts verify ReplicaSet scaling logic and surge arithmetic, but cannot simulate multi-region progressive traffic shifting with automated canary analysis (ACA) and automated rollback triggers on Google Cloud Monitoring SLI error budgets.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment">Rolling Update Deployment (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-03-subtopic-3">Services and EndpointSlices: Stable Networking and Service Discovery</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> A Kubernetes <strong class="keyword">Service</strong> is an architectural abstraction that provides a stable, persistent network endpoint (Virtual IP and DNS name) for a dynamic, ephemeral collection of backend Pods.</li></ul>
+<ul>
+<li><strong>Label Selectors and Decoupling:</strong> Services decouple traffic consumers from backend providers using label selectors (<kbd>spec.selector: app=order-api</kbd>). Pods matching the selector are automatically registered as routing targets regardless of their physical host location or lifecycle restarts.</li>
+<li><strong>kube-proxy &amp; Data Path Packet Translation:</strong>
+<ul>
+<li>On every worker node, <kbd>kube-proxy</kbd> watches the API server for changes to Services and EndpointSlices.</li>
+<li><em>iptables Mode:</em> <kbd>kube-proxy</kbd> programs kernel Netfilter chains (<kbd>KUBE-SERVICES</kbd>, <kbd>KUBE-SVC-*</kbd>, <kbd>KUBE-SEP-*</kbd>). When a client sends a packet to a Service ClusterIP (<kbd>10.96.0.10:80</kbd>), the kernel performs Destination Network Address Translation (<strong class="keyword">DNAT</strong>) using the <kbd>statistic --mode random</kbd> module, rewriting the destination IP to an active Pod IP chosen with equal probability ($1/N$).</li>
+<li><em>IPVS Mode:</em> In large clusters, <kbd>kube-proxy</kbd> configures IP Virtual Server (<strong class="keyword">IPVS</strong>) hash tables in the Linux kernel, switching routing complexity from $O(N)$ sequential iptables rule evaluations to $O(1)$ hash table lookups.</li>
+</ul>
+</li>
+<li><strong>EndpointSlices (Scalability Architecture):</strong> Traditional Kubernetes <kbd>Endpoints</kbd> resources stored all backend Pod IPs in a single monolithic object. In clusters with thousands of replicas, a single Pod restart required serializing the entire multi-megabyte Endpoints object across etcd and all nodes. <strong class="keyword">EndpointSlices</strong> partition backend endpoints into modular groups of up to 100 endpoints per slice, reducing etcd network and write overhead by over 90%.</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> <kbd>kube-proxy</kbd> iptables/IPVS operates strictly at Layer 4 (TCP/UDP). It selects a backend Pod during the initial TCP three-way handshake (<kbd>SYN</kbd>). If an HTTP client or reverse proxy uses persistent HTTP/1.1 or HTTP/2 keep-alive connections, all subsequent HTTP requests over that TCP connection will be routed to the exact same backend Pod, completely breaking load distribution. L7 load balancing (Ingress/Service Mesh) is required for persistent connections. Furthermore, a single-character typographical error in a Service selector (<kbd>app: backend-srv</kbd> vs <kbd>app: backend-service</kbd>) leaves the Service intact but results in an empty EndpointSlice, dropping inbound requests with connection refused or HTTP 503 even though all backend Pods report healthy status.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> <strong class="keyword">GKE Container-Native Load Balancing with NEGs</strong> completely bypasses <kbd>kube-proxy</kbd> and node-level iptables. GKE programs Google Cloud Load Balancer (<strong class="keyword">GCLB</strong>) proxy targets directly with Pod VPC alias IPs. This eliminates the "double-hop" penalty where traffic hits a random node's NodePort, traverses iptables, and hops across the internal network to a second node where the target Pod actually resides. NEGs target Pod endpoints directly. For proxy-based Application Load Balancers, applications obtain client information from forwarding headers; this lesson provides no measured latency improvement.</li></ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> A frontend microservice calls <kbd>http://payment-service.default.svc.cluster.local:8080</kbd>. CoreDNS resolves the domain to ClusterIP <kbd>10.96.44.18</kbd>. The Linux kernel on the node evaluates the <kbd>KUBE-SVC-PAYMENT</kbd> chain, selects one of three backend Pod IPs (<kbd>10.244.2.14:8080</kbd>), performs DNAT, and routes the packet across the virtual bridge.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Local inspection via <kbd>iptables -t nat -L</kbd> and <kbd>kubectl get endpointslices</kbd> proves packet rewrite rules, but cannot demonstrate Google Andromeda SDN direct packet injection into GKE NEGs or Cloud Armor edge packet filtering.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://kubernetes.io/docs/concepts/services-networking/service/#endpointslices">EndpointSlices (accessed 2026-10-10)</a>; <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/ingress#container-native-load-balancing">Container-native load balancing (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-03-subtopic-4">Ingress Controllers and Cloud Load Balancing Integration</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> Ingress is an Layer 7 (HTTP/HTTPS) routing API resource that consolidates external routing rules into a unified entry point:</li></ul>
+<ul>
+<li><strong>The Exposure Problem:</strong>
+<ul>
+<li><kbd>ClusterIP</kbd>: Accessible only within the cluster virtual network.</li>
+<li><kbd>NodePort</kbd>: Opens an arbitrary high-range port (<kbd>30000-32767</kbd>) on every cluster VM. Fragile, exposes node infrastructure, and requires external port-mapping proxies.</li>
+<li><kbd>LoadBalancer</kbd>: Allocates a dedicated cloud network load balancer per Service. In an architecture with 40 microservices, allocating 40 cloud load balancers creates massive cost inefficiency and IP address exhaustion.</li>
+<li><kbd>Ingress</kbd>: Operates as an intelligent Layer 7 reverse proxy. It routes multiple external hostnames (<kbd>api.example.com</kbd>, <kbd>shop.example.com</kbd>) and URL path prefixes (<kbd>/cart</kbd>, <kbd>/orders</kbd>) through a single public IP address to multiple internal Services.</li>
+</ul>
+</li>
+<li><strong>The Ingress Controller:</strong> The <kbd>Ingress</kbd> resource is merely a configuration manifest. An <strong class="keyword">Ingress Controller</strong> (such as GKE Ingress, NGINX, or Envoy) runs continuously as a control daemon, translating Ingress path rules into physical reverse proxy configurations or programming cloud load balancing forwarding rules.</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Consolidating compatible host/path routes can reduce duplicate frontend resources. Savings depend on traffic, backend configuration, load balancer pricing and availability requirements; there is no universal percentage reduction. Ingress provides a unified security perimeter for TLS termination, HTTP-to-HTTPS redirects, rate limiting, and Web Application Firewall (<strong class="keyword">WAF</strong>) inspection, shielding internal Pods from raw Internet exposure.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> <strong class="keyword">GKE Ingress (GCE Ingress Controller)</strong> translates Kubernetes <kbd>Ingress</kbd> manifests directly into Google Cloud External Application Load Balancers or Internal Application Load Balancers.</li></ul>
+<ul>
+<li><strong>Google-Managed SSL Certificates:</strong> Managed via the <kbd>ManagedCertificate</kbd> custom resource, provisioning and auto-renewing Google CA or Let's Encrypt certificates without manual secret rotation.</li>
+<li><strong>Google Cloud Armor:</strong> Attached to GKE backends via a <kbd>BackendConfig</kbd> CRD, enforcing Layer 7 DDoS mitigation, IP allowlists/denylists, and OWASP Top 10 rule inspection at Google's global network edge.</li>
+<li><strong>Google Cloud CDN:</strong> Enabled via <kbd>BackendConfig</kbd> to cache static HTTP assets directly at Google's worldwide Edge PoPs.</li>
+</ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> An Ingress resource defines path <kbd>/api/checkout</kbd> pointing to <kbd>checkout-svc:80</kbd> and <kbd>/static/*</kbd> pointing to <kbd>frontend-svc:80</kbd>. GKE Ingress creates a Google Cloud URL map, attaches a Google-managed certificate for <kbd>app.example.com</kbd>, and configures Cloud Armor to block SQL injection attacks before requests reach the cluster.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Declarative Ingress YAML manifests can be validated offline with <kbd>kubeval</kbd>, but testing Google Cloud Armor WAF rule enforcement, SSL negotiation cipher suites, and CDN edge cache hit ratios requires deployed GCP load balancer infrastructure.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource">The Ingress resource (accessed 2026-10-10)</a>; <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/ingress#container-native-load-balancing">Container-native load balancing (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>
+<h4 id="topic-03-subtopic-5">ConfigMaps and Secrets: Decoupling Configuration and Sensitive Credentials</h4>
+<ul><li><strong class="side-heading">What it is in general:</strong> Kubernetes implements the Twelve-Factor App methodology by strictly separating application source code from configuration and credentials:</li></ul>
+<ul>
+<li><kbd>ConfigMap</kbd>: Stores non-confidential configuration data as key-value pairs or whole configuration files (e.g., <kbd>application.properties</kbd>, <kbd>nginx.conf</kbd>, feature flags).</li>
+<li><kbd>Secret</kbd>: Stores sensitive credentials (API tokens, database passwords, TLS private keys) encoded in base64. Base64 encoding is an obfuscation mechanism, <strong>not encryption</strong>.</li>
+<li><strong>Injection Mechanisms &amp; Lifecycle Semantics:</strong>
+<ul>
+<li><em>Environment Variables (<kbd>env</kbd> / <kbd>envFrom</kbd>):</em> Values are evaluated and injected into the container process table at startup. <strong>Dynamic updates do not occur</strong>: if a ConfigMap or Secret is updated in the API server, running containers retain the original values until they are restarted.</li>
+<li><em>Volume Mounts (<kbd>volumeMounts</kbd>):</em> Projected into the container filesystem as virtual files. Kubernetes uses atomic symlink rotation (<kbd>..data</kbd> symlinks). When a ConfigMap or Secret is updated in the API server, <kbd>kubelet</kbd> eventually updates projected files without restarting the container process; propagation includes the kubelet sync period and cache propagation delay. A subPath mount does not receive these updates, and the application must reopen or reload the changed file.</li>
+</ul>
+</li>
+</ul>
+<ul><li><strong class="side-heading">Relevance to a cloud architect:</strong> Baking credentials into container image layers embeds secrets permanently into immutable image layers, exposing them to any user with image pull access. Exposing Secrets as environment variables is also an anti-pattern: environment variables are routinely dumped into application crash logs, subshells, error tracking systems (e.g., Sentry), and <kbd>/proc/$PID/environ</kbd>, dramatically increasing credential leakage risk. Architects mandate projected volume mounts with restricted file permissions (<kbd>defaultMode: 0400</kbd>). Furthermore, in vanilla Kubernetes, Secrets are stored in etcd as unencrypted plaintext base64 strings; gaining access to an etcd backup or disk snapshot exposes all cluster credentials unless KMS envelope encryption is enforced.</li></ul>
+<ul><li><strong class="side-heading">Relevance to GCP:</strong> <strong class="keyword">GKE Database Encryption (Application-Layer Secrets Encryption)</strong> integrates GKE directly with <strong class="keyword">Google Cloud Key Management Service (Cloud KMS)</strong>. When a Secret is written to etcd, <kbd>kube-apiserver</kbd> uses a Customer-Managed Encryption Key (<strong class="keyword">CMEK</strong>) to perform envelope encryption, storing only encrypted ciphertext in etcd. Additionally, the <strong class="keyword">Google Cloud Secret Manager CSI Driver</strong> mounts secrets directly from Google Cloud Secret Manager into GKE Pods using <strong class="keyword">GKE Workload Identity</strong>. This architecture eliminates storing sensitive credentials in Kubernetes etcd altogether; secrets are fetched directly from Secret Manager at container mount time using fine-grained GCP IAM roles.</li></ul>
+<ul><li><strong class="side-heading">Concrete example:</strong> A backend deployment mounts a database password from Google Cloud Secret Manager using the SecretProviderClass. When the add-on supports and has automatic rotation enabled, it refreshes the mounted secret file on its configured interval after a Secret Manager version change; the application must reload it. This can update the file at <kbd>/etc/secrets/db_password</kbd> without requiring a pod restart or modifying Kubernetes manifests.</li></ul>
+<ul><li><strong class="side-heading">Evidence limit:</strong> Volume mount symlink rotation can be verified locally on a Linux filesystem, but Google Cloud KMS envelope encryption key rotations and Workload Identity OIDC token exchanges cannot be observed without live GCP API integration.</li></ul>
 <figure class="diagram-figure">
 <p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p>
 <svg aria-labelledby="day10-objects-title day10-objects-desc" role="img" viewbox="0 0 940 320">
@@ -670,59 +812,11 @@ Both ConfigMaps and Secrets can be consumed by Pods either as environment variab
 </svg>
 <figcaption>Figure 10.3: Kubernetes core object relationships and traffic routing hierarchy. External traffic reaches Pods via Ingress and matching Service selectors, while configuration and secrets are injected decoupled from image layers.</figcaption>
 </figure>
-<div class="topic-card">
-<table>
-<caption>Table 10.3: Kubernetes Core Object Taxonomy and Responsibilities</caption>
-<thead>
-<tr>
-<th>Core Object</th>
-<th>Scope &amp; Purpose</th>
-<th>Key Configuration Fields</th>
-<th>GCP Managed Equivalent / Integration</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Pod</strong></td>
-<td>Atomic schedulable container bundle; shared IP &amp; netns</td>
-<td><kbd>containers[]</kbd>, <kbd>volumes[]</kbd>, <kbd>restartPolicy</kbd></td>
-<td>VPC-native Pod IP via alias IP ranges</td>
-</tr>
-<tr>
-<td><strong>Deployment</strong></td>
-<td>Declarative replica management &amp; zero-downtime rollouts</td>
-<td><kbd>replicas</kbd>, <kbd>selector</kbd>, <kbd>strategy.rollingUpdate</kbd></td>
-<td>Google Cloud Deploy canary pipelines</td>
-</tr>
-<tr>
-<td><strong>Service</strong></td>
-<td>Stable virtual IP &amp; load balancing across dynamic pod IPs</td>
-<td><kbd>selector</kbd>, <kbd>ports[]</kbd>, <kbd>type: ClusterIP</kbd></td>
-<td>Container-native load balancing via NEGs</td>
-</tr>
-<tr>
-<td><strong>Ingress</strong></td>
-<td>External HTTP/HTTPS path routing &amp; TLS termination</td>
-<td><kbd>rules.http.paths[]</kbd>, <kbd>tls[]</kbd></td>
-<td>Google Cloud External HTTP(S) Load Balancer</td>
-</tr>
-<tr>
-<td><strong>ConfigMap</strong></td>
-<td>Decoupled non-sensitive runtime configuration parameters</td>
-<td><kbd>data{}</kbd>, mounted via <kbd>volumeMounts</kbd> / <kbd>env</kbd></td>
-<td>Config Sync / Anthos Config Management</td>
-</tr>
-<tr>
-<td><strong>Secret</strong></td>
-<td>Decoupled sensitive credentials, tokens, and certificates</td>
-<td><kbd>data{}</kbd> (base64), <kbd>type: Opaque</kbd></td>
-<td>Google Cloud Secret Manager CSI Driver</td>
-</tr>
-</tbody>
-</table>
-</div>
-<p><strong class="side-heading">Concrete example:</strong> Consider an inventory microservice deployed on GKE that consists of 3 replicas. The deployment manifest labels its pods with <kbd>app: inventory-service</kbd>. During a major release, an engineer accidentally edits the Service manifest selector to <kbd>app: inventory-backend</kbd>. When the deployment updates, the pods spin up, initialize successfully, pass their HTTP readiness probes, and achieve <kbd>Running</kbd> status. However, because the Service selector does not match the Pod labels, the EndpointSlice controller clears all IP addresses from the Service's endpoint list. When the Google Cloud Load Balancer forwards external traffic through the Ingress to the Service, the backend target group has zero active endpoints, causing the load balancer to return instant HTTP 503 Service Unavailable errors to all customers. The architect diagnoses the failure by running <kbd>kubectl get endpoints inventory-service</kbd>, identifies the selector typo, aligns the label, and observes instant restoration of HTTP 200 traffic.</p>
-<p><strong class="side-heading">Evidence limit:</strong> Verifying that a Kubernetes Service object exists and has an assigned ClusterIP in <kbd>kubectl get svc</kbd> proves that the service resource was registered in etcd; it does NOT prove that traffic is actively routing to application pods without confirming that <kbd>kubectl get endpointslices</kbd> displays ready IP addresses matching running pods.</p><h4>Architectural evaluation questions</h4><ul><li>How do Kubernetes Services decouple network routing from ephemeral pod IP churn using EndpointSlices?</li><li>Why does a single-character typo in a Service label selector cause silent external HTTP 503 routing failures?</li><li>In what ways does mounting ConfigMaps and Secrets as volumes provide superior operational flexibility over environment variables?</li></ul><p><strong>Further study:</strong> <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/#kubernetes-objects" rel="noopener" target="_blank">Understanding Kubernetes objects (accessed 2026-10-04)</a>.</p></article></section>
+<div><strong>Worked rollout, traffic and secret boundaries</strong></div>
+<ul><li><strong class="side-heading">Concrete example:</strong> With four desired replicas, maxSurge=1 and maxUnavailable=0 permit an additional rollout Pod while retaining four available replicas, provided readiness and capacity permit it. Terminating Pods can temporarily consume additional resources. A Deployment rollback restores a previous Pod template, not database contents. Canary traffic allocation needs a separate rollout/traffic policy; Cloud Deploy is an optional delivery integration, not a Deployment controller feature.</li><li>Deployment owns ReplicaSets; ReplicaSets own Pods through ownerReferences. Services select Pods by labels, and EndpointSlice objects describe endpoints; neither a Service nor an Ingress owns a Deployment. Ingress configuration requires a controller. GKE Ingress can use NEGs to reach Pod endpoints, so the external path need not traverse the ClusterIP or kube-proxy. kube-proxy iptables/IPVS descriptions apply only to clusters using those implementations; managed data planes can differ.</li><li>ConfigMap/Secret environment values are fixed for an existing container process. Mounted values update eventually except subPath, and application reload remains necessary. Base64 is encoding. Kubernetes at-rest encryption requires configuration; GKE application-layer encryption uses a key encryption key to protect data encryption keys. Secret Manager CSI mounting with Workload Identity Federation for GKE can avoid storing the fetched secret in etcd unless a separate synchronization feature writes a Kubernetes Secret. Automatic rotation must be configured and verified.</li><li><strong class="side-heading">Evidence limit:</strong> The local manifests and model demonstrate selectors and ownership intent; they do not prove Google load-balancer health, Cloud Armor policy enforcement, certificate issuance, CDN cache behavior or IAM authorization.</li></ul>
+<div><strong>Keyword searches</strong></div>
+<ul><li><a href="https://www.google.com/search?q=Kubernetes%20Pod%20namespaces" rel="noopener" target="_blank">Kubernetes Pod namespaces (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=Deployment%20maxSurge%20maxUnavailable" rel="noopener" target="_blank">Deployment maxSurge maxUnavailable (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=EndpointSlice%20kube-proxy%20IPVS" rel="noopener" target="_blank">EndpointSlice kube-proxy IPVS (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=GKE%20Ingress%20Cloud%20Armor%20Cloud%20CDN" rel="noopener" target="_blank">GKE Ingress Cloud Armor Cloud CDN (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li><li><a href="https://www.google.com/search?q=Secret%20Manager%20CSI%20Workload%20Identity%20Federation" rel="noopener" target="_blank">Secret Manager CSI Workload Identity Federation (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li></ul>
+<ul><li><strong class="side-heading">Further study:</strong> <a href="https://kubernetes.io/docs/concepts/configuration/configmap/#mounted-configmaps-are-updated-automatically">Mounted ConfigMaps are updated automatically (accessed 2026-10-10)</a>; <a href="https://docs.cloud.google.com/secret-manager/docs/secret-manager-managed-csi-component">Manage automatic secret rotation (accessed 2026-10-10)</a>. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul><h4>Architectural evaluation questions</h4><ul><li>How do Kubernetes Services decouple network routing from ephemeral pod IP churn using EndpointSlices?</li><li>Why does a single-character typo in a Service label selector cause silent external HTTP 503 routing failures?</li><li>In what ways does mounting ConfigMaps and Secrets as volumes provide superior operational flexibility over environment variables?</li></ul><p><strong>Further study:</strong> <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/#kubernetes-objects" rel="noopener" target="_blank">Understanding Kubernetes objects (accessed 2026-10-04)</a>.</p></article></section>
 <section class="part" id="part-3"><h2>3 · Real-world problem and solution for each topic</h2><p class="intro">Real-world architectural failure cases demonstrating ephemeral container layer data loss, scale-out scheduling traps under node memory exhaustion, and silent HTTP 503 routing failures caused by Service selector typos.</p><article class="topic-card problem" id="topic-01-problem"><h3>1. Docker · field case</h3><p><strong>Enterprise scenario:</strong> An order checkout microservice deployed on a container cluster writes transaction recovery markers to its local container filesystem at /tmp/checkout_recovery.log during user purchases. During a routine rolling update of the application deployment, the old container is terminated and a new container is provisioned. The engineering team discovers that all active checkout recovery markers vanished upon container termination, leading to duplicate payment charges when the queue reprocessed unconfirmed transactions.</p><p><strong>Failure symptoms and impact:</strong> E-commerce customers suffer duplicate credit card charges totaling thousands of dollars; customer service queues are overwhelmed; payment gateway audit flags account for automated transaction reconciliation failure.</p><p><strong>Constraints:</strong> The service is deployed as a stateless container deployment; ephemeral container root filesystems are backed by OverlayFS thin writable layers; storage lifecycle is inadvertently coupled to container process execution.</p><p><strong>Evidence:</strong></p>
 <p>Inspecting the container runtime reveals that /tmp was located on the container writable layer (upperdir) rather than a persistent volume mount. When the pod was rescheduled, containerd destroyed the container instance and its associated writable layer. Filesystem traces show that writes to /tmp/checkout_recovery.log were buffered in kernel page cache without invoking fsync(), meaning even pre-teardown unflushed writes were lost upon pod termination.</p>
 <figure class="diagram-figure">
@@ -1192,7 +1286,7 @@ Both ConfigMaps and Secrets can be consumed by Pods either as environment variab
 </svg></div>
 <figcaption><strong>Supplied facts:</strong> Supplied facts: Healthy running Pods receive zero traffic due to a selector typo in the Service specification.<br/><strong>Architectural inference:</strong> Architectural inference: Services decouple IP addressing via label selectors; exact matching is required for EndpointSlice generation.<br/><strong>Expected post-fix behavior:</strong> Expected post-fix behavior: Aligned selectors populate endpoints, restoring HTTP 200 responses.</figcaption>
 </figure></article></section>
-<section class="part" id="part-4"><h2>4 · Step-by-step labs for each topic</h2><p class="intro">Hands-on operational exercises to build a container image, test volume persistence against ephemeral teardown, simulate Kubernetes scheduler bin packing under capacity limits, and diagnose broken Service selectors.</p><article class="topic-card lab" id="topic-01-lab"><h3>Exercise 1: Exercise A · Build a container and test volume persistence</h3><p><strong>Goal:</strong> Build a lightweight container application, contrast ephemeral container storage lifecycles with mounted persistent volume durability, and demonstrate the POSIX fsync() writeback boundary.</p><p><strong>Expected result:</strong> A runnable container image, verified ephemeral file destruction upon container replacement, and verified durable persistence of fsync-committed records across volume mounts.</p><p><strong>Mode:</strong> Observed locally: local bash execution of Python application simulation, file creation, and fsync flushing. Simulated or predicted: Docker/containerd OverlayFS upperdir deletion and GKE Persistent Disk CSI dynamic volume provisioning. Untested on GCP: Compute Engine hyperdisk NVMe controller flush caching and cross-zone volume migration latency. · <strong>Prerequisite:</strong> Linux terminal with bash and core utilities.</p><p><strong>Preflight:</strong> Verify that bash, python3, and standard file manipulation tools are installed.</p><h4>Exact execution</h4><ol><li><strong>Stage 1: Preflight and Environment Baseline</strong>
+<section class="part" id="part-4"><h2>4 · Step-by-step labs for each topic</h2><p class="intro">Hands-on operational exercises to build a container image, test volume persistence against ephemeral teardown, simulate Kubernetes scheduler bin packing under capacity limits, and diagnose broken Service selectors.</p><article class="topic-card lab" id="topic-01-lab"><h3>Exercise 1: Exercise A · Build a container and test volume persistence</h3><p><strong>Goal:</strong> Build a lightweight container application, contrast ephemeral container storage lifecycles with mounted persistent volume durability, and demonstrate the POSIX fsync() writeback boundary.</p><p><strong>Expected result:</strong> A runnable container image, verified ephemeral file destruction upon container replacement, and verified durable persistence of fsync-committed records across volume mounts.</p><p><strong>Mode:</strong> Observed locally: local bash execution of Python application simulation, file creation, and fsync flushing. Simulated or predicted: Docker/containerd OverlayFS upperdir deletion and GKE Persistent Disk CSI dynamic volume provisioning. Untested on GCP: Compute Engine hyperdisk NVMe controller flush caching and cross-zone volume migration latency. Additional comparison: actual Docker-compatible builds and runtime inspection; engine selection is recorded per run. · <strong>Prerequisite:</strong> Linux terminal with bash and core utilities.</p><p><strong>Preflight:</strong> Verify that bash, python3, and standard file manipulation tools are installed.</p><h4>Exact execution</h4><ol><li><strong>Stage 1: Preflight and Environment Baseline</strong>
 <p><strong>Location:</strong> local terminal</p>
 <p><strong>Actions:</strong>
 Verify core CLI utilities and establish the isolated test workspace for container storage testing.</p>
@@ -1200,6 +1294,11 @@ Verify core CLI utilities and establish the isolated test workspace for containe
 command -v python3
 command -v cat
 command -v mkdir
+command -v date
+command -v rm
+command -v grep
+command -v docker
+command -v podman
 mkdir -p scratch/day10_lab_a/ephemeral_layer scratch/day10_lab_a/mounted_volume
 echo "Stage 1 preflight complete at $(date -u +%Y-%m-%dT%H:%M:%SZ)" &gt; scratch/day10_lab_a/stage1.log
 cat scratch/day10_lab_a/stage1.log
@@ -1215,14 +1314,12 @@ import os, sys, time
 def write_unbuffered_record(path, record_id):
     # Standard write: buffers in application memory / kernel page cache
     with open(path, "a") as f:
-        f.write(f"ORDER_RECORD:{record_id}:{time.time()}:BUFFERED
-")
+        f.write(f"ORDER_RECORD:{record_id}:{time.time()}:BUFFERED\n")
 
 def write_durable_record(path, record_id):
     # Durable write: forces kernel page cache writeback to disk via fsync
     with open(path, "a") as f:
-        f.write(f"ORDER_RECORD:{record_id}:{time.time()}:DURABLE
-")
+        f.write(f"ORDER_RECORD:{record_id}:{time.time()}:DURABLE\n")
         f.flush()
         os.fsync(f.fileno())
 
@@ -1307,21 +1404,19 @@ cat scratch/day10_lab_a/stage5.log
 <p><strong>Actions:</strong>
 Simulate an abrupt process termination to observe why kernel page cache buffering alone is insufficient without fsync().</p>
 <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day10_lab_a/simulate_crash.py
-import os, sys
+import os, sys, subprocess
 
 crash_log = "scratch/day10_lab_a/crash_test.log"
-# Write 1000 records without flush/fsync
-with open(crash_log, "w") as f:
-    for i in range(100):
-        f.write(f"UNFLUSHED_RECORD_{i}
-")
-    # Simulate abrupt SIGKILL / power termination before buffer flush
-    os._exit(137)
+child_code = ("import os\n" 
+              "with open('scratch/day10_lab_a/crash_test.log', 'w') as f:\n" 
+              "    for i in range(100):\n" 
+              "        f.write(f'UNFLUSHED_RECORD_{i}\\n')\n" 
+              "    os._exit(137)\n")
+proc = subprocess.run([sys.executable, "-c", child_code])
+size = os.path.getsize(crash_log) if os.path.exists(crash_log) else 0
+print(f"Abrupt termination simulated with exit code {proc.returncode}. Flushed bytes: {size}")
 EOF
-python3 scratch/day10_lab_a/simulate_crash.py
-# Inspect size of crash test log on disk
-size = os.path.getsize("scratch/day10_lab_a/crash_test.log")
-echo "Crash test completed with exit code 137. Flushed bytes: $size" &gt; scratch/day10_lab_a/stage6.log
+python3 scratch/day10_lab_a/simulate_crash.py &gt; scratch/day10_lab_a/stage6.log
 cat scratch/day10_lab_a/stage6.log
 </code></pre>
 <p><strong>Expected result:</strong> Output illustrates that abrupt process exits can truncate or lose uncommitted dirty page buffers.</p>
@@ -1360,7 +1455,252 @@ echo "✓ Day 10 Exercise A validation passed successfully" &gt; scratch/day10_l
 cat scratch/day10_lab_a/stage8.log
 </code></pre>
 <p><strong>Expected result:</strong> Validation succeeds with clean status.</p>
-<p><strong>Save:</strong> <code>scratch/day10_lab_a/stage8.log</code></p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify that ephemeral files are deleted on container simulation restart while mounted volume files persist intact.</p>
+<section class="lab" id="topic-01-multistage-lab">
+<h3>Additional exercise · Single-stage versus optimized multi-stage Go image</h3>
+<p><strong>Goal:</strong> Build the same compiled HTTP service twice; prove image-layer immutability, quantify size/layers/inode footprint, and audit runtime tools.</p>
+<p><strong>Expected result:</strong> Runnable equivalent binaries, measured size reduction, retained lower-layer cache after deletion, and a structured security comparison.</p>
+<p><strong>Mode:</strong> Observed locally: only measurements produced by the commands below. Simulated or predicted: none in the image comparison. Untested on GCP: GKE deployment, pull latency and network behavior. Linux/Bash; Docker Engine or rootless Podman with Docker-compatible commands.</p>
+<p><strong>Prerequisite:</strong> Docker CLI and Podman CLI available for explicit daemon fallback; Python 3 and core utilities; running engine, registry access, about 2 GB disk. No GCP credentials or cloud resources.</p>
+<p><strong>Preflight:</strong> Execute in one Bash session from the existing lab working directory, where scratch exists. Stage 1 records the chosen daemon and baseline. Keep the workspace path for recovery.</p>
+<h4>Exact execution</h4>
+<ol>
+<li><h5>Stage 1: Preflight and Workspace Setup</h5><p><strong>Location:</strong> local terminal; Linux, Bash, selected container engine and Python 3. Run sequentially in the same session.</p><p><strong>Actions:</strong></p><pre><code class="language-bash">set -euo pipefail
+command -v bash
+command -v python3
+command -v cat
+command -v mkdir
+command -v docker
+command -v podman
+command -v mktemp
+if docker info &gt; /dev/null 2&gt;&amp;1; then
+    ENGINE=docker
+else
+    podman info &gt; /dev/null
+    ENGINE=podman
+fi
+export ENGINE
+BUILD_FLAGS=()
+OPT_DIR=$(mktemp -d /tmp/day010-image-XXXXXX)
+export OPT_DIR
+mkdir -p "$OPT_DIR/evidence"
+if [ "$ENGINE" = podman ]; then
+    # Per-build policy supports disposable HOME in the lab runner. This accepts
+    # unsigned builder images exactly as an ordinary Docker pull does; production
+    # must use its own signature/provenance verification policy.
+    printf '%s\n' '{"default":[{"type":"insecureAcceptAnything"}]}' &gt; "$OPT_DIR/pull-policy.json"
+    BUILD_FLAGS=(--signature-policy "$OPT_DIR/pull-policy.json")
+    # Scope policy lookup for archive operations to this session's lab directory.
+    OPT_PREVIOUS_CONFIG=${XDG_CONFIG_HOME-}
+    export XDG_CONFIG_HOME="$OPT_DIR/config"
+    mkdir -p "$XDG_CONFIG_HOME/containers"
+    python3 - &lt;&lt;'POLICY'
+import os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])
+(pathlib.Path(os.environ['XDG_CONFIG_HOME'])/'containers/policy.json').write_bytes((p/'pull-policy.json').read_bytes())
+POLICY
+fi
+printf '%s\n' "$OPT_DIR" &gt; scratch/day-010-image-workspace.txt
+"$ENGINE" version &gt; "$OPT_DIR/evidence/runtime.txt"
+"$ENGINE" info &gt; "$OPT_DIR/evidence/baseline.txt"
+RUN_ID=$(python3 -c 'import uuid; print(uuid.uuid4().hex[:12])')
+SINGLE_IMAGE="localhost/day010-single:$RUN_ID"
+MULTI_IMAGE="localhost/day010-multi:$RUN_ID"
+DELETE_IMAGE="localhost/day010-delete:$RUN_ID"
+export SINGLE_IMAGE MULTI_IMAGE DELETE_IMAGE
+printf '%s\n' "$SINGLE_IMAGE" "$MULTI_IMAGE" "$DELETE_IMAGE" &gt; "$OPT_DIR/evidence/tags.txt"
+</code></pre><p><strong>Expected result:</strong> A daemon responds; a unique, lab-owned directory and image tags exist. Allow about 2 GB free disk and registry access. Stop on daemon/registry errors; do not substitute fabricated measurements.</p><p><strong>Evidence:</strong> Retain the run-owned evidence directory and the comparison report; stop on any failed assertion.</p></li>
+<li><h5>Stage 2: Application Source Code &amp; Build Dependencies Fixture</h5><p><strong>Location:</strong> local terminal; Linux, Bash, selected container engine and Python 3. Run sequentially in the same session.</p><p><strong>Actions:</strong></p><pre><code class="language-bash">cat &gt; "$OPT_DIR/main.go" &lt;&lt;'GO'
+package main
+import (
+    "fmt"
+    "net/http"
+    "os"
+)
+func main() {
+    if len(os.Args) == 2 &amp;&amp; os.Args[1] == "--self-test" {
+        fmt.Println("day010-service:ok")
+        return
+    }
+    http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "text/plain")
+        fmt.Fprintln(w, "day010-service:ok")
+    })
+    if err := http.ListenAndServe(":8080", nil); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
+    }
+}
+GO
+cat &gt; "$OPT_DIR/.dockerignore" &lt;&lt;'IGNORE'
+evidence
+*.tar
+IGNORE
+cat &gt; "$OPT_DIR/build-prefix" &lt;&lt;'DOCKER'
+FROM docker.io/library/golang:1.26-alpine AS build
+# Explicit build-only compiler, linker, libc headers and make.
+RUN apk add --no-cache build-base
+WORKDIR /src
+COPY main.go /src/main.go
+# An intentionally retained 32 MiB, incompressible build fixture plus 2000 files.
+RUN mkdir -p /build /out &amp;&amp; dd if=/dev/urandom of=/build/cache.bin bs=1048576 count=32 &amp;&amp; i=0; while [ "$i" -lt 2000 ]; do touch "/build/header-$i"; i=$((i+1)); done
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/service /src/main.go
+DOCKER
+cat "$OPT_DIR/main.go" &gt; "$OPT_DIR/evidence/source.txt"
+</code></pre><p><strong>Expected result:</strong> A complete HTTP service, self-test path and intentional build-cache fixture exist. CGO_ENABLED=0 avoids runtime libc dependencies for the scratch image. The random cache deliberately makes layer retention measurable; it is not a realistic requirement of this service.</p><p><strong>Evidence:</strong> Retain the run-owned evidence directory and the comparison report; stop on any failed assertion.</p></li>
+<li><h5>Stage 3: Author and Build the Single-Stage Container Image</h5><p><strong>Location:</strong> local terminal; Linux, Bash, selected container engine and Python 3. Run sequentially in the same session.</p><p><strong>Actions:</strong></p><pre><code class="language-bash">cat "$OPT_DIR/build-prefix" &gt; "$OPT_DIR/Dockerfile.single"
+cat &gt;&gt; "$OPT_DIR/Dockerfile.single" &lt;&lt;'DOCKER'
+# The Go SDK, GCC, make, apk, shell, source and build cache remain reachable.
+USER 65532:65532
+EXPOSE 8080
+ENTRYPOINT ["/out/service"]
+DOCKER
+"$ENGINE" build "${BUILD_FLAGS[@]}" -f "$OPT_DIR/Dockerfile.single" -t "$SINGLE_IMAGE" "$OPT_DIR" &gt; "$OPT_DIR/evidence/single-build.log" 2&gt;&amp;1
+"$ENGINE" run --rm "$SINGLE_IMAGE" --self-test &gt; "$OPT_DIR/evidence/single-selftest.txt"
+python3 - &lt;&lt;'CHECK'
+import os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence/single-selftest.txt'
+assert p.read_text().strip() == 'day010-service:ok'
+CHECK
+</code></pre><p><strong>Expected result:</strong> The compiled binary runs as UID 65532, while build tools and cache remain in the final image. Save the actual build log; tag-based bases can change, so later inspection records image IDs and layer digests.</p><p><strong>Evidence:</strong> Retain the run-owned evidence directory and the comparison report; stop on any failed assertion.</p></li>
+<li><h5>Stage 4: Author and Build the Multi-Stage Container Image</h5><p><strong>Location:</strong> local terminal; Linux, Bash, selected container engine and Python 3. Run sequentially in the same session.</p><p><strong>Actions:</strong></p><pre><code class="language-bash">cat "$OPT_DIR/build-prefix" &gt; "$OPT_DIR/Dockerfile.multi"
+cat &gt;&gt; "$OPT_DIR/Dockerfile.multi" &lt;&lt;'DOCKER'
+# scratch contains no shell, libc, package manager or trusted CA bundle.
+FROM scratch AS runtime
+COPY --from=build /out/service /service
+USER 65532:65532
+EXPOSE 8080
+ENTRYPOINT ["/service"]
+DOCKER
+"$ENGINE" build "${BUILD_FLAGS[@]}" -f "$OPT_DIR/Dockerfile.multi" -t "$MULTI_IMAGE" "$OPT_DIR" &gt; "$OPT_DIR/evidence/multi-build.log" 2&gt;&amp;1
+"$ENGINE" run --rm "$MULTI_IMAGE" --self-test &gt; "$OPT_DIR/evidence/multi-selftest.txt"
+python3 - &lt;&lt;'CHECK'
+import os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+assert (p/'multi-selftest.txt').read_bytes() == (p/'single-selftest.txt').read_bytes()
+CHECK
+</code></pre><p><strong>Expected result:</strong> The same source and static build flags produce a runnable, non-root runtime artifact. Builder layers can remain in local cache but are not ancestors of the final runtime image. Outbound TLS would require an explicitly copied CA bundle; scratch is suitable here because this service only answers inbound HTTP.</p><p><strong>Evidence:</strong> Retain the run-owned evidence directory and the comparison report; stop on any failed assertion.</p></li>
+<li><h5>Stage 5: Inspect and Measure Layer Composition, Tarball Bloat, and Inode Footprint</h5><p><strong>Location:</strong> local terminal; Linux, Bash, selected container engine and Python 3. Run sequentially in the same session.</p><p><strong>Actions:</strong></p><pre><code class="language-bash">cat &gt; "$OPT_DIR/Dockerfile.delete" &lt;&lt;'DOCKER'
+ARG BASE
+FROM ${BASE}
+USER 0
+# A later whiteout hides /build without deleting the bytes in ancestor layers.
+RUN rm -rf /build
+USER 65532:65532
+DOCKER
+"$ENGINE" build "${BUILD_FLAGS[@]}" --build-arg "BASE=$SINGLE_IMAGE" -f "$OPT_DIR/Dockerfile.delete" -t "$DELETE_IMAGE" "$OPT_DIR" &gt; "$OPT_DIR/evidence/delete-build.log" 2&gt;&amp;1
+for pair in "single:$SINGLE_IMAGE" "multi:$MULTI_IMAGE" "delete:$DELETE_IMAGE"; do
+    name=${pair%%:*}; image=${pair#*:}
+    "$ENGINE" image inspect "$image" &gt; "$OPT_DIR/evidence/$name-inspect.json"
+    "$ENGINE" history --no-trunc "$image" &gt; "$OPT_DIR/evidence/$name-history.txt"
+    "$ENGINE" save -o "$OPT_DIR/evidence/$name-image.tar" "$image"
+    cid=$("$ENGINE" create "$image")
+    "$ENGINE" export -o "$OPT_DIR/evidence/$name-rootfs.tar" "$cid"
+    "$ENGINE" rm "$cid"
+done
+cat &gt; "$OPT_DIR/measure.py" &lt;&lt;'PYCODE'
+import json,os,pathlib,tarfile
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+rows={}
+for name in ('single','multi','delete'):
+    info=json.loads((p/f'{name}-inspect.json').read_text())[0]
+    with tarfile.open(p/f'{name}-rootfs.tar') as tf:
+        members=tf.getmembers()
+    paths={m.name.lstrip('./'):m for m in members}
+    # Hard links reuse inodes. Runtime-injected /etc/hosts and /dev entries
+    # may appear in exports; this is a logical-rootfs proxy, not host df -i.
+    rows[name]={
+        'image_id':info['Id'], 'image_bytes':info['Size'],
+        'saved_archive_bytes':(p/f'{name}-image.tar').stat().st_size,
+        'rootfs_entries':len(paths),
+        'rootfs_inode_proxy':sum(not m.islnk() for m in paths.values()),
+        'filesystem_layers':len(info['RootFS']['Layers']),
+        'layer_digests':info['RootFS']['Layers'],
+        'build_cache_visible':any(n.startswith('build/') for n in paths),
+        'tools_present':{tool:any(path.rsplit('/',1)[-1]==tool for path in paths)
+                         for tool in ('go','gcc','make','apk','sh','bash')}}
+assert rows['single']['build_cache_visible']
+assert not rows['delete']['build_cache_visible']
+assert rows['delete']['layer_digests'][:rows['single']['filesystem_layers']] == rows['single']['layer_digests']
+assert rows['delete']['image_bytes'] &gt;= rows['single']['image_bytes']
+assert rows['delete']['saved_archive_bytes'] &gt;= rows['single']['saved_archive_bytes'] * 0.95
+(p/'metrics.json').write_text(json.dumps(rows,indent=2)+'\n')
+print(json.dumps(rows,indent=2))
+PYCODE
+python3 "$OPT_DIR/measure.py" &gt; "$OPT_DIR/evidence/metrics.txt"
+</code></pre><p><strong>Expected result:</strong> history lists instruction sizes; RootFS.Layers counts actual filesystem diffs rather than zero-byte metadata history entries. The deletion image has fewer visible files but retains the original layer digests and archive bytes. Export-based inode proxy counts files/directories/symlinks with hard links deduplicated, not physical host inode consumption; inspect df -i on the runtime storage filesystem separately for node capacity decisions.</p><p><strong>Evidence:</strong> Retain the run-owned evidence directory and the comparison report; stop on any failed assertion.</p></li>
+<li><h5>Stage 6: Attack Surface &amp; Exploit Vector Audit</h5><p><strong>Location:</strong> local terminal; Linux, Bash, selected container engine and Python 3. Run sequentially in the same session.</p><p><strong>Actions:</strong></p><pre><code class="language-bash">"$ENGINE" run --rm --entrypoint /bin/sh "$SINGLE_IMAGE" -c 'type go gcc make apk' &gt; "$OPT_DIR/evidence/single-tools.txt"
+python3 - &lt;&lt;'AUDIT'
+import json,os,pathlib,subprocess
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+r=json.loads((p/'metrics.json').read_text())
+assert all(r['single']['tools_present'][t] for t in ('go','gcc','make','apk','sh'))
+assert not any(r['multi']['tools_present'].values())
+results=[]
+for executable in ('/bin/sh','/bin/bash','/sbin/apk','/usr/bin/gcc','/usr/local/go/bin/go'):
+    proc=subprocess.run([os.environ['ENGINE'],'run','--rm','--entrypoint',executable,
+                         os.environ['MULTI_IMAGE'],'--version'],capture_output=True,text=True)
+    assert proc.returncode != 0, executable
+    results.append({'executable':executable,'exit_code':proc.returncode,'stderr':proc.stderr})
+# A successful run distinguishes the expected absent-entrypoint failures from a dead daemon.
+proc=subprocess.run([os.environ['ENGINE'],'run','--rm',os.environ['MULTI_IMAGE'],'--self-test'],capture_output=True,text=True,check=True)
+assert proc.stdout.strip()=='day010-service:ok'
+(p/'audit.json').write_text(json.dumps(results,indent=2)+'\n')
+AUDIT
+</code></pre><p><strong>Expected result:</strong> Filesystem inspection and executable-launch failures agree: the final runtime has no audited compiler, SDK, package manager or shell. This removes convenient post-exploitation tools, not Go application vulnerabilities, kernel exposure, malicious dependencies or all CVEs. A vulnerability scanner and signed provenance are separate controls, not claimed results of this audit.</p><p><strong>Evidence:</strong> Retain the run-owned evidence directory and the comparison report; stop on any failed assertion.</p></li>
+<li><h5>Stage 7: Compile the Image Optimization &amp; Security Verification Report</h5><p><strong>Location:</strong> local terminal; Linux, Bash, selected container engine and Python 3. Run sequentially in the same session.</p><p><strong>Actions:</strong></p><pre><code class="language-bash">python3 - &lt;&lt;'REPORT'
+import json,os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+m=json.loads((p/'metrics.json').read_text())
+report={'day':10,'observed_locally':m,'negative_entrypoint_tests':json.loads((p/'audit.json').read_text()),
+        'size_reduction_percent':round(100*(1-m['multi']['image_bytes']/m['single']['image_bytes']),2),
+        'scope':'Logical uncompressed image size and saved archive bytes; not registry compressed transfer, shared cache disk usage or a CVE scan.',
+        'architecture':'Single stage inherits SDK and build cache; final scratch stage inherits only the copied static binary.',
+        'inode_limit':'Rootfs inode proxy excludes duplicate hard-link entries; overlay host inodes and shared layers are runtime dependent.',
+        'gcp':'No GCP deployment or GKE performance measurement was performed.'}
+path=pathlib.Path('scratch/day-010-image-comparison.json')
+path.write_text(json.dumps(report,indent=2)+'\n')
+lines=['# Day 10 image optimization report','', '| Image | Image bytes | Archive bytes | FS layers | Inode proxy |','|---|---:|---:|---:|---:|']
+for name,row in m.items():
+    lines.append(f"| {name} | {row['image_bytes']} | {row['saved_archive_bytes']} | {row['filesystem_layers']} | {row['rootfs_inode_proxy']} |")
+lines.extend(['',report['scope'],report['inode_limit'],report['architecture'],report['gcp']])
+pathlib.Path('scratch/day-010-image-comparison.md').write_text('\n'.join(lines)+'\n')
+print('\n'.join(lines))
+REPORT
+</code></pre><p><strong>Expected result:</strong> JSON contains measured bytes, image identities, layer digests, inode proxies and negative execution tests. Markdown presents the comparison. Hundreds of MiB versus less than 25 MiB is an acceptance target for this fixture, not a pre-recorded result.</p><p><strong>Evidence:</strong> Retain the run-owned evidence directory and the comparison report; stop on any failed assertion.</p></li>
+<li><h5>Stage 8: Validate Acceptance Invariants and Cleanup</h5><p><strong>Location:</strong> local terminal; Linux, Bash, selected container engine and Python 3. Run sequentially in the same session.</p><p><strong>Actions:</strong></p><pre><code class="language-bash">python3 - &lt;&lt;'ACCEPT'
+import json,pathlib
+r=json.loads(pathlib.Path('scratch/day-010-image-comparison.json').read_text())
+s,m,d=(r['observed_locally'][k] for k in ('single','multi','delete'))
+assert s['image_bytes'] &gt; 100*1024*1024
+assert 0 &lt; m['image_bytes'] &lt; 25*1024*1024
+assert m['filesystem_layers'] &lt; s['filesystem_layers']
+assert m['rootfs_inode_proxy'] &lt; s['rootfs_inode_proxy']
+assert d['image_bytes'] &gt;= s['image_bytes']
+assert not any(m['tools_present'].values())
+assert len(r['negative_entrypoint_tests']) == 5
+print('Day 10 image optimization acceptance PASS')
+ACCEPT
+"$ENGINE" image rm "$DELETE_IMAGE" "$MULTI_IMAGE" "$SINGLE_IMAGE"
+# Delete only this run's bulky archives; keep logs and structured reports for review.
+python3 - &lt;&lt;'CLEAN'
+import os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+for f in p.glob('*.tar'):
+    f.unlink()
+pathlib.Path('scratch/day-010-image-cleanup.txt').write_text('Lab image tags and export/save archives removed. Shared builder cache and pulled base retained; no global prune.\n')
+CLEAN
+if [ "$ENGINE" = podman ]; then
+    if [ -n "$OPT_PREVIOUS_CONFIG" ]; then
+        export XDG_CONFIG_HOME="$OPT_PREVIOUS_CONFIG"
+    else
+        unset XDG_CONFIG_HOME
+    fi
+fi
+</code></pre><p><strong>Expected result:</strong> All invariants pass, lab image tags and bulky archives are removed, reports and diagnostic logs remain. On an earlier failure, use tags.txt and the printed workspace path to remove only this run’s containers/images after inspecting evidence; never run a global prune.</p><p><strong>Evidence:</strong> Retain the run-owned evidence directory and the comparison report; stop on any failed assertion.</p></li>
+</ol><div class="callout success"><strong>Expected result / acceptance</strong><p>All eight stages complete. The multi-stage image is less than 25 MiB, has fewer filesystem layers and rootfs inode proxies, passes the same binary self-test, and lacks all audited tools. A later rm hides build files but preserves ancestor layer bytes. Reports: <code>scratch/day-010-image-comparison.json</code>, <code>scratch/day-010-image-comparison.md</code>, <code>scratch/day-010-image-cleanup.txt</code>.</p></div>
+<div class="callout caution"><strong>Troubleshooting</strong><ul><li>Daemon permission denied: use an authorized Docker socket or the explicit rootless Podman fallback; do not chmod the socket globally.</li><li>Registry or apk failure: inspect single-build.log; restore registry access and rerun before recording acceptance.</li><li>exec format error: build and run on the same engine architecture; CGO_ENABLED=0 does not fix a CPU architecture mismatch.</li><li>Scratch TLS/DNS or debug requirements: copy required CA/config files explicitly, or choose a maintained minimal runtime and repeat all metrics.</li><li>Do not compare compressed registry sizes with uncompressed inspect Size; builder cache disk remains a separate metric.</li></ul></div>
+<div class="callout"><strong>Cleanup</strong><p>Stage 8 removes only unique lab tags and archive files. Keep structured reports and logs; shared cache/base images remain. No billed cloud resources are created.</p></div></section>
+<p><strong>Save:</strong> <code>scratch/day10_lab_a/stage8.log</code>, <code>scratch/day-010-image-comparison.json</code>, <code>scratch/day-010-image-comparison.md</code>, <code>scratch/day-010-image-cleanup.txt</code></p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify that ephemeral files are deleted on container simulation restart while mounted volume files persist intact.</p>
 <p><strong>Artifact acceptance:</strong> A persistence verification report confirming data loss on ephemeral storage and 100% record retention on mounted volume storage with fsync. (File: <code>day-010-exercise-a.md</code>).</p></div><div class="callout caution"><strong>Troubleshooting</strong><p>If write permission errors occur, verify that scratch/day10_lab_a directory permissions are readable and writeable.</p></div><div class="callout"><strong>Cleanup and cost</strong><p>Remove temporary container simulation directories and files created in scratch/day10_lab_a.</p></div><label class="check"><input data-progress="lab-10-topic-01" type="checkbox"/> I completed and checked this topic exercise</label></article><article class="topic-card lab" id="topic-02-lab"><h3>Exercise 2: Exercise B · Simulate scheduler reconciliation and capacity limits</h3><p><strong>Goal:</strong> Simulate the Kubernetes control loop, declarative state reconciliation, two-phase scheduler bin packing, and capacity limit exhaustion.</p><p><strong>Expected result:</strong> A deterministic scheduler simulation demonstrating pod placement filtering, pending state traps under capacity limits, and autoscaling resolution.</p><p><strong>Mode:</strong> Observed locally: local Python simulation of Kubernetes scheduler filtering and scoring algorithms. Simulated or predicted: GKE Cluster Autoscaler provisioning of Compute Engine instances and kubelet pod startup. Untested on GCP: live Andromeda SDN virtual network routing tables and multi-zone node affinity scoring. · <strong>Prerequisite:</strong> Linux terminal with Python 3.</p><p><strong>Preflight:</strong> Verify Python 3 runtime is available and initialize the simulation directory.</p><h4>Exact execution</h4><ol><li><strong>Stage 1: Preflight and Tooling Baseline</strong>
 <p><strong>Location:</strong> local terminal</p>
 <p><strong>Actions:</strong>
@@ -1369,6 +1709,8 @@ Verify environment prerequisites and set up the scheduler simulation workspace.<
 command -v python3
 command -v cat
 command -v mkdir
+command -v date
+command -v grep
 mkdir -p scratch/day10_lab_b
 echo "Stage 1 scheduler preflight complete at $(date -u +%Y-%m-%dT%H:%M:%SZ)" &gt; scratch/day10_lab_b/stage1.log
 cat scratch/day10_lab_b/stage1.log
@@ -1532,8 +1874,7 @@ Desired Replicas: {replicas} | Placed: {placed} | Pending: 0
 Node Distribution:
 """
 for n in nodes:
-    output += f"  - {n['name']}: {len(n['placed_pods'])} pods, {n['available_ram']} MB free
-"
+    output += f"  - {n['name']}: {len(n['placed_pods'])} pods, {n['available_ram']} MB free\n"
 
 with open("scratch/day-010-scheduler-simulation.txt", "w") as f:
     f.write(output)
@@ -1561,6 +1902,9 @@ Verify CLI utilities and create workspace directories for Kubernetes object eval
 command -v python3
 command -v cat
 command -v mkdir
+command -v sed
+command -v date
+command -v grep
 mkdir -p scratch/day10_lab_c
 echo "Stage 1 core objects preflight complete at $(date -u +%Y-%m-%dT%H:%M:%SZ)" &gt; scratch/day10_lab_c/stage1.log
 cat scratch/day10_lab_c/stage1.log
@@ -1725,7 +2069,6 @@ content = f"""# Day 10 Exit Evidence: Pod / Deployment / Service Ownership Diagr
 
 ## 1. Declarative Ownership &amp; Control Hierarchy
 
-```text
 [ Developer / GitOps Manifest ]
                │
                ▼
@@ -1743,86 +2086,42 @@ content = f"""# Day 10 Exit Evidence: Pod / Deployment / Service Ownership Diagr
                                                               ▲
                                                               │ manages rollout
                                                       [ Deployment ]
-</code></pre>
-<h2>2. Configuration &amp; Credential Injection Hierarchy</h2>
-<pre><code class="language-text">  [ ConfigMap: inventory-config ]            [ Secret: inventory-secret ]
+
+## 2. Configuration &amp; Credential Injection Hierarchy
+
+  [ ConfigMap: inventory-config ]            [ Secret: inventory-secret ]
         │ (non-sensitive vars)                    │ (encrypted credentials)
         ▼                                         ▼
    [ volumeMount: /etc/config ]              [ env: DB_PASSWORD ]
         └───────────────────┬─────────────────────┘
                             ▼
                [ Container: inventory ]
-</code></pre>
-<h2>3. Core Object Function &amp; Lifecycle Matrix</h2>
-<table>
-<thead>
-<tr>
-<th>Core Object</th>
-<th>Controlling Component</th>
-<th>Lifecycle &amp; Scope</th>
-<th>Addressing / Discovery</th>
-<th>Failure Consequence</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Ingress</strong></td>
-<td>Ingress Controller / Cloud Load Balancer</td>
-<td>Global / Edge HTTP routing</td>
-<td>Public or internal VIP + DNS</td>
-<td>Edge HTTP 404 / 502 routing failure</td>
-</tr>
-<tr>
-<td><strong>Service</strong></td>
-<td>kube-proxy / EndpointSlice Controller</td>
-<td>Cluster-wide stable virtual IP</td>
-<td>ClusterIP / CoreDNS name</td>
-<td>HTTP 503 if selector has typo</td>
-</tr>
-<tr>
-<td><strong>Deployment</strong></td>
-<td>kube-controller-manager</td>
-<td>Declarative rollout &amp; replica count</td>
-<td>Managed via labels &amp; ReplicaSets</td>
-<td>Pods crash or unplaced if misconfigured</td>
-</tr>
-<tr>
-<td><strong>Pod</strong></td>
-<td>kubelet &amp; Container Runtime (CRI)</td>
-<td>Ephemeral atomic container bundle</td>
-<td>Ephemeral Pod IP in VPC</td>
-<td>Container restart / rescheduling</td>
-</tr>
-<tr>
-<td><strong>ConfigMap</strong></td>
-<td>kube-apiserver / etcd</td>
-<td>Decoupled configuration values</td>
-<td>Volume mount or env variable</td>
-<td>Pod startup failure if key missing</td>
-</tr>
-<tr>
-<td><strong>Secret</strong></td>
-<td>kube-apiserver / Cloud KMS</td>
-<td>Decoupled sensitive tokens</td>
-<td>Volume mount or env variable</td>
-<td>Authentication failure if unsealed</td>
-</tr>
-</tbody>
-</table>
-<h2>4. Key Architectural Takeaways</h2>
-<ol>
-<li><strong>Never Target Pod IPs Directly:</strong> Pods are ephemeral; always route traffic through a Service virtual IP backed by EndpointSlices.</li>
-<li><strong>Label Selector Precision:</strong> A single-character typo in a Service selector decouples all backend Pods without failing pod health checks.</li>
-<li><strong>Decouple Config &amp; Code:</strong> Use ConfigMaps and Secrets to ensure container images remain strictly immutable and environment-agnostic.
-"""</li>
-</ol>
-<p>with open("scratch/day-010-ownership-diagram.md", "w") as f:
-    f.write(content)</p>
-<p>print("Exit artifact generated at scratch/day-010-ownership-diagram.md")
+
+## 3. Core Object Function &amp; Lifecycle Matrix
+
+| Core Object | Controlling Component | Lifecycle &amp; Scope | Addressing / Discovery | Failure Consequence |
+|---|---|---|---|---|
+| **Ingress** | Ingress Controller / Cloud Load Balancer | Global / Edge HTTP routing | Public or internal VIP + DNS | Edge HTTP 404 / 502 routing failure |
+| **Service** | kube-proxy / EndpointSlice Controller | Cluster-wide stable virtual IP | ClusterIP / CoreDNS name | HTTP 503 if selector has typo |
+| **Deployment** | kube-controller-manager | Declarative rollout &amp; replica count | Managed via labels &amp; ReplicaSets | Pods crash or unplaced if misconfigured |
+| **Pod** | kubelet &amp; Container Runtime (CRI) | Ephemeral atomic container bundle | Ephemeral Pod IP in VPC | Container restart / rescheduling |
+| **ConfigMap** | kube-apiserver / etcd | Decoupled configuration values | Volume mount or env variable | Pod startup failure if key missing |
+| **Secret** | kube-apiserver / Cloud KMS | Decoupled sensitive tokens | Volume mount or env variable | Authentication failure if unsealed |
+
+## 4. Key Architectural Takeaways
+1. **Never Target Pod IPs Directly:** Pods are ephemeral; always route traffic through a Service virtual IP backed by EndpointSlices.
+2. **Label Selector Precision:** A single-character typo in a Service selector decouples all backend Pods without failing pod health checks.
+3. **Decouple Config &amp; Code:** Use ConfigMaps and Secrets to ensure container images remain strictly immutable and environment-agnostic.
+"""
+
+with open("scratch/day-010-ownership-diagram.md", "w") as f:
+    f.write(content)
+
+print("Exit artifact generated at scratch/day-010-ownership-diagram.md")
 EOF
 python3 scratch/day10_lab_c/build_exit_artifact.py &gt; scratch/day10_lab_c/stage7.log
 cat scratch/day-010-ownership-diagram.md
-```</p>
+</code></pre>
 <p><strong>Expected result:</strong> <code>scratch/day-010-ownership-diagram.md</code> is generated successfully.</p>
 <p><strong>Save:</strong> <code>scratch/day-010-ownership-diagram.md</code></p></li><li><strong>Stage 8: Validate and Verify the Day 10 Exit Artifact</strong>
 <p><strong>Location:</strong> local terminal</p>

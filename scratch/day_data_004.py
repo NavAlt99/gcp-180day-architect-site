@@ -9,6 +9,7 @@ Topics:
 """
 
 import sys
+import re
 from pathlib import Path
 from functools import partial
 
@@ -2239,6 +2240,68 @@ REVIEW_RECORDS = {
         'OCSP Stapling and Revocation Verification Lifecycle (RFC 6066 / RFC 6960)': 'eligible flow sequence illustrating RFC 6066 and RFC 6960 out-of-band query, edge caching, and in-band TLS stapling lifecycle requested by user'
     }
 }
+
+def _bullet_explanation(match):
+    """Keep every authored word; break prose only at unmarked sentence ends."""
+    label, body = match.groups()
+    if not body.strip() or 'Further study:' in label:
+        return match.group(0)
+    points, pending, depth = [], '', 0
+    for token in re.findall(r'<[^>]+>|[^<]+', body):
+        if token.startswith('<'):
+            if token.startswith('</'):
+                depth -= 1
+            elif not token.endswith('/>'):
+                depth += 1
+            pending += token
+        elif depth:
+            pending += token
+        else:
+            start = 0
+            for boundary in re.finditer(r'(?<=\.)\s+(?=[A-Z])', token):
+                prefix = token[:boundary.start()]
+                if prefix.endswith(('e.g.', 'i.e.', 'vs.', 'Fig.')):
+                    continue
+                pending += token[start:boundary.start()]
+                points.append(pending.strip())
+                pending = ''
+                start = boundary.end()
+            pending += token[start:]
+    if pending.strip():
+        points.append(pending.strip())
+    return '<p>' + label + '</p><ul>' + ''.join(
+        '<li>' + point + '</li>' for point in points
+    ) + '</ul>'
+
+
+# Day-local presentation: shared shell/CSS and teaching content stay unchanged.
+for _topic in TOPICS:
+    _headings = re.findall(r'<h4>(.*?)</h4>', _topic['technical'], re.S)
+    _links = []
+    for _number, _heading in enumerate(_headings, 1):
+        _anchor = f"{_topic['key']}-subtopic-{_number:02d}"
+        _topic['technical'] = _topic['technical'].replace(
+            '<h4>' + _heading + '</h4>',
+            f'<h4 id="{_anchor}">' + _heading + '</h4>', 1
+        )
+        _links.append(f'<li><a href="#{_anchor}">{_heading}</a></li>')
+    _linked_list = '<ul>' + ''.join(_links) + '</ul>'
+    _topic['technical'] = re.sub(
+        r'(<p><strong class="side-heading">Subtopics in this discussion:</strong></p>)<ol>.*?</ol>',
+        lambda match: match.group(1) + _linked_list,
+        _topic['technical'], count=1, flags=re.S
+    )
+    _topic['technical'] = re.sub(
+        r'<p>(<strong class="side-heading">[^<]+</strong>)\s*(.*?)</p>',
+        _bullet_explanation, _topic['technical'], flags=re.S
+    )
+    _overview_end = f'<p><a href="#{_topic["key"]}-technical">'
+    PART1_HTML = PART1_HTML.replace(
+        _overview_end,
+        '<p><strong class="side-heading">Linked subtopics:</strong></p>'
+        + _linked_list + '\n' + _overview_end, 1
+    )
+
 
 DATA = {
     'contract_version': 2,
