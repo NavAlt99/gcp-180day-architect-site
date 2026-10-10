@@ -1215,14 +1215,12 @@ import os, sys, time
 def write_unbuffered_record(path, record_id):
     # Standard write: buffers in application memory / kernel page cache
     with open(path, "a") as f:
-        f.write(f"ORDER_RECORD:{record_id}:{time.time()}:BUFFERED
-")
+        f.write(f"ORDER_RECORD:{record_id}:{time.time()}:BUFFERED\n")
 
 def write_durable_record(path, record_id):
     # Durable write: forces kernel page cache writeback to disk via fsync
     with open(path, "a") as f:
-        f.write(f"ORDER_RECORD:{record_id}:{time.time()}:DURABLE
-")
+        f.write(f"ORDER_RECORD:{record_id}:{time.time()}:DURABLE\n")
         f.flush()
         os.fsync(f.fileno())
 
@@ -1307,21 +1305,19 @@ cat scratch/day10_lab_a/stage5.log
 <p><strong>Actions:</strong>
 Simulate an abrupt process termination to observe why kernel page cache buffering alone is insufficient without fsync().</p>
 <pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; scratch/day10_lab_a/simulate_crash.py
-import os, sys
+import os, sys, subprocess
 
 crash_log = "scratch/day10_lab_a/crash_test.log"
-# Write 1000 records without flush/fsync
-with open(crash_log, "w") as f:
-    for i in range(100):
-        f.write(f"UNFLUSHED_RECORD_{i}
-")
-    # Simulate abrupt SIGKILL / power termination before buffer flush
-    os._exit(137)
+child_code = ("import os\n" 
+              "with open('scratch/day10_lab_a/crash_test.log', 'w') as f:\n" 
+              "    for i in range(100):\n" 
+              "        f.write(f'UNFLUSHED_RECORD_{i}\\n')\n" 
+              "    os._exit(137)\n")
+proc = subprocess.run([sys.executable, "-c", child_code])
+size = os.path.getsize(crash_log) if os.path.exists(crash_log) else 0
+print(f"Abrupt termination simulated with exit code {proc.returncode}. Flushed bytes: {size}")
 EOF
-python3 scratch/day10_lab_a/simulate_crash.py
-# Inspect size of crash test log on disk
-size = os.path.getsize("scratch/day10_lab_a/crash_test.log")
-echo "Crash test completed with exit code 137. Flushed bytes: $size" &gt; scratch/day10_lab_a/stage6.log
+python3 scratch/day10_lab_a/simulate_crash.py &gt; scratch/day10_lab_a/stage6.log
 cat scratch/day10_lab_a/stage6.log
 </code></pre>
 <p><strong>Expected result:</strong> Output illustrates that abrupt process exits can truncate or lose uncommitted dirty page buffers.</p>
@@ -1532,8 +1528,7 @@ Desired Replicas: {replicas} | Placed: {placed} | Pending: 0
 Node Distribution:
 """
 for n in nodes:
-    output += f"  - {n['name']}: {len(n['placed_pods'])} pods, {n['available_ram']} MB free
-"
+    output += f"  - {n['name']}: {len(n['placed_pods'])} pods, {n['available_ram']} MB free\n"
 
 with open("scratch/day-010-scheduler-simulation.txt", "w") as f:
     f.write(output)
@@ -1725,7 +1720,6 @@ content = f"""# Day 10 Exit Evidence: Pod / Deployment / Service Ownership Diagr
 
 ## 1. Declarative Ownership &amp; Control Hierarchy
 
-```text
 [ Developer / GitOps Manifest ]
                │
                ▼
@@ -1743,86 +1737,42 @@ content = f"""# Day 10 Exit Evidence: Pod / Deployment / Service Ownership Diagr
                                                               ▲
                                                               │ manages rollout
                                                       [ Deployment ]
-</code></pre>
-<h2>2. Configuration &amp; Credential Injection Hierarchy</h2>
-<pre><code class="language-text">  [ ConfigMap: inventory-config ]            [ Secret: inventory-secret ]
+
+## 2. Configuration &amp; Credential Injection Hierarchy
+
+  [ ConfigMap: inventory-config ]            [ Secret: inventory-secret ]
         │ (non-sensitive vars)                    │ (encrypted credentials)
         ▼                                         ▼
    [ volumeMount: /etc/config ]              [ env: DB_PASSWORD ]
         └───────────────────┬─────────────────────┘
                             ▼
                [ Container: inventory ]
-</code></pre>
-<h2>3. Core Object Function &amp; Lifecycle Matrix</h2>
-<table>
-<thead>
-<tr>
-<th>Core Object</th>
-<th>Controlling Component</th>
-<th>Lifecycle &amp; Scope</th>
-<th>Addressing / Discovery</th>
-<th>Failure Consequence</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Ingress</strong></td>
-<td>Ingress Controller / Cloud Load Balancer</td>
-<td>Global / Edge HTTP routing</td>
-<td>Public or internal VIP + DNS</td>
-<td>Edge HTTP 404 / 502 routing failure</td>
-</tr>
-<tr>
-<td><strong>Service</strong></td>
-<td>kube-proxy / EndpointSlice Controller</td>
-<td>Cluster-wide stable virtual IP</td>
-<td>ClusterIP / CoreDNS name</td>
-<td>HTTP 503 if selector has typo</td>
-</tr>
-<tr>
-<td><strong>Deployment</strong></td>
-<td>kube-controller-manager</td>
-<td>Declarative rollout &amp; replica count</td>
-<td>Managed via labels &amp; ReplicaSets</td>
-<td>Pods crash or unplaced if misconfigured</td>
-</tr>
-<tr>
-<td><strong>Pod</strong></td>
-<td>kubelet &amp; Container Runtime (CRI)</td>
-<td>Ephemeral atomic container bundle</td>
-<td>Ephemeral Pod IP in VPC</td>
-<td>Container restart / rescheduling</td>
-</tr>
-<tr>
-<td><strong>ConfigMap</strong></td>
-<td>kube-apiserver / etcd</td>
-<td>Decoupled configuration values</td>
-<td>Volume mount or env variable</td>
-<td>Pod startup failure if key missing</td>
-</tr>
-<tr>
-<td><strong>Secret</strong></td>
-<td>kube-apiserver / Cloud KMS</td>
-<td>Decoupled sensitive tokens</td>
-<td>Volume mount or env variable</td>
-<td>Authentication failure if unsealed</td>
-</tr>
-</tbody>
-</table>
-<h2>4. Key Architectural Takeaways</h2>
-<ol>
-<li><strong>Never Target Pod IPs Directly:</strong> Pods are ephemeral; always route traffic through a Service virtual IP backed by EndpointSlices.</li>
-<li><strong>Label Selector Precision:</strong> A single-character typo in a Service selector decouples all backend Pods without failing pod health checks.</li>
-<li><strong>Decouple Config &amp; Code:</strong> Use ConfigMaps and Secrets to ensure container images remain strictly immutable and environment-agnostic.
-"""</li>
-</ol>
-<p>with open("scratch/day-010-ownership-diagram.md", "w") as f:
-    f.write(content)</p>
-<p>print("Exit artifact generated at scratch/day-010-ownership-diagram.md")
+
+## 3. Core Object Function &amp; Lifecycle Matrix
+
+| Core Object | Controlling Component | Lifecycle &amp; Scope | Addressing / Discovery | Failure Consequence |
+|---|---|---|---|---|
+| **Ingress** | Ingress Controller / Cloud Load Balancer | Global / Edge HTTP routing | Public or internal VIP + DNS | Edge HTTP 404 / 502 routing failure |
+| **Service** | kube-proxy / EndpointSlice Controller | Cluster-wide stable virtual IP | ClusterIP / CoreDNS name | HTTP 503 if selector has typo |
+| **Deployment** | kube-controller-manager | Declarative rollout &amp; replica count | Managed via labels &amp; ReplicaSets | Pods crash or unplaced if misconfigured |
+| **Pod** | kubelet &amp; Container Runtime (CRI) | Ephemeral atomic container bundle | Ephemeral Pod IP in VPC | Container restart / rescheduling |
+| **ConfigMap** | kube-apiserver / etcd | Decoupled configuration values | Volume mount or env variable | Pod startup failure if key missing |
+| **Secret** | kube-apiserver / Cloud KMS | Decoupled sensitive tokens | Volume mount or env variable | Authentication failure if unsealed |
+
+## 4. Key Architectural Takeaways
+1. **Never Target Pod IPs Directly:** Pods are ephemeral; always route traffic through a Service virtual IP backed by EndpointSlices.
+2. **Label Selector Precision:** A single-character typo in a Service selector decouples all backend Pods without failing pod health checks.
+3. **Decouple Config &amp; Code:** Use ConfigMaps and Secrets to ensure container images remain strictly immutable and environment-agnostic.
+"""
+
+with open("scratch/day-010-ownership-diagram.md", "w") as f:
+    f.write(content)
+
+print("Exit artifact generated at scratch/day-010-ownership-diagram.md")
 EOF
 python3 scratch/day10_lab_c/build_exit_artifact.py &gt; scratch/day10_lab_c/stage7.log
 cat scratch/day-010-ownership-diagram.md
-```</p>
+</code></pre>
 <p><strong>Expected result:</strong> <code>scratch/day-010-ownership-diagram.md</code> is generated successfully.</p>
 <p><strong>Save:</strong> <code>scratch/day-010-ownership-diagram.md</code></p></li><li><strong>Stage 8: Validate and Verify the Day 10 Exit Artifact</strong>
 <p><strong>Location:</strong> local terminal</p>
