@@ -2860,3 +2860,368 @@ DATA = {'access_date': '2026-10-04',
                           '</figure>\n',
              'title': 'Kubernetes core objects'}],
  'work_block': 'Days 1–17 — Foundations'}
+
+
+# Targeted Day 10 additions: retain original explanations and all existing exercises.
+import re as _re
+from html import escape as _escape
+from urllib.parse import quote as _quote
+
+_BUILD_COMPARE_STAGES = [
+('Preflight and Workspace Setup', r"""set -euo pipefail
+command -v bash
+command -v python3
+command -v cat
+command -v mkdir
+command -v docker
+command -v podman
+command -v mktemp
+if docker info > /dev/null 2>&1; then
+    ENGINE=docker
+else
+    podman info > /dev/null
+    ENGINE=podman
+fi
+export ENGINE
+BUILD_FLAGS=()
+OPT_DIR=$(mktemp -d /tmp/day010-image-XXXXXX)
+export OPT_DIR
+mkdir -p "$OPT_DIR/evidence"
+if [ "$ENGINE" = podman ]; then
+    # Per-build policy supports disposable HOME in the lab runner. This accepts
+    # unsigned builder images exactly as an ordinary Docker pull does; production
+    # must use its own signature/provenance verification policy.
+    printf '%s\n' '{"default":[{"type":"insecureAcceptAnything"}]}' > "$OPT_DIR/pull-policy.json"
+    BUILD_FLAGS=(--signature-policy "$OPT_DIR/pull-policy.json")
+    # Scope policy lookup for archive operations to this session's lab directory.
+    OPT_PREVIOUS_CONFIG=${XDG_CONFIG_HOME-}
+    export XDG_CONFIG_HOME="$OPT_DIR/config"
+    mkdir -p "$XDG_CONFIG_HOME/containers"
+    python3 - <<'POLICY'
+import os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])
+(pathlib.Path(os.environ['XDG_CONFIG_HOME'])/'containers/policy.json').write_bytes((p/'pull-policy.json').read_bytes())
+POLICY
+fi
+printf '%s\n' "$OPT_DIR" > scratch/day-010-image-workspace.txt
+"$ENGINE" version > "$OPT_DIR/evidence/runtime.txt"
+"$ENGINE" info > "$OPT_DIR/evidence/baseline.txt"
+RUN_ID=$(python3 -c 'import uuid; print(uuid.uuid4().hex[:12])')
+SINGLE_IMAGE="localhost/day010-single:$RUN_ID"
+MULTI_IMAGE="localhost/day010-multi:$RUN_ID"
+DELETE_IMAGE="localhost/day010-delete:$RUN_ID"
+export SINGLE_IMAGE MULTI_IMAGE DELETE_IMAGE
+printf '%s\n' "$SINGLE_IMAGE" "$MULTI_IMAGE" "$DELETE_IMAGE" > "$OPT_DIR/evidence/tags.txt"
+""", 'A daemon responds; a unique, lab-owned directory and image tags exist. Allow about 2 GB free disk and registry access. Stop on daemon/registry errors; do not substitute fabricated measurements.'),
+('Application Source Code & Build Dependencies Fixture', r"""cat > "$OPT_DIR/main.go" <<'GO'
+package main
+import (
+    "fmt"
+    "net/http"
+    "os"
+)
+func main() {
+    if len(os.Args) == 2 && os.Args[1] == "--self-test" {
+        fmt.Println("day010-service:ok")
+        return
+    }
+    http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "text/plain")
+        fmt.Fprintln(w, "day010-service:ok")
+    })
+    if err := http.ListenAndServe(":8080", nil); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
+    }
+}
+GO
+cat > "$OPT_DIR/.dockerignore" <<'IGNORE'
+evidence
+*.tar
+IGNORE
+cat > "$OPT_DIR/build-prefix" <<'DOCKER'
+FROM docker.io/library/golang:1.26-alpine AS build
+# Explicit build-only compiler, linker, libc headers and make.
+RUN apk add --no-cache build-base
+WORKDIR /src
+COPY main.go /src/main.go
+# An intentionally retained 32 MiB, incompressible build fixture plus 2000 files.
+RUN mkdir -p /build /out && dd if=/dev/urandom of=/build/cache.bin bs=1048576 count=32 && i=0; while [ "$i" -lt 2000 ]; do touch "/build/header-$i"; i=$((i+1)); done
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/service /src/main.go
+DOCKER
+cat "$OPT_DIR/main.go" > "$OPT_DIR/evidence/source.txt"
+""", 'A complete HTTP service, self-test path and intentional build-cache fixture exist. CGO_ENABLED=0 avoids runtime libc dependencies for the scratch image. The random cache deliberately makes layer retention measurable; it is not a realistic requirement of this service.'),
+('Author and Build the Single-Stage Container Image', r"""cat "$OPT_DIR/build-prefix" > "$OPT_DIR/Dockerfile.single"
+cat >> "$OPT_DIR/Dockerfile.single" <<'DOCKER'
+# The Go SDK, GCC, make, apk, shell, source and build cache remain reachable.
+USER 65532:65532
+EXPOSE 8080
+ENTRYPOINT ["/out/service"]
+DOCKER
+"$ENGINE" build "${BUILD_FLAGS[@]}" -f "$OPT_DIR/Dockerfile.single" -t "$SINGLE_IMAGE" "$OPT_DIR" > "$OPT_DIR/evidence/single-build.log" 2>&1
+"$ENGINE" run --rm "$SINGLE_IMAGE" --self-test > "$OPT_DIR/evidence/single-selftest.txt"
+python3 - <<'CHECK'
+import os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence/single-selftest.txt'
+assert p.read_text().strip() == 'day010-service:ok'
+CHECK
+""", 'The compiled binary runs as UID 65532, while build tools and cache remain in the final image. Save the actual build log; tag-based bases can change, so later inspection records image IDs and layer digests.'),
+('Author and Build the Multi-Stage Container Image', r"""cat "$OPT_DIR/build-prefix" > "$OPT_DIR/Dockerfile.multi"
+cat >> "$OPT_DIR/Dockerfile.multi" <<'DOCKER'
+# scratch contains no shell, libc, package manager or trusted CA bundle.
+FROM scratch AS runtime
+COPY --from=build /out/service /service
+USER 65532:65532
+EXPOSE 8080
+ENTRYPOINT ["/service"]
+DOCKER
+"$ENGINE" build "${BUILD_FLAGS[@]}" -f "$OPT_DIR/Dockerfile.multi" -t "$MULTI_IMAGE" "$OPT_DIR" > "$OPT_DIR/evidence/multi-build.log" 2>&1
+"$ENGINE" run --rm "$MULTI_IMAGE" --self-test > "$OPT_DIR/evidence/multi-selftest.txt"
+python3 - <<'CHECK'
+import os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+assert (p/'multi-selftest.txt').read_bytes() == (p/'single-selftest.txt').read_bytes()
+CHECK
+""", 'The same source and static build flags produce a runnable, non-root runtime artifact. Builder layers can remain in local cache but are not ancestors of the final runtime image. Outbound TLS would require an explicitly copied CA bundle; scratch is suitable here because this service only answers inbound HTTP.'),
+('Inspect and Measure Layer Composition, Tarball Bloat, and Inode Footprint', r"""cat > "$OPT_DIR/Dockerfile.delete" <<'DOCKER'
+ARG BASE
+FROM ${BASE}
+USER 0
+# A later whiteout hides /build without deleting the bytes in ancestor layers.
+RUN rm -rf /build
+USER 65532:65532
+DOCKER
+"$ENGINE" build "${BUILD_FLAGS[@]}" --build-arg "BASE=$SINGLE_IMAGE" -f "$OPT_DIR/Dockerfile.delete" -t "$DELETE_IMAGE" "$OPT_DIR" > "$OPT_DIR/evidence/delete-build.log" 2>&1
+for pair in "single:$SINGLE_IMAGE" "multi:$MULTI_IMAGE" "delete:$DELETE_IMAGE"; do
+    name=${pair%%:*}; image=${pair#*:}
+    "$ENGINE" image inspect "$image" > "$OPT_DIR/evidence/$name-inspect.json"
+    "$ENGINE" history --no-trunc "$image" > "$OPT_DIR/evidence/$name-history.txt"
+    "$ENGINE" save -o "$OPT_DIR/evidence/$name-image.tar" "$image"
+    cid=$("$ENGINE" create "$image")
+    "$ENGINE" export -o "$OPT_DIR/evidence/$name-rootfs.tar" "$cid"
+    "$ENGINE" rm "$cid"
+done
+cat > "$OPT_DIR/measure.py" <<'PYCODE'
+import json,os,pathlib,tarfile
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+rows={}
+for name in ('single','multi','delete'):
+    info=json.loads((p/f'{name}-inspect.json').read_text())[0]
+    with tarfile.open(p/f'{name}-rootfs.tar') as tf:
+        members=tf.getmembers()
+    paths={m.name.lstrip('./'):m for m in members}
+    # Hard links reuse inodes. Runtime-injected /etc/hosts and /dev entries
+    # may appear in exports; this is a logical-rootfs proxy, not host df -i.
+    rows[name]={
+        'image_id':info['Id'], 'image_bytes':info['Size'],
+        'saved_archive_bytes':(p/f'{name}-image.tar').stat().st_size,
+        'rootfs_entries':len(paths),
+        'rootfs_inode_proxy':sum(not m.islnk() for m in paths.values()),
+        'filesystem_layers':len(info['RootFS']['Layers']),
+        'layer_digests':info['RootFS']['Layers'],
+        'build_cache_visible':any(n.startswith('build/') for n in paths),
+        'tools_present':{tool:any(path.rsplit('/',1)[-1]==tool for path in paths)
+                         for tool in ('go','gcc','make','apk','sh','bash')}}
+assert rows['single']['build_cache_visible']
+assert not rows['delete']['build_cache_visible']
+assert rows['delete']['layer_digests'][:rows['single']['filesystem_layers']] == rows['single']['layer_digests']
+assert rows['delete']['image_bytes'] >= rows['single']['image_bytes']
+assert rows['delete']['saved_archive_bytes'] >= rows['single']['saved_archive_bytes'] * 0.95
+(p/'metrics.json').write_text(json.dumps(rows,indent=2)+'\n')
+print(json.dumps(rows,indent=2))
+PYCODE
+python3 "$OPT_DIR/measure.py" > "$OPT_DIR/evidence/metrics.txt"
+""", 'history lists instruction sizes; RootFS.Layers counts actual filesystem diffs rather than zero-byte metadata history entries. The deletion image has fewer visible files but retains the original layer digests and archive bytes. Export-based inode proxy counts files/directories/symlinks with hard links deduplicated, not physical host inode consumption; inspect df -i on the runtime storage filesystem separately for node capacity decisions.'),
+('Attack Surface & Exploit Vector Audit', r""""$ENGINE" run --rm --entrypoint /bin/sh "$SINGLE_IMAGE" -c 'type go gcc make apk' > "$OPT_DIR/evidence/single-tools.txt"
+python3 - <<'AUDIT'
+import json,os,pathlib,subprocess
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+r=json.loads((p/'metrics.json').read_text())
+assert all(r['single']['tools_present'][t] for t in ('go','gcc','make','apk','sh'))
+assert not any(r['multi']['tools_present'].values())
+results=[]
+for executable in ('/bin/sh','/bin/bash','/sbin/apk','/usr/bin/gcc','/usr/local/go/bin/go'):
+    proc=subprocess.run([os.environ['ENGINE'],'run','--rm','--entrypoint',executable,
+                         os.environ['MULTI_IMAGE'],'--version'],capture_output=True,text=True)
+    assert proc.returncode != 0, executable
+    results.append({'executable':executable,'exit_code':proc.returncode,'stderr':proc.stderr})
+# A successful run distinguishes the expected absent-entrypoint failures from a dead daemon.
+proc=subprocess.run([os.environ['ENGINE'],'run','--rm',os.environ['MULTI_IMAGE'],'--self-test'],capture_output=True,text=True,check=True)
+assert proc.stdout.strip()=='day010-service:ok'
+(p/'audit.json').write_text(json.dumps(results,indent=2)+'\n')
+AUDIT
+""", 'Filesystem inspection and executable-launch failures agree: the final runtime has no audited compiler, SDK, package manager or shell. This removes convenient post-exploitation tools, not Go application vulnerabilities, kernel exposure, malicious dependencies or all CVEs. A vulnerability scanner and signed provenance are separate controls, not claimed results of this audit.'),
+('Compile the Image Optimization & Security Verification Report', r"""python3 - <<'REPORT'
+import json,os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+m=json.loads((p/'metrics.json').read_text())
+report={'day':10,'observed_locally':m,'negative_entrypoint_tests':json.loads((p/'audit.json').read_text()),
+        'size_reduction_percent':round(100*(1-m['multi']['image_bytes']/m['single']['image_bytes']),2),
+        'scope':'Logical uncompressed image size and saved archive bytes; not registry compressed transfer, shared cache disk usage or a CVE scan.',
+        'architecture':'Single stage inherits SDK and build cache; final scratch stage inherits only the copied static binary.',
+        'inode_limit':'Rootfs inode proxy excludes duplicate hard-link entries; overlay host inodes and shared layers are runtime dependent.',
+        'gcp':'No GCP deployment or GKE performance measurement was performed.'}
+path=pathlib.Path('scratch/day-010-image-comparison.json')
+path.write_text(json.dumps(report,indent=2)+'\n')
+lines=['# Day 10 image optimization report','', '| Image | Image bytes | Archive bytes | FS layers | Inode proxy |','|---|---:|---:|---:|---:|']
+for name,row in m.items():
+    lines.append(f"| {name} | {row['image_bytes']} | {row['saved_archive_bytes']} | {row['filesystem_layers']} | {row['rootfs_inode_proxy']} |")
+lines.extend(['',report['scope'],report['inode_limit'],report['architecture'],report['gcp']])
+pathlib.Path('scratch/day-010-image-comparison.md').write_text('\n'.join(lines)+'\n')
+print('\n'.join(lines))
+REPORT
+""", 'JSON contains measured bytes, image identities, layer digests, inode proxies and negative execution tests. Markdown presents the comparison. Hundreds of MiB versus less than 25 MiB is an acceptance target for this fixture, not a pre-recorded result.'),
+('Validate Acceptance Invariants and Cleanup', r"""python3 - <<'ACCEPT'
+import json,pathlib
+r=json.loads(pathlib.Path('scratch/day-010-image-comparison.json').read_text())
+s,m,d=(r['observed_locally'][k] for k in ('single','multi','delete'))
+assert s['image_bytes'] > 100*1024*1024
+assert 0 < m['image_bytes'] < 25*1024*1024
+assert m['filesystem_layers'] < s['filesystem_layers']
+assert m['rootfs_inode_proxy'] < s['rootfs_inode_proxy']
+assert d['image_bytes'] >= s['image_bytes']
+assert not any(m['tools_present'].values())
+assert len(r['negative_entrypoint_tests']) == 5
+print('Day 10 image optimization acceptance PASS')
+ACCEPT
+"$ENGINE" image rm "$DELETE_IMAGE" "$MULTI_IMAGE" "$SINGLE_IMAGE"
+# Delete only this run's bulky archives; keep logs and structured reports for review.
+python3 - <<'CLEAN'
+import os,pathlib
+p=pathlib.Path(os.environ['OPT_DIR'])/'evidence'
+for f in p.glob('*.tar'):
+    f.unlink()
+pathlib.Path('scratch/day-010-image-cleanup.txt').write_text('Lab image tags and export/save archives removed. Shared builder cache and pulled base retained; no global prune.\n')
+CLEAN
+if [ "$ENGINE" = podman ]; then
+    if [ -n "$OPT_PREVIOUS_CONFIG" ]; then
+        export XDG_CONFIG_HOME="$OPT_PREVIOUS_CONFIG"
+    else
+        unset XDG_CONFIG_HOME
+    fi
+fi
+""", 'All invariants pass, lab image tags and bulky archives are removed, reports and diagnostic logs remain. On an earlier failure, use tags.txt and the printed workspace path to remove only this run’s containers/images after inspecting evidence; never run a global prune.')]
+
+_EXTRA_IMAGE_LAB = '<section id="topic-01-multistage-lab" class="lab">\n<h3>Additional exercise · Single-stage versus optimized multi-stage Go image</h3>\n'
+_EXTRA_IMAGE_LAB += '<p><strong>Goal:</strong> Build the same compiled HTTP service twice; prove image-layer immutability, quantify size/layers/inode footprint, and audit runtime tools.</p>\n'
+_EXTRA_IMAGE_LAB += '<p><strong>Expected result:</strong> Runnable equivalent binaries, measured size reduction, retained lower-layer cache after deletion, and a structured security comparison.</p>\n'
+_EXTRA_IMAGE_LAB += '<p><strong>Mode:</strong> Observed locally: only measurements produced by the commands below. Simulated or predicted: none in the image comparison. Untested on GCP: GKE deployment, pull latency and network behavior. Linux/Bash; Docker Engine or rootless Podman with Docker-compatible commands.</p>\n'
+_EXTRA_IMAGE_LAB += '<p><strong>Prerequisite:</strong> Docker CLI and Podman CLI available for explicit daemon fallback; Python 3 and core utilities; running engine, registry access, about 2 GB disk. No GCP credentials or cloud resources.</p>\n'
+_EXTRA_IMAGE_LAB += '<p><strong>Preflight:</strong> Execute in one Bash session from the existing lab working directory, where scratch exists. Stage 1 records the chosen daemon and baseline. Keep the workspace path for recovery.</p>\n<h4>Exact execution</h4>\n<ol>\n'
+for _n, (_title, _commands, _expected) in enumerate(_BUILD_COMPARE_STAGES, 1):
+    _EXTRA_IMAGE_LAB += '<li><h5>Stage '+str(_n)+': '+_escape(_title)+'</h5><p><strong>Location:</strong> local terminal; Linux, Bash, selected container engine and Python 3. Run sequentially in the same session.</p><p><strong>Actions:</strong></p><pre><code class="language-bash">'+_escape(_commands)+'</code></pre><p><strong>Expected result:</strong> '+_escape(_expected)+'</p><p><strong>Evidence:</strong> Retain the run-owned evidence directory and the comparison report; stop on any failed assertion.</p></li>\n'
+_EXTRA_IMAGE_LAB += '</ol><div class="callout success"><strong>Expected result / acceptance</strong><p>All eight stages complete. The multi-stage image is less than 25 MiB, has fewer filesystem layers and rootfs inode proxies, passes the same binary self-test, and lacks all audited tools. A later rm hides build files but preserves ancestor layer bytes. Save: <code>scratch/day-010-image-comparison.json</code>, <code>scratch/day-010-image-comparison.md</code>, <code>scratch/day-010-image-cleanup.txt</code>.</p></div>\n'
+_EXTRA_IMAGE_LAB += '<div class="callout caution"><strong>Troubleshooting</strong><ul><li>Daemon permission denied: use an authorized Docker socket or the explicit rootless Podman fallback; do not chmod the socket globally.</li><li>Registry or apk failure: inspect single-build.log; restore registry access and rerun before recording acceptance.</li><li>exec format error: build and run on the same engine architecture; CGO_ENABLED=0 does not fix a CPU architecture mismatch.</li><li>Scratch TLS/DNS or debug requirements: copy required CA/config files explicitly, or choose a maintained minimal runtime and repeat all metrics.</li><li>Do not compare compressed registry sizes with uncompressed inspect Size; builder cache disk remains a separate metric.</li></ul></div>\n'
+_EXTRA_IMAGE_LAB += '<div class="callout"><strong>Cleanup</strong><p>Stage 8 removes only unique lab tags and archive files. Keep structured reports and logs; shared cache/base images remain. No billed cloud resources are created.</p></div></section>\n'
+# Keep the original persistence exercise intact. Its closeout executes the separate
+# eight-stage comparison too, so run_labs and batch_gate cannot silently skip it.
+DATA['topics'][0]['lab']['steps'][7] += '\n\n' + _EXTRA_IMAGE_LAB
+DATA['topics'][0]['lab']['mode'] += ' Additional comparison: actual Docker-compatible builds and runtime inspection; engine selection is recorded per run.'
+DATA['topics'][0]['lab']['steps'][0] = DATA['topics'][0]['lab']['steps'][0].replace('command -v mkdir', 'command -v mkdir\ncommand -v date\ncommand -v rm\ncommand -v grep\ncommand -v docker\ncommand -v podman')
+
+# Linked subtopics in both the overview and technical discussion. Lists use the
+# available card width instead of the shared paragraph reading-width cap.
+for _t in DATA['topics']:
+    _key = _t['key']
+    _tech = _t['technical']
+    _headings = list(_re.finditer(r'<h4(?: id="[^"]+")?>(.*?)</h4>', _tech))
+    for _i, _heading in reversed(list(enumerate(_headings[:5], 1))):
+        _tech = _tech[:_heading.start()] + '<h4 id="'+_key+'-subtopic-'+str(_i)+'">'+_heading.group(1)+'</h4>' + _tech[_heading.end():]
+    _first = _re.search(r'<ol>.*?</ol>', _tech, _re.S)
+    _links = '<ul>' + ''.join('<li><a href="#'+_key+'-subtopic-'+str(_i)+'">'+_h.group(1)+'</a></li>' for _i,_h in enumerate(_headings[:5],1)) + '</ul>'
+    assert _first is not None
+    _tech = _tech[:_first.start()] + _links + _tech[_first.end():]
+    # Preserve every word while giving each labelled mechanism a full-width bullet.
+    _tech = _re.sub(r'<p>(<strong class="side-heading">.*?</strong>.*?)</p>',r'<ul><li>\1</li></ul>',_tech,flags=_re.S)
+    _tech = _tech.replace('<ul><li><strong class="side-heading">Subtopics in this discussion:</strong></li></ul>', '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>')
+    _t['technical'] = _tech
+    _overview = _re.search(r'<article[^>]*id="'+_key+r'-overview".*?</article>', DATA['part1_html'], _re.S)
+    assert _overview is not None
+    _old = _overview.group(0)
+    DATA['part1_html'] = DATA['part1_html'].replace(_old, _old.replace('</article>','<p><strong class="side-heading">Linked subtopics:</strong></p>'+_links+'</article>'),1)
+
+# Correct specific unsupported guarantees while preserving their mechanisms.
+_CORRECTIONS = {
+'zero network encapsulation latency':'no inter-Pod network hop; loopback still has processing cost',
+'NEGs preserve the original client source IP address and reduce median request latency by 5–15 ms.':'NEGs target Pod endpoints directly. For proxy-based Application Load Balancers, applications obtain client information from forwarding headers; this lesson provides no measured latency improvement.',
+'Consolidating dozens of backend microservices behind a single Ingress controller reduces cloud load balancing costs by &gt;75%, eliminating duplicate static IP allocations and unneeded forwarding rules.':'Consolidating compatible host/path routes can reduce duplicate frontend resources. Savings depend on traffic, backend configuration, load balancer pricing and availability requirements; there is no universal percentage reduction.',
+'automatically updates the projected files inside running containers within seconds without restarting the container process.':'eventually updates projected files without restarting the container process; propagation includes the kubelet sync period and cache propagation delay. A subPath mount does not receive these updates, and the application must reopen or reload the changed file.',
+'Within 15 seconds, Config Sync':'On a subsequent successful reconciliation, Config Sync',
+'detects drift against live cluster objects within seconds, and applies transactional three-way merge patches to restore compliance.':'detects and reconciles drift for managed resources; convergence depends on source polling, API availability and reconciliation health rather than a guaranteed number of seconds or a multi-object transaction.',
+'consensus requires an odd cluster quorum size ($N = 2F + 1$) to tolerate $F$ node failures.':'consensus needs a majority of voting members; an odd membership size is normally chosen to tolerate $F$ failures with $N = 2F + 1$ voters.',
+'if storage write latency exceeds 10 ms, Raft heartbeats drop, triggering cascade leader elections and freezing control plane operations.':'sustained disk or network delays can delay heartbeats and provoke leader elections; the outcome depends on election timeouts and workload, not a universal 10 ms threshold.',
+'(default 40s)':'(inspect the running controller configuration rather than assume a fixed default)',
+'When a database administrator rotates the password in Secret Manager, the Secret Manager CSI driver refreshes the mounted file':'When the add-on supports and has automatic rotation enabled, it refreshes the mounted secret file on its configured interval after a Secret Manager version change; the application must reload it. This can update the file',
+'with automated SSD persistent storage provisioning, automated zero-downtime control plane patching, and 99.95% availability SLA backing.':'for control-plane availability; upgrades and the applicable SLA have documented conditions, and zero downtime for every application is not guaranteed.',
+}
+for _t in DATA['topics']:
+    for _old,_new in _CORRECTIONS.items():
+        _t['technical'] = _t['technical'].replace(_old,_new)
+
+# Explicit worked boundaries supplement, rather than replace, existing depth.
+DATA['topics'][1]['technical'] += '<div><strong>Worked reconciliation and scheduling boundaries</strong></div><ul><li><strong class="side-heading">Concrete example:</strong> A Deployment declares three replicas; its controller manages ReplicaSets, whose controller creates missing Pods. The scheduler filters nodes before scoring eligible candidates; kubelet starts bound Pods through the runtime. Each controller retries from observed state, so a watch event is a prompt to reconcile, not a transaction spanning all components.</li><li>A 2 CPU / 1 GiB request must fit remaining allocatable requests. Limits constrain runtime use: CPU is throttled; a memory limit can trigger OOM termination. NodeAffinity constrains placement, and tolerating a taint permits but does not guarantee it. NodeResourcesBalancedAllocation balances resource fractions; ImageLocality favors cached images. Neither plugin name alone proves a globally optimal bin packing policy. GKE Cluster Autoscaler evaluates whether more eligible nodes could place pending Pods within configured constraints; adding nodes cannot repair impossible affinity or invalid storage topology.</li><li>Liveness failure can restart the container; readiness failure changes its readiness condition without inherently restarting it. A failed Pod is not moved: controllers create replacements with new UIDs. EndpointSlice readiness and GKE load-balancer backend health/readiness gates are distinct signals, so propagation and connection draining must be considered before claiming zero downtime.</li><li>Config Sync is the current configuration reconciliation product associated with the historical Anthos Config Management name. GitOps rollback restores versioned configuration, but requires immutable image references and compatible database/configuration state; reverting Git does not reverse external side effects.</li><li><strong class="side-heading">Evidence limit:</strong> The scheduler lab is a deliberately simplified Python placement model; it does not execute upstream scheduler plugins, Raft or GKE autoscaling.</li></ul>'
+DATA['topics'][2]['technical'] += '<div><strong>Worked rollout, traffic and secret boundaries</strong></div><ul><li><strong class="side-heading">Concrete example:</strong> With four desired replicas, maxSurge=1 and maxUnavailable=0 permit an additional rollout Pod while retaining four available replicas, provided readiness and capacity permit it. Terminating Pods can temporarily consume additional resources. A Deployment rollback restores a previous Pod template, not database contents. Canary traffic allocation needs a separate rollout/traffic policy; Cloud Deploy is an optional delivery integration, not a Deployment controller feature.</li><li>Deployment owns ReplicaSets; ReplicaSets own Pods through ownerReferences. Services select Pods by labels, and EndpointSlice objects describe endpoints; neither a Service nor an Ingress owns a Deployment. Ingress configuration requires a controller. GKE Ingress can use NEGs to reach Pod endpoints, so the external path need not traverse the ClusterIP or kube-proxy. kube-proxy iptables/IPVS descriptions apply only to clusters using those implementations; managed data planes can differ.</li><li>ConfigMap/Secret environment values are fixed for an existing container process. Mounted values update eventually except subPath, and application reload remains necessary. Base64 is encoding. Kubernetes at-rest encryption requires configuration; GKE application-layer encryption uses a key encryption key to protect data encryption keys. Secret Manager CSI mounting with Workload Identity Federation for GKE can avoid storing the fetched secret in etcd unless a separate synchronization feature writes a Kubernetes Secret. Automatic rotation must be configured and verified.</li><li><strong class="side-heading">Evidence limit:</strong> The local manifests and model demonstrate selectors and ownership intent; they do not prove Google load-balancer health, Cloud Armor policy enforcement, certificate issuance, CDN cache behavior or IAM authorization.</li></ul>'
+
+# Search links are discovery aids; official written sections remain the evidence.
+_SEARCH_TERMS = [['OCI image layers','Docker multi-stage builds','OverlayFS whiteouts','POSIX fsync'],['Kubernetes reconciliation controllers','etcd Raft consensus','NodeResourcesFit NodeAffinity TaintToleration','NodeResourcesBalancedAllocation ImageLocality','GKE Cluster Autoscaler','Config Sync Anthos Config Management'],['Kubernetes Pod namespaces','Deployment maxSurge maxUnavailable','EndpointSlice kube-proxy IPVS','GKE Ingress Cloud Armor Cloud CDN','Secret Manager CSI Workload Identity Federation']]
+for _t,_terms in zip(DATA['topics'],_SEARCH_TERMS):
+    _t['technical'] += '<div><strong>Keyword searches</strong></div><ul>'+''.join('<li><a href="https://www.google.com/search?q='+_quote(_term)+'" target="_blank" rel="noopener">'+_escape(_term)+' (accessed 2026-10-10)</a> — discovery aid; verify behavior against the official section citations.</li>' for _term in _terms)+'</ul>'
+
+# A single closeout artifact list keeps runner path extraction unambiguous.
+_step8 = DATA['topics'][0]['lab']['steps'][7]
+_step8 = _step8.replace('**Save:** `scratch/day10_lab_a/stage8.log`', '')
+_step8 = _step8.replace('Save: <code>', 'Reports: <code>')
+DATA['topics'][0]['lab']['steps'][7] = _step8 + '\n\n**Save:** `scratch/day10_lab_a/stage8.log`, `scratch/day-010-image-comparison.json`, `scratch/day-010-image-comparison.md`, `scratch/day-010-image-cleanup.txt`'
+
+_SECTION_SOURCES = {
+    'docker-build': ('Use multi-stage builds', 'https://docs.docker.com/build/building/multi-stage/#use-multi-stage-builds'),
+    'fsync': ('DESCRIPTION', 'https://man7.org/linux/man-pages/man2/fsync.2.html#DESCRIPTION'),
+    'overview': ('Why you need Kubernetes and what can it do', 'https://kubernetes.io/docs/concepts/overview/#why-you-need-kubernetes-and-what-can-it-do'),
+    'objects': ('Understanding Kubernetes objects', 'https://kubernetes.io/docs/concepts/overview/working-with-objects/#kubernetes-objects'),
+    'controllers': ('Control via API server', 'https://kubernetes.io/docs/concepts/architecture/controller/#control-via-api-server'),
+    'config-sync': ('How Config Sync works', 'https://docs.cloud.google.com/kubernetes-engine/config-sync/docs/overview#how-config-sync-works'),
+    'scheduling': ('Framework workflow', 'https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/#framework-workflow'),
+    'readiness': ('Readiness probe', 'https://kubernetes.io/docs/concepts/workloads/pods/probes/#readiness-probe'),
+    'pods': ('Pod networking', 'https://kubernetes.io/docs/concepts/workloads/pods/#pod-networking'),
+    'deployment': ('Rolling Update Deployment', 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment'),
+    'service': ('EndpointSlices', 'https://kubernetes.io/docs/concepts/services-networking/service/#endpointslices'),
+    'ingress': ('The Ingress resource', 'https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource'),
+    'neg': ('Container-native load balancing', 'https://docs.cloud.google.com/kubernetes-engine/docs/concepts/ingress#container-native-load-balancing'),
+    'configmap': ('Mounted ConfigMaps are updated automatically', 'https://kubernetes.io/docs/concepts/configuration/configmap/#mounted-configmaps-are-updated-automatically'),
+    'secret-rotation': ('Manage automatic secret rotation', 'https://docs.cloud.google.com/secret-manager/docs/secret-manager-managed-csi-component'),
+}
+_CITATIONS = [
+    [('docker-build',), ('docker-build',), ('docker-build',), ('fsync',), ('fsync',)],
+    [('overview',), ('config-sync','controllers'), ('controllers',), ('scheduling',), ('readiness','neg')],
+    [('pods',), ('deployment',), ('service','neg'), ('ingress','neg'), ('configmap','secret-rotation')],
+]
+for _t,_groups in zip(DATA['topics'],_CITATIONS):
+    _tech = _t['technical']
+    _blocks = list(_re.finditer(r'<h4 id="'+_t['key']+r'-subtopic-[1-5]">.*?(?=<h4|$)',_tech,_re.S))
+    assert len(_blocks) == 5
+    for _block,_group in reversed(list(zip(_blocks,_groups))):
+        _citation = '<ul><li><strong class="side-heading">Further study:</strong> '+ '; '.join('<a href="'+_SECTION_SOURCES[_k][1]+'">'+_escape(_SECTION_SOURCES[_k][0])+' (accessed 2026-10-10)</a>' for _k in _group) + '. Scope: these sections support the named mechanisms; local exercises do not establish GCP production behavior.</li></ul>\n'
+        _tech = _tech[:_block.end()] + _citation + _tech[_block.end():]
+    _t['technical'] = _tech
+
+DATA['review_records'] = {
+    'source_ledger': {_url: {'heading_opened': _heading} for _heading,_url in _SECTION_SOURCES.values()},
+    'product_claims': [
+        {'claim':'Multi-stage final images copy selected artifacts and exclude builder tools.', 'section_url':_SECTION_SOURCES['docker-build'][1], 'heading_opened':_SECTION_SOURCES['docker-build'][0]},
+        {'claim':'Config Sync reconciles configurations from its configured source of truth; no fixed convergence time is claimed.', 'section_url':_SECTION_SOURCES['config-sync'][1], 'heading_opened':_SECTION_SOURCES['config-sync'][0]},
+        {'claim':'GKE container-native load balancing targets Pod endpoints in NEGs and uses load-balancer-aware readiness gates.', 'section_url':_SECTION_SOURCES['neg'][1], 'heading_opened':_SECTION_SOURCES['neg'][0]},
+        {'claim':'Readiness failure does not inherently restart a container; liveness and restartPolicy govern restart behavior.', 'section_url':_SECTION_SOURCES['readiness'][1], 'heading_opened':_SECTION_SOURCES['readiness'][0]},
+        {'claim':'Mounted ConfigMaps update eventually; environment values and subPath mounts require separate handling.', 'section_url':_SECTION_SOURCES['configmap'][1], 'heading_opened':_SECTION_SOURCES['configmap'][0]},
+        {'claim':'Secret Manager mounted-file rotation requires enabled automatic rotation and its configured interval.', 'section_url':_SECTION_SOURCES['secret-rotation'][1], 'heading_opened':_SECTION_SOURCES['secret-rotation'][0]},
+    ],
+    'visual_reasons': {},
+}
+for _t,_terms in zip(DATA['topics'],_SEARCH_TERMS):
+    for _term in _terms:
+        DATA['review_records']['source_ledger']['https://www.google.com/search?q='+_quote(_term)] = {'heading_opened':'Not a technical evidence citation; keyword discovery only', 'whole_document_reason':'A search query has no stable documentation section. User explicitly requested Google keyword links.'}
+
+for _t in DATA['topics'][1:]:
+    _t['lab']['steps'][0] = _t['lab']['steps'][0].replace('command -v mkdir', 'command -v mkdir\ncommand -v date\ncommand -v grep')
+DATA['topics'][2]['lab']['steps'][0] = DATA['topics'][2]['lab']['steps'][0].replace('command -v mkdir', 'command -v mkdir\ncommand -v sed')
+
+DATA['review_records']['source_ledger'][_SECTION_SOURCES['secret-rotation'][1]]['whole_document_reason'] = 'The Manage automatic secret rotation heading was opened and reviewed, but tested fragment variants were absent in fetched HTML. Cite the document root rather than retain an unverified section fragment.'
