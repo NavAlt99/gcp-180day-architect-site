@@ -704,6 +704,8 @@
 <p><strong class="side-heading">Why today:</strong> Establishes secure administrative boundaries for private cloud infrastructure without exposing database sockets or internal management ports to the public internet.</p>
 <p><strong class="side-heading">Where it sits:</strong> Acts as the secure access transport into remote Linux instances, connecting administrator hosts to the package and process environments studied next.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> An administrative engineer enabling SSH agent forwarding across a shared staging jump host exposes their decrypted private key credentials to local root users on the bastion. Rogue operators on the compromised jump host hijack the forwarded socket to authenticate to high-security production database instances.</p>
+<p><strong class="side-heading">Linked subtopics:</strong></p><ul><li><a href="#topic-01-subtopic-01">Asymmetric key pairs, host keys, and cryptographic handshakes</a></li><li><a href="#topic-01-subtopic-02">SSH client configuration (~/.ssh/config) and connection multiplexing</a></li><li><a href="#topic-01-subtopic-03">Port forwarding: local (-L), remote (-R), and dynamic (-D SOCKS)</a></li><li><a href="#topic-01-subtopic-04">Bastion jump hosts, ProxyJump, and agent forwarding risks</a></li><li><a href="#topic-01-subtopic-05">Cloud identity integration: Compute Engine OS Login and IAP TCP forwarding</a></li></ul>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
 </article>
 <article class="topic-card overview" id="topic-02-overview">
 <h3>Package managers (apt, yum/dnf)</h3>
@@ -711,6 +713,8 @@
 <p><strong class="side-heading">Why today:</strong> Provides predictable binary dependency trees and security patch distribution across fleets of virtual machine instances and immutable container base images.</p>
 <p><strong class="side-heading">Where it sits:</strong> Follows initial host connectivity via SSH and precedes automated scripting by provisioning the local utilities required for workload execution.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A production provisioning automation script fails during an auto-scaling event because an upstream third-party repository GPG key expired, halting system updates. The failed package manager transaction blocks VM startup, preventing replacement web server instances from handling incoming peak traffic.</p>
+<p><strong class="side-heading">Linked subtopics:</strong></p><ul><li><a href="#topic-02-subtopic-01">Package formats (deb vs rpm) and archive structure</a></li><li><a href="#topic-02-subtopic-02">Repository metadata, mirrors, and GPG cryptographic signature verification</a></li><li><a href="#topic-02-subtopic-03">Dependency graph resolution, conflict handling, and transaction locks</a></li><li><a href="#topic-02-subtopic-04">Automated system updates, unattended-upgrades, and repository pinning</a></li><li><a href="#topic-02-subtopic-05">Immutable infrastructure: pre-baked VM images (Packer) vs runtime package installation</a></li></ul>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
 </article>
 <article class="topic-card overview" id="topic-03-overview">
 <h3>Shell scripting</h3>
@@ -718,6 +722,8 @@
 <p><strong class="side-heading">Why today:</strong> Serves as the universal glue code for container entrypoints, continuous deployment automations, infrastructure preflight validations, and cloud VM startup scripts.</p>
 <p><strong class="side-heading">Where it sits:</strong> Binds package installation and system command execution into deterministic automation, delivering the validated script exit artifact for the day.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> An unquoted variable in an automated backup cleanup script subjects filenames with spaces to shell word splitting, executing recursive file deletion against unintended root directories. The resulting filesystem truncation destroys customer application configuration state across multiple service mount points.</p>
+<p><strong class="side-heading">Linked subtopics:</strong></p><ul><li><a href="#topic-03-subtopic-01">Shell startup, environment inheritance, and subshell isolation</a></li><li><a href="#topic-03-subtopic-02">Parameter expansion, strict quoting, and word splitting vulnerabilities</a></li><li><a href="#topic-03-subtopic-03">Control structures: loops (for, while), conditionals ([[ ... ]]), and pattern matching</a></li><li><a href="#topic-03-subtopic-04">Process execution, pipelines (set -o pipefail), and exit status evaluation ($?)</a></li><li><a href="#topic-03-subtopic-05">Defensive scripting standards: set -euo pipefail, trap handlers, and secure parsing of structured payloads (JSON)</a></li></ul>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
 </article>
 <article class="topic-card overview" id="topic-04-overview">
 <h3>/proc virtual filesystem and process trees</h3>
@@ -725,6 +731,8 @@
 <p><strong class="side-heading">Why today:</strong> Supplies the underlying observability instrumentation utilized by container runtimes, monitoring agents, and cloud health check probes to measure system performance and diagnose execution faults.</p>
 <p><strong class="side-heading">Where it sits:</strong> Sits between script automation and kernel resource telemetry, providing real-time state inspection before analyzing Day 8 hardware signals.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> An unmonitored batch worker process deleted its primary multi-gigabyte log file from disk while retaining an active file descriptor, causing the VM root disk to reach 100% capacity despite du reporting free space. Application database transactions freeze due to disk exhaustion because the kernel refuses to reclaim unlinked inode blocks until the owning process terminates.</p>
+<p><strong class="side-heading">Linked subtopics:</strong></p><ul><li><a href="#topic-04-subtopic-01">VFS dynamic memory exposition: why /proc consumes zero disk blocks</a></li><li><a href="#topic-04-subtopic-02">Process directory structure: /proc/[pid]/status, cmdline, environ, and fd</a></li><li><a href="#topic-04-subtopic-03">Process trees, parent-child relationships (PPID), and orphan reaping by PID 1</a></li><li><a href="#topic-04-subtopic-04">System-wide kernel telemetry: /proc/cpuinfo, meminfo, stat, and loadavg</a></li><li><a href="#topic-04-subtopic-05">Observability and troubleshooting: recovering deleted files via /proc/[pid]/fd and tracking container cgroup boundaries</a></li></ul>
+<p><a href="#topic-04-technical">Technical discussion →</a> <a href="#topic-04-problem">Real-world problem →</a> <a href="#topic-04-lab">Step-by-step lab →</a></p>
 </article></section>
 <section class="part" id="part-2"><h2>
      2 · Technical discussion of each topic
@@ -747,35 +755,105 @@
 </svg></div>
 <figcaption>Scope: an illustrative architecture topology for Day 7 SSH bastion access, package management, and procfs inspection; it does not prove a deployed Google Cloud production topology or capacity.</figcaption>
 </figure><article class="topic-card technical" id="topic-01-technical"><h3>1. SSH: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
+<ul><li><a href="#topic-01-subtopic-01">Asymmetric key pairs, host keys, and cryptographic handshakes</a></li><li><a href="#topic-01-subtopic-02">SSH client configuration (~/.ssh/config) and connection multiplexing</a></li><li><a href="#topic-01-subtopic-03">Port forwarding: local (-L), remote (-R), and dynamic (-D SOCKS)</a></li><li><a href="#topic-01-subtopic-04">Bastion jump hosts, ProxyJump, and agent forwarding risks</a></li><li><a href="#topic-01-subtopic-05">Cloud identity integration: Compute Engine OS Login and IAP TCP forwarding</a></li></ul>
+<h4 id="topic-01-subtopic-01">Asymmetric key pairs, host keys, and cryptographic handshakes</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Secure Shell</strong> (SSH) operates over TCP port 22 using public-key cryptography to authenticate servers and clients. The protocol is defined by the IETF in RFC 4251 and split into three core architectural layers:
+<ul>
+<li><strong>Transport Layer Protocol (SSH-TRANS):</strong> Handles the initial TCP connection, server authentication, and establishes a secure, encrypted tunnel ensuring data confidentiality, integrity, and forward secrecy.</li>
+<li><strong>Authentication Protocol (SSH-AUTH):</strong> Operates over the transport layer to authenticate the client to the server via public key pairs, passwords, or keyboard-interactive challenge-response flows.</li>
+<li><strong>Connection Protocol (SSH-CONN):</strong> Multiplexes the encrypted transport tunnel into discrete logical channels (interactive shell sessions, remote command executions, forwarded TCP ports).</li>
+</ul>
+The security boundary transitions from asymmetric identity verification to high-throughput symmetric encryption through distinct cryptographic phases:
+<ul>
+<li><strong>Host Keys vs. User Keys:</strong> Host keys uniquely identify the server. During the initial connection, the server presents its public host key, which the client records in <code>~/.ssh/known_hosts</code>; subsequent sessions verify the server against this fingerprint to prevent Man-in-the-Middle (MitM) spoofing. User keys identify the client operator (e.g. <code>~/.ssh/id_ed25519</code>), where the public key is registered in the remote host's <code>~/.ssh/authorized_keys</code> file for passwordless authentication.</li>
+<li><strong>The Cryptographic Handshake (Key Exchange / KEX):</strong>
 <ol>
-<li>Asymmetric key pairs, host keys, and cryptographic handshakes</li>
-<li>SSH client configuration (~/.ssh/config) and connection multiplexing</li>
-<li>Port forwarding: local (-L), remote (-R), and dynamic (-D SOCKS)</li>
-<li>Bastion jump hosts, ProxyJump, and agent forwarding risks</li>
-<li>Cloud identity integration: Compute Engine OS Login and IAP TCP forwarding</li>
+<li><em>Negotiation:</em> Client and server exchange <code>SSH_MSG_KEXINIT</code> packets containing supported ciphers, MACs, and key exchange algorithms (e.g. <code>curve25519-sha256</code>), selecting the mutually preferred highest-security primitives.</li>
+<li><em>Diffie-Hellman / ECDH Exchange:</em> The nodes execute an Elliptic Curve Diffie-Hellman exchange, swapping public values over the unencrypted channel to calculate a Shared Secret (<code>K</code>) that an eavesdropper cannot derive.</li>
+<li><em>Session ID &amp; Signature:</em> The server computes a cryptographic hash of the entire exchange (including Shared Secret <code>K</code>, protocol versions, and public keys) and signs it using its private host key. The client verifies this signature against its local copy in <code>~/.ssh/known_hosts</code>.</li>
+<li><em>Symmetric Transition:</em> Both sides use Shared Secret <code>K</code> to derive independent symmetric encryption keys (separate keys for client-to-server and server-to-client directions) and integrity MAC keys. All subsequent packets—including client authentication challenges—are fully encrypted using ciphers like AES-GCM, ChaCha20-Poly1305, or AES-CTR with HMAC-SHA256.</li>
 </ol>
-<h4>Asymmetric key pairs, host keys, and cryptographic handshakes</h4>
-<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Secure Shell</strong> (SSH) operates over TCP port 22 using public-key cryptography to authenticate servers and clients. During connection initiation, the client and server perform a Diffie-Hellman key exchange to derive a shared session encryption key, protecting all subsequent traffic against eavesdropping and tampering. Host authentication relies on the server's public host key (verified against the client's <code>~/.ssh/known_hosts</code> file), while client authentication uses asymmetric key pairs such as modern Ed25519 (Edwards-curve Digital Signature Algorithm) or RSA (minimum 3072-bit keys). Private keys reside exclusively on the client machine and are protected by local passphrases.</p>
+</li>
+<li><strong>Client Authentication Mechanics:</strong> In public key authentication, the client signs a cryptographic challenge containing the Session ID with its private key, which the server verifies against <code>authorized_keys</code> without receiving private material. Password authentication sends credentials through the already established symmetric tunnel, while keyboard-interactive authentication supports dynamic challenge-response flows such as Multi-Factor Authentication (MFA / TOTP).</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud architects mandate key-based authentication across all environments and strictly disable password-based SSH access (<kbd>PasswordAuthentication no</kbd>) and root login (<kbd>PermitRootLogin no</kbd>) in <code>/etc/ssh/sshd_config</code>. Architects must design automated key rotation policies and monitor for weak legacy ciphers (e.g. DSA, 1024-bit RSA, or SHA-1 hashes) that violate compliance standards like FedRAMP and PCI-DSS.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine provides metadata-based SSH key management, automatically injecting authorized public keys into instance <code>~/.ssh/authorized_keys</code> files via the Google Cloud Guest Agent. For enterprise governance, Google Cloud OS Login supersedes instance metadata keys by linking SSH public keys directly to Cloud IAM identities. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) OpenSSH client configuration description (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) HostKeyAlgorithms and IdentityFile (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/ssh-keygen.1.html#DESCRIPTION">ssh-keygen(1) key generation and ed25519 algorithms (accessed 2026-10-04)</a>.</p>
-<h4>SSH client configuration (~/.ssh/config) and connection multiplexing</h4>
-<p><strong class="side-heading">What it is in general:</strong> The OpenSSH client reads user configuration parameters from <code>~/.ssh/config</code>, allowing operators to alias long IP addresses and complex connection flags into concise, human-readable host declarations. Configuration directives specify target usernames, custom ports, identity files, and connection behaviors per host pattern. Furthermore, <strong class="keyword">Connection Multiplexing</strong> (<kbd>ControlMaster</kbd> and <kbd>ControlPath</kbd>) allows multiple concurrent SSH sessions to reuse an existing established TCP socket, bypassing repeated cryptographic handshakes and reducing connection setup latency from hundreds of milliseconds to under 10 milliseconds.</p>
+<h4 id="topic-01-subtopic-02">SSH client configuration (~/.ssh/config) and connection multiplexing</h4>
+<p><strong class="side-heading">What it is in general:</strong> The OpenSSH client reads user configuration parameters from <code>~/.ssh/config</code>, allowing operators to alias long IP addresses and complex connection flags into concise, human-readable host declarations. Configuration files are evaluated sequentially from the first matching pattern downward. DIRECTIVES specify target usernames, custom ports, identity files, and connection behaviors per host pattern.
+<ul>
+<li><strong>Connection Multiplexing (ControlMaster):</strong> Standard SSH opens a brand new TCP connection and re-performs the cryptographic handshake every time a command executes. Multiplexing allows subsequent sessions to piggyback over the same existing TCP connection through a shared Unix domain socket.
+<pre><code>Host production-backend
+    HostName 192.168.10.45
+    User sysadmin
+    IdentityFile ~/.ssh/id_ed25519_prod
+
+    # Multiplexing Settings
+    ControlMaster auto
+    ControlPath ~/.ssh/sockets/%r@%h:%p
+    ControlPersist 10m</code></pre>
+<ul>
+<li><code>ControlMaster auto:</code> Tries to connect via an existing master connection socket; if none exists, creates the socket and assumes master status.</li>
+<li><code>ControlPath:</code> Specifies the local filesystem path to create the Unix domain socket (<code>%r</code> user, <code>%h</code> host, <code>%p</code> port).</li>
+<li><code>ControlPersist 10m:</code> Keeps the master background TCP connection alive for 10 minutes after the last active shell window is closed, making subsequent command executions instantaneous.</li>
+</ul>
+</li>
+<li><strong>Channel Allocation and Flow Control:</strong> SSH wraps multiple independent streams over a single TCP connection. Channels are requested dynamically by either side and assigned local/remote channel IDs. SSH implements its own window-based flow control per channel to prevent high-bandwidth transfers from starving concurrent shell sessions or exhausting buffer memory.</li>
+<li><strong>PTY Allocation and Lifecycle:</strong> Allocating a pseudo-terminal (PTY) connects the remote shell to local window sizing events (propagating <code>SIGWINCH</code> signals on terminal resize) and controls environment variable inheritance.</li>
+<li><strong>Process Lifecycle and Keep-Alives:</strong> Keep-alive mechanisms (<kbd>ClientAliveInterval</kbd>, <kbd>ServerAliveInterval</kbd>) transmit null packets or global requests to prevent stateful firewalls and NAT gateways from dropping idle TCP sessions. When a remote session concludes, remote shell exit codes are captured, packetized, and cleanly returned to the calling process (<code>$?</code>), followed by an orderly exchange of <code>SSH_MSG_DISCONNECT</code> packets to tear down TCP state.</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Configuration files eliminate error-prone CLI arguments in automated deployment scripts, CI/CD runners, and developer workstations. Enabling connection multiplexing drastically accelerates automated configuration tools like Ansible, which frequently execute dozens of discrete SSH commands against remote target hosts.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> When managing multi-region Google Cloud deployments, architects configure <code>~/.ssh/config</code> stanzas to map Compute Engine internal IP ranges to dedicated bastion hops. The Google Cloud CLI (<kbd>gcloud compute ssh</kbd>) automatically creates and maintains managed SSH config stanzas and ephemeral client keys. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) Host, ControlMaster, and ControlPath (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) ControlPersist and ServerAliveInterval (accessed 2026-10-04)</a>.</p>
-<h4>Port forwarding: local (-L), remote (-R), and dynamic (-D SOCKS)</h4>
-<p><strong class="side-heading">What it is in general:</strong> SSH tunneling encapsulates arbitrary TCP traffic inside an encrypted SSH session. <strong class="keyword">Local Port Forwarding</strong> (<kbd>ssh -L [local_port]:[target_host]:[target_port]</kbd>) binds a socket on the client machine and routes traffic through the remote SSH server to an internal destination, enabling secure access to private database servers. <strong class="keyword">Remote Port Forwarding</strong> (<kbd>ssh -R [remote_port]:[target_host]:[target_port]</kbd>) exposes a local service running on the client to users on the remote server network. <strong class="keyword">Dynamic Port Forwarding</strong> (<kbd>ssh -D [local_port]</kbd>) instantiates a local SOCKS5 application-level proxy that routes browser and application traffic dynamically across the remote network.</p>
+<h4 id="topic-01-subtopic-03">Port forwarding: local (-L), remote (-R), and dynamic (-D SOCKS)</h4>
+<p><strong class="side-heading">What it is in general:</strong> Port forwarding encapsulates arbitrary TCP traffic inside an active, encrypted SSH channel.
+<ul>
+<li><strong>Local Port Forwarding (-L):</strong> <code>[Your App] --&gt; [Local Port] ===(SSH Tunnel)===&gt;&gt; [SSH Server] --&gt; [Target IP:Port]</code>. Syntax: <kbd>-L [local_port]:[target_host]:[target_port]</kbd> (e.g. <kbd>-L 8080:localhost:3306</kbd>). The client machine accesses a remote resource via a local port, such as connecting a local workstation database tool to a remote MySQL database on port 3306 that is blocked by cloud firewalls but accessible locally from the remote SSH server.</li>
+<li><strong>Remote (Reverse) Port Forwarding (-R):</strong> <code>[Target] &lt;-- [Remote Port] &lt;&lt;===(SSH Tunnel)=== [SSH Server] &lt;-- [Local App/Port]</code>. Syntax: <kbd>-R [remote_port]:[target_host]:[target_port]</kbd> (e.g. <kbd>-R 9000:localhost:3000</kbd>). The remote server accesses a resource residing on or near the client, such as exposing a local staging web server running on your laptop (port 3000) to the public internet via a public cloud VM (port 9000).</li>
+<li><strong>Dynamic Port Forwarding (-D):</strong> Syntax: <kbd>-D 1080</kbd>. Unlike -L and -R which map specific destination ports, -D acts as a local SOCKS4/SOCKS5 proxy server. When your browser or operating system is configured to use <code>localhost:1080</code>, the SSH client handles application-level destination requests dynamically and proxies them out through the remote SSH host, bypassing local network restrictions.</li>
+<li><strong>X11 Forwarding:</strong> Encapsulates remote X11 graphical display protocols over the encrypted SSH channel, allowing graphical desktop applications to render securely on the local workstation.</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> SSH port forwarding enables temporary, zero-cost operational access for database migrations, remote debugging, and internal admin dashboards without deploying complex Site-to-Site VPNs or opening cloud firewalls to public IP addresses. However, unchecked remote forwarding introduces shadow perimeter bypass risks.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Cloud architects utilize local port forwarding to connect workstation database client GUIs directly to private Cloud SQL or AlloyDB instances located in isolated VPCs without public IP addresses, routing through an intermediate bastion VM. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/ssh.1.html#DESCRIPTION">ssh(1) OpenSSH client port forwarding options (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) LocalForward, RemoteForward, DynamicForward (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/ssh.1.html#DESCRIPTION">ssh(1) TCP tunnel semantics (accessed 2026-10-04)</a>.</p>
-<h4>Bastion jump hosts, ProxyJump, and agent forwarding risks</h4>
-<p><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">Bastion Host</strong> (or jump box) is a hardened gateway server positioned at the network perimeter to provide access to internal private subnets. Historically, engineers connected to bastions using SSH agent forwarding (<kbd>ssh -A</kbd>), which forwards the local authentication agent socket to the remote server. However, agent forwarding is dangerous: any user with root privileges on the bastion can hijack the forwarded UNIX domain socket to impersonate the client and authenticate to other private infrastructure. Modern OpenSSH solves this using <strong class="keyword">ProxyJump</strong> (<kbd>ssh -J bastion target</kbd>), which transparently forwards an encrypted TCP stream from the client through the bastion directly to the target VM via <kbd>ProxyCommand</kbd> and <kbd>nc</kbd>, terminating cryptographic authentication strictly between the client and target without exposing credentials on the jump host.</p>
+<h4 id="topic-01-subtopic-04">Bastion jump hosts, ProxyJump, and agent forwarding risks</h4>
+<p><strong class="side-heading">What it is in general:</strong> Securing private networks often involves jumping through a gateway (Bastion) host, which introduces architectural trade-offs:
+<ul>
+<li><strong>Legacy Jumping vs. Modern ProxyJump:</strong>
+<ul>
+<li><em>Legacy (-A + multi-stage login):</em> Users would SSH into the bastion host, and then run <kbd>ssh internal-vm</kbd> from the bastion shell. This required private keys to be copied to the bastion or exposed via agent forwarding.</li>
+<li><em>Modern ProxyJump (-J or ProxyCommand):</em> The local client establishes an end-to-end encrypted SSH session directly to the target internal VM, using the bastion only as a blind TCP data forwarder (stdin/stdout redirection via netcat/ProxyCommand). The bastion never sees the client private keys or unencrypted payload.
+<pre><code>Host internal-vm
+    HostName 10.0.0.50
+    User internal-user
+    ProxyJump bastion-user@example.com</code></pre></li>
+</ul>
+</li>
+<li><strong>Agent Forwarding (-A) Vulnerability &amp; Exploit:</strong>
+<ul>
+<li><em>The Vulnerability:</em> Agent forwarding allows a remote server to access the local workstation's <code>ssh-agent</code> socket to authenticate further downstream connections. If a rogue operator or attacker gains root privileges on the bastion host, they cannot read the private keys directly, but they can hijack the Unix domain socket created for the forwarded agent in <code>/tmp/ssh-XXXXXX/agent.XXXX</code>.</li>
+<li><em>The Exploit:</em> As long as the user's connection to the bastion remains open, an attacker leverages the hijacked socket to impersonate the user and authenticate to any other server or service the user's keys have access to across the entire infrastructure.</li>
+</ul>
+</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud security standards strictly prohibit SSH agent forwarding on multi-tenant or shared perimeter servers. Architects enforce <kbd>ProxyJump</kbd> configurations across all engineer profiles and disable <kbd>AllowAgentForwarding no</kbd> on bastion servers.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> In Google Cloud, Identity-Aware Proxy (IAP) TCP forwarding provides a serverless alternative to bastion VMs: engineers connect directly to private Compute Engine VMs using <kbd>gcloud compute ssh --tunnel-through-iap</kbd>, encapsulating SSH packets over HTTPS (port 443) governed by IAM roles (<kbd>roles/iap.tunnelResourceAccessor</kbd>) with zero public IP addresses required. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) ProxyJump and ProxyCommand (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/sshd_config.5.html#DESCRIPTION">sshd_config(5) AllowAgentForwarding and PermitOpen (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) ProxyJump syntax (accessed 2026-10-04)</a>.</p>
-<h4>Cloud identity integration: Compute Engine OS Login and IAP TCP forwarding</h4>
-<p><strong class="side-heading">What it is in general:</strong> Enterprise cloud environments replace distributed local SSH key files with centralized IAM identity lifecycle management. <strong class="keyword">OS Login</strong> binds Linux POSIX user accounts, UIDs, GIDs, and authorized SSH keys directly to corporate Google Cloud IAM identities. When an engineer authenticates, Pluggable Authentication Modules (PAM) and Name Service Switch (NSS) daemons on the Linux VM query Google Cloud directory APIs to verify authorization in real time, granting administrative sudo permissions based on IAM roles.</p>
+<h4 id="topic-01-subtopic-05">Cloud identity integration: Compute Engine OS Login and IAP TCP forwarding</h4>
+<p><strong class="side-heading">What it is in general:</strong> Modern enterprise cloud infrastructure replaces static SSH keys with short-lived tokens, identity-aware proxies, and centralized IAM lifecycle management:
+<ul>
+<li><strong>Google Compute Engine OS Login:</strong> Instead of managing <code>~/.ssh/authorized_keys</code> files manually across thousands of instances, OS Login links Linux POSIX user accounts directly to Google Cloud Identity (IAM).
+  <ul>
+<li><em>Mechanics:</em> When executing <kbd>gcloud compute ssh</kbd>, the Google Cloud SDK automatically generates an ephemeral, short-lived SSH key pair and uploads the public key to the user's Google Cloud Identity profile.</li>
+<li><em>Server Component:</em> The VM runs a customized Name Service Switch (NSS) and Pluggable Authentication Modules (PAM) daemon. When an SSH connection arrives, the daemon queries the Google Cloud metadata server in real-time to verify IAM permissions and fetch the temporary authorized public key.</li>
+</ul>
+</li>
+<li><strong>Identity-Aware Proxy (IAP) TCP Forwarding:</strong> IAP allows administrators to connect to VMs that do not have external public IP addresses without deploying or maintaining a traditional bastion host.
+  <ul>
+<li><em>Mechanics:</em> Traffic is wrapped inside an HTTPS WebSocket connection. When running <kbd>gcloud compute ssh --tunnel-through-iap</kbd>, the local client establishes a secure HTTPS tunnel to Google's IAP edge infrastructure. Google validates IAM permissions (<kbd>roles/iap.tunnelResourceAccessor</kbd>). If authorized, Google's proxy infrastructure forwards the raw TCP stream over its private internal network directly to port 22 of the private target VM.</li>
+</ul>
+</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Managing public keys in instance metadata or local files creates significant operational debt and audit vulnerabilities: when an employee leaves the company, manually revoking keys across thousands of VMs is impossible. OS Login guarantees instantaneous access revocation across all virtual machines upon IAM role de-provisioning.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Architects enforce OS Login organization-wide via the Organization Policy constraint <kbd>compute.requireOsLogin</kbd>. Users with <kbd>roles/compute.osLogin</kbd> receive standard unprivileged shells, while <kbd>roles/compute.osAdminLogin</kbd> grants passwordless sudo. Combining OS Login with IAP TCP forwarding provides a zero-trust administrative boundary with complete Cloud Audit Logging. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) OpenSSH client identity configuration (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) UserKnownHostsFile and StrictHostKeyChecking (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man8/sshd.8.html#DESCRIPTION">sshd(8) OpenSSH daemon PAM configuration (accessed 2026-10-04)</a>.</p>
@@ -796,35 +874,55 @@
   ProxyJump bastion.example.com</code></pre>
 When executing <kbd>ssh db-internal</kbd>, OpenSSH connects to <code>bastion.example.com</code>, issues an internal TCP forward request for <code>10.128.0.5:22</code>, and immediately conducts the end-to-end cryptographic handshake directly with the target database VM. The bastion processes only opaque encrypted TCP packets, preserving client credential confidentiality.</p>
 <p><strong class="side-heading">Evidence limit:</strong> A successful SSH connection verifies cryptographic handshake completion, client key validity, and network reachability over port 22; it provides no evidence of application database health, data filesystem integrity, or authorized database-level query permissions.</p><h4>Architectural evaluation questions</h4><ul><li>Why does SSH agent forwarding (-A) represent a critical lateral movement vulnerability on multi-tenant or shared perimeter jump boxes?</li><li>How does OpenSSH ProxyJump (-J) maintain end-to-end cryptographic confidentiality between the client and destination compared to interactive bastion logins?</li><li>Under what conditions should cloud architects choose Compute Engine OS Login and IAP TCP forwarding over self-managed SSH key metadata?</li></ul><p><strong>Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION" rel="noopener" target="_blank">ssh_config(5) OpenSSH client configuration description (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-02-technical"><h3>2. Package managers (apt, yum/dnf): technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
-<ol>
-<li>Package formats (deb vs rpm) and archive structure</li>
-<li>Repository metadata, mirrors, and GPG cryptographic signature verification</li>
-<li>Dependency graph resolution, conflict handling, and transaction locks</li>
-<li>Automated system updates, unattended-upgrades, and repository pinning</li>
-<li>Immutable infrastructure: pre-baked VM images (Packer) vs runtime package installation</li>
-</ol>
-<h4>Package formats (deb vs rpm) and archive structure</h4>
-<p><strong class="side-heading">What it is in general:</strong> Linux software distribution relies on standardized archive formats: Debian/Ubuntu distributions utilize the <strong class="keyword">deb</strong> format (an <code>ar</code> archive containing control metadata, binary tarballs, and installation scripts), while Enterprise Linux distributions (Red Hat, CentOS, Rocky Linux, Fedora) utilize the <strong class="keyword">rpm</strong> (RPM Package Manager) format (a cpio archive with binary header metadata and payload data). Packages encapsulate compiled application binaries, library dependencies, default configuration files, and lifecycle maintainer scripts (pre/post-installation and pre/post-removal hooks) executed with root privileges during package state transitions.</p>
+<ul><li><a href="#topic-02-subtopic-01">Package formats (deb vs rpm) and archive structure</a></li><li><a href="#topic-02-subtopic-02">Repository metadata, mirrors, and GPG cryptographic signature verification</a></li><li><a href="#topic-02-subtopic-03">Dependency graph resolution, conflict handling, and transaction locks</a></li><li><a href="#topic-02-subtopic-04">Automated system updates, unattended-upgrades, and repository pinning</a></li><li><a href="#topic-02-subtopic-05">Immutable infrastructure: pre-baked VM images (Packer) vs runtime package installation</a></li></ul>
+<h4 id="topic-02-subtopic-01">Package formats (deb vs rpm) and archive structure</h4>
+<p><strong class="side-heading">What it is in general:</strong> Linux software distribution relies on standardized archive formats: Debian/Ubuntu distributions utilize the <strong class="keyword">deb</strong> format (an <code>ar</code> archive containing control metadata, binary tarballs, and installation scripts), while Enterprise Linux distributions (Red Hat, CentOS, Rocky Linux, Fedora) utilize the <strong class="keyword">rpm</strong> (RPM Package Manager) format (a cpio archive with binary header metadata and payload data). Packages encapsulate compiled application binaries, library dependencies, default configuration files, and lifecycle maintainer scripts (pre/post-installation and pre/post-removal hooks) executed with root privileges during package state transitions.
+<ul>
+<li><strong>The Container Layer Cake Paradigm:</strong> Package management differs significantly in OCI/Docker container construction versus virtual machines. Container images construct layer-based filesystems where every <code>RUN apt-get install</code> command creates an immutable layer. To prevent container bloat, architects pass <kbd>--no-install-recommends</kbd>, utilize multi-stage builds, and ensure package cache cleanup (e.g. <code>rm -rf /var/lib/apt/lists/*</code>) executes in the exact same <code>RUN</code> layer as the package installation, preventing cached tarballs from persisting in underlying image layers.</li>
+<li><strong>Distroless &amp; Minimal Images:</strong> Modern cloud-native runtimes increasingly abandon traditional package managers entirely. Transitioning to distroless images (containing only the application binary and runtime dependencies without package managers, shells, or coreutils) or minimal Alpine Linux images (using lightweight <code>apk</code>) drastically shrinks the container attack surface and eliminates package manager vulnerabilities.</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud architects standardizing operating system baselines must account for packaging differences across distributions. Package maintainer scripts execute arbitrary code as root: installing unvetted third-party packages introduces severe supply chain risks, trojanized pre-install hooks, and configuration drift across cloud environments.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine provides optimized public images for both Debian/Ubuntu (APT) and RHEL/Rocky (DNF). Google Cloud packages (such as the Google Cloud CLI, Cloud Ops Agent, and OS Login PAM modules) are distributed via dedicated Google Cloud APT and YUM package repositories. Primary documentation: <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) package manager description (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) query and verification modes (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/dpkg.1.html#DESCRIPTION">dpkg(1) Debian package manager description (accessed 2026-10-04)</a>.</p>
-<h4>Repository metadata, mirrors, and GPG cryptographic signature verification</h4>
-<p><strong class="side-heading">What it is in general:</strong> Package managers retrieve packages from HTTP/HTTPS repository mirrors. To guarantee integrity and authenticity against man-in-the-middle (MITM) attacks and mirror compromises, repositories publish cryptographic metadata files (e.g. <code>InRelease</code> in Debian, <code>repomd.xml</code> in RHEL) signed with a detached <strong class="keyword">GPG Key</strong> (GNU Privacy Guard). The metadata lists SHA-256 cryptographic checksums for every package in the repository. When a client runs <kbd>apt-get update</kbd> or <kbd>dnf check-update</kbd>, the package manager downloads the metadata, verifies the GPG digital signature against local trusted keyrings (in <code>/etc/apt/keyrings/</code> or <code>/etc/pki/rpm-gpg/</code>), and verifies that package checksums match prior to execution.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Expired, revoked, or rotated GPG repository keys cause automated image builds and instance auto-scaling events to fail catastrophically. Architects enforce repository pinning and private internal package mirrors (e.g. Artifact Registry) to eliminate runtime dependency on public internet package repositories.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud Artifact Registry supports private Debian (APT) and RPM (YUM) package repositories, allowing enterprise architects to host proprietary internal packages, mirror approved upstream packages, and enforce VPC Service Controls to prevent data exfiltration. Primary documentation: <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) cryptographic verification and signature checks (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) --import and signature verification (accessed 2026-10-04)</a>; <a href="https://manpages.debian.org/bookworm/apt/apt-secure.8.en.html#DESCRIPTION">apt-secure(8) archive authentication in Debian (accessed 2026-10-04)</a>.</p>
-<h4>Dependency graph resolution, conflict handling, and transaction locks</h4>
-<p><strong class="side-heading">What it is in general:</strong> Linux applications depend on shared libraries (e.g. glibc, openssl) and runtime dependencies. Modern package managers utilize Boolean Satisfiability (SAT) solvers (e.g. libsolv in DNF, internal solvers in APT) to resolve transitive dependency graphs, calculate upgrade paths, and prevent package conflicts. To maintain state consistency, package managers enforce exclusive filesystem advisory locks (e.g. <code>/var/lib/dpkg/lock-frontend</code>, <code>/var/lib/rpm/.rpm.lock</code>). If an automated background process or previous failed installation holds the lock, subsequent package commands abort immediately.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Concurrency contention over package manager lock files is a primary failure mode in VM initialization scripts: if an instance startup script attempts to install packages while an automated system update process is running in the background, the startup script crashes and marks the VM unhealthy in load balancer pools.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine instance startup scripts must implement retry loops with exponential backoff when executing package installation commands, explicitly waiting for unattended-upgrades or cloud-init background processes to release package manager lock files. Primary documentation: <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) transaction lock and database management (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) transaction sets and rollback semantics (accessed 2026-10-04)</a>; <a href="https://manpages.debian.org/bookworm/apt/apt-get.8.en.html#DESCRIPTION">apt-get(8) dependency resolution algorithms (accessed 2026-10-04)</a>.</p>
-<h4>Automated system updates, unattended-upgrades, and repository pinning</h4>
-<p><strong class="side-heading">What it is in general:</strong> Maintaining operating system hygiene requires regular application of Common Vulnerabilities and Exposures (CVE) security patches. Linux daemons like <strong class="keyword">unattended-upgrades</strong> (Debian/Ubuntu) and <strong class="keyword">dnf-automatic</strong> (RHEL/Rocky) poll upstream repositories daily to download and install security errata automatically. To prevent automated upgrades from inadvertently breaking critical application dependencies, package managers support <strong class="keyword">Repository Pinning</strong> (APT preferences) and version locking (<kbd>dnf versionlock</kbd>), constraining specific packages to designated release channels or immutable version numbers.</p>
+<h4 id="topic-02-subtopic-02">Repository metadata, mirrors, and GPG cryptographic signature verification</h4>
+<p><strong class="side-heading">What it is in general:</strong> Package managers retrieve packages from HTTP/HTTPS repository mirrors. To guarantee integrity and authenticity against man-in-the-middle (MITM) attacks and mirror compromises, repositories publish cryptographic metadata files (e.g. <code>InRelease</code> in Debian, <code>repomd.xml.asc</code> in YUM/DNF) containing SHA-256 digests of all package indices, signed by a trusted GPG private key. The package manager validates this detached signature against trusted public keyrings stored locally in <code>/etc/apt/trusted.gpg.d/</code> or <code>/etc/pki/rpm-gpg/</code> before downloading packages.
+<ul>
+<li><strong>Supply Chain Security &amp; Private Egress:</strong> Production cloud VPCs often enforce zero-direct-internet egress (Private Subnets). Architects route package management traffic securely through VPC Endpoints, Cloud NAT, or internal repository proxies/caches (e.g. Google Cloud Artifact Registry, JFrog Artifactory, Sonatype Nexus). Internal proxies cache verified upstream packages, isolate build pipelines from public network transients, and enforce organizational package allowlists.</li>
+<li><strong>Cross-Region Replication of Repositories:</strong> Global cloud architectures deploy geo-replicated repository mirrors across multi-region storage buckets or internal caching proxies, minimizing inter-region data egress costs and latency during fleet deployments.</li>
+<li><strong>Network &amp; Mirror Dependency Risks:</strong> Relying directly on public upstream mirrors during runtime auto-scaling introduces severe availability risks: mirror throttling, rate limits, or transit network outages can cause cloud provisioning failures during peak traffic events.</li>
+</ul></p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Third-party package repositories represent a major supply chain attack vector. Compromised upstream mirrors can serve malicious binary updates signed with stolen keys. Architects strictly pin repository keyrings to specific repository URLs in <code>sources.list.d</code> rather than trusting global root keyrings.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine instances configure Google Cloud private package mirrors hosted in Google Cloud storage zones. Using private internal repository mirrors prevents egress network costs and eliminates dependency on public mirror availability during instance boot. Primary documentation: <a href="https://manpages.debian.org/bookworm/apt/apt-secure.8.en.html#DESCRIPTION">apt-secure(8) cryptographic verification specification (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://manpages.debian.org/bookworm/apt/apt-secure.8.en.html#DESCRIPTION">apt-secure(8) repository trust architecture (accessed 2026-10-04)</a>; <a href="https://manpages.debian.org/bookworm/apt/apt-get.8.en.html#DESCRIPTION">apt-get(8) download and cache options (accessed 2026-10-04)</a>.</p>
+<h4 id="topic-02-subtopic-03">Dependency graph resolution, conflict handling, and transaction locks</h4>
+<p><strong class="side-heading">What it is in general:</strong> Package managers utilize Boolean Satisfiability (SAT) solvers to resolve complex directed acyclic dependency graphs (DAGs). When installing a package, the solver computes all transitive library dependencies, detects version incompatibilities, and sequences installation order. To prevent concurrent modifications and corruption of the package database, package managers acquire filesystem advisory locks (e.g. <code>/var/lib/dpkg/lock-frontend</code> in APT, <code>/var/lib/rpm/.rpm.lock</code> in RPM). If a background automated process holds this lock, interactive installations fail immediately with lock contention errors.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Lock contention is a frequent root cause of failed VM initialization scripts: cloud-init or automated boot routines failing because unattended background updates hold the dpkg lock. Architects design startup scripts with idempotent retry loops and lock timeout detection.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine startup scripts that invoke package managers must explicitly handle dpkg/rpm lock acquisition delays during boot, ensuring that Google Cloud Guest Agent initialization routines do not collide with cloud-init package updates. Primary documentation: <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) package manager transaction locks (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://manpages.debian.org/bookworm/apt/apt-get.8.en.html#DESCRIPTION">apt-get(8) lock handling and retry flags (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/dpkg.1.html#DESCRIPTION">dpkg(1) lock files and database structure (accessed 2026-10-04)</a>.</p>
+<h4 id="topic-02-subtopic-04">Automated system updates, unattended-upgrades, and repository pinning</h4>
+<p><strong class="side-heading">What it is in general:</strong> Production systems balance automated security patching against system stability. Debian/Ubuntu systems employ <code>unattended-upgrades</code> to download and install security updates automatically. <strong class="keyword">Repository Pinning</strong> (APT preferences in <code>/etc/apt/preferences.d/</code>) allows administrators to assign numerical priority weights (Pin-Priority) to specific repositories, branches, or package versions, preventing unintended major version upgrades from third-party repositories.
+<ul>
+<li><strong>Orchestrated Patching at Cloud Scale:</strong> While local <code>unattended-upgrades</code> suits standalone servers, enterprise cloud fleets rely on centralized orchestration systems (such as Google Cloud VM Manager OS Patch Management, AWS Systems Manager Patch Manager, or Azure Update Manager). Central systems manage rolling maintenance windows, enforce pre-patch health checks, orchestrate safe instance reboots across redundant availability zones, and record compliance audit logs.</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Enabling uncoordinated automated updates on production multi-instance clusters introduces severe availability risks: an unexpected kernel or library update can reboot instances simultaneously or introduce breaking API changes. Architects coordinate rolling OS patch management using central orchestration rather than unmanaged VM-local cron jobs.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VM Manager (part of Compute Engine) provides centralized OS Patch Management, allowing architects to define patch deployment schedules, enforce pre-patch and post-patch validation scripts, configure reboot policies, and generate fleet-wide compliance dashboards. Primary documentation: <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) package verification and version comparison (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) --verify and file modification tracking (accessed 2026-10-04)</a>; <a href="https://manpages.debian.org/bookworm/apt/apt_preferences.5.en.html#DESCRIPTION">apt_preferences(5) pinning specification (accessed 2026-10-04)</a>.</p>
-<h4>Immutable infrastructure: pre-baked VM images (Packer) vs runtime package installation</h4>
-<p><strong class="side-heading">What it is in general:</strong> Software deployment models on Linux virtual machines follow two competing paradigms: <strong class="keyword">Runtime Provisioning</strong> (booting a generic base OS image and running <kbd>apt-get install</kbd> in a startup script) versus <strong class="keyword">Immutable Golden Images</strong> (pre-installing and compiling all application binaries and package dependencies during CI/CD build pipelines using tools like HashiCorp Packer, producing a frozen, read-only VM disk image).</p>
+<h4 id="topic-02-subtopic-05">Immutable infrastructure: pre-baked VM images (Packer) vs runtime package installation</h4>
+<p><strong class="side-heading">What it is in general:</strong> Software deployment models on Linux virtual machines follow two competing paradigms:
+<ul>
+<li><strong>"Baking vs. Frying" (Golden Images vs. User-Data / cloud-init):</strong>
+<ul>
+<li><em>Runtime Provisioning ("Frying"):</em> Booting a generic base OS image and executing package installation commands (<kbd>apt-get install</kbd>) inside startup scripts or cloud-init user-data. While simple, runtime installation incurs severe bootstrapping latency, prolonging VM boot times by several minutes, bottlenecking horizontal autoscaling velocity during traffic surges, and exposing provisioning pipelines to public mirror outages.</li>
+<li><em>Pre-baked Immutable Images ("Baking"):</em> Pre-installing and compiling all application binaries and package dependencies during CI/CD build pipelines using tools like HashiCorp Packer, producing a frozen, read-only VM disk image. Golden images guarantee deterministic, instantaneous boot times (under 30 seconds) and completely eliminate external network dependencies at launch.</li>
+</ul>
+</li>
+<li><strong>Supply Chain Security &amp; Immutable Infrastructures:</strong>
+<ul>
+<li><em>Reproducibility &amp; Determinism:</em> Runtime package installation breaks immutability, causing subtle "configuration drift" across identically configured auto-scaling groups due to minor upstream patch updates. Pre-baked images ensure 100% deterministic environment parity.</li>
+<li><em>Shift-Left Vulnerability Management:</em> Rather than scanning thousands of live production runtimes, immutable pipelines shift security left by scanning package databases (<code>dpkg</code>/<code>rpm</code>) inside machine images during the CI/CD pipeline using tools like Google Cloud Artifact Analysis, Trivy, Aqua, or AWS Inspector, gating deployment before compromised images reach production.</li>
+</ul>
+</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Runtime provisioning is fragile: instance boot times are extended by several minutes, auto-scaling events stall, and any upstream repository downtime, DNS glitch, or package mirror rate-limit causes new VM instances to fail to boot. Pre-baked immutable images guarantee deterministic, instantaneous startup (under 30 seconds) and eliminate external internet dependencies at launch time.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> In Compute Engine Managed Instance Groups (MIGs), architects mandate custom golden images referenced in Instance Templates. Golden images are created via automated Packer pipelines, tested in isolation, and stored in Google Cloud Custom Images families, enabling seamless rolling updates with zero runtime package installations. Primary documentation: <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) package installation and query operations (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION">rpm(8) database rebuild and integrity checks (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/dpkg-query.1.html#DESCRIPTION">dpkg-query(1) package status inspection (accessed 2026-10-04)</a>.</p>
@@ -839,41 +937,92 @@ When executing <kbd>ssh db-internal</kbd>, OpenSSH connects to <code>bastion.exa
 <figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="day7-pkg-title day7-pkg-desc" role="img" viewbox="0 0 940 280" xmlns="http://www.w3.org/2000/svg"><title id="day7-pkg-title">Package metadata, installation and runtime verification</title><desc id="day7-pkg-desc">The OS package manager fetches release metadata from upstream repositories, cryptographically validates the release signature with a trusted local GPG keyring, resolves transitive dependencies, and applies transactional filesystem updates.</desc><defs><marker id="day7-pkg-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="130" rx="10" stroke="#38bdf8" width="230" x="20" y="40"></rect><image height="24" href="../assets/icons/generic/server.svg" preserveaspectratio="xMidYMid meet" width="24" x="32" y="52"/><rect height="130" rx="10" stroke="#f43f5e" width="280" x="310" y="40"></rect><image height="24" href="../assets/icons/generic/policy.svg" preserveaspectratio="xMidYMid meet" width="24" x="322" y="52"/><rect height="130" rx="10" stroke="#34d399" width="250" x="650" y="40"></rect><image height="24" href="../assets/icons/generic/storage.svg" preserveaspectratio="xMidYMid meet" width="24" x="662" y="52"/></g><g fill="#fce7f3" font-size="15" font-weight="700" text-anchor="middle"><text x="135" y="75">Upstream Repository</text><text x="450" y="75">GPG &amp; Solver Engine</text><text x="775" y="75">Local VFS Target</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="135" y="108">InRelease / repomd.xml</text><text x="135" y="136">deb / rpm binary packages</text><text x="450" y="108">detached signature check</text><text x="450" y="136">SAT dependency tree solve</text><text x="775" y="108">unpack binaries &amp; libs</text><text x="775" y="136">ldconfig &amp; postinst hook</text></g><g fill="none" marker-end="url(#day7-pkg-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M250 105 L310 105"></path><path d="M590 105 L650 105"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="220">Package manager validation fails closed if the repository cryptographic signature does not match trusted keys.</text></svg><figcaption>Figure 7.2: The package lifecycle separates metadata refresh, host mutation and runtime proof. Exact commands and restart behavior depend on the selected distribution and package.</figcaption></figure>
 <p><strong class="side-heading">Concrete example:</strong> A web service startup script executes <kbd>apt-get update &amp;&amp; apt-get install -y nginx</kbd> when new VMs boot in an autoscaling group. An upstream mirror maintainer rotates the repository signing GPG key without prior announcement. When a traffic surge triggers auto-scaling, newly provisioned VM instances execute the startup script, encounter a GPG verification signature failure (<code>EXPKEYSIG</code>), abort with exit code 100, and fail their load balancer health checks. Replacing the runtime install script with a pre-baked Compute Engine custom image containing pre-installed nginx resolves the issue, reducing VM boot time from 210 seconds to 18 seconds.</p>
 <p><strong class="side-heading">Evidence limit:</strong> Successful package installation proves only that files were unpacked to disk and maintainer post-install scripts exited with code 0; it does not prove that the installed service daemon is running, that its configuration file is free of runtime errors, or that network firewall rules permit traffic to its listening port.</p><h4>Architectural evaluation questions</h4><ul><li>Why does relying on runtime package installations in VM startup scripts create critical availability and determinism risks during auto-scaling events?</li><li>How do package managers verify release metadata integrity using detached GPG signatures, and what is the security impact of setting trusted=yes in repository declarations?</li><li>What architectural advantages do immutable pre-baked golden images (HashiCorp Packer) offer over dynamic runtime package management in enterprise cloud environments?</li></ul><p><strong>Further study:</strong> <a href="https://man7.org/linux/man-pages/man8/rpm.8.html#DESCRIPTION" rel="noopener" target="_blank">rpm(8) package manager description (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-03-technical"><h3>3. Shell scripting: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
-<ol>
-<li>Shell startup, environment inheritance, and subshell isolation</li>
-<li>Parameter expansion, strict quoting, and word splitting vulnerabilities</li>
-<li>Control structures: loops (for, while), conditionals ([[ ... ]]), and pattern matching</li>
-<li>Process execution, pipelines (set -o pipefail), and exit status evaluation ($?)</li>
-<li>Defensive scripting standards: set -euo pipefail, trap handlers, and secure parsing of structured payloads (JSON)</li>
-</ol>
-<h4>Shell startup, environment inheritance, and subshell isolation</h4>
-<p><strong class="side-heading">What it is in general:</strong> When a Linux shell starts, it determines execution context based on invocation flags: an <strong class="keyword">interactive login shell</strong> reads <code>/etc/profile</code> and <code>~/.bash_profile</code>, while an <strong class="keyword">interactive non-login shell</strong> reads <code>~/.bashrc</code>. Non-interactive script executions run with a minimal environment, inheriting only variables explicitly marked for export via <kbd>export VAR=val</kbd>. Subshells—spawned via parentheses <code>( command )</code>, command substitutions <code>$( command )</code>, or asynchronous background jobs <code>&amp;</code>—receive a duplicate of the parent process memory space but cannot mutate parent shell variables, working directories, or file descriptors.</p>
+<ul><li><a href="#topic-03-subtopic-01">Shell startup, environment inheritance, and subshell isolation</a></li><li><a href="#topic-03-subtopic-02">Parameter expansion, strict quoting, and word splitting vulnerabilities</a></li><li><a href="#topic-03-subtopic-03">Control structures: loops (for, while), conditionals ([[ ... ]]), and pattern matching</a></li><li><a href="#topic-03-subtopic-04">Process execution, pipelines (set -o pipefail), and exit status evaluation ($?)</a></li><li><a href="#topic-03-subtopic-05">Defensive scripting standards: set -euo pipefail, trap handlers, and secure parsing of structured payloads (JSON)</a></li></ul>
+<h4 id="topic-03-subtopic-01">Shell startup, environment inheritance, and subshell isolation</h4>
+<p><strong class="side-heading">What it is in general:</strong> When a Linux shell starts, it determines its execution context based on invocation modes:
+<ul>
+<li><strong>Startup Modes:</strong>
+<ul>
+<li><em>Interactive login shells:</em> Read global profile configurations (<code>/etc/profile</code>) followed by user profiles (<code>~/.bash_profile</code>, <code>~/.bash_login</code>, or <code>~/.profile</code>) to establish the initial session environment.</li>
+<li><em>Interactive non-login shells:</em> Spawned in terminal windows; read <code>~/.bashrc</code> to load interactive aliases and functions.</li>
+<li><em>Non-interactive shells:</em> Automated scripts executed via <code>./script.sh</code> or <code>bash script.sh</code> do not source profile scripts; they rely strictly on the inherited process environment and the script's <code>#!</code> (shebang) interpreter declaration.</li>
+</ul>
+</li>
+<li><strong>Environment Inheritance:</strong> Global variables exported via <kbd>export VAR=value</kbd> are copied into the environment space of child processes. Shell-local variables that are not exported remain strictly invisible to child processes and external executables.</li>
+<li><strong>Subshell Isolation:</strong> Spawning a subshell via parentheses <code>( command )</code>, command substitutions <code>$( command )</code>, asynchronous background jobs <code>&amp;</code>, or pipeline stages <code>cmd1 | cmd2</code> executes commands inside a separate forked child process. Changes made to variables, shell options, functions, or the working directory (<kbd>cd</kbd>) inside a subshell do not propagate back to the parent shell. Conversely, brace groups <code>{ command; }</code> execute commands within the current shell process context without spawning a child process.</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud architects frequently encounter script failures caused by divergent environment assumptions between interactive developer testing and automated cloud execution (e.g. systemd services, cron jobs, or container entrypoints) that execute non-login shells lacking custom <code>PATH</code> entries or proxy configurations.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine instance startup scripts execute non-interactively as the root user directly from the Google Cloud Guest Agent environment. They do not source user profile scripts: all paths, credentials, and environment variables must be declared explicitly within the script. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) GNU Bourne-Again SHell description (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) INVOCATION and ENVIRONMENT sections (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/env.1.html#DESCRIPTION">env(1) environment export command (accessed 2026-10-04)</a>.</p>
-<h4>Parameter expansion, strict quoting, and word splitting vulnerabilities</h4>
-<p><strong class="side-heading">What it is in general:</strong> The bash execution parser processes command lines through a deterministic multi-stage sequence: brace expansion, tilde expansion, parameter/variable expansion, command substitution, arithmetic expansion, <strong class="keyword">word splitting</strong>, and pathname expansion (globbing). Crucially, unquoted variables (e.g. <code>$filename</code>) are subjected to word splitting based on the Internal Field Separator (<code>IFS</code>, default space, tab, newline). If a variable contains spaces or glob characters, unquoted expansion splits a single semantic argument into multiple distinct tokens, causing catastrophic command line misinterpretation. Wrapping variables in double quotes (<code>"$var"</code>) preserves whitespace and treats the expansion as a single atomic token.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Failure to quote variables is the single most common vulnerability in infrastructure automation scripts, causing accidental deletion of root directories (e.g. <kbd>rm -rf "$TARGET_DIR/"</kbd> expanding to <kbd>rm -rf /</kbd> when unquoted and unset) and shell injection vulnerabilities in cloud CI/CD runners.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> In Google Cloud Deploy, Cloud Build, and Cloud Shell automations, build scripts handle dynamic branch names, commit messages, and artifact tags containing special characters. Strict quoting ensures automated cloud pipelines do not fail or trigger argument injection attacks. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) PARAMETER EXPANSION and Word Splitting (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) QUOTING mechanisms and escape sequences (accessed 2026-10-04)</a>.</p>
-<h4>Control structures: loops (for, while), conditionals ([[ ... ]]), and pattern matching</h4>
-<p><strong class="side-heading">What it is in general:</strong> Bash provides robust control flow mechanisms: conditional branching evaluates status expressions using the modern compound test command <strong class="keyword">[[ expression ]]</strong>, which prevents word splitting, handles empty strings safely, and supports extended regular expression matching via the <code>=~</code> operator (unlike legacy POSIX <code>[ expression ]</code>). Iterative loops process collections: <kbd>for item in "${array[@]}"</kbd> safely iterates over array elements preserving spaces, while <kbd>while IFS= read -r line</kbd> processes line-oriented streaming input from files or pipes without trimming whitespace or interpreting backslashes.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Infrastructure scripts parse complex outputs from cloud CLI tools (e.g. list of VM instances, storage buckets, or firewall rules). Robust loops and regex conditionals prevent scripts from stalling or silently executing against malformed records.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Shell scripts automating Google Cloud tasks parse JSON output from <kbd>gcloud</kbd> commands. Utilizing modern bash conditionals and array loops allows architects to construct resilient operational runbooks. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) Compound Commands and Conditional Constructs (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) Pattern Matching and Regular Expressions (accessed 2026-10-04)</a>.</p>
-<h4>Process execution, pipelines (set -o pipefail), and exit status evaluation ($?)</h4>
-<p><strong class="side-heading">What it is in general:</strong> In Linux, every process termination reports an integer <strong class="keyword">exit status</strong> between 0 and 255: exit code 0 signifies success, while any non-zero value indicates an error. In a standard shell pipeline (<kbd>cmd1 | cmd2 | cmd3</kbd>), bash executes each command concurrently in separate subshells and reports only the exit status of the <em>last</em> command in the pipeline (<code>cmd3</code>). If an upstream command fails (e.g. <code>cmd1</code> crashes with error), the failure is completely masked if <code>cmd3</code> succeeds. Enabling <kbd>set -o pipefail</kbd> forces the pipeline to return the exit code of the rightmost command that exited with a non-zero status.</p>
+<h4 id="topic-03-subtopic-02">Parameter expansion, strict quoting, and word splitting vulnerabilities</h4>
+<p><strong class="side-heading">What it is in general:</strong> The bash parser executes expansions in a strict order: brace expansion, parameter and variable expansion, command substitution, arithmetic expansion, word splitting, and pathname expansion (globbing).
+<ul>
+<li><strong>Word Splitting and Globbing:</strong> When variable expansions are left unquoted (e.g. <code>$var</code> or <code>$@</code>), the shell splits the evaluated string into distinct argument tokens based on characters in the Internal Field Separator (<code>$IFS</code>, default space, tab, newline) and performs globbing against filename wildcards (<code>*</code>, <code>?</code>). If a path contains whitespace, an unquoted expansion splits the path into multiple unintended arguments.</li>
+<li><strong>Strict Quoting Rules:</strong>
+<ul>
+<li>Always wrap variable expansions in double quotes: <kbd>"$var"</kbd> preserves whitespace and prevents word-splitting.</li>
+<li>Use single quotes (<kbd>'...'</kbd>) for literal strings where no variable expansion or command substitution should take place.</li>
+<li>Pass positional parameters using <kbd>"$@"</kbd> rather than <code>$*</code> or unquoted <code>$@</code>: <kbd>"$@"</kbd> expands to individual arguments with their original boundaries intact, even when arguments contain embedded spaces.</li>
+</ul>
+</li>
+<li><strong>Defensive Parameter Expansions:</strong> Bash provides robust parameter expansions to enforce inline defaults and assertions:
+  <ul>
+<li><code>${var:-default}:</code> Uses the fallback value if <code>var</code> is unset or empty.</li>
+<li><code>${1:?Error message}:</code> Immediately aborts execution with the specified error message if positional argument 1 is missing or unset.</li>
+</ul>
+</li>
+</ul></p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Unquoted variables in cloud automation scripts are a leading cause of accidental infrastructure destruction and injection vulnerabilities: a cleanup script running <kbd>rm -rf /data/$DIR</kbd> where <code>$DIR</code> is empty or unquoted with spaces can resolve to <kbd>rm -rf /data/</kbd> or evaluate unintended paths.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Cloud deployment scripts that parse resource names, Google Cloud Storage URI paths (<code>gs://...</code>), or Compute Engine instance tags must enforce strict variable quoting to handle special characters and prevent parameter injection into <kbd>gcloud</kbd> command lines. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) PARAMETERS and EXPANSION sections (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) Quoting rules and Word Splitting (accessed 2026-10-04)</a>.</p>
+<h4 id="topic-03-subtopic-03">Control structures: loops (for, while), conditionals ([[ ... ]]), and pattern matching</h4>
+<p><strong class="side-heading">What it is in general:</strong> Bash provides control structures to manage iterative execution and conditional branching:
+<ul>
+<li><strong>Loops:</strong>
+<ul>
+<li><code>for</code> loops iterate over explicit lists, glob patterns, or positional parameter arrays: <kbd>for item in "$@"; do ... done</kbd>.</li>
+<li><code>while</code> and <code>until</code> loops evaluate a test condition or command repeatedly until the exit status changes, commonly used for polling cloud API readiness or reading file streams line-by-line: <kbd>while IFS= read -r line; do ... done &lt; file.txt</kbd>.</li>
+</ul>
+</li>
+<li><strong>Conditionals ([[ ... ]] vs [ ... ]):</strong> Always prefer Bash's modern enhanced test construct <kbd>[[ ... ]]</kbd> over the legacy POSIX <kbd>[ ... ]</kbd> (test) utility. <kbd>[[ ... ]]</kbd> is a shell keyword rather than an external program: it prevents accidental word splitting and pathname expansion on variables inside the test, natively supports boolean operators (<kbd>&amp;&amp;</kbd> and <kbd>||</kbd>), and supports regular expression matching via the <kbd>=~</kbd> operator.</li>
+<li><strong>Pattern Matching &amp; Substring Manipulation:</strong>
+<ul>
+<li><code>case ... in ... esac</code> statements evaluate strings against glob patterns safely without spawning child processes.</li>
+<li>Parameter substring manipulation allows safe prefix/suffix stripping: <code>${var#prefix}</code> (shortest prefix), <code>${var##prefix}</code> (longest prefix), <code>${var%suffix}</code> (shortest suffix), and <code>${var%%suffix}</code> (longest suffix), eliminating external invocations of <code>sed</code> or <code>awk</code> for simple string parsing.</li>
+</ul>
+</li>
+</ul></p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Robust loops and test constructs are critical when authoring deployment validation scripts, health-check polling loops, and preflight infrastructure sanity checks. Using <kbd>[[ ... ]]</kbd> eliminates subtle syntax crashes caused by empty or undefined variables during conditional evaluations.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Cloud startup scripts frequently poll Compute Engine metadata server endpoints (<kbd>http://metadata.google.internal/computeMetadata/v1/</kbd>) using <kbd>while</kbd> loops with exponential backoff until network interfaces and service accounts are fully initialized. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) CONDITIONAL COMMANDS and COMPOUND COMMANDS (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) Pattern Matching and Regex operator =~ (accessed 2026-10-04)</a>.</p>
+<h4 id="topic-03-subtopic-04">Process execution, pipelines (set -o pipefail), and exit status evaluation ($?)</h4>
+<p><strong class="side-heading">What it is in general:</strong> When commands complete, the Linux kernel returns an 8-bit integer exit status (0 to 255) to the calling parent shell, accessible via the special variable <kbd>$?</kbd>. Exit code 0 indicates success, while non-zero values signal specific failure conditions.
+<ul>
+<li><strong>Pipelines and the Masked Failure Risk:</strong> In a pipeline (<kbd>cmd1 | cmd2 | cmd3</kbd>), commands execute concurrently in separate subshells connected by anonymous Unix pipes. By default, the overall exit status of the pipeline is determined strictly by the <em>rightmost</em> command (<code>cmd3</code>). If <code>cmd1</code> crashes catastrophically but <code>cmd3</code> completes successfully, the shell returns exit status 0, masking the upstream failure.</li>
+<li><strong>Enabling pipefail:</strong> Executing <kbd>set -o pipefail</kbd> alters this behavior: the pipeline returns the exit status of the rightmost command that failed with a non-zero exit code, or 0 if all commands succeed. In addition, the <kbd>PIPESTATUS</kbd> array preserves the individual exit code of every stage in the pipeline.</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Masked pipeline failures in CI/CD build scripts lead to false-positive deployment approvals: an image compilation or security scan pipeline like <kbd>security-scan app | grep -v WARNING</kbd> reports exit code 0 even if the scanner fails catastrophically, deploying uninspected vulnerabilities into production.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Cloud Build pipeline steps execute containerized shell commands where exit code 0 signals stage completion. Configuring <kbd>set -o pipefail</kbd> in all Cloud Build step scripts ensures that failed data extractions or failed <kbd>gcloud</kbd> commands halt the pipeline immediately. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) Pipelines and Exit Status ($?) (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) PIPESTATUS array and process substitution (accessed 2026-10-04)</a>.</p>
-<h4>Defensive scripting standards: set -euo pipefail, trap handlers, and secure parsing of structured payloads (JSON)</h4>
-<p><strong class="side-heading">What it is in general:</strong> Production-grade bash scripts adhere to <strong class="keyword">Defensive Scripting Standards</strong> by declaring <kbd>set -euo pipefail</kbd> at the header:
+<h4 id="topic-03-subtopic-05">Defensive scripting standards: set -euo pipefail, trap handlers, and secure parsing of structured payloads (JSON)</h4>
+<p><strong class="side-heading">What it is in general:</strong> Production-grade bash scripts adhere to <strong class="keyword">Defensive Scripting Standards</strong> by declaring strict flags at the header:
 <ul>
-<li><code>-e</code> (errexit): abort immediately if any command returns a non-zero exit status.</li>
-<li><code>-u</code> (nounset): abort if an unset variable is referenced, catching typos and missing parameters.</li>
-<li><code>-o pipefail</code>: propagate pipeline failure codes.</li>
+<li><strong>Strict Mode (set -Eeuo pipefail):</strong>
+<ul>
+<li><code>-e</code> (errexit): Aborts script execution immediately if any command exits with a non-zero status.</li>
+<li><code>-u</code> (nounset): Treats the expansion of unset variables as a fatal error and aborts immediately, catching typos and missing environment inputs.</li>
+<li><code>-o pipefail:</code> Ensures that errors anywhere within a pipeline propagate to the overall pipeline exit code.</li>
+<li><code>-E</code> (errtrace): Ensures that <code>ERR</code> traps are inherited by shell functions, command substitutions, and subshell environments.</li>
 </ul>
-Furthermore, scripts register <strong class="keyword">trap</strong> handlers (<kbd>trap cleanup EXIT ERR</kbd>) to ensure temporary files, lock files, and background child processes are deterministically cleaned up on normal termination or abnormal crash. Finally, scripts must never use unsafe string manipulation or regex parsing for structured payloads like JSON: they must delegate parsing to dedicated, hardened utilities like <code>jq</code> or Python's <code>json</code> module, validating schema compliance and failing explicitly on missing or malformed fields.</p>
+</li>
+<li><strong>Trap Handlers:</strong> Scripts register signal and event handlers using <kbd>trap</kbd> to ensure reliable cleanup and diagnostics:
+  <ul>
+<li><code>trap 'cleanup' EXIT:</code> Guarantees that a cleanup function runs when the script exits under normal or abnormal termination.</li>
+<li><code>trap 'echo "Error on line $LINENO"' ERR:</code> Captures the exact line number of unexpected command failures under <code>set -e</code> for rapid diagnostics.</li>
+</ul>
+</li>
+<li><strong>Secure Parsing of Structured Payloads (JSON):</strong> Never attempt to parse structured formats like JSON, YAML, or XML using line-oriented text tools (<code>grep</code>, <code>sed</code>, <code>awk</code>). Line-oriented tools break on whitespace changes, array reordering, or nested structures and are vulnerable to command injection. Production scripts delegate structured parsing to dedicated utilities like <kbd>jq</kbd> or Python's built-in <kbd>json</kbd> module, enforcing strict schema assertions and failing explicitly on missing or malformed fields.</li>
+</ul></p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Defensive scripting prevents automated infrastructure scripts from continuing in partially applied, corrupt states. Strict schema validation of JSON configurations ensures invalid parameters are rejected before modifying cloud resources.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Enterprise GCP infrastructure-as-code deployment wrappers, Terraform automation wrappers, and Cloud Run container startup scripts employ strict defensive bash headers to ensure idempotent, fail-fast operations. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) SHELL BUILTIN COMMANDS (set, trap) (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION">bash(1) Signals and TRAPS (accessed 2026-10-04)</a>.</p>
@@ -896,19 +1045,13 @@ PORT=$(python3 -c "import json, sys; d=json.load(open(sys.argv[1])); assert 'por
 echo "Valid configuration: Service port is $PORT"</code></pre>
 If an invalid JSON file lacking the <code>port</code> key or containing broken syntax is passed, the Python helper raises an assertion error or JSONDecodeError, exits with status 1, and the shell's <code>-e</code> flag halts execution immediately before any downstream deployment action is executed.</p>
 <p><strong class="side-heading">Evidence limit:</strong> A script passing preflight validation and exiting with status 0 proves that input syntax complied with the parser's schema and required fields were present; it does not prove that network ports are open on the firewall or that downstream external APIs are operational.</p><h4>Architectural evaluation questions</h4><ul><li>How does bash word splitting on unquoted variables introduce both catastrophic filesystem destruction defects and security injection vulnerabilities?</li><li>Why is set -o pipefail required in automated deployment pipelines, and how does standard pipeline exit status behavior mask upstream compilation or security scanner failures?</li><li>What are the failure modes of using regex text manipulation to parse JSON payloads in shell scripts, and why should architects delegate schema validation to dedicated tools like python3 or jq?</li></ul><p><strong>Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/bash.1.html#DESCRIPTION" rel="noopener" target="_blank">bash(1) GNU Bourne-Again SHell description (accessed 2026-10-04)</a>.</p></article><article class="topic-card technical" id="topic-04-technical"><h3>4. /proc virtual filesystem and process trees: technical mechanics</h3><p><strong class="side-heading">Subtopics in this discussion:</strong></p>
-<ol>
-<li>VFS dynamic memory exposition: why /proc consumes zero disk blocks</li>
-<li>Process directory structure: /proc/[pid]/status, cmdline, environ, and fd</li>
-<li>Process trees, parent-child relationships (PPID), and orphan reaping by PID 1</li>
-<li>System-wide kernel telemetry: /proc/cpuinfo, meminfo, stat, and loadavg</li>
-<li>Observability and troubleshooting: recovering deleted files via /proc/[pid]/fd and tracking container cgroup boundaries</li>
-</ol>
-<h4>VFS dynamic memory exposition: why /proc consumes zero disk blocks</h4>
+<ul><li><a href="#topic-04-subtopic-01">VFS dynamic memory exposition: why /proc consumes zero disk blocks</a></li><li><a href="#topic-04-subtopic-02">Process directory structure: /proc/[pid]/status, cmdline, environ, and fd</a></li><li><a href="#topic-04-subtopic-03">Process trees, parent-child relationships (PPID), and orphan reaping by PID 1</a></li><li><a href="#topic-04-subtopic-04">System-wide kernel telemetry: /proc/cpuinfo, meminfo, stat, and loadavg</a></li><li><a href="#topic-04-subtopic-05">Observability and troubleshooting: recovering deleted files via /proc/[pid]/fd and tracking container cgroup boundaries</a></li></ul>
+<h4 id="topic-04-subtopic-01">VFS dynamic memory exposition: why /proc consumes zero disk blocks</h4>
 <p><strong class="side-heading">What it is in general:</strong> The <strong class="keyword">/proc filesystem</strong> (procfs) is a pseudo-filesystem created by the Linux kernel that does not exist on any physical block storage device. Mounted at <code>/proc</code> with filesystem type <code>proc</code>, its files and directories are virtual: when a process issues a <kbd>read()</kbd> system call on a file like <code>/proc/meminfo</code>, the kernel traps into custom VFS handler functions in kernel space, formats live in-memory data structures into ASCII text on the fly, and streams the output directly into user space memory buffers. Consequently, <code>stat -c %b /proc/version</code> reports 0 allocated disk blocks, and file sizes are typically reported as 0 bytes despite returning readable text streams.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Understanding procfs is essential for container and VM telemetry: monitoring agents (such as Prometheus node_exporter or Datadog) derive CPU, memory, network, and disk metrics almost exclusively by reading <code>/proc</code> virtual files. Architecting lightweight monitoring requires understanding the CPU context-switch overhead incurred when repeatedly querying thousands of dynamic procfs nodes.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> The Google Cloud Ops Agent (fluentbit and otel collectors) runs on Compute Engine VMs to harvest system health metrics by scraping <code>/proc/stat</code>, <code>/proc/meminfo</code>, and <code>/proc/diskstats</code>, shipping time-series data to Google Cloud Monitoring. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) process information pseudo-filesystem description (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) VFS mount options and file formats (accessed 2026-10-04)</a>.</p>
-<h4>Process directory structure: /proc/[pid]/status, cmdline, environ, and fd</h4>
+<h4 id="topic-04-subtopic-02">Process directory structure: /proc/[pid]/status, cmdline, environ, and fd</h4>
 <p><strong class="side-heading">What it is in general:</strong> For every active process running on the system, the kernel creates a numerical sub-directory in <code>/proc/[pid]</code> corresponding to its process ID. Key files within this directory provide deep diagnostic inspection:
 <ul>
 <li><code>status</code>: human-readable process state, real and effective UIDs/GIDs, memory limits (VmRSS, VmPeak), and signal masks.</li>
@@ -919,12 +1062,12 @@ If an invalid JSON file lacking the <code>port</code> key or containing broken s
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> The <code>/proc/[pid]/environ</code> file exposes a major security boundary: if sensitive secrets (database passwords, API keys) are passed as environment variables, any local user with permissions to read that process's proc directory (or root) can extract credentials in plain text. Architects enforce secrets retrieval via runtime memory or ephemeral tokens rather than static environment variables.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine security audits inspect <code>/proc/[pid]/environ</code> to ensure application service credentials are not exposed to unprivileged users, validating that Secret Manager integration uses secure APIs rather than insecure static environment dumps. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) /proc/[pid]/status and /proc/[pid]/fd descriptions (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) /proc/[pid]/cmdline and /proc/[pid]/environ formatting (accessed 2026-10-04)</a>.</p>
-<h4>Process trees, parent-child relationships (PPID), and orphan reaping by PID 1</h4>
+<h4 id="topic-04-subtopic-03">Process trees, parent-child relationships (PPID), and orphan reaping by PID 1</h4>
 <p><strong class="side-heading">What it is in general:</strong> Every Linux process (except PID 1) is spawned by a parent process via <kbd>fork()</kbd> or <kbd>clone()</kbd>, recording the parent's process ID as <strong class="keyword">PPID</strong> (Parent PID). This creates an acyclic hierarchy known as the <strong class="keyword">Process Tree</strong>. When a parent process terminates before its child, the child becomes an <strong class="keyword">orphan</strong>. In standard Linux, orphan processes are immediately adopted by PID 1 (systemd or the container init system). When a child terminates, it enters the <strong class="keyword">zombie</strong> state (defunct), consuming zero CPU and RAM but retaining an entry in the kernel process table until the parent calls <kbd>waitpid()</kbd> to collect its exit status. If PID 1 fails to reap zombies, the process table eventually exhausts all available PIDs, preventing any new processes from launching.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Zombie accumulation is a classic failure mode in lightweight container architectures where applications run directly as PID 1 without an init system (like <code>tini</code> or <code>dumb-init</code>) to reap orphaned child processes spawned by background sub-tasks.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Kubernetes Engine (GKE) and Cloud Run orchestrate containerized workloads: container images must include a proper init reaper or use GKE's native sub-reaping capabilities to prevent zombie PID exhaustion from crashing node operating systems. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) process state characters and zombie descriptions (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/waitpid.2.html#DESCRIPTION">waitpid(2) process wait and reaping semantics (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/pstree.1.html#DESCRIPTION">pstree(1) process tree visualization (accessed 2026-10-04)</a>.</p>
-<h4>System-wide kernel telemetry: /proc/cpuinfo, meminfo, stat, and loadavg</h4>
+<h4 id="topic-04-subtopic-04">System-wide kernel telemetry: /proc/cpuinfo, meminfo, stat, and loadavg</h4>
 <p><strong class="side-heading">What it is in general:</strong> Beyond per-process directories, <code>/proc</code> exposes global hardware and kernel performance counters:
 <ul>
 <li><code>/proc/cpuinfo</code>: microprocessor architecture, core counts, CPU flags, and frequency.</li>
@@ -935,7 +1078,7 @@ If an invalid JSON file lacking the <code>port</code> key or containing broken s
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud architects utilize <code>MemAvailable</code> rather than <code>MemFree</code> when configuring container memory limits and autoscaling policies: Linux aggressively caches disk I/O in RAM, so <code>MemFree</code> is often near zero even on healthy, high-capacity systems.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine VM instance sizing, Cloud Monitoring metrics, and Cloud Autoscalers rely on kernel telemetry extracted from <code>/proc/stat</code> (for CPU utilization percentages) and <code>/proc/meminfo</code> (for memory pressure alerts). Primary documentation: <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) /proc/meminfo and /proc/stat definitions (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) /proc/loadavg and runnable thread metrics (accessed 2026-10-04)</a>.</p>
-<h4>Observability and troubleshooting: recovering deleted files via /proc/[pid]/fd and tracking container cgroup boundaries</h4>
+<h4 id="topic-04-subtopic-05">Observability and troubleshooting: recovering deleted files via /proc/[pid]/fd and tracking container cgroup boundaries</h4>
 <p><strong class="side-heading">What it is in general:</strong> In Linux, unlinking a file (<kbd>rm filename</kbd>) decrements the inode's link count but does not delete the data blocks from disk as long as any active process holds an open file descriptor to that inode. If a large log file is accidentally deleted while a daemon is running, the disk space remains consumed, but the file path disappears from directory listings. Administrators can inspect <code>/proc/[pid]/fd</code> to find symbolic links marked <code>(deleted)</code>, read the active data stream, and even recover the deleted data by copying directly from <code>/proc/[pid]/fd/[n]</code> back to a new file path.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Hidden disk exhaustion caused by unlinked open file descriptors is a frequent root cause of production VM outages: <kbd>du -sh *</kbd> reports plenty of free space, but <kbd>df -h</kbd> reports 100% full. Diagnosing this discrepancy requires querying <code>/proc/*/fd</code> via tools like <kbd>lsof +L1</kbd>.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> In Google Cloud Persistent Disks, disk full events freeze VM instance writing operations. System reliability engineers utilize <code>/proc</code> descriptor inspection to identify the offending process, truncate the file descriptor via <kbd>&gt; /proc/[pid]/fd/[n]</kbd>, or restart the service to immediately reclaim allocated disk space. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) /proc/[pid]/fd and file descriptor lifecycle (accessed 2026-10-04)</a>.</p>
@@ -1429,16 +1572,16 @@ command -v ssh-keygen &gt;/dev/null 2&gt;&amp;1 || { echo "FATAL: ssh-keygen com
 LAB_DIR=$(mktemp -d /tmp/lab_day7_ssh.XXXXXX)
 export LAB_DIR
 cd "$LAB_DIR"
-echo "PASS: OpenSSH client tools available. Workspace: $LAB_DIR"
+echo "PASS: OpenSSH client tools available. Workspace: $LAB_DIR" | tee "$LAB_DIR/preflight.log"
 </code></pre>
 <p><strong>Expected result:</strong> Tools verified; isolated workspace created.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/preflight.log</code></p></li><li><strong>Stage 2: Generate Ed25519 test keypair and verify key attributes</strong>
 <p><strong>Location:</strong> local bash terminal</p>
 <p>Generate an unencrypted Ed25519 SSH keypair for testing and inspect public/private key formats:</p>
 <pre><code class="language-bash">mkdir -p "$LAB_DIR/.ssh"
-ssh-keygen -t ed25519 -N "" -C "test-engineer@brightloaf.example" -f "$LAB_DIR/.ssh/id_test_ed25519"
-ls -la "$LAB_DIR/.ssh"
-ssh-keygen -l -f "$LAB_DIR/.ssh/id_test_ed25519.pub"
+ssh-keygen -t ed25519 -N "" -C "test-engineer@brightloaf.example" -f "$LAB_DIR/.ssh/id_test_ed25519" | tee "$LAB_DIR/keygen.log"
+ls -la "$LAB_DIR/.ssh" &gt;&gt; "$LAB_DIR/keygen.log"
+ssh-keygen -l -f "$LAB_DIR/.ssh/id_test_ed25519.pub" &gt;&gt; "$LAB_DIR/keygen.log"
 </code></pre>
 <p><strong>Expected result:</strong> Private key <code>id_test_ed25519</code> and public key <code>id_test_ed25519.pub</code> created with 256-bit Ed25519 fingerprint.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/keygen.log</code></p></li><li><strong>Stage 3: Author client SSH configuration profile</strong>
@@ -1478,15 +1621,15 @@ cat "$LAB_DIR/.ssh/config"
 <pre><code class="language-bash">chmod 0644 "$LAB_DIR/.ssh/id_test_ed25519"
 # Test key loading via ssh-keygen verification; OpenSSH rejects permissive keys
 ssh -F "$LAB_DIR/.ssh/config" -G db-internal &gt; "$LAB_DIR/config_parsed.log"
-stat -c "Key permissions: %a (insecure)" "$LAB_DIR/.ssh/id_test_ed25519"
+stat -c "Key permissions: %a (insecure)" "$LAB_DIR/.ssh/id_test_ed25519" | tee "$LAB_DIR/insecure_perm.log"
 </code></pre>
 <p><strong>Expected result:</strong> Permissions identified as 0644 (world-readable), violating OpenSSH security policy.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/insecure_perm.log</code></p></li><li><strong>Stage 5: Enforce strict private key permissions</strong>
 <p><strong>Location:</strong> local bash terminal</p>
 <p>Remediate private key permissions to mode 0600 (owner read/write only) and verify compliance:</p>
 <pre><code class="language-bash">chmod 0600 "$LAB_DIR/.ssh/id_test_ed25519"
-stat -c "Remediated key permissions: %a (secure)" "$LAB_DIR/.ssh/id_test_ed25519"
-test "$(stat -c %a "$LAB_DIR/.ssh/id_test_ed25519")" = "600" &amp;&amp; echo "PASS: Mode 0600 verified"
+stat -c "Remediated key permissions: %a (secure)" "$LAB_DIR/.ssh/id_test_ed25519" | tee "$LAB_DIR/secure_perm.log"
+test "$(stat -c %a "$LAB_DIR/.ssh/id_test_ed25519")" = "600" &amp;&amp; echo "PASS: Mode 0600 verified" &gt;&gt; "$LAB_DIR/secure_perm.log"
 </code></pre>
 <p><strong>Expected result:</strong> Private key permissions set to 0600; validation passes.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/secure_perm.log</code></p></li><li><strong>Stage 6: Inspect configuration parser resolution for ProxyJump</strong>
@@ -1518,26 +1661,28 @@ cat "$LAB_DIR/ssh_audit_report.md"
 <p><strong>Expected result:</strong> Comprehensive markdown audit report generated.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/ssh_audit_report.md</code></p></li><li><strong>Stage 8: Clean up mock SSH workspace</strong>
 <p><strong>Location:</strong> local bash terminal</p>
-<p>Clean up generated mock SSH keys and configuration files:</p>
-<pre><code class="language-bash">rm -rf "$LAB_DIR"
-echo "PASS: Mock SSH workspace cleaned up successfully."
+<p>Preserve evidence and delete temporary directory:</p>
+<pre><code class="language-bash">cd "$LAB_DIR/.."
+cp "$LAB_DIR/ssh_audit_report.md" day-007-ssh-evidence.log
+rm -rf "$LAB_DIR"
+echo "PASS: Mock SSH workspace cleaned up successfully. Evidence preserved at day-007-ssh-evidence.log"
 </code></pre>
-<p><strong>Expected result:</strong> Temporary directory removed; environment clean.</p>
-<p><strong>Save:</strong> none</p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify that private key files with mode 0644 are rejected by ssh, while mode 0600 passes validation.</p>
+<p><strong>Expected result:</strong> Generated mock SSH keys and configuration files removed; evidence preserved.</p>
+<p><strong>Save:</strong> <code>day-007-ssh-evidence.log</code></p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify that private key files with mode 0644 are rejected by ssh, while mode 0600 passes validation.</p>
 <p><strong>Artifact acceptance:</strong> The SSH validator confirms that permissive private key permissions trigger fatal security errors, and verifies that configuration profiles parse ProxyJump stanzas cleanly. (File: <code>day-007-topic-01.md</code>).</p></div><div class="callout caution"><strong>Troubleshooting</strong><p>Inspect ssh -v verbose output for permissions errors and directive syntax validation.</p></div><div class="callout"><strong>Cleanup and cost</strong><p>Remove temporary mock SSH keys and configuration directory.</p></div><label class="check"><input data-progress="lab-7-topic-01" type="checkbox"/> I completed and checked this topic exercise</label></article><article class="topic-card lab" id="topic-02-lab"><h3>Exercise 2: Lab 7.2: Verify package signatures, query package databases, and manage repository keyrings</h3><p><strong>Goal:</strong> Inspect package manager database records, query package file manifests, verify checksums, and model GPG repository verification.</p><p><strong>Expected result:</strong> </p><p><strong>Mode:</strong> Observed locally: local dpkg/rpm queries inspect installed package manifests, simulate GPG key verification, and detect package file modifications. Simulated or predicted: simulated upstream repository mirror failover. Untested on GCP: live Artifact Registry private repository sync, VM Manager OS patch deployments, and automated rolling image replacement. · <strong>Prerequisite:</strong> dpkg or rpm, python3, bash shell.</p><p><strong>Preflight:</strong> Verify availability of package management query tools (dpkg-query or rpm), create workspace.</p><h4>Exact execution</h4><ol><li><strong>Stage 1: Preflight tool and package query engine verification</strong>
 <p><strong>Location:</strong> local bash terminal</p>
 <p>Verify package query tools and create isolated lab workspace:</p>
 <pre><code class="language-bash">PKG_TOOL=""
 if command -v dpkg-query &gt;/dev/null 2&gt;&amp;1; then
   PKG_TOOL="dpkg"
-elif command -v rpm &gt;/dev/null 2&gt;&amp;1; then
+elif which rpm &gt;/dev/null 2&gt;&amp;1; then
   PKG_TOOL="rpm"
 else
   echo "FATAL: Neither dpkg-query nor rpm found"; exit 1
 fi
 LAB_DIR=$(mktemp -d /tmp/lab_day7_pkg.XXXXXX)
 export LAB_DIR PKG_TOOL
-echo "PASS: Package tool detected: $PKG_TOOL. Workspace: $LAB_DIR"
+echo "PASS: Package tool detected: $PKG_TOOL. Workspace: $LAB_DIR" | tee "$LAB_DIR/preflight.log"
 </code></pre>
 <p><strong>Expected result:</strong> Package tool identified (dpkg or rpm); workspace initialized.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/preflight.log</code></p></li><li><strong>Stage 2: Query installed system packages and architecture</strong>
@@ -1623,7 +1768,7 @@ if computed != expected:
 else:
     sys.exit(1)
 EOF
-python3 "$LAB_DIR/test_tamper.py" &amp;&amp; echo "PASS: Tampered package successfully rejected"
+python3 "$LAB_DIR/test_tamper.py" | tee "$LAB_DIR/tamper_test.log" &amp;&amp; echo "PASS: Tampered package successfully rejected" &gt;&gt; "$LAB_DIR/tamper_test.log"
 </code></pre>
 <p><strong>Expected result:</strong> Checksum mismatch triggers explicit rejection.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/tamper_test.log</code></p></li><li><strong>Stage 7: Diagnose evidence and compile package audit report</strong>
@@ -1648,26 +1793,28 @@ cat "$LAB_DIR/pkg_audit_report.md"
 <p><strong>Expected result:</strong> Markdown package audit report created.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/pkg_audit_report.md</code></p></li><li><strong>Stage 8: Clean up package lab workspace</strong>
 <p><strong>Location:</strong> local bash terminal</p>
-<p>Clean up temporary files and reset directory:</p>
-<pre><code class="language-bash">rm -rf "$LAB_DIR"
-echo "PASS: Package lab workspace cleaned up."
+<p>Preserve evidence and delete temporary directory:</p>
+<pre><code class="language-bash">cd "$LAB_DIR/.."
+cp "$LAB_DIR/pkg_audit_report.md" day-007-pkg-evidence.log
+rm -rf "$LAB_DIR"
+echo "PASS: Package lab workspace cleaned up. Evidence preserved at day-007-pkg-evidence.log"
 </code></pre>
-<p><strong>Expected result:</strong> Workspace deleted.</p>
-<p><strong>Save:</strong> none</p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify package file integrity checks and inspect package dependency lists.</p>
+<p><strong>Expected result:</strong> Workspace deleted; evidence preserved.</p>
+<p><strong>Save:</strong> <code>day-007-pkg-evidence.log</code></p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify package file integrity checks and inspect package dependency lists.</p>
 <p><strong>Artifact acceptance:</strong> The package inspection tool successfully reports package metadata, verifies installed file checksums, and demonstrates cryptographic validation logic. (File: <code>day-007-topic-02.md</code>).</p></div><div class="callout caution"><strong>Troubleshooting</strong><p>Check package database locks or query syntax.</p></div><div class="callout"><strong>Cleanup and cost</strong><p>Remove temporary workspace directory.</p></div><label class="check"><input data-progress="lab-7-topic-02" type="checkbox"/> I completed and checked this topic exercise</label></article><article class="topic-card lab" id="topic-03-lab"><h3>Exercise 3: Lab 7.3: Author defensive shell script to parse synthetic JSON, enforce strict quoting, and handle errors</h3><p><strong>Goal:</strong> Write a small, hardened bash script that parses synthetic JSON configuration, tests successful runs, demonstrates explicit failure on invalid or missing fields, verifies quoting against whitespace, and ensures zero stored credentials.</p><p><strong>Expected result:</strong> </p><p><strong>Mode:</strong> Observed locally: local bash script executes valid and invalid JSON parsing, enforces strict quoting across whitespace paths, and records non-zero exit codes. Simulated or predicted: simulated automated CI/CD pipeline gating. Untested on GCP: Cloud Build step execution, Secret Manager secret injection, and Cloud Run entrypoint supervision. · <strong>Prerequisite:</strong> bash 4+, python3, coreutils.</p><p><strong>Preflight:</strong> Verify bash and python3 availability, create isolated test workspace.</p><h4>Exact execution</h4><ol><li><strong>Stage 1: Preflight environment and tool verification</strong>
 <p><strong>Location:</strong> local bash terminal</p>
-<p>Verify that Bash and Python 3 are installed and functioning:</p>
+<p>Verify that required execution utilities (bash, python3) are available:</p>
 <pre><code class="language-bash">command -v bash &gt;/dev/null 2&gt;&amp;1 || { echo "FATAL: bash not found"; exit 1; }
 command -v python3 &gt;/dev/null 2&gt;&amp;1 || { echo "FATAL: python3 not found"; exit 1; }
 LAB_DIR=$(mktemp -d /tmp/lab_day7_script.XXXXXX)
 export LAB_DIR
 cd "$LAB_DIR"
-echo "PASS: Environment verified. Lab directory: $LAB_DIR"
+echo "PASS: Script tooling verified. Workspace: $LAB_DIR" | tee "$LAB_DIR/preflight.log"
 </code></pre>
-<p><strong>Expected result:</strong> Bash and Python 3 verified; isolated workspace created.</p>
+<p><strong>Expected result:</strong> Utilities verified; workspace directory initialized.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/preflight.log</code></p></li><li><strong>Stage 2: Create synthetic JSON test fixtures</strong>
 <p><strong>Location:</strong> local bash terminal</p>
-<p>Create three test fixtures: a valid configuration, an invalid configuration lacking required fields, and a malformed syntax configuration:</p>
+<p>Generate three synthetic JSON configuration fixtures representing valid, missing-field, and malformed syntax scenarios:</p>
 <pre><code class="language-bash"># 1. Valid configuration
 cat &gt; "$LAB_DIR/valid_config.json" &lt;&lt;'EOF'
 {
@@ -1693,7 +1840,7 @@ cat &gt; "$LAB_DIR/malformed_config.json" &lt;&lt;'EOF'
   "port": 8080,
 EOF
 
-ls -la "$LAB_DIR"/*.json
+ls -la "$LAB_DIR"/*.json | tee "$LAB_DIR/fixtures.log"
 </code></pre>
 <p><strong>Expected result:</strong> Three synthetic JSON files created in the workspace.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/fixtures.log</code></p></li><li><strong>Stage 3: Author defensive JSON parser script (parse_config.sh)</strong>
@@ -1731,23 +1878,20 @@ PARSED_OUTPUT=$(python3 - &lt;&lt;PYEOF "$CONFIG_FILE"
 import json, sys
 
 try:
-    with open(sys.argv[1], 'r') as f:
+    with open(sys.argv[1], "r") as f:
         data = json.load(f)
 except json.JSONDecodeError as e:
-    sys.stderr.write(f"SYNTAX ERROR: Malformed JSON - {e}
-")
+    print(f"SYNTAX ERROR: Malformed JSON - {e}", file=sys.stderr)
     sys.exit(3)
 except Exception as e:
-    sys.stderr.write(f"FILE ERROR: {e}
-")
+    print(f"FILE ERROR: {e}", file=sys.stderr)
     sys.exit(1)
 
 # Schema validation
 required_fields = ["service_name", "port", "storage_path"]
 missing = [field for field in required_fields if field not in data]
 if missing:
-    sys.stderr.write(f"SCHEMA ERROR: Missing required fields: {', '.join(missing)}
-")
+    print(f"SCHEMA ERROR: Missing required fields: {', '.join(missing)}", file=sys.stderr)
     sys.exit(2)
 
 # Output tab-separated values
@@ -1769,8 +1913,9 @@ echo "Port Number  : $SVC_PORT"
 echo "Storage Path : "$SVC_PATH""
 
 # Verify path handling with embedded whitespace
-mkdir -p "$LAB_DIR/$SVC_PATH"
-test -d "$LAB_DIR/$SVC_PATH" &amp;&amp; echo "PASS: Directory created safely with quoting: '$SVC_PATH'"
+BASE_DIR="${LAB_DIR:-$(dirname "$CONFIG_FILE")}"
+mkdir -p "$BASE_DIR/$SVC_PATH"
+test -d "$BASE_DIR/$SVC_PATH" &amp;&amp; echo "PASS: Directory created safely with quoting: '$SVC_PATH'"
 
 exit 0
 EOF
@@ -1847,12 +1992,13 @@ cat "$LAB_DIR/script_execution_report.md"
 <p><strong>Save:</strong> <code>$LAB_DIR/script_execution_report.md</code></p></li><li><strong>Stage 8: Clean up and close out workspace</strong>
 <p><strong>Location:</strong> local bash terminal</p>
 <p>Preserve the audit report and clean up temporary test files:</p>
-<pre><code class="language-bash">cp "$LAB_DIR/script_execution_report.md" "/tmp/day7_script_execution_report.md"
+<pre><code class="language-bash">cd "$LAB_DIR/.."
+cp "$LAB_DIR/script_execution_report.md" day-007-script-evidence.log
 rm -rf "$LAB_DIR"
-echo "PASS: Script lab completed. Report preserved at /tmp/day7_script_execution_report.md."
+echo "PASS: Script lab completed. Evidence preserved at day-007-script-evidence.log"
 </code></pre>
 <p><strong>Expected result:</strong> Workspace cleaned up; report preserved.</p>
-<p><strong>Save:</strong> none</p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify exit code 0 on valid JSON, exit code 2 on missing required fields, exit code 3 on malformed JSON, and confirm zero credentials stored.</p>
+<p><strong>Save:</strong> <code>day-007-script-evidence.log</code></p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify exit code 0 on valid JSON, exit code 2 on missing required fields, exit code 3 on malformed JSON, and confirm zero credentials stored.</p>
 <p><strong>Artifact acceptance:</strong> The parse script passes valid JSON, fails explicitly with distinct non-zero exit codes on invalid inputs, safely processes paths with embedded spaces, and demonstrates zero plaintext credentials. (File: <code>day-007-topic-03.md</code>).</p></div><div class="callout caution"><strong>Troubleshooting</strong><p>Check script execute permissions (chmod +x) and inspect stderr output.</p></div><div class="callout"><strong>Cleanup and cost</strong><p>Remove test workspace and temporary configuration files.</p></div><label class="check"><input data-progress="lab-7-topic-03" type="checkbox"/> I completed and checked this topic exercise</label></article><article class="topic-card lab" id="topic-04-lab"><h3>Exercise 4: Lab 7.4: Inspect /proc virtual telemetry, trace process trees, and diagnose open file descriptors</h3><p><strong>Goal:</strong> Inspect system-wide telemetry in /proc, analyze process trees and ancestry (PID/PPID), and demonstrate file descriptor diagnostics for open and deleted files.</p><p><strong>Expected result:</strong> </p><p><strong>Mode:</strong> Observed locally: local bash commands query /proc/cpuinfo, /proc/meminfo, inspect process status in /proc/[pid]/status, and track open file descriptors. Simulated or predicted: simulated background daemon lifecycle and unlinked inode retention. Untested on GCP: Cloud Ops Agent procfs telemetry collection, Cloud Monitoring dashboard streaming, and Compute Engine hypervisor steal time. · <strong>Prerequisite:</strong> bash, python3, coreutils, procps.</p><p><strong>Preflight:</strong> Verify access to /proc, check ps and stat tools, create temporary workspace.</p><h4>Exact execution</h4><ol><li><strong>Stage 1: Preflight environment and procfs validation</strong>
 <p><strong>Location:</strong> local bash terminal</p>
 <p>Verify that the <code>/proc</code> virtual filesystem is mounted and accessible:</p>
@@ -1861,7 +2007,7 @@ test -r /proc/version || { echo "FATAL: Cannot read /proc/version"; exit 1; }
 LAB_DIR=$(mktemp -d /tmp/lab_day7_proc.XXXXXX)
 export LAB_DIR
 cd "$LAB_DIR"
-echo "PASS: /proc mounted and accessible. Workspace: $LAB_DIR"
+echo "PASS: /proc mounted and accessible. Workspace: $LAB_DIR" | tee "$LAB_DIR/preflight.log"
 </code></pre>
 <p><strong>Expected result:</strong> <code>/proc</code> verified mounted; workspace initialized.</p>
 <p><strong>Save:</strong> <code>$LAB_DIR/preflight.log</code></p></li><li><strong>Stage 2: Query system-wide hardware and memory telemetry</strong>
@@ -1952,11 +2098,13 @@ cat "$LAB_DIR/proc_inspection_report.md"
 <p>Terminate the background process and clean up temporary files:</p>
 <pre><code class="language-bash">kill -15 "$WORKER_PID" 2&gt;/dev/null || true
 wait "$WORKER_PID" 2&gt;/dev/null || true
+cd "$LAB_DIR/.."
+cp "$LAB_DIR/proc_inspection_report.md" day-007-proc-evidence.log
 rm -rf "$LAB_DIR"
-echo "PASS: Worker process terminated; workspace cleaned up."
+echo "PASS: Worker process terminated; workspace cleaned up. Evidence preserved at day-007-proc-evidence.log"
 </code></pre>
-<p><strong>Expected result:</strong> Process stopped; directory removed.</p>
-<p><strong>Save:</strong> none</p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify that /proc/[pid]/status reports process state and VmRSS, and confirm that deleted files remain accessible via /proc/[pid]/fd.</p>
+<p><strong>Expected result:</strong> Process stopped; directory removed; evidence preserved.</p>
+<p><strong>Save:</strong> <code>day-007-proc-evidence.log</code></p></li></ol><div class="callout success"><strong>Expected result / acceptance</strong><p>Verify that /proc/[pid]/status reports process state and VmRSS, and confirm that deleted files remain accessible via /proc/[pid]/fd.</p>
 <p><strong>Artifact acceptance:</strong> The procfs inspector successfully extracts CPU and memory telemetry, maps process tree parentage, and recovers deleted file content through /proc/[pid]/fd. (File: <code>day-007-topic-04.md</code>).</p></div><div class="callout caution"><strong>Troubleshooting</strong><p>Inspect permissions on /proc/[pid] entries (process owned by user).</p></div><div class="callout"><strong>Cleanup and cost</strong><p>Terminate background mock processes and remove workspace directory.</p></div><label class="check"><input data-progress="lab-7-topic-04" type="checkbox"/> I completed and checked this topic exercise</label></article></section>
 <section class="completion"><h2>
      Daily evidence

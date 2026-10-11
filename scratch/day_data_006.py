@@ -1,14 +1,22 @@
 """Durable data specification for Day 6: Shell, processes and services."""
 
-ACCESS_DATE = '2026-10-04'
+import re
+import sys
+from pathlib import Path
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+from scripts.compact_flow import render_compact_flow
+
+ACCESS_DATE = '2026-10-08'
 
 SOURCES = {
     'topic-01': (
-        'chmod(2) Linux manual page description (accessed 2026-10-04)',
+        'chmod(2) Linux manual page description (accessed 2026-10-08)',
         'https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION'
     ),
     'topic-02': (
-        'systemd.service(5) Linux manual page description (accessed 2026-10-04)',
+        'systemd.service(5) Linux manual page description (accessed 2026-10-08)',
         'https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION'
     )
 }
@@ -31,34 +39,34 @@ TOPIC_01_TECH = f'''<p><strong class="side-heading">Subtopics in this discussion
 </ol>
 
 <h4>Kernel space versus user space and the system call interface</h4>
-<p><strong class="side-heading">What it is in general:</strong> Linux enforces hardware-level CPU privilege rings: Ring 0 hosts the <strong class="keyword">Kernel Space</strong>, with direct, unrestricted execution over CPU registers, virtual memory translation, page tables, interrupts, and physical devices. Ring 3 hosts <strong class="keyword">User Space</strong>, where unprivileged user applications and system daemons execute within isolated virtual address spaces. User-space programs interact with hardware and system resources exclusively through <strong class="keyword">System Calls</strong> (syscalls) such as <code>open()</code>, <code>read()</code>, <code>write()</code>, and <code>fork()</code>, which trigger hardware context switches and trap into the kernel.</p>
+<p><strong class="side-heading">What it is in general:</strong> Linux separates privileged kernel-mode execution from unprivileged user-mode execution. On x86, Ring 0 hosts the <strong class="keyword">Kernel Space</strong>, managing CPU registers, virtual memory translation, page tables, interrupts, and devices visible to that kernel; a guest kernel remains subject to its virtualization boundary. On x86, Ring 3 hosts <strong class="keyword">User Space</strong>, where unprivileged applications and system daemons execute within isolated virtual address spaces; other processor architectures use their own privilege mechanisms. User-space programs request protected kernel operations through <strong class="keyword">System Calls</strong> (syscalls) such as <code>open()</code>, <code>read()</code>, <code>write()</code>, and <code>fork()</code>, which enter kernel mode through architecture-specific instructions. A privilege transition need not switch the scheduler to a different process; some user-visible library operations can also complete without a syscall.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud architects designing compute infrastructure must understand that container engines (e.g., Docker, containerd) share the host Linux kernel; a container is simply an isolated user-space process group governed by cgroups and namespaces. Unlike hypervisor virtual machines with distinct guest kernels, vulnerabilities in the host kernel system call interface can lead to container escape and privilege escalation across multi-tenant workloads.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine instances run dedicated Linux guest kernels inside Google's KVM-based hypervisor. For containerized architectures, Google Kubernetes Engine (GKE) provides GKE Sandbox (using gVisor), which intercepts and virtualizes Linux system calls in user space to prevent container breakouts from compromising the node kernel. Primary documentation: <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) Linux manual page description (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) description and mode bits (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) process user and group identifiers (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine instances run dedicated Linux guest kernels inside Google's KVM-based hypervisor. For containerized architectures, Google Kubernetes Engine (GKE) provides sandboxing options to isolate untrusted workloads from the host kernel. The gVisor approach mediates system calls in user space, while other sandbox technologies use different isolation boundaries; sandboxing reduces attack exposure rather than guaranteeing that every escape is impossible. Primary documentation: <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) Linux manual page description (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) description and mode bits (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) process user and group identifiers (accessed 2026-10-08)</a>.</p>
 
 <h4>File system hierarchy, VFS, and path resolution mechanics</h4>
-<p><strong class="side-heading">What it is in general:</strong> Linux structures all stored entities into a single, unified hierarchical tree rooted at <code>/</code>, adhering to the Filesystem Hierarchy Standard (FHS). The kernel provides the <strong class="keyword">Virtual File System</strong> (VFS) abstraction layer, providing uniform system-call semantics regardless of underlying storage formats (ext4, XFS, tmpfs, NFS, or block-backed persistent disks). When resolving a path like <code>/srv/brightloaf/order-api/config.json</code>, the kernel iteratively looks up each directory component (dentry), verifying read and execute permissions on every parent directory in sequence.</p>
+<p><strong class="side-heading">What it is in general:</strong> Linux structures all stored entities into a single, unified hierarchical tree rooted at <code>/</code>, adhering to the Filesystem Hierarchy Standard (FHS). The kernel provides the <strong class="keyword">Virtual File System</strong> (VFS) abstraction layer, providing uniform system-call semantics regardless of underlying storage formats (ext4, XFS, tmpfs, NFS, or block-backed persistent disks). When resolving a path like <code>/srv/brightloaf/order-api/config.json</code>, the kernel iteratively looks up each directory component (dentry), verifying search (execute) permission on every parent directory in sequence. Read permission lists directory entries; it is not required to traverse a known pathname.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Path resolution failure is a common root cause of deployment failures: even if a file has world-readable mode <code>0644</code>, an unprivileged service account cannot open it if any parent directory (e.g. <code>/srv/brightloaf</code>) lacks the execute (traverse) bit for that user or group. Cloud architects design predictable, standard mount points for persistent volumes and ensure container volume mounts do not mask parent directory permissions.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Persistent Disks and Hyperdisks attached to Compute Engine VMs are formatted with Linux filesystems (typically ext4 or XFS) and mounted into the VFS tree. Architects utilize Google Cloud Filestore (managed NFS) or Cloud Storage FUSE to expose shared network storage into local Linux path hierarchies, requiring strict POSIX path and permission synchronization. Primary documentation: <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) directory search semantics (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) path resolution description (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) process file system access (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Persistent Disks and Hyperdisks attached to Compute Engine VMs are formatted with Linux filesystems (typically ext4 or XFS) and mounted into the VFS tree. Architects utilize Google Cloud Filestore (managed NFS) or Cloud Storage FUSE to expose shared network storage into local Linux path hierarchies, requiring strict POSIX path and permission synchronization. Primary documentation: <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) directory search semantics (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) path resolution description (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) process file system access (accessed 2026-10-08)</a>.</p>
 
 <h4>POSIX permissions, mode bit octals, and directory search rights</h4>
 <p><strong class="side-heading">What it is in general:</strong> Standard Linux file permissions are stored as 12 <strong class="keyword">Mode Bits</strong> in the file inode: 3 special bits (setuid, setgid, sticky) and 9 permission bits divided into three classes: <strong class="keyword">Owner</strong> (User), <strong class="keyword">Group</strong>, and <strong class="keyword">Other</strong> (World). Each class has three permissions: Read (<code>r</code>, 4), Write (<code>w</code>, 2), and Execute (<code>x</code>, 1). Crucially, the execute bit on a directory grants <em>search/traverse</em> rights—the ability to pass through the directory to access children. Without execute permission on a directory, no child files can be accessed regardless of their individual file mode bits.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Granting world-writable (<code>0777</code>) permissions to resolve application startup failures is a catastrophic security anti-pattern that violates enterprise compliance (CIS Benchmarks, PCI-DSS). Architects enforce least-privilege mode bits (e.g. <code>0750</code> for directories, <code>0640</code> for configuration files containing credentials, and <code>0600</code> for private keys) and automate permission linting in CI/CD container image pipelines.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine instance startup scripts and automated provisioning tools (Ansible, Terraform, Cloud-init) must set explicit mode bits during deployment. Compute Engine OS Login automatically creates user home directories with <code>0700</code> or <code>0750</code> permissions to isolate multi-user administrative sessions on shared bastion hosts. Primary documentation: <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) POSIX permission bits (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) mode bit definitions (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) access control mechanisms (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine instance startup scripts and automated provisioning tools (Ansible, Terraform, Cloud-init) must set explicit mode bits during deployment. For Compute Engine OS Login, the documented IAM-to-Linux access integration does not establish a universal home-directory mode of <code>0700</code> or <code>0750</code>. Inspect the selected guest image, account provisioning and actual directory mode before relying on isolation between administrative sessions. Primary documentation: <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) POSIX permission bits (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) mode bit definitions (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) access control mechanisms (accessed 2026-10-08)</a>.</p>
 
 <h4>User and group credentials: UID, GID, and supplementary groups</h4>
 <p><strong class="side-heading">What it is in general:</strong> Every Linux process executes under a set of kernel credentials: a Real User ID (RUID), an <strong class="keyword">Effective User ID</strong> (EUID) used for permission checks, a Real Group ID (RGID), an Effective Group ID (EGID), and an array of <strong class="keyword">Supplementary Groups</strong>. When a process issues an <code>open()</code> system call, the kernel evaluates credentials in strict priority: (1) If process EUID matches file owner UID, owner bits apply; (2) Else if process EGID or any supplementary GID matches file GID, group bits apply; (3) Otherwise, other bits apply. Evaluation stops at the first matching class—if the user matches the owner class and owner bits deny read, group bits are never checked.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Service accounts running microservices must never execute as UID 0 (root). Architects establish dedicated non-login system accounts (e.g. UID 10001, shell <code>/sbin/nologin</code>) and assign supplementary group memberships to grant access to shared configuration or unix sockets, ensuring isolation between distinct microservice daemons on the same virtual host.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud OS Login maps Cloud IAM identities directly to POSIX UIDs and GIDs on Linux VMs. Administrators configure POSIX group membership in Google Workspace or Cloud Identity, allowing seamless role-based access control across fleets of Compute Engine instances without managing local <code>/etc/passwd</code> files. Primary documentation: <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) process credentials and group lists (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) effective UID and supplementary groups (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) permission checking order (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud OS Login maps Cloud IAM identities directly to POSIX UIDs and GIDs on Linux VMs. OS Login links Google identity with Linux login access; application group membership remains a separate host-level authorization question. Inspect the generated POSIX profile and the live process group list rather than assuming an IAM grant installs every application group across a fleet. Primary documentation: <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) process credentials and group lists (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) effective UID and supplementary groups (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) permission checking order (accessed 2026-10-08)</a>.</p>
 
 <h4>Ownership boundaries, sudo delegation, and least-privilege security</h4>
-<p><strong class="side-heading">What it is in general:</strong> Linux file ownership is established by the file's UID and GID, modified via the <code>chown</code> and <code>chgrp</code> system calls (restricted to root). To perform privileged maintenance, Linux systems employ <strong class="keyword">sudo</strong> (superuser do) to temporarily elevate privileges based on rules defined in <code>/etc/sudoers</code>. Sudo delegation allows operators to execute specific commands as root or as service identities without sharing the root password or granting unbounded shell access.</p>
+<p><strong class="side-heading">What it is in general:</strong> Linux file ownership is established by the file's UID and GID, modified via the <code>chown</code> and group-changing operations exposed through <code>chgrp</code>. Changing owner requires appropriate privilege; an unprivileged file owner can change the group to one of that owner’s groups. To perform privileged maintenance, Linux systems employ <strong class="keyword">sudo</strong> (superuser do) to temporarily elevate privileges based on rules defined in <code>/etc/sudoers</code>. Sudo delegation allows operators to execute specific commands as root or as service identities without sharing the root password or granting unbounded shell access.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud architects mandate least privilege by restricting sudo permissions to specific immutable administrative binaries and prohibiting interactive root shells (<kbd>sudo su -</kbd>). Auditing sudo execution via systemd journals and centralized security SIEMs provides tamper-evident logs for SOC2 and ISO 27001 compliance.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> In Google Cloud Compute Engine, IAM roles dictate sudo access: users with <code>roles/compute.osAdminLogin</code> are granted passwordless sudo privileges via OS Login PAM configurations, whereas users with <code>roles/compute.osLogin</code> receive standard unprivileged user shells. This decouples cloud IAM administration from local VM credential management. Primary documentation: <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) privilege boundaries (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) set-user-ID and capability boundaries (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) ownership and permissions (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> In Google Cloud Compute Engine, IAM roles dictate sudo access: users with <code>roles/compute.osAdminLogin</code> are granted passwordless sudo privileges via OS Login PAM configurations, whereas users with <code>roles/compute.osLogin</code> receive standard unprivileged user shells. This decouples cloud IAM administration from local VM credential management. Primary documentation: <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) privilege boundaries (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man7/credentials.7.html#DESCRIPTION">credentials(7) set-user-ID and capability boundaries (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION">chmod(2) ownership and permissions (accessed 2026-10-08)</a>.</p>
 
 <table><caption>File access decision path</caption>
 <thead><tr><th>Stage</th><th>Owner</th><th>Evidence</th><th>Limit</th></tr></thead>
@@ -86,32 +94,32 @@ TOPIC_02_TECH = f'''<p><strong class="side-heading">Subtopics in this discussion
 <h4>Process creation, memory address space, and PID lifecycle</h4>
 <p><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">Process</strong> is an executing instance of a program, encapsulating an isolated virtual memory address space (code, data, heap, stack), a set of file descriptors, and kernel execution state. In Linux, new processes are created via the <code>fork()</code> (or <code>clone()</code>) system call, creating a child process that inherits memory pages with copy-on-write (COW) semantics. The child typically invokes <code>execve()</code> to replace its address space with a new executable. Each process receives a unique integer <strong class="keyword">Process ID</strong> (PID) allocated by the kernel, managed under PID 1 (systemd or init), which adopts orphaned processes and reaps terminating zombie processes.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Understanding the process lifecycle is foundational for container and VM architecture. In container environments, PID 1 inside the container namespace must properly forward signals to child processes and reap zombie processes to prevent PID exhaustion. Furthermore, architects size memory limits based on process resident set size (RSS) rather than virtual memory size (VMS) to prevent kernel Out-Of-Memory (OOM) killer terminations.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine virtual machines run systemd as PID 1 to supervise core cloud agents, including the Google Cloud Guest Agent, OS Config Agent, and Google Cloud Ops Agent. On Cloud Run and GKE, application containers run as PID 1, requiring architects to configure proper signal handling for SIGTERM within container entrypoints. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) Linux manual page description (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) service process execution (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man7/signal.7.html#DESCRIPTION">signal(7) signal overview and handlers (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine virtual machines run systemd as PID 1 to supervise core cloud agents, including the Google Cloud Guest Agent, OS Config Agent, and Google Cloud Ops Agent. On Cloud Run and GKE, application containers run as PID 1, requiring architects to configure proper signal handling for SIGTERM within container entrypoints. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) Linux manual page description (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) service process execution (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man7/signal.7.html#DESCRIPTION">signal(7) signal overview and handlers (accessed 2026-10-08)</a>.</p>
 
 <h4>Standard file descriptors (0, 1, 2), pipelines, and I/O redirection</h4>
-<p><strong class="side-heading">What it is in general:</strong> When a Linux process initializes, the kernel provides three default <strong class="keyword">File Descriptors</strong> (FDs): <code>0</code> (Standard Input, <em>stdin</em>), <code>1</code> (Standard Output, <em>stdout</em>), and <code>2</code> (Standard Error, <em>stderr</em>). Through <strong class="keyword">Pipelines</strong> (<code>|</code>), the shell connects the stdout of one process to the stdin of another via a unidirectional kernel pipe buffer. Through <strong class="keyword">I/O Redirection</strong> (<code>></code>, <code>>></code>, <code>2>&1</code>), stdout and stderr streams can be redirected to disk files, special character devices (like <code>/dev/null</code>), or Unix domain sockets.</p>
+<p><strong class="side-heading">What it is in general:</strong> When a Linux process is launched, its launcher conventionally supplies three standard <strong class="keyword">File Descriptors</strong> (FDs): <code>0</code> (Standard Input, <em>stdin</em>), <code>1</code> (Standard Output, <em>stdout</em>), and <code>2</code> (Standard Error, <em>stderr</em>). Through <strong class="keyword">Pipelines</strong> (<code>|</code>), the shell connects the stdout of one process to the stdin of another via a unidirectional kernel pipe buffer. Through <strong class="keyword">I/O Redirection</strong> (<code>></code>, <code>>></code>, <code>2>&1</code>), stdout and stderr streams can be redirected to disk files, special character devices (like <code>/dev/null</code>), or Unix domain sockets.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud observability relies on standard stream hygiene: Twelve-Factor Application design mandates that microservices write all diagnostic logs directly to stdout and stderr rather than internal rotating log files. This decouples the application from local disk storage and enables cloud container runtimes and logging agents to aggregate, parse, and forward log streams centrally.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> In Google Cloud GKE, Cloud Run, and Compute Engine (via Ops Agent), all bytes written to stdout (fd 1) and stderr (fd 2) are automatically ingested into Google Cloud Logging as structured log entries, with stderr mapped to ERROR severity and stdout mapped to INFO severity. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) journal stream collection (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) log collection and stdout/stderr capture (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) standard output configuration (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Cloud Run supports automatic collection of container stdout and stderr. A Linux VM requires an appropriate agent receiver and pipeline; writing to a terminal alone is not automatic VM log ingestion. Structured fields and severity require the applicable logging format and configuration, rather than a universal kernel rule mapping stderr to ERROR and stdout to INFO. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) journal stream collection (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) log collection and stdout/stderr capture (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) standard output configuration (accessed 2026-10-08)</a>.</p>
 
 <h4>Boot-to-service sequence and systemd unit dependency graph</h4>
 <p><strong class="side-heading">What it is in general:</strong> When a Linux virtual machine boots, the kernel mounts the root filesystem and executes PID 1 (<strong class="keyword">systemd</strong>). Systemd organizes services, mount points, sockets, and targets into declarative <strong class="keyword">Unit Files</strong>. Units declare dependencies using directives like <code>Wants=</code>, <code>Requires=</code>, <code>After=</code>, and <code>Before=</code>, compiling an asynchronous directed acyclic graph (DAG) to parallelize service startup while honoring strict ordering requirements (e.g. ensuring <code>network-online.target</code> is reached before launching network daemons).</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Improperly ordered unit dependencies cause sporadic startup failures: if an application service starts before the cloud metadata server or network stack is fully initialized, API credential retrieval fails. Cloud architects author declarative systemd units with explicit retry policies (<code>Restart=on-failure</code>, <code>RestartSec=5s</code>) to ensure resilient recovery during VM reboots or transient infrastructure faults.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine instance templates utilize custom systemd units in startup scripts or golden images to manage application lifecycle. GCP integrates guest shutdown scripts by configuring systemd units ordered before <code>shutdown.target</code>, ensuring graceful teardown during preemptible VM or spot instance termination events. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) unit dependencies and ordering (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) service restart policies and targets (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) unit filtering (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine instance templates utilize custom systemd units in startup scripts or golden images to manage application lifecycle. GCP integrates guest shutdown scripts by configuring systemd units ordered before <code>shutdown.target</code>, ensuring graceful teardown during preemptible VM or spot instance termination events. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) unit dependencies and ordering (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) service restart policies and targets (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) unit filtering (accessed 2026-10-08)</a>.</p>
 
 <h4>Signal handling: graceful shutdown (SIGTERM) versus immediate kill (SIGKILL)</h4>
 <p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Signals</strong> are asynchronous notifications sent by the kernel to a process to notify it of system events. Standard termination proceeds via <strong class="keyword">SIGTERM</strong> (Signal 15): the process can intercept SIGTERM with a custom signal handler, allowing it to stop accepting new requests, drain active database transactions, flush write buffers, remove lockfiles, and exit cleanly. In contrast, <strong class="keyword">SIGKILL</strong> (Signal 9) cannot be caught, blocked, or ignored: the kernel immediately purges the process address space and reclaims resources without allowing any application cleanup.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud platforms frequently terminate processes: rolling container deployments, VM live migrations, spot instance preemptions, and autoscaling scale-downs all trigger process teardown. If microservices do not handle SIGTERM gracefully within the cloud provider's grace period (e.g. 30 seconds on GKE/Cloud Run), the platform issues SIGKILL, truncating active user requests and causing data corruption or duplicate message processing.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> When GKE drains a node or scales down a deployment, it sends SIGTERM to the container, waits for the configured <code>terminationGracePeriodSeconds</code> (default 30s), and sends SIGKILL if the process has not exited. Similarly, Compute Engine Spot VMs receive a preemption notice 30 seconds before termination, allowing systemd services to execute graceful shutdown handlers. Primary documentation: <a href="https://man7.org/linux/man-pages/man7/signal.7.html#DESCRIPTION">signal(7) standard signals and termination semantics (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man7/signal.7.html#DESCRIPTION">signal(7) disposition and actions (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) TimeoutStopSec and kill modes (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> When GKE drains a node or scales down a deployment, it sends SIGTERM to the container, waits for the configured <code>terminationGracePeriodSeconds</code> (default 30s), and sends SIGKILL if the process has not exited. Similarly, Compute Engine Spot VMs receive a preemption notice 30 seconds before termination, allowing systemd services to execute graceful shutdown handlers. Primary documentation: <a href="https://man7.org/linux/man-pages/man7/signal.7.html#DESCRIPTION">signal(7) standard signals and termination semantics (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man7/signal.7.html#DESCRIPTION">signal(7) disposition and actions (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) TimeoutStopSec and kill modes (accessed 2026-10-08)</a>.</p>
 
 <h4>Exit codes, wait status, and journal logging with journalctl</h4>
 <p><strong class="side-heading">What it is in general:</strong> When a process terminates, it delivers an 8-bit <strong class="keyword">Exit Status</strong> (0–255) to its parent via the <code>wait()</code> system call. By convention, exit code <code>0</code> signifies successful completion, while non-zero codes indicate errors (e.g. <code>1</code> for general error, <code>126</code> for command invoked cannot execute, <code>127</code> for command not found). When a process is killed by an unhandled signal, the shell exit code is <code>128 + signal_number</code> (e.g. <code>143</code> for SIGTERM [128+15], <code>137</code> for SIGKILL [128+9]). Systemd captures stdout/stderr and termination wait statuses in the binary system journal, queried via <strong class="keyword">journalctl</strong>.</p>
-<p><strong class="side-heading">Relevance to a cloud architect:</strong> Diagnosing distributed system outages requires correlating exit codes and timestamps: an exit code of 137 in Kubernetes or Cloud Run immediately indicates an OOM kill or SIGKILL deadline expiration. Architects leverage centralized structured logging to alert on non-zero exit codes and capture diagnostic traces across large VM fleets.</p>
-<p><strong class="side-heading">Relevance to GCP:</strong> The Google Cloud Ops Agent continuously ingests systemd journald logs from Linux VMs into Cloud Logging, allowing operators to filter logs by systemd unit (<code>_SYSTEMD_UNIT=order-api.service</code>) and correlate process exit statuses with host CPU and memory metrics in Cloud Monitoring. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) journal querying and filtering (accessed 2026-10-04)</a>.</p>
-<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) timestamp and unit options (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) SuccessExitStatus configuration (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Diagnosing distributed system outages requires correlating exit codes and timestamps: an exit code of 137 in Kubernetes or Cloud Run suggests SIGKILL under the shell convention, but does not by itself distinguish an OOM kill, a shutdown deadline, an administrator kill, or an explicit application exit with that value. Architects leverage centralized structured logging to alert on non-zero exit codes and capture diagnostic traces across large VM fleets.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> The Google Cloud Ops Agent can ingest systemd journal logs from Linux VMs into Cloud Logging when a systemd_journald receiver and its logging pipeline are configured, allowing operators to filter logs by systemd unit (<code>_SYSTEMD_UNIT=order-api.service</code>) and correlate process exit statuses with host CPU and memory metrics in Cloud Monitoring. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) journal querying and filtering (accessed 2026-10-08)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/journalctl.1.html#DESCRIPTION">journalctl(1) timestamp and unit options (accessed 2026-10-08)</a>; <a href="https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION">systemd.service(5) SuccessExitStatus configuration (accessed 2026-10-08)</a>.</p>
 
 <table><caption>Service lifecycle evidence</caption>
 <thead><tr><th>Layer</th><th>Control or stream</th><th>Useful evidence</th><th>What it does not prove</th></tr></thead>
@@ -124,12 +132,12 @@ TOPIC_02_TECH = f'''<p><strong class="side-heading">Subtopics in this discussion
 
 {FIG_6_2_HTML}
 
-<p><strong class="side-heading">Concrete example:</strong> An asynchronous background worker service processes orders from a queue. When an administrator initiates a rolling deployment, systemd sends SIGTERM to the worker process (PID 4821). The worker's SIGTERM signal handler intercepts the signal, completes the in-flight order transaction, flushes log entries to stdout (fd 1), writes a durable commit record to database storage, and exits cleanly with exit code 0 within 4 seconds. The systemd journal records the timestamped shutdown sequence. Contrastingly, if an administrator executes <code>kill -9 4821</code> (SIGKILL), the kernel abruptly terminates the process: in-flight database transactions abort, uncommitted queue messages remain unacknowledged, and the process exits with status 137, triggering message redelivery and duplicate fulfillment unless guarded by an idempotency key.</p>
+<p><strong class="side-heading">Concrete example:</strong> An asynchronous background worker service processes orders from a queue. When an administrator initiates a rolling deployment, systemd sends SIGTERM to the worker process (PID 4821). The worker's SIGTERM signal handler intercepts the signal, completes the in-flight order transaction, flushes log entries to stdout (fd 1), writes a durable commit record to database storage, and exits cleanly with exit code 0 within 4 seconds. The systemd journal records the timestamped shutdown sequence. Contrastingly, if an administrator executes <code>kill -9 4821</code> (SIGKILL), the kernel abruptly terminates the process: the outcome of in-flight database transactions must be checked at the database, queue messages not durably acknowledged can remain eligible for replay, and the process exits with status 137, triggering message redelivery and duplicate fulfillment unless guarded by an idempotency key.</p>
 <p><strong class="side-heading">Evidence limit:</strong> A process exit status of 0 in systemd or journalctl proves only that the process terminated without reporting an error to the kernel; it does not prove that external database commits succeeded, that downstream network calls completed, or that queue message acknowledgments reached the message broker.</p>'''
 
 PART1_HTML = '''<article class="topic-card overview" id="topic-01-overview">
 <h3>Linux kernel vs user space, file system navigation, permissions (chmod, chown), users and…</h3>
-<p><strong class="keyword">Linux permissions</strong> enforce mandatory access control boundaries between unprivileged user-space processes and protected kernel resources. Path traversal requires search rights on every parent directory, and process credentials determine mode bit selection before files can be opened.</p>
+<p><strong class="keyword">Linux permissions</strong> enforce discretionary access control boundaries between unprivileged user-space processes and protected kernel resources. Path traversal requires search rights on every parent directory, and process credentials determine mode bit selection before files can be opened.</p>
 <p><strong class="side-heading">Why today:</strong> Establishes the foundational host security and access control boundaries governing application processes, container runtimes, and local configuration files.</p>
 <p><strong class="side-heading">Where it sits:</strong> Sits at the base of local host operating system management, establishing directory and credential constraints before supervising background processes.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A deployed order processing daemon crashes on startup with an EACCES permission denied error while reading its configuration file. Investigation reveals that the file was created by an administrative deployer with owner-only read permissions, preventing the unprivileged service user from accessing the configuration.</p>
@@ -240,7 +248,7 @@ DATA = {
                 'How does Google Cloud OS Login translate Cloud IAM permissions into POSIX UID and GID credentials across Linux compute instances?'
             ],
             'reference': 'https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION',
-            'reference_label': 'chmod(2) Linux manual page description (accessed 2026-10-04)',
+            'reference_label': 'chmod(2) Linux manual page description (accessed 2026-10-08)',
             'scenario': {
                 'scenario': 'Administrator can read; service user receives EACCES',
                 'impact': 'Order API service fails to start on virtual machine boot, resulting in service unavailability and blocked checkout processing.',
@@ -304,7 +312,7 @@ $ ls -ld /srv/brightloaf/order-api/config.json
             'lab': {
                 'name': 'Lab 6.1: Inspect Linux file access controls, user credentials, and permission boundaries',
                 'goal': 'Demonstrate file permission evaluation, user and group credential switching, and directory search execution without root privilege escalation.',
-                'mode': 'Observed locally: local bash commands execute chmod, chown, stat, and file access tests under isolated test identities. Simulated or predicted: simulated daemon identity switching and permission resolution. Untested on GCP: Compute Engine OS Login PAM module integration, Cloud IAM role translation to POSIX groups, and SELinux/AppArmor mandatory access control enforcement.',
+                'mode': 'Observed locally: local Bash commands execute chmod, stat and file access tests on lab-owned paths. No real process identity or numeric ownership is changed. Simulated or predicted: numeric daemon identity and ordinary mode-bit permission resolution; the evaluator prints decisions and does not execute under those identities. Untested on GCP: Compute Engine OS Login PAM module integration, Cloud IAM role translation to POSIX groups, and SELinux/AppArmor mandatory access control enforcement.',
                 'covers': 'Start and stop a disposable local service, inspect its PID and journal, and compare a graceful stop with a forced termination (user space credentials and directory permissions)',
                 'prereq': 'Python 3.10+, bash shell, coreutils.',
                 'preflight': 'Validate python3 and stat command availability, initialize isolated workspace.',
@@ -524,7 +532,7 @@ echo "Cleaned up workspace. Evidence preserved at: /tmp/day_006_perm_evidence.lo
                 'Why must containerized applications running as PID 1 handle SIGTERM signals explicitly, and what happens if the application fails to exit within the termination grace period?'
             ],
             'reference': 'https://man7.org/linux/man-pages/man5/systemd.service.5.html#DESCRIPTION',
-            'reference_label': 'systemd.service(5) Linux manual page description (accessed 2026-10-04)',
+            'reference_label': 'systemd.service(5) Linux manual page description (accessed 2026-10-08)',
             'scenario': {
                 'scenario': 'Forced worker stop exposes a duplicate-fulfillment defect',
                 'impact': 'Warehouse ships physical goods twice for customer orders, causing inventory discrepancy and financial loss during rolling worker deployments.',
@@ -615,7 +623,7 @@ echo "Lab workspace initialized at: $LAB_DIR"
 
 **Save:** `$LAB_DIR/preflight.log`''',
 
-                    '''**Stage 2: Prepare worker daemon with SIGTERM signal handler**
+                    r'''**Stage 2: Prepare worker daemon with SIGTERM signal handler**
 
 **Location:** local bash terminal
 
@@ -783,18 +791,18 @@ cat > "$LAB_DIR/service_lifecycle_report.md" <<EOF
 
 | Termination Type | Signal Sent | Process Action | Observed Exit Code | State Integrity |
 |---|---|---|---|---|
-| **Graceful Stop** | SIGTERM (15) | Intercepted by handler; drained work; flushed logs | **0** (Success) | Clean commit; zero data loss |
+| **Graceful Stop** | SIGTERM (15) | Intercepted by handler; drained work; flushed logs | **0** (Success) | Simulated drain; no real business commit tested |
 | **Forced Kill** | SIGKILL (9) | Kernel immediate termination; no handler execution | **137** (128+9) | Uncommitted state; requires deduplication |
 
 ## Execution Log Excerpts
-```text
+~~~text
 $(cat "$LAB_DIR/lifecycle_execution.log")
-```
+~~~
 
 ## Worker Log Excerpts
-```text
+~~~text
 $(cat "$LAB_DIR/worker.log")
-```
+~~~
 EOF
 cat "$LAB_DIR/service_lifecycle_report.md"
 ```
@@ -825,4 +833,272 @@ echo "Cleaned up workspace. Exit artifact preserved at: /tmp/day_006_service_lif
     ]
 }
 
+SUBTOPIC_EXPANSIONS = [
+    [
+        ('Linux kernel vs user space', 'syscall.2', [
+            'A privilege transition is not necessarily a scheduler context switch to another process. On x86-64 the syscall instruction enters kernel mode; other architectures use different instructions. The requesting process remains the caller even if the kernel later blocks it while waiting for I/O.',
+            'A library wrapper marshals arguments, invokes the kernel interface, and converts a reported failure into the API error convention. For open, success returns a nonnegative file descriptor rather than a universal zero; a failure returns -1 with errno set.',
+            'Worked example: an application opens config.json, the kernel validates its path and access rights, and the wrapper returns descriptor 3 or reports EACCES. Diagnose the syscall result before assuming the application parser saw any configuration bytes.',
+            'Evidence limit: this sequence explains the boundary; it is not a captured syscall trace and does not identify the CPU architecture of a particular VM.'
+        ]),
+        ('file system navigation', 'path_resolution.7', [
+            'An absolute path begins at the process root; a relative path begins at the current working directory. Changing directory changes the base for relative lookup, so a service WorkingDirectory setting can make the same relative filename resolve differently from an interactive shell.',
+            'Root contains directories such as /etc for host configuration, /home for user files, /var for variable state and logs, and /srv for site-specific service data. Each slash separates a parent from a contained child; a mounted filesystem joins this namespace at its mount point rather than creating a second independent root.',
+            'Worked example: /srv contains brightloaf, which contains order-api, which contains config.json. Check search permission on /, /srv, /srv/brightloaf and /srv/brightloaf/order-api before checking file read permission; directory read permission lists names and is not required merely to traverse a known name.',
+            'Evidence limit: this example does not establish that the host uses those application directories, nor that a symlink or mount resolves to the expected target.'
+        ]),
+        ('permissions (chmod, chown)', 'chmod.2', [
+            'Decode 0640 one class at a time: owner 6 means read plus write, group 4 means read, and other 0 means none. Changing a file to 0640 does not alter its group owner or add the running service to that group.',
+            'Directory write and search rights govern creation and removal of entries; file write permission governs changing file content. The sticky bit adds restrictions on removal in shared writable directories, so deleting a file and editing its bytes are different authorization questions.',
+            'Worked example: retain directory mode 0750 and configuration mode 0640 with a dedicated service group. Compare stat output for both objects and the actual process groups; granting file read cannot repair a denied parent-directory search.',
+            'Evidence limit: ordinary mode-bit calculations omit extended access-control lists, capabilities and Linux security modules. An application may still fail after a mode change for another reason.'
+        ]),
+        ('users and groups', 'credentials.7', [
+            'Credentials belong to a running process, not just to a username in an account database. Inspect effective IDs and supplementary groups for the process that fails; a newly added account group may require a new login or a service restart before the intended credentials are installed.',
+            'Linux also has filesystem user and group IDs, normally tracking the effective IDs, for filesystem permission checks. Selecting owner, then matching group, then other is a mode-bit explanation, not a promise that every access decision ignores capabilities or additional policy.',
+            'Worked example: a file owner matches the caller, but owner read is absent while group read is present. The owner class still applies; the kernel does not fall back to a more permissive group class.',
+            'Evidence limit: a modeled UID and GID calculation does not switch the executing process identity or reproduce a live denied system call.'
+        ]),
+        ('permissions (chmod, chown), users and groups', 'chown.2', [
+            'Changing the owner requires suitable privilege; an unprivileged file owner can change the group only to a group of which that owner is a member. chmod changes permissions, whereas chown changes ownership; neither grants a process an additional group membership.',
+            'Administrative delegation must include the command arguments and the integrity of its executable and inputs. Allowing a privileged editor or a writable script can grant more power than the apparent command name suggests; local logging alone is not proof of tamper resistance.',
+            'Worked example: an administrator assigns config.json to root:order-api, grants group read with 0640, and verifies access as order-api. Grant no world access and separately verify directory traversal and service readiness.',
+            'Evidence limit: the local lab models identity selection and changes lab-owned mode bits; it does not grant sudo rights or alter production accounts.'
+        ])
+    ],
+    [
+        ('Processes', 'fork.2', [
+            'fork creates a child with a different PID; execve replaces the executable image while retaining that process PID. A zombie has already terminated but still holds wait-status information until a parent reaps it; it is not a worker still consuming CPU.',
+            'A PID can be reused after a process is reaped. Record the unit name, PID and timestamp together before signalling, and use the supervisor to target its current worker rather than acting on a stale PID copied from an earlier incident.',
+            'Worked example: the shell starts a Python worker and saves its PID, then wait collects the child status after termination. A systemd-managed worker has the service manager as its supervisor; the interactive shell cannot wait for a process it did not create.',
+            'Evidence limit: process existence proves execution at that instant, not readiness or successful completion of an order.'
+        ]),
+        ('file descriptors (stdin/stdout/stderr), pipes, redirection', 'pipe.2', [
+            'Descriptors are per-process integer references to open files, pipes or other objects. Convention assigns 0, 1 and 2 to input, output and error, but a launcher may redirect or close them; stderr is not a distinct severity level enforced by the kernel.',
+            'A pipe has finite buffering and can block a writer when its reader is slow. End-of-file reaches a reader only when every write end is closed; an accidentally inherited write descriptor can keep a consumer waiting after the main producer exits.',
+            'Worked example: command >out.log 2>&1 sends both streams to the file; command 2>&1 >out.log leaves stderr at the original stdout destination because redirections take effect from left to right. Save the command and both destinations before interpreting missing logs.',
+            'Evidence limit: a pipeline log omits upstream errors unless the shell captures each status or enables pipefail; a final successful consumer is not proof that every producer succeeded.'
+        ]),
+        ('boot-to-service sequence and services (systemd unit lifecycle)', 'systemd.unit.5', [
+            'Requirement dependencies and ordering dependencies answer different questions. Wants or Requires pulls another unit into a start transaction; After orders units that are being started, but does not itself request the other unit.',
+            'A network-online target orders boot-time work and does not continuously prove that a remote API is reachable. Applications still need bounded retry and failure reporting for connection loss after startup.',
+            'Worked example: record start, active state and MainPID for a disposable user service, then inspect its journal and termination status. A user manager exercises unit supervision without installing a machine-wide service or reproducing the complete boot process.',
+            'Evidence limit: Type=exec establishes successful executable invocation, not business readiness. Unit ordering does not prove dependencies returned healthy application responses.'
+        ]),
+        ('signals (SIGTERM, SIGKILL)', 'signal.7', [
+            'SIGTERM normally terminates a process, but an application can install a handler, block delivery or ignore it. Graceful shutdown is implemented by that application; sending SIGTERM alone does not guarantee drain completion.',
+            'SIGKILL cannot be caught, blocked or ignored. The kernel ends execution and releases process resources, but cannot run the application handler or prove that an external side effect was rolled back.',
+            'Worked example: a worker logs receipt of SIGTERM, finishes its simulated drain and exits 0. A second worker receives SIGKILL and lacks the cleanup-complete record; correlate the manager kill status with its last heartbeat rather than inventing a cleanup log.',
+            'Evidence limit: neither exit 0 nor a simulated drain establishes a real database commit. One fulfillment per order requires a durable idempotency boundary independent of process shutdown.'
+        ]),
+        ('exit statuses, logs (journalctl, /var/log)', 'wait.2', [
+            'The wait status distinguishes normal exit from signal termination. Bash presents a signal-derived status as 128 plus the signal number, while systemd can report code=killed and status=9; these are different presentations of termination evidence.',
+            'Exit 137 is consistent with SIGKILL but does not identify why it was sent, and an application can explicitly exit with that number. Confirm the manager status and relevant kernel or supervisor records before calling it an out-of-memory event.',
+            'Worked example: save journalctl output with precise timestamps and a specific user-unit filter, then compare ExecMainCode, ExecMainStatus and Result for the two stops. A missing journal entry requires checking the filter, access rights, retention and stdout destination; /var/log files are a separate source with their own rotation policy.',
+            'Evidence limit: a process exit status and timestamped logs describe local execution. They cannot alone prove downstream completion, log retention across reboot or delivery to Cloud Logging.'
+        ])
+    ]
+]
+
+SYSCALL_FLOW = {
+    'title': 'User space to kernel space: open request and return',
+    'desc': 'A user application invokes a wrapper, enters the kernel, resolves the path and credentials, and receives a descriptor or errno back in user space.',
+    'caption': 'Scope: illustrative conceptual open lifecycle, not a measured trace. Transitions 1–4 describe request processing and return. Access-control lists and security modules can add checks; CPU entry instructions vary by architecture.',
+    'nodes': [
+        {'id': 'caller', 'label': 'User-space application', 'icon': '../assets/icons/generic/user.svg', 'detail': 'Requests config.json; no direct kernel-memory access'},
+        {'id': 'wrapper', 'label': 'User-space library wrapper', 'icon': '../assets/icons/generic/artifact.svg', 'detail': 'Passes pathname and flags to the system-call interface'},
+        {'id': 'entry', 'label': 'Kernel-mode entry', 'icon': '../assets/icons/generic/policy.svg', 'detail': 'Privilege transition; validate arguments and caller credentials'},
+        {'id': 'lookup', 'label': 'Kernel VFS and filesystem', 'icon': '../assets/icons/generic/storage.svg', 'detail': 'Resolve directories; check search rights and file access'},
+        {'id': 'return', 'label': 'Return to user space', 'icon': '../assets/icons/generic/outcome.svg', 'detail': 'Wrapper returns a descriptor, or -1 with errno such as EACCES'}
+    ],
+    'steps': [
+        {'from': 'caller', 'to': 'wrapper', 'label': 'Invoke open wrapper'},
+        {'from': 'wrapper', 'to': 'entry', 'label': 'Enter kernel with arguments'},
+        {'from': 'entry', 'to': 'lookup', 'label': 'Resolve and authorize access'},
+        {'from': 'lookup', 'to': 'return', 'label': 'Return result or error'}
+    ]
+}
+
+for _topic_number, _topic in enumerate(DATA['topics']):
+    _technical = _topic['technical']
+    _headings = re.findall(r'<h4>(.*?)</h4>', _technical, re.S)
+    _links = []
+    for _index, (_heading, (_clause, _manual, _points)) in enumerate(zip(_headings, SUBTOPIC_EXPANSIONS[_topic_number]), 1):
+        _anchor = f"{_topic['key']}-subtopic-{_index:02d}"
+        _url = f'https://man7.org/linux/man-pages/man{_manual[-1]}/{_manual}.html#DESCRIPTION'
+        _addition = '<p><strong class="side-heading">Worked mechanism and diagnostic boundaries:</strong></p><ul>'
+        _addition += ''.join('<li>' + point + '</li>' for point in _points)
+        _addition += f'</ul><p><strong class="side-heading">Further study:</strong> <a href="{_url}">{_manual} — DESCRIPTION (accessed {ACCESS_DATE})</a>.</p>'
+        _pattern = r'(<h4>' + re.escape(_heading) + r'</h4>)(.*?)(?=<h4>|<table>|$)'
+        _technical = re.sub(_pattern, lambda m: f'<h4 id="{_anchor}">{_heading}</h4>' + m.group(2) + _addition + '\n', _technical, count=1, flags=re.S)
+        _links.append(f'<li><a href="#{_anchor}">{_heading}</a></li>')
+    _list = '<ul>' + ''.join(_links) + '</ul>'
+    _technical = re.sub(r'(<p><strong class="side-heading">Subtopics in this discussion:</strong></p>)\s*<ol>.*?</ol>', lambda m: m.group(1) + _list, _technical, count=1, flags=re.S)
+    if _topic_number == 0:
+        _technical = _technical.replace('<h4 id="topic-01-subtopic-02">', render_compact_flow('day006-syscall', SYSCALL_FLOW) + '<h4 id="topic-01-subtopic-02">', 1)
+    _topic['technical'] = _technical
+    _card = r'(<article class="topic-card overview" id="' + _topic['key'] + r'-overview">.*?)(</article>)'
+    DATA['part1_html'] = re.sub(_card, lambda m: m.group(1) + '<p><strong class="side-heading">Linked subtopics:</strong></p>' + _list + '\n' + m.group(2), DATA['part1_html'], count=1, flags=re.S)
+
+# Replace the static cross-concept topology with an actual syscall lifecycle.
+# The new flow is beside the kernel/user-space explanation; no prose is removed.
+DATA['arch_diagram'] = {}
+_gcp_sources = {
+    'os-login': ('https://docs.cloud.google.com/compute/docs/oslogin#benefits_of_os_login', 'Benefits of OS Login'),
+    'logging': ('https://docs.cloud.google.com/logging/docs/agent/ops-agent/configuration#logging-receivers', 'Logging receivers'),
+    'run-logging': ('https://docs.cloud.google.com/run/docs/logging#container-logs', 'Write container logs')
+}
+_gcp_notes = [
+    [
+        ('os-login', 'On a Linux Compute Engine guest, investigate the requesting process and guest kernel before interpreting a configuration read failure as a cloud networking fault. OS Login links Google identities to Linux login access through IAM permissions; that login integration does not let ordinary application code bypass the guest kernel boundary. Architectural application: keep the syscall caller, Linux authorization decision and cloud login identity separate in the worksheet. The diagram is about the guest syscall boundary, not a deployment or proof of a container sandbox.'),
+        ('os-login', 'For a Linux guest hosted on Compute Engine, distinguish login access from local path authorization. OS Login centralizes login management, but an application still uses its working directory and process credentials to resolve the mounted guest namespace. Architectural application: check the mount, every searchable parent directory and the final file under the service identity. A path in a cloud storage product is not automatically a POSIX guest path; the example establishes no filesystem or FUSE deployment.'),
+        ('os-login', 'OS Login manages IAM-linked access to Linux instances; its benefits section does not specify universal home-directory modes or application configuration ownership. Set deployment mode bits deliberately, then inspect the actual guest inode and parent directories. Architectural application: a successful IAM login is a prerequisite for a host investigation, not proof that an unprivileged daemon can read a credential file. Keep 0640 and 0750 as this example’s design choices rather than provider defaults.'),
+        ('os-login', 'OS Login links a Linux account to a Google identity and allows instance- or project-level login permission management. Application service identities and supplementary groups still need examination on the guest. Architectural application: compare the account profile with the running process credentials before attributing a denied read to IAM. The local model uses numeric IDs without provisioning Google identities or changing group membership; this evidence cannot prove an OS Login integration worked.'),
+        ('os-login', 'OS Login documents centralized Linux login management and the ability to configure administrator access. Separate that administrative entry point from the least-privilege identity used by an application service. Architectural application: document who may change config.json ownership, who may read it and which privileged maintenance operations are allowed; do not infer arbitrary application-group access from a successful login. The exercise changes only disposable file modes and installs no sudo policy or production account.')
+    ],
+    [
+        ('os-login', 'On a systemd-based Linux guest, use the manager and guest process evidence to investigate worker lifecycle; the chosen guest image determines its init system. OS Login provides an IAM-linked administrative access path, not a guarantee that every Compute Engine image uses systemd or every application is PID 1. Architectural application: record the actual manager, MainPID and timestamp before comparing service restarts. The local user-service checkpoint tests supervision without deploying a VM, container or guest agent.'),
+        ('run-logging', 'Cloud Run documents automatic collection from supported locations including container stdout and stderr. A plain Linux VM requires a suitable logging collector and configuration; a descriptor number alone does not select cloud severity or structured fields. Architectural application: trace the application stream, its local destination and the configured collection path separately. The local pipeline exercise demonstrates stream routing only; it does not run a Cloud Run workload or prove that Cloud Logging ingested these bytes.'),
+        ('os-login', 'For a systemd-based Compute Engine guest, the Linux unit controls its application start, dependency ordering and stop policy. OS Login documents the administrative access boundary; it does not specify a universal custom application unit or promise remote dependencies are healthy when a target is reached. Architectural application: inspect the authored unit and current manager state rather than inferring readiness from VM boot. The transient user-service checkpoint tests an actual unit lifecycle, while boot ordering and cloud shutdown remain documentation-level context.'),
+        ('os-login', 'For a Linux application on a GCP guest, a granted login permission and a delivered signal are separate controls. OS Login provides the documented host access context; Linux signal disposition determines whether the application performs graceful cleanup. Architectural application: capture the configured supervisor timeout, handler logs and final status, then check downstream completion independently. This exercise defines no GKE grace-period default or Spot VM warning guarantee, and makes no cloud termination measurement.'),
+        ('logging', 'The Ops Agent configuration documents a Linux systemd_journald receiver for collecting journal records. Configure a receiver and logging pipeline appropriate to the host; installing an agent alone does not establish that every application journal or stream is collected. Architectural application: retain local unit-scoped journal evidence and separately verify the intended Cloud Logging ingestion path and fields. This local exercise stops at the manager and journal; it does not install an agent, configure cloud ingestion or demonstrate delivery to Cloud Logging.')
+    ]
+]
+for _topic_number, _topic in enumerate(DATA['topics']):
+    _notes = iter(_gcp_notes[_topic_number])
+    def _gcp_paragraph(_match):
+        _key, _text = next(_notes)
+        _url, _heading = _gcp_sources[_key]
+        return f'<p><strong class="side-heading">Relevance to GCP:</strong> {_text}</p><p><strong class="side-heading">Further study:</strong> <a href="{_url}">{_heading} (accessed {ACCESS_DATE})</a>.</p>'
+    _topic['technical'] = re.sub(r'<p><strong class="side-heading">Relevance to GCP:</strong>.*?</p>', _gcp_paragraph, _topic['technical'], flags=re.S)
+
+_permission_lab, _service_lab = [topic['lab'] for topic in DATA['topics']]
+for _lab in (_permission_lab, _service_lab):
+    _tools = ['bash', 'python3', 'mktemp', 'mkdir', 'cat', 'chmod', 'stat', 'id', 'grep', 'tee', 'cp', 'rm']
+    if _lab is _service_lab:
+        _tools += ['sleep', 'date', 'systemctl', 'systemd-run', 'journalctl']
+    _checks = 'set -euo pipefail\n' + ''.join(f'command -v {tool}\n' for tool in _tools)
+    _lab['steps'][0] = _lab['steps'][0].replace('```bash\n', '```bash\n' + _checks, 1)
+    _lab['steps'][0] = _lab['steps'][0].replace('echo "Lab workspace initialized at: $LAB_DIR"', 'echo "Lab workspace initialized at: $LAB_DIR" | tee "$LAB_DIR/preflight.log"')
+_permission_lab['steps'][1] = _permission_lab['steps'][1].replace('"$LAB_DIR/srv/brightloaf/order-api/config.json"\n```', '"$LAB_DIR/srv/brightloaf/order-api/config.json" | tee "$LAB_DIR/initial_stat.log"\n```')
+_permission_lab['steps'][4] = _permission_lab['steps'][4].replace('&& echo "PASS: EACCES verified"', '> "$LAB_DIR/denial_evidence.txt"\ncat "$LAB_DIR/denial_evidence.txt"\necho "PASS: modeled EACCES decision verified"')
+_permission_lab['steps'][5] = _permission_lab['steps'][5].replace('os.listdir(path)\n    print("Directory readable")', 'with open(os.path.join(path, "config.json")) as stream:\n        stream.read()\n    raise RuntimeError("Unexpected traversal success; stop and inspect credentials")')
+_permission_lab['steps'][0] = _permission_lab['steps'][0].replace('LAB_DIR=$(mktemp', 'test "$(id -u)" -ne 0\ntest "$(id -u)" -ne 10001\ntest "$(id -g)" -ne 10001\nLAB_DIR=$(mktemp', 1)
+_permission_lab['preflight'] += ' Stop if executing as root or if actual UID/GID is 10001, because that invalidates this fixture identity comparison.'
+_permission_lab['steps'][5] += '\nThe probe opens a known child rather than listing directory names: directory read without search may list names but cannot authorize lookup of their contents. Restore mode 0755 before continuing.'
+
+_service_lab['steps'][0] = _service_lab['steps'][0].replace('python3 --version', 'systemctl --user show-environment > /dev/null\npython3 --version', 1)
+_service_lab['prereq'] += ' Linux with an accessible systemd user manager and readable user journal; systemctl, systemd-run, journalctl and coreutils. Stop if the user manager or journal is unavailable; do not substitute a file log for the required journal.'
+_service_lab['steps'][1] = _service_lab['steps'][1].replace('log_file = open("worker.log", "a", buffering=1)', 'log_file = open("worker.log", "a", buffering=1)\nprint(f"Worker PID {os.getpid()} started", flush=True)')
+_service_lab['steps'][1] = _service_lab['steps'][1].replace('def sigterm_handler(signum, frame):', 'def sigterm_handler(signum, frame):\n    print(f"Worker PID {os.getpid()} received SIGTERM; simulated drain starts", flush=True)')
+_service_lab['steps'][1] = _service_lab['steps'][1].replace('log_file.close()', 'print(f"Worker PID {os.getpid()} graceful shutdown complete; exit 0", flush=True)\n    log_file.close()')
+_service_lab['steps'][4] = _service_lab['steps'][4].replace('```bash\n', '```bash\n{\n', 1).replace('\n```\n\n**Expected', '\n} | tee "$LAB_DIR/exit_code_validation.txt"\n```\n\n**Expected', 1)
+_service_lab['steps'][5] += r'''
+
+**Actual systemd user-service and journal checkpoint (required):**
+Run in the same local Linux Bash terminal with the tools verified in Stage 1. The units are uniquely named, transient and lab-owned; no cloud resources or machine-wide units are installed. Keep the worker file and workspace until Stage 8.
+
+```bash
+UNIT_PREFIX="day006-lifecycle-$(date +%s)-$$"
+export UNIT_PREFIX
+PYTHON_PATH=$(command -v python3)
+for STOP_KIND in graceful forced; do
+    UNIT="$UNIT_PREFIX-$STOP_KIND.service"
+    systemd-run --user --unit="$UNIT" --property=Type=exec \
+        --property=RemainAfterExit=yes --property=Restart=no \
+        --property=WorkingDirectory="$LAB_DIR" \
+        --property=StandardOutput=journal --property=StandardError=journal \
+        "$PYTHON_PATH" -u "$LAB_DIR/worker_daemon.py"
+    sleep 1
+    MAIN_PID=$(systemctl --user show "$UNIT" --property=MainPID --value)
+    test "$MAIN_PID" -gt 0
+    printf '%s unit=%s PID=%s action=%s\n' "$(date -u +%FT%TZ)" "$UNIT" "$MAIN_PID" "$STOP_KIND" >> "$LAB_DIR/managed_commands.log"
+    if [ "$STOP_KIND" = graceful ]; then
+        systemctl --user kill --kill-who=main --signal=TERM "$UNIT"
+    else
+        systemctl --user kill --kill-who=main --signal=KILL "$UNIT"
+    fi
+    sleep 3
+    systemctl --user show "$UNIT" --property=MainPID --property=ExecMainCode \
+        --property=ExecMainStatus --property=Result --property=ActiveState > "$LAB_DIR/$STOP_KIND-manager.log"
+    grep '^MainPID=0$' "$LAB_DIR/$STOP_KIND-manager.log"
+    journalctl --user --user-unit="$UNIT" --no-pager --output=short-iso-precise > "$LAB_DIR/$STOP_KIND-journal.log"
+    grep "Worker PID $MAIN_PID started" "$LAB_DIR/$STOP_KIND-journal.log"
+done
+grep '^ExecMainCode=1$' "$LAB_DIR/graceful-manager.log"
+grep '^ExecMainStatus=0$' "$LAB_DIR/graceful-manager.log"
+grep 'graceful shutdown complete; exit 0' "$LAB_DIR/graceful-journal.log"
+grep '^ExecMainCode=2$' "$LAB_DIR/forced-manager.log"
+grep '^ExecMainStatus=9$' "$LAB_DIR/forced-manager.log"
+if grep -q 'graceful shutdown complete' "$LAB_DIR/forced-journal.log"; then
+    echo 'Unexpected forced cleanup record; stop and investigate' >&2
+    exit 1
+fi
+cat "$LAB_DIR/graceful-manager.log" "$LAB_DIR/forced-manager.log" > "$LAB_DIR/managed_comparison.log"
+```
+
+**Expected result:** The real manager reports normal exit status 0 for the handled SIGTERM and signal status 9 for SIGKILL; the journal records the worker PID and graceful cleanup only for the graceful unit. Compare those manager values with the shell harness status 137 rather than calling them interchangeable. On failure retain all logs, stop the named lab units, and investigate before continuing.
+
+**Save:** `$LAB_DIR/managed_commands.log`, `$LAB_DIR/graceful-manager.log`, `$LAB_DIR/forced-manager.log`, `$LAB_DIR/graceful-journal.log`, `$LAB_DIR/forced-journal.log`, `$LAB_DIR/managed_comparison.log`
+'''
+_service_lab['steps'][6] += r'''
+
+Append the real journal and manager evidence to the report. The worker's transaction messages are simulation text; this lab performs no fulfillment or database commit.
+
+```bash
+for EVIDENCE in managed_commands.log graceful-manager.log forced-manager.log graceful-journal.log forced-journal.log; do
+    printf '\n## %s\n' "$EVIDENCE" >> "$LAB_DIR/service_lifecycle_report.md"
+    cat "$LAB_DIR/$EVIDENCE" >> "$LAB_DIR/service_lifecycle_report.md"
+done
+```
+
+**Expected result:** The report includes both the direct-child shell statuses and actual systemd user-unit wait status, PIDs and precise journal timestamps without claiming a business commit.
+
+**Save:** `$LAB_DIR/service_lifecycle_report.md`
+'''
+_service_lab['steps'][7] = _service_lab['steps'][7].replace('cd /tmp\n', 'systemctl --user stop "$UNIT_PREFIX-graceful.service"\nsystemctl --user reset-failed "$UNIT_PREFIX-forced.service"\ncd /tmp\n', 1)
+for _lab, _old_path, _final_path in (
+    (_permission_lab, '/tmp/day_006_perm_evidence.log', 'day-006-permission-evidence.log'),
+    (_service_lab, '/tmp/day_006_service_lifecycle_report.md', 'day-006-service-lifecycle-report.md')
+):
+    _lab['steps'][7] = _lab['steps'][7].replace('cd /tmp', 'cd "$LAB_DIR/.."').replace(_old_path, _final_path)
+    _lab['steps'][7] += '\nThe final evidence file is saved in the parent of the uniquely created lab workspace; note that directory before closing the terminal. Only the lab-owned workspace is removed.'
+_service_lab['mode'] += ' Actual systemd user-unit PIDs, manager termination results and journal records are observed only when the required checkpoint executes successfully; boot sequence and real business transactions remain untested.'
+_service_lab['accept'] += ' The manager checkpoint must show exit 0 versus signal 9 and save both PID-scoped journal histories. A file log alone does not satisfy Practice.'
 DATA.update(sources=SOURCES, access_date=ACCESS_DATE)
+
+_extra_sections = {
+    'topic-01-subtopic-02': ('https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s02.html', 'FHS 3.0 — 3.2. Requirements', 'This short page is itself the complete named FHS subsection; no section fragment is needed.'),
+    'topic-02-subtopic-02': ('https://man7.org/linux/man-pages/man1/bash.1.html#REDIRECTION', 'Bash — REDIRECTION', None),
+    'topic-02-subtopic-03': ('https://man7.org/linux/man-pages/man1/systemd-run.1.html#DESCRIPTION', 'systemd-run — DESCRIPTION', None)
+}
+for _topic in DATA['topics']:
+    for _anchor, (_url, _heading, _reason) in _extra_sections.items():
+        _pattern = r'(<h4 id="' + _anchor + r'">.*?)(?=<h4>|<table>|$)'
+        _citation = f'<p><strong class="side-heading">Further study:</strong> <a href="{_url}">{_heading} (accessed {ACCESS_DATE})</a>.'
+        if _reason:
+            _citation += ' Whole-document reason: ' + _reason
+        _citation += '</p>'
+        _topic['technical'] = re.sub(_pattern, lambda m: m.group(1) + _citation, _topic['technical'], count=1, flags=re.S)
+
+DATA['review_records'] = {
+    'source_ledger': {
+        **{f'https://man7.org/linux/man-pages/man{manual[-1]}/{manual}.html#DESCRIPTION': {'heading_opened': 'DESCRIPTION', 'rfc_status': 'not applicable'} for manual in ['chmod.2', 'credentials.7', 'syscall.2', 'path_resolution.7', 'chown.2', 'systemd.service.5', 'signal.7', 'fork.2', 'journalctl.1', 'pipe.2', 'systemd.unit.5', 'wait.2', 'systemd-run.1']},
+        **{url: {'heading_opened': heading, 'rfc_status': 'not applicable'} for url, heading in _gcp_sources.values()},
+        'https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s02.html': {'heading_opened': '3.2. Requirements', 'rfc_status': 'not applicable', 'whole_document_reason': _extra_sections['topic-01-subtopic-02'][2]},
+        'https://man7.org/linux/man-pages/man1/bash.1.html#REDIRECTION': {'heading_opened': 'REDIRECTION', 'rfc_status': 'not applicable'}
+    },
+    'product_claims': [
+        {'claim': 'OS Login links Linux login access to Google identity and IAM permissions at instance or project level.', 'section_url': _gcp_sources['os-login'][0], 'heading_opened': _gcp_sources['os-login'][1]},
+        {'claim': 'The Linux Ops Agent supports a systemd_journald logging receiver; collecting those records requires receiver and pipeline configuration.', 'section_url': _gcp_sources['logging'][0], 'heading_opened': _gcp_sources['logging'][1]},
+        {'claim': 'Cloud Run collects container logs written to supported locations including stdout and stderr.', 'section_url': _gcp_sources['run-logging'][0], 'heading_opened': _gcp_sources['run-logging'][1]}
+    ],
+    'visual_reasons': {
+        'Day 6: Linux System Architecture, Shell Pipelines, and Process Supervision': 'Replaced the static cross-concept topology, whose arrows did not represent one executable lifecycle, with the eligible syscall request/return flow beside the kernel/user-space subtopic. Its useful concepts remain in prose, tables and existing service diagrams.',
+        SYSCALL_FLOW['title']: 'Eligible multi-step request/return lifecycle, explicitly requested to explain kernel space, user space and system calls. Every node has a local concept icon; numbered transitions and the caption explain the enforcement boundary.',
+        'User-space file request crossing the kernel permission boundary': 'Retained existing eligible file-open access sequence.',
+        'Boot-to-service control flow and process streams': 'Retained existing eligible service-start and termination sequence.',
+        'Order API configuration permission incident before and after repair': 'Retained existing permission-check incident sequence.',
+        'Fulfillment replay incident before and after idempotency repair': 'Retained existing worker-termination/replay incident sequence.'
+    }
+}
