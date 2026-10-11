@@ -686,7 +686,9 @@ DATA = {   'access_date': '2026-10-04',
                                                   'unmanaged autocommit execution path that leaves orphaned order '
                                                   'headers when line items fail with an atomic transaction path that '
                                                   'triggers complete rollback and enforces the duplicate fulfillment '
-                                                  'invariant.</figcaption>\n'
+                                                  'invariant. Scope is limited to transactional boundary state '
+                                                  'transitions; the diagram does not prove database engine crash '
+                                                  'recovery or physical storage persistence.</figcaption>\n'
                                                   '</figure>',
                                       'expected': 'All order insertions execute within explicit BEGIN/COMMIT blocks; '
                                                   'any error triggers immediate ROLLBACK, leaving zero partial writes.',
@@ -1994,7 +1996,9 @@ DATA = {   'access_date': '2026-10-04',
                                                   '<figcaption>Figure 16.4: Concurrency race condition diagram '
                                                   'contrasting Read Committed non-repeatable read anomalies that cause '
                                                   'inventory overselling with atomic conditional updates that preserve '
-                                                  'stock invariants.</figcaption>\n'
+                                                  'stock invariants. Scope is limited to concurrent execution race '
+                                                  'conditions; the diagram does not prove database row lock queuing '
+                                                  'throughput or replication lag.</figcaption>\n'
                                                   '</figure>',
                                       'expected': 'Execute atomic conditional updates (WHERE stock >= 1) with database '
                                                   'CHECK constraints enforcing stock >= 0.',

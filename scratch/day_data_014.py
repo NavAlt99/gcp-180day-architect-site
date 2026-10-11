@@ -501,7 +501,9 @@ DATA = { 'access_date': '2026-10-04',
                                           '<figcaption>Figure 14.3: Incident retrospective contrasting an unreviewed '
                                           'direct commit to main causing production API schema breakage versus branch '
                                           'protection policies and automated Cloud Build PR gates catching defects '
-                                          'before merge.</figcaption>\n'
+                                          'before merge. Scope is limited to branch promotion gate comparisons; the '
+                                          'diagram does not prove end-to-end build execution or production deployment '
+                                          'success.</figcaption>\n'
                                           '</figure>',
                               'expected': 'All changes isolate on feature branches; pull requests validate contract '
                                           'tests automatically before merge approval.',
@@ -1803,7 +1805,9 @@ DATA = { 'access_date': '2026-10-04',
                                           '<figcaption>Figure 14.4: Incident analysis showing how blind JSON '
                                           'deserialization of non-JSON HTML 502 responses causes parser crashes and '
                                           'duplicate payments, remediated by defensive Content-Type checking and '
-                                          'Idempotency-Key headers.</figcaption>\n'
+                                          'Idempotency-Key headers. Scope is limited to client response parsing and '
+                                          'retry behavior; the diagram does not prove payment gateway settlement or '
+                                          'network transport reliability.</figcaption>\n'
                                           '</figure>',
                               'expected': 'Client verifies Content-Type header before JSON parsing; requests supply '
                                           'unique Idempotency-Key to prevent duplicate fulfillment.',

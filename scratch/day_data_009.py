@@ -5,137 +5,50 @@ ACCESS_DATE = '2026-10-04'
 SOURCES = {'topic-01': ('Linux Kernel KVM API General Description (accessed 2026-10-04)', 'https://docs.kernel.org/virt/kvm/api.html#general-description'), 'topic-02': ('namespaces(7) Linux namespaces overview description (accessed 2026-10-04)', 'https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION')}
 
 DATA = { 'access_date': '2026-10-04',
-  'arch_diagram': { 'boundaries': [ { 'color': '#f59e0b',
-                                      'h': 140,
-                                      'label': 'LIMIT / FAILURE BOUNDARY',
-                                      'w': 530,
-                                      'x': 430,
-                                      'y': 230}],
-                    'caption': "Scope: a teaching topology for Day 9's day 9 — vm and container isolation path. It "
-                               'shows ownership boundaries and evidence flow; it does not prove a deployed Google '
-                               'Cloud topology, capacity, or production behavior.',
-                    'components': [ { 'detail': 'workload input & criteria',
-                                      'h': 52,
-                                      'icon': '../assets/icons/generic/client.svg',
-                                      'name': 'Client / probe',
-                                      'stroke': '#38bdf8',
-                                      'w': 190,
-                                      'x': 70,
-                                      'y': 92},
-                                    { 'detail': 'Day 9 — VM and container isolation',
-                                      'h': 52,
-                                      'icon': '../assets/icons/gcp/core/compute-engine.svg',
-                                      'name': 'Boundary under study',
-                                      'stroke': '#f59e0b',
-                                      'w': 250,
-                                      'x': 465,
-                                      'y': 92},
-                                    { 'detail': 'KVM hypervisor · Sovereign guest kernel',
-                                      'h': 64,
-                                      'icon': '../assets/icons/generic/server.svg',
-                                      'name': 'Compute Engine VM Stack',
-                                      'stroke': '#38bdf8',
-                                      'w': 270,
-                                      'x': 70,
-                                      'y': 222},
-                                    { 'detail': 'GKE / Cloud Run · Shared host kernel',
-                                      'h': 64,
-                                      'icon': '../assets/icons/gcp/core/gke.svg',
-                                      'name': 'Shared Host Container Stack',
-                                      'stroke': '#38bdf8',
-                                      'w': 270,
-                                      'x': 70,
-                                      'y': 312},
-                                    { 'detail': 'cgroups v2 limit vs seccomp sandbox',
-                                      'h': 62,
-                                      'icon': '../assets/icons/generic/policy.svg',
-                                      'name': 'Resource vs Security Gate',
-                                      'stroke': '#f43f5e',
-                                      'w': 235,
-                                      'x': 455,
-                                      'y': 252},
-                                    { 'detail': 'vCPU / Namespaces verified',
-                                      'h': 62,
-                                      'icon': '../assets/icons/generic/endpoint.svg',
-                                      'name': 'Isolated Execution State',
-                                      'stroke': '#34d399',
-                                      'w': 220,
-                                      'x': 715,
-                                      'y': 252},
-                                    { 'detail': 'Workload placement rules & criteria',
-                                      'h': 52,
-                                      'icon': '../assets/icons/generic/decision.svg',
-                                      'name': 'Architectural Isolation Policy',
-                                      'stroke': '#38bdf8',
-                                      'w': 280,
-                                      'x': 70,
-                                      'y': 472},
-                                    { 'detail': 'Resource limits vs Security isolation',
-                                      'h': 52,
-                                      'icon': '../assets/icons/generic/artifact.svg',
-                                      'name': 'Isolation Worksheet Exit Artifact',
-                                      'stroke': '#34d399',
-                                      'w': 310,
-                                      'x': 465,
-                                      'y': 472}],
-                    'desc': 'Three-tier foundation topology for Day 9 — VM and container isolation. It separates '
-                            'ingress and demand, runtime and data, and governance and decision evidence, with probes '
-                            'at each ownership boundary.',
-                    'flows': [ {'label': 'SPECIFY', 'type': 'ok', 'x1': 260, 'x2': 465, 'y1': 118, 'y2': 118},
-                               {'label': 'VM PATH', 'type': 'ok', 'x1': 340, 'x2': 455, 'y1': 254, 'y2': 270},
-                               {'label': 'CONTAINER', 'type': 'warn', 'x1': 340, 'x2': 455, 'y1': 344, 'y2': 295},
-                               {'label': 'ISOLATE', 'type': 'ok', 'x1': 690, 'x2': 715, 'y1': 283, 'y2': 283},
-                               {'label': 'VERIFY', 'type': 'ok', 'x1': 350, 'x2': 465, 'y1': 498, 'y2': 498}],
-                    'height': 690,
-                    'layers': [ { 'desc': 'request, client, edge',
-                                  'fill': '#12283b',
-                                  'h': 110,
-                                  'name': 'TIER 1 · INGRESS / DEMAND',
-                                  'title_color': '#7dd3fc',
-                                  'w': 1080,
-                                  'x': 20,
-                                  'y': 55},
-                                { 'desc': 'state, process, path',
-                                  'fill': '#1b2038',
-                                  'h': 230,
-                                  'name': 'TIER 2 · RUNTIME / DATA',
-                                  'title_color': '#c4b5fd',
-                                  'w': 1080,
-                                  'x': 20,
-                                  'y': 185},
-                                { 'desc': 'policy, evidence, exit',
-                                  'fill': '#2b1d2f',
-                                  'h': 120,
-                                  'name': 'TIER 3 · GOVERNANCE / DECISION',
-                                  'title_color': '#f9a8d4',
-                                  'w': 1080,
-                                  'x': 20,
-                                  'y': 435}],
-                    'nodes': [ ('1. Workload Ingress & Demarcation', 'Client Ingress & Packaging Boundary'),
-                               ( '2. Virtual Machine Sovereign Stacks',
-                                 'Type 1/KVM Hypervisor & Independent Guest Kernels'),
-                               ( '3. Kernel Container Isolation Gates',
-                                 'Namespaces, cgroups v2, Seccomp & Capabilities'),
-                               ( '4. Governance & Isolation Verification',
-                                 'Resource Enforcement vs Security Boundary Worksheet')],
-                    'probes': [ { 'color': '#38bdf8',
-                                  'cx': 250,
-                                  'cy': 118,
-                                  'desc': 'Workload requirements check',
-                                  'label': 'P1: Isolation Contract Criteria'},
-                                { 'color': '#f59e0b',
-                                  'cx': 570,
-                                  'cy': 252,
-                                  'desc': 'Kernel privilege and module check',
-                                  'label': 'P2: Kernel vs User Space Boundary'},
-                                { 'color': '#34d399',
-                                  'cx': 620,
-                                  'cy': 472,
-                                  'desc': 'Distinguish resource vs security',
-                                  'label': 'P3: Resource Throttling vs Security Trap'}],
-                    'title': 'Day 9 foundation path — Day 9 — VM and container isolation',
-                    'type': 'topology',
-                    'width': 1120},
+  'arch_diagram': {
+      'type': 'topology',
+      'title': 'Day 9: Hardware-Assisted Hypervisor and Kernel Namespace Isolation Architecture',
+      'desc': 'Operational topology contrasting KVM hardware-assisted virtual machine hypervisors with shared-kernel container namespaces, cgroups v2 resource throttles, and seccomp filters.',
+      'caption': 'Scope: an illustrative architecture topology for Day 9 VM and container isolation; it does not prove a deployed Google Cloud production topology or capacity.',
+      'width': 1120,
+      'height': 690,
+      'nodes': [
+          ('1. Workload Ingress & Demarcation', 'Client Ingress & Packaging Boundary'),
+          ('2. Virtual Machine Sovereign Stacks', 'Type 1/KVM Hypervisor & Independent Guest Kernels'),
+          ('3. Kernel Container Isolation Gates', 'Namespaces, cgroups v2, Seccomp & Capabilities'),
+          ('4. Governance & Isolation Verification', 'Resource Enforcement vs Security Boundary Worksheet')
+      ],
+      'layers': [
+          {'name': 'TIER 1 · WORKLOAD DEMAND & DEMARCATION', 'desc': 'Workload input, placement criteria, and tenant separation boundaries', 'x': 20, 'y': 55, 'w': 1080, 'h': 110, 'fill': '#12283b', 'title_color': '#7dd3fc'},
+          {'name': 'TIER 2 · RUNTIME ISOLATION & KERNEL PRIVILEGE', 'desc': 'KVM hypervisor rings, sovereign guest kernels, namespaces, and cgroups v2', 'x': 20, 'y': 185, 'w': 1080, 'h': 230, 'fill': '#1b2038', 'title_color': '#c4b5fd'},
+          {'name': 'TIER 3 · GOVERNANCE & SECURITY VERIFICATION', 'desc': 'Policy enforcement, seccomp syscall filters, and isolation worksheet exit evidence', 'x': 20, 'y': 435, 'w': 1080, 'h': 120, 'fill': '#2b1d2f', 'title_color': '#f9a8d4'}
+      ],
+      'boundaries': [
+          {'label': 'LIMIT / FAILURE BOUNDARY', 'x': 430, 'y': 230, 'w': 530, 'h': 140, 'color': '#f59e0b'}
+      ],
+      'components': [
+          {'name': 'Client / Probe Ingress', 'detail': 'Workload input & isolation criteria', 'icon': '../assets/icons/generic/client.svg', 'stroke': '#38bdf8', 'w': 190, 'h': 52, 'x': 70, 'y': 92},
+          {'name': 'Hypervisor vs Container Gate', 'detail': 'KVM hardware traps & cgroups v2 quotas', 'icon': '../assets/icons/gcp/core/compute-engine.svg', 'stroke': '#f59e0b', 'w': 250, 'h': 52, 'x': 465, 'y': 92},
+          {'name': 'Compute Engine VM Stack', 'detail': 'KVM hypervisor · Sovereign guest kernel', 'icon': '../assets/icons/generic/server.svg', 'stroke': '#38bdf8', 'w': 270, 'h': 64, 'x': 70, 'y': 222},
+          {'name': 'Shared Host Container Stack', 'detail': 'GKE / Cloud Run · Shared host kernel', 'icon': '../assets/icons/gcp/core/gke.svg', 'stroke': '#38bdf8', 'w': 270, 'h': 64, 'x': 70, 'y': 312},
+          {'name': 'Resource vs Security Gate', 'detail': 'cgroups v2 limit vs seccomp sandbox', 'icon': '../assets/icons/generic/policy.svg', 'stroke': '#f43f5e', 'w': 235, 'h': 62, 'x': 455, 'y': 252},
+          {'name': 'Isolated Execution State', 'detail': 'vCPU / Namespaces verified', 'icon': '../assets/icons/generic/endpoint.svg', 'stroke': '#34d399', 'w': 220, 'h': 62, 'x': 715, 'y': 252},
+          {'name': 'Architectural Isolation Policy', 'detail': 'Workload placement rules & criteria', 'icon': '../assets/icons/generic/decision.svg', 'stroke': '#38bdf8', 'w': 280, 'h': 52, 'x': 70, 'y': 472},
+          {'name': 'Isolation Worksheet Exit Artifact', 'detail': 'Resource limits vs Security isolation', 'icon': '../assets/icons/generic/artifact.svg', 'stroke': '#34d399', 'w': 310, 'h': 52, 'x': 465, 'y': 472}
+      ],
+      'flows': [
+          {'label': 'SPECIFY', 'type': 'ok', 'x1': 260, 'x2': 465, 'y1': 118, 'y2': 118},
+          {'label': 'VM PATH', 'type': 'ok', 'x1': 340, 'x2': 455, 'y1': 254, 'y2': 270},
+          {'label': 'CONTAINER', 'type': 'warn', 'x1': 340, 'x2': 455, 'y1': 344, 'y2': 295},
+          {'label': 'ISOLATE', 'type': 'ok', 'x1': 690, 'x2': 715, 'y1': 283, 'y2': 283},
+          {'label': 'VERIFY', 'type': 'ok', 'x1': 350, 'x2': 465, 'y1': 498, 'y2': 498}
+      ],
+      'probes': [
+          {'color': '#38bdf8', 'cx': 250, 'cy': 118, 'label': 'P1: Isolation Contract Criteria'},
+          {'color': '#f59e0b', 'cx': 570, 'cy': 252, 'label': 'P2: Kernel vs User Space Boundary'},
+          {'color': '#34d399', 'cx': 620, 'cy': 472, 'label': 'P3: Resource Throttling vs Security Trap'}
+      ]
+  },
   'completion_html': '<div class="completion-box" id="completion-box-009">\n'
                      '<h3>Day 9 Acceptance Checklist</h3>\n'
                      '<ul class="checklist">\n'
@@ -1888,3 +1801,64 @@ DATA = { 'access_date': '2026-10-04',
                 'title': 'Container isolation'}],
   'work_block': 'Days 1–17 — Foundations'}
 
+
+
+# --- POST-PROCESSING ENHANCEMENTS FOR DAY 9 ---
+import re, urllib.parse
+
+_t0 = DATA['topics'][0]
+_t0['technical'] = _t0['technical'].replace(
+    '<h4>The Linux KVM Subsystem and QEMU Userspace Model</h4>',
+    '<p><strong class="side-heading">Core hardware virtualization architectural mechanisms:</strong></p>\n<ul>\n<li><strong class="keyword">Intel VT-x / AMD-V (CPU Virtualization)</strong>: Adds specialized CPU modes—such as Intel VMX Root and Non-Root modes or AMD SVM (Secure Virtual Machine)—allowing guest operating systems to execute privileged instructions directly on the physical processor.</li>\n<li><strong class="keyword">EPT / RVI (Memory Virtualization)</strong>: Intel Extended Page Tables (EPT) and AMD Rapid Virtualization Indexing (RVI, or Nested Page Tables) handle two-stage memory address translation directly in hardware. This eliminates the heavy overhead of maintaining software shadow page tables.</li>\n<li><strong class="keyword">vCPUs (Virtual CPUs)</strong>: Logical processing units assigned by the hypervisor to a virtual machine, scheduled directly onto physical CPU cores via hardware virtualization extensions.</li>\n<li><strong class="keyword">IOMMU (Intel VT-d / AMD-Vi)</strong>: Hardware-level Input/Output Memory Management Units that allow virtual machines to directly access physical hardware like GPUs and network cards (device passthrough).</li>\n</ul>\n\n<p><strong class="side-heading">How hardware-assisted virtualization operates:</strong></p>\n<ul>\n<li><strong class="keyword">Privilege Separation</strong>: The hypervisor runs in a high-privilege root mode, while the guest operating system runs in non-root mode.</li>\n<li><strong class="keyword">VM Exits and Entries</strong>: When a guest OS attempts a sensitive hardware-level action, a VM exit safely transfers control to the hypervisor, which processes the request and hands control back via a VM entry.</li>\n<li><strong class="keyword">Performance Gain</strong>: Older methods relied on slow software instruction interception or kernel modification (paravirtualization). Hardware extensions execute code directly, making multi-tenant cloud servers and local hypervisors like VMware Workstation or KVM practical.</li>\n</ul>' + '\n\n<h4>The Linux KVM Subsystem and QEMU Userspace Model</h4>',
+    1
+)
+_t0['technical'] = _t0['technical'].replace(
+    '<h4>Compute Engine Hypervisor Architecture and Shielded VM Security</h4>',
+    '<p><strong class="side-heading">The Linux KVM Subsystem (Kernel Space):</strong></p>\n<ul>\n<li><strong class="keyword">Hypervisor Role</strong>: KVM converts the Linux kernel into a Type-1 (bare-metal) hypervisor by loading kernel modules (<kbd>kvm.ko</kbd>, plus hardware-specific modules like <kbd>kvm-intel.ko</kbd> or <kbd>kvm-amd.ko</kbd>).</li>\n<li><strong class="keyword">Hardware Acceleration</strong>: It leverages hardware virtualization extensions (such as Intel VT-x or AMD-V) to run guest CPU instructions directly on the physical processor at near-native speed.</li>\n<li><strong class="keyword">Process Representation</strong>: Each virtual machine runs as a standard Linux process managed by the kernel scheduler and memory manager.</li>\n<li><strong class="keyword">The /dev/kvm Interface</strong>: Userspace programs interact with KVM via the <kbd>/dev/kvm</kbd> character device node using ioctl system calls to create VMs, allocate guest memory, and inject interrupts.</li>\n</ul>\n\n<p><strong class="side-heading">The QEMU Userspace Model:</strong></p>\n<ul>\n<li><strong class="keyword">Device Emulation</strong>: KVM alone only handles CPU and memory virtualization; it relies on QEMU in userspace to emulate complete system hardware—including disk controllers, network cards, graphic adapters, and BIOS/UEFI firmware.</li>\n<li><strong class="keyword">VM Exits and Hand-offs</strong>: When a guest operating system tries to access a virtualized device or trigger a privileged event that KVM cannot handle directly, a VM exit occurs. Execution transfers from KVM to the QEMU userspace process to handle the device emulation in software before returning control back to the guest.</li>\n<li><strong class="keyword">Paravirtualization (Virtio)</strong>: To bypass slow device emulation overhead for high-throughput disk and network I/O, QEMU and KVM utilize virtio paravirtualized drivers, allowing the guest and host to communicate efficiently through shared memory rings.</li>\n<li><strong class="keyword">Management &amp; Control</strong>: QEMU acts as the Virtual Machine Monitor (VMM), often orchestrated via higher-level management APIs and tools like <kbd>libvirt</kbd> and <kbd>virt-manager</kbd>.</li>\n</ul>' + '\n\n<h4>Compute Engine Hypervisor Architecture and Shielded VM Security</h4>',
+    1
+)
+_t0['technical'] = _t0['technical'].replace(
+    '<h4>Guest Kernel Autonomy vs Hypervisor Management Overhead</h4>',
+    '<p><strong class="side-heading">Compute Engine Hypervisor Architecture:</strong></p>\n<ul>\n<li><strong class="keyword">Direct Hardware Access</strong>: The hypervisor operates as a bare-metal abstraction layer, scheduling vCPUs and managing physical memory without a general-purpose host operating system in the data path.</li>\n<li><strong class="keyword">Verified Boot Stack</strong>: Physical servers execute a cryptographically verified boot chain where every layer—from the physical host firmware up to the hypervisor—must pass digital signature validation before loading.</li>\n<li><strong class="keyword">Tenant Isolation</strong>: Hardware-assisted virtualization extensions (Intel VT-x / AMD-V) and memory management unit (IOMMU) controls isolate guest memory spaces and network traffic per project and instance.</li>\n</ul>\n\n<p><strong class="side-heading">Shielded VM Security Components:</strong></p>\n<p>Google Cloud Shielded VMs extend protection from the hypervisor layer into the guest operating system using three primary capabilities:</p>\n<ul>\n<li><strong class="keyword">Secure Boot</strong>: Uses Unified Extensible Firmware Interface (UEFI) firmware to verify the digital signatures of all early-boot components, kernels, and kernel modules before they execute, blocking unsigned bootloaders or rootkits. (Enabled via explicit opt-in due to compatibility requirements like ARM64 or out-of-tree drivers).</li>\n<li><strong class="keyword">Virtual Trusted Platform Module (vTPM)</strong>: Provides a hardware-grade, virtualized TPM 2.0 chip dedicated to the instance. It performs Measured Boot by recording cryptographic hashes of boot components into Platform Configuration Registers (PCRs) and securely stores encryption keys. (Enabled by default).</li>\n<li><strong class="keyword">Integrity Monitoring</strong>: Continuously tracks boot measurements against a baseline policy through Cloud Monitoring/Operations suites to flag unexpected kernel or boot modifications. (Enabled by default alongside the vTPM).</li>\n</ul>' + '\n\n<h4>Guest Kernel Autonomy vs Hypervisor Management Overhead</h4>',
+    1
+)
+
+def _link_keywords(html_text):
+    def _repl(m):
+        inner = m.group(1)
+        if '<a ' in inner:
+            return m.group(0)
+        clean_text = re.sub(r'<[^>]+>', '', inner).strip()
+        search_url = 'http://www.google.com/search?q=' + urllib.parse.quote_plus(clean_text)
+        return '<strong class="keyword"><a href="' + search_url + '" target="_blank" rel="noopener">' + inner + '</a></strong>'
+    return re.sub(r'<strong class="keyword">(.*?)</strong>', _repl, html_text)
+
+for _topic in DATA['topics']:
+    _topic['technical'] = _link_keywords(_topic['technical'])
+
+for _topic in DATA['topics']:
+    _technical = _topic['technical']
+    _headings = re.findall(r'<h4>(.*?)</h4>', _technical, re.S)
+    _links = []
+    for _number, _heading in enumerate(_headings, 1):
+        _anchor = f"{_topic['key']}-subtopic-{_number:02d}"
+        _technical = _technical.replace(
+            '<h4>' + _heading + '</h4>',
+            f'<h4 id="{_anchor}">' + _heading + '</h4>', 1
+        )
+        _links.append(f'<li><a href="#{_anchor}">{_heading}</a></li>')
+    _linked_list = '<ul>' + ''.join(_links) + '</ul>'
+    _technical = re.sub(
+        r'(<p><strong class="side-heading">Subtopics in this discussion:</strong></p>)\s*<ol>.*?</ol>',
+        lambda match: match.group(1) + _linked_list,
+        _technical, count=1, flags=re.S
+    )
+    _topic['technical'] = _technical
+    _topic_key = _topic['key']
+    _nav_links = f'<p><a href="#{_topic_key}-technical">Technical discussion →</a> <a href="#{_topic_key}-problem">Real-world problem →</a> <a href="#{_topic_key}-lab">Step-by-step lab →</a></p>'
+    _card_pat = r'(<article class="topic-card overview" id="' + _topic_key + r'-overview">.*?)(</article>)'
+    DATA['part1_html'] = re.sub(
+        _card_pat,
+        lambda m: m.group(1) + '<p><strong class="side-heading">Linked subtopics:</strong></p>' + _linked_list + '\n' + _nav_links + '\n' + m.group(2),
+        DATA['part1_html'], count=1, flags=re.S
+    )

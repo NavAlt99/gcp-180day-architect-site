@@ -85,135 +85,53 @@ DATA = {'contract_version': 2,
                     'Exit Artifact Verified\':\'Verify Exit Artifact\';">Verify Exit Artifact</button>\n'
                     '</div>\n'
                     '</div>',
- 'arch_diagram': {'title': 'Day 8 foundation path — Day 8 — CPU, memory and diagnostic signals',
-                  'desc': 'Three-tier foundation topology for Day 8 — CPU, memory and diagnostic signals. It separates '
-                          'ingress and demand, runtime and data, and governance and decision evidence, with probes at '
-                          'each ownership boundary.',
-                  'caption': "Scope: a teaching topology for Day 8's day 8 — cpu, memory and diagnostic signals path. "
-                             'It shows ownership boundaries and evidence flow; it does not prove a deployed Google '
-                             'Cloud topology, capacity, or production behavior.',
-                  'width': 1120,
-                  'height': 690,
-                  'nodes': [('1. Workload Demand & Scheduling', 'CPU Run Queues & CFS Context Switches'),
-                            ('2. Memory & Virtual Paging', 'Page Cache, Dirty Writeback & Swap'),
-                            ('3. Starvation & Saturation Signals', 'PSI Metrics & OOM Killer Heuristics'),
-                            ('4. Boundary Diagnostics & Tooling', 'Structured Querying vs Packet Inspection')],
-                  'layers': [{'name': 'TIER 1 · INGRESS / DEMAND',
-                              'desc': 'request, client, edge',
-                              'x': 20,
-                              'y': 55,
-                              'w': 1080,
-                              'h': 110,
-                              'fill': '#12283b',
-                              'title_color': '#7dd3fc'},
-                             {'name': 'TIER 2 · RUNTIME / DATA',
-                              'desc': 'state, process, path',
-                              'x': 20,
-                              'y': 185,
-                              'w': 1080,
-                              'h': 230,
-                              'fill': '#1b2038',
-                              'title_color': '#c4b5fd'},
-                             {'name': 'TIER 3 · GOVERNANCE / DECISION',
-                              'desc': 'policy, evidence, exit',
-                              'x': 20,
-                              'y': 435,
-                              'w': 1080,
-                              'h': 120,
-                              'fill': '#2b1d2f',
-                              'title_color': '#f9a8d4'}],
-                  'boundaries': [{'x': 430,
-                                  'y': 230,
-                                  'w': 530,
-                                  'h': 140,
-                                  'color': '#f59e0b',
-                                  'label': 'LIMIT / FAILURE BOUNDARY'}],
-                  'components': [{'x': 70,
-                                  'y': 92,
-                                  'w': 190,
-                                  'h': 52,
-                                  'stroke': '#38bdf8',
-                                  'name': 'Client / probe',
-                                  'detail': 'input + expectation',
-                                  'icon': '../assets/icons/generic/client.svg'},
-                                 {'x': 465,
-                                  'y': 92,
-                                  'w': 250,
-                                  'h': 52,
-                                  'stroke': '#f59e0b',
-                                  'name': 'Boundary under study',
-                                  'detail': 'Day 8 — CPU, memory and diagnostic signals',
-                                  'icon': '../assets/icons/gcp/core/compute-engine.svg'},
-                                 {'x': 860,
-                                  'y': 92,
-                                  'w': 190,
-                                  'h': 52,
-                                  'stroke': '#34d399',
-                                  'name': 'Observed result',
-                                  'detail': 'status / trace / artifact',
-                                  'icon': '../assets/icons/generic/outcome.svg'},
-                                 {'x': 180,
-                                  'y': 265,
-                                  'w': 220,
-                                  'h': 72,
-                                  'stroke': '#a78bfa',
-                                  'name': 'Control path',
-                                  'detail': 'owner + state transition',
-                                  'icon': '../assets/icons/generic/server.svg'},
-                                 {'x': 450,
-                                  'y': 265,
-                                  'w': 220,
-                                  'h': 72,
-                                  'stroke': '#f59e0b',
-                                  'name': 'Runtime or data state',
-                                  'detail': 'where the limit appears',
-                                  'icon': '../assets/icons/generic/storage.svg'},
-                                 {'x': 720,
-                                  'y': 265,
-                                  'w': 220,
-                                  'h': 72,
-                                  'stroke': '#34d399',
-                                  'name': 'Return / recovery path',
-                                  'detail': 'response + replay safety',
-                                  'icon': '../assets/icons/generic/event.svg'},
-                                 {'x': 195,
-                                  'y': 480,
-                                  'w': 220,
-                                  'h': 52,
-                                  'stroke': '#f9a8d4',
-                                  'name': 'Decision record',
-                                  'detail': 'accept / repair / defer',
-                                  'icon': '../assets/icons/generic/decision.svg'},
-                                 {'x': 710,
-                                  'y': 480,
-                                  'w': 220,
-                                  'h': 52,
-                                  'stroke': '#f59e0b',
-                                  'name': 'Verification boundary',
-                                  'detail': 'evidence meets exit',
-                                  'icon': '../assets/icons/generic/policy.svg'}],
-                  'flows': [{'x1': 260, 'y1': 118, 'x2': 465, 'y2': 118, 'type': 'blue', 'label': 'request'},
-                            {'x1': 715, 'y1': 118, 'x2': 860, 'y2': 118, 'type': 'ok', 'label': 'evidence'},
-                            {'x1': 590, 'y1': 144, 'x2': 590, 'y2': 265, 'type': 'warn', 'label': 'handoff'},
-                            {'x1': 400, 'y1': 301, 'x2': 450, 'y2': 301, 'type': 'ok', 'label': 'state'},
-                            {'x1': 670, 'y1': 301, 'x2': 720, 'y2': 301, 'type': 'ok', 'label': 'return'},
-                            {'x1': 290, 'y1': 337, 'x2': 305, 'y2': 480, 'type': 'blue', 'label': 'record'},
-                            {'x1': 830, 'y1': 337, 'x2': 820, 'y2': 480, 'type': 'ok', 'label': 'verify'}],
-                  'probes': [{'cx': 248,
-                              'cy': 104,
-                              'badge': 'P1',
-                              'label': 'PROBE 1 · input accepted',
-                              'color': '#38bdf8'},
-                             {'cx': 658,
-                              'cy': 277,
-                              'badge': 'P2',
-                              'label': 'PROBE 2 · boundary observed',
-                              'color': '#f59e0b'},
-                             {'cx': 918,
-                              'cy': 492,
-                              'badge': 'P3',
-                              'label': 'PROBE 3 · exit evidence',
-                              'color': '#34d399'}]},
+ 'arch_diagram': {
+     'type': 'topology',
+     'title': 'Day 8: CFS Process Scheduling, Virtual Memory Allocation, and Diagnostic Signals',
+     'desc': 'Operational topology tracing Linux Completely Fair Scheduler runqueues, MMU virtual memory paging and dirty page cache writeback, Pressure Stall Information (PSI), and CLI diagnostic probe pipelines.',
+     'caption': 'Scope: an illustrative architecture topology for Day 8 CPU scheduling, memory pressure, and diagnostic tooling; it does not prove a deployed Google Cloud production topology or capacity.',
+     'width': 1120,
+     'height': 690,
+     'nodes': [
+         ('1. Workload Demand & Scheduling', 'CPU Run Queues & CFS Context Switches'),
+         ('2. Memory & Virtual Paging', 'Page Cache, Dirty Writeback & Swap'),
+         ('3. Starvation & Saturation Signals', 'PSI Metrics & OOM Killer Heuristics'),
+         ('4. Boundary Diagnostics & Tooling', 'Structured Querying vs Packet Inspection')
+     ],
+     'layers': [
+         {'name': 'TIER 1 · WORKLOAD DEMAND & CPU RUNQUEUES', 'desc': 'CFS scheduling entities, context switches, and CPU quota accounting', 'x': 20, 'y': 55, 'w': 1080, 'h': 110, 'fill': '#12283b', 'title_color': '#7dd3fc'},
+         {'name': 'TIER 2 · MEMORY MANAGEMENT & PAGE CACHE', 'desc': 'MMU address translation, page faults, dirty writeback, and swap mechanics', 'x': 20, 'y': 185, 'w': 1080, 'h': 230, 'fill': '#1b2038', 'title_color': '#c4b5fd'},
+         {'name': 'TIER 3 · SATURATION SIGNALS & DIAGNOSTIC PIPELINE', 'desc': 'PSI pressure metrics, OOM killer heuristics, and CLI diagnostic probes (ss, tcpdump, jq)', 'x': 20, 'y': 435, 'w': 1080, 'h': 120, 'fill': '#2b1d2f', 'title_color': '#f9a8d4'}
+     ],
+     'boundaries': [
+         {'x': 100, 'y': 225, 'w': 920, 'h': 140, 'color': '#a78bfa', 'label': 'CPU SCHEDULING & CONTEXT SWITCH DOMAIN'},
+         {'x': 100, 'y': 455, 'w': 920, 'h': 85, 'color': '#f59e0b', 'label': 'KERNEL PRESSURE STALL & DIAGNOSTIC OBSERVABILITY ENCLAVE'}
+     ],
+     'components': [
+         {'x': 70, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#38bdf8', 'name': 'Workload Task / Thread', 'detail': 'CPU demands & context switch triggers', 'icon': '../assets/icons/generic/client.svg'},
+         {'x': 430, 'y': 92, 'w': 260, 'h': 52, 'stroke': '#38bdf8', 'name': 'Linux CFS Scheduler', 'detail': 'Red-black tree runqueue & timeslices', 'icon': '../assets/icons/generic/server.svg'},
+         {'x': 830, 'y': 92, 'w': 220, 'h': 52, 'stroke': '#34d399', 'name': 'Hardware CPU Core', 'detail': 'Ring 0/3 cycles & instruction execution', 'icon': '../assets/icons/gcp/core/compute-engine.svg'},
+         {'x': 140, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#a78bfa', 'name': 'Virtual Memory & MMU', 'detail': 'Page tables, minor/major faults & TLB', 'icon': '../assets/icons/generic/storage.svg'},
+         {'x': 440, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'Page Cache & Writeback', 'detail': 'Buffer cache, dirty pages & pdflush', 'icon': '../assets/icons/generic/database.svg'},
+         {'x': 740, 'y': 255, 'w': 250, 'h': 72, 'stroke': '#f59e0b', 'name': 'PSI & OOM Engine', 'detail': '/proc/pressure stall signals & oom_score', 'icon': '../assets/icons/generic/monitoring.svg'},
+         {'x': 140, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#34d399', 'name': 'Diagnostic Tools (ss/tcpdump)', 'detail': 'Socket states & raw network packet traces', 'icon': '../assets/icons/generic/event.svg'},
+         {'x': 740, 'y': 470, 'w': 250, 'h': 52, 'stroke': '#f9a8d4', 'name': 'Data Pipelines (jq/awk)', 'detail': 'Structured parsing & metric verification', 'icon': '../assets/icons/generic/decision.svg'}
+     ],
+     'flows': [
+         {'x1': 290, 'y1': 118, 'x2': 430, 'y2': 118, 'type': 'blue', 'label': 'enqueue task'},
+         {'x1': 690, 'y1': 118, 'x2': 830, 'y2': 118, 'type': 'ok', 'label': 'dispatch cycle'},
+         {'x1': 560, 'y1': 144, 'x2': 265, 'y2': 255, 'type': 'ok', 'label': 'allocate page'},
+         {'x1': 390, 'y1': 291, 'x2': 440, 'y2': 291, 'type': 'ok', 'label': 'cache write'},
+         {'x1': 690, 'y1': 291, 'x2': 740, 'y2': 291, 'type': 'warn', 'label': 'pressure stall'},
+         {'x1': 265, 'y1': 327, 'x2': 265, 'y2': 470, 'type': 'ok', 'label': 'probe sockets'},
+         {'x1': 865, 'y1': 327, 'x2': 865, 'y2': 470, 'type': 'blue', 'label': 'filter with jq'}
+     ],
+     'probes': [
+         {'cx': 290, 'cy': 118, 'badge': 'P1', 'label': 'PROBE 1 · CPU runqueue & context switch', 'color': '#38bdf8'},
+         {'cx': 690, 'cy': 291, 'badge': 'P2', 'label': 'PROBE 2 · Memory PSI stall thresholds', 'color': '#f59e0b'},
+         {'cx': 740, 'cy': 496, 'badge': 'P3', 'label': 'PROBE 3 · Socket diagnostic zero drops', 'color': '#34d399'}
+     ]
+ },
  'arch_svg_html': '',
  'arch_table_html': '',
  'lab_defaults': {},
@@ -612,14 +530,15 @@ DATA = {'contract_version': 2,
                                       '267"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" '
                                       'x="470" y="340">Verification observes stable PID, no new OOM kill and recovered '
                                       'synthetic-order latency.</text></svg><figcaption>Figure 8.3: Supplied incident '
-                                      'example. Supplied facts: illustrative records show worker killed with signal 137; '
-                                      'kernel dmesg confirms cgroup OOM for process 4182; host MemAvailable was over 26 '
-                                      'GB; cgroup memory.max was strictly 512 MB. Architectural inference: memory '
-                                      'exhaustion occurred strictly at the cgroup boundary (512 MB) rather than the '
-                                      'physical VM host boundary. Expected post-fix behavior: correlating cgroup '
-                                      'memory.events with process restart timestamps pinpoints the container limit; '
-                                      'adjusting the cgroup boundary eliminates the crash.</figcaption></figure>',
-                          'root': 'The worker process was constrained within a cgroup v2 container slice with '
+                                      'example. The before row shows a boundary mismatch; the after row shows the '
+                                      'evidence sequence and expected verification. Supplied facts: illustrative records show worker '
+                                      'killed with signal 137; kernel dmesg confirms cgroup OOM for process 4182; host MemAvailable '
+                                      'was over 26 GB; cgroup memory.max was strictly 512 MB. Architectural inference: memory '
+                                      'exhaustion occurred strictly at the cgroup boundary (512 MB) rather than the physical VM host '
+                                      'boundary. Expected post-fix behavior: correlating cgroup memory.events with process restart '
+                                      'timestamps pinpoints the container limit; adjusting the cgroup boundary eliminates the crash. '
+                                      'Scope is limited to memory boundary comparison; the diagram does not prove host memory headroom '
+                                      'or container memory stability under production load.</figcaption></figure>',                          'root': 'The worker process was constrained within a cgroup v2 container slice with '
                                   'memory.max configured to 512 MB. While the host VM initially showed low MemFree due '
                                   'to 12 GB of reclaimable page cache, the host actually had ample available memory '
                                   '(14 GB MemAvailable). Blindly resizing the host VM to 32 GB did not alter the 512 '
@@ -1368,14 +1287,13 @@ DATA = {'contract_version': 2,
                                       'matching record in the supplied fixture, not end-to-end service '
                                       'health.</text></svg><figcaption>Figure 8.4: Supplied incident example '
                                       'contrasting literal text matching with structured field selection. Supplied facts: '
-                                      'illustrative fixture contains 3 JSON orders with one failed status 503; grep for '
-                                      '"error" returns 0 lines while customers experienced 33% transaction failures. '
-                                      'Architectural inference: flat text pattern searching fails on structured JSON logs '
-                                      'because numeric status codes and non-"error" reason codes bypass substring '
-                                      'filters. Expected post-fix behavior: schema-aware JSON evaluation extracts the '
-                                      'failed record and isolates the exact failure timestamp and gateway timeout '
-                                      'cause.</figcaption></figure>',
-                          'root': 'The operational monitoring filter utilized unstructured text grepping for the '
+                                      'illustrative fixture contains 3 JSON orders with one failed status 503; grep for "error" '
+                                      'returns 0 lines while customers experienced 33% transaction failures. Architectural inference: '
+                                      'flat text pattern searching fails on structured JSON logs because numeric status codes and '
+                                      'non-"error" reason codes bypass substring filters. Expected post-fix behavior: schema-aware '
+                                      'JSON evaluation extracts the failed record and isolates the exact failure timestamp and gateway '
+                                      'timeout cause. Scope is limited to log filter expression matching; the diagram does not prove '
+                                      'end-to-end service availability or downstream error rates.</figcaption></figure>',                          'root': 'The operational monitoring filter utilized unstructured text grepping for the '
                                   'literal substring "error". The application generates structured JSON logs where '
                                   'failure events are encoded as numeric integer fields (`"status": 503`) accompanied '
                                   'by operational reason strings (`"upstream_connect_timeout"`). Because the record '
@@ -1550,11 +1468,9 @@ DATA = {'contract_version': 2,
                                'Latency: {rec.get(\'latency_ms\')}ms | Reason: {rec.get(\'detail\')}")\n'
                                '\n'
                                'if len(failed_records) == 2:\n'
-                               '    print("\n'
-                               'PASS: Successfully isolated 100% of server errors (ord-102 and ord-105).")\n'
+                               '    print("\\nPASS: Successfully isolated 100% of server errors (ord-102 and ord-105).")\n'
                                'else:\n'
-                               '    print(f"\n'
-                               'FATAL: Expected 2 failed records, found {len(failed_records)}")\n'
+                               '    print(f"\\nFATAL: Expected 2 failed records, found {len(failed_records)}")\n'
                                '    sys.exit(1)\n'
                                'EOF\n'
                                'python3 "$LAB_DIR/parse_orders.py" "$LAB_DIR/orders.jsonl" | tee '
@@ -1686,3 +1602,297 @@ DATA = {'contract_version': 2,
                                '**Expected result:** Workspace directory removed; environment clean.\n'
                                '\n'
                                '**Save:** none']}}]}
+
+
+import re
+import urllib.parse
+
+FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-sched-title d8-sched-desc" role="img" viewbox="0 0 940 420" xmlns="http://www.w3.org/2000/svg"><title id="d8-sched-title">Process scheduling lifecycle states and FCFS versus SJF execution timeline</title><desc id="d8-sched-desc">Upper tier illustrates process transitions between ready, running, and waiting states coordinated by context switching. Lower tier shows FCFS execution with 17 ms average wait time contrasted with SJF scheduling yielding 3 ms average wait time.</desc><defs><marker id="d8-sched-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker><marker id="d8-sched-arrow-warn" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#f59e0b"></path></marker><marker id="d8-sched-arrow-ok" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"></path></marker></defs>
+<!-- SECTION 1 HEADER -->
+<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="900" x="20" y="12"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" x="32" y="29">TIER 1 · PROCESS SCHEDULING STATE MACHINE &amp; CONTEXT SWITCHING LIFECYCLE</text>
+
+<!-- STATE BOXES -->
+<g fill="#121526" stroke-width="2">
+  <rect height="100" rx="8" stroke="#38bdf8" width="240" x="25" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/queue.svg" preserveaspectratio="xMidYMid meet" width="24" x="37" y="58"/>
+  <rect height="100" rx="8" stroke="#34d399" width="240" x="350" y="48"></rect>
+  <image height="24" href="../assets/icons/gcp/core/compute-engine.svg" preserveaspectratio="xMidYMid meet" width="24" x="362" y="58"/>
+  <rect height="100" rx="8" stroke="#f59e0b" width="240" x="675" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/storage.svg" preserveaspectratio="xMidYMid meet" width="24" x="687" y="58"/>
+</g>
+
+<!-- STATE TITLES -->
+<g fill="#fce7f3" font-family="monospace" font-size="13" font-weight="bold" text-anchor="middle">
+  <text x="145" y="76">READY QUEUE</text>
+  <text x="470" y="76">RUNNING STATE</text>
+  <text x="795" y="76">WAITING / BLOCKED</text>
+</g>
+
+<!-- STATE DETAILS -->
+<g fill="#a9b7cb" font-family="monospace" font-size="10.5" text-anchor="middle">
+  <text x="145" y="100">Runnable tasks awaiting CPU</text>
+  <text x="145" y="118">Sorted by vruntime (CFS tree)</text>
+  <text x="145" y="136">PCB queued in runqueue</text>
+
+  <text x="470" y="100">Active instruction execution</text>
+  <text x="470" y="118">User Ring 3 / Kernel Ring 0</text>
+  <text x="470" y="136">Hardware core allocated</text>
+
+  <text x="795" y="100">Blocked on disk or socket I/O</text>
+  <text x="795" y="118">Uninterruptible sleep (D state)</text>
+  <text x="795" y="136">Awaiting hardware interrupt</text>
+</g>
+
+<!-- TRANSITION ARROWS -->
+<g fill="none" stroke-width="2">
+  <path d="M265 85 L350 85" marker-end="url(#d8-sched-arrow)" stroke="#38bdf8"></path>
+  <path d="M350 115 L265 115" marker-end="url(#d8-sched-arrow)" stroke="#38bdf8"></path>
+  <path d="M590 85 L675 85" marker-end="url(#d8-sched-arrow-warn)" stroke="#f59e0b"></path>
+  <path d="M795 148 L795 172 L145 172 L145 148" marker-end="url(#d8-sched-arrow-ok)" stroke="#34d399"></path>
+</g>
+
+<!-- TRANSITION LABELS -->
+<g font-family="monospace" font-size="9.5" font-weight="bold" text-anchor="middle">
+  <text fill="#38bdf8" x="307" y="78">Dispatch</text>
+  <text fill="#94a3b8" x="307" y="130">Preempt</text>
+  <text fill="#f59e0b" x="632" y="78">I/O Wait</text>
+  <text fill="#34d399" x="470" y="167">I/O Complete (Interrupt handler restores PCB to Ready Queue)</text>
+</g>
+
+<!-- SECTION 2 HEADER -->
+<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="900" x="20" y="195"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" x="32" y="212">TIER 2 · CPU SCHEDULING ALGORITHM BENCHMARK: FCFS vs SJF METRIC ANALYSIS</text>
+
+<!-- FCFS TIMELINE -->
+<g font-family="monospace">
+  <text fill="#cbd5e1" font-size="11" font-weight="bold" x="25" y="248">FCFS Timeline (Arrival t=0 | Avg Wait: 17.0 ms | Avg Turnaround: 27.0 ms):</text>
+  <g stroke="#0f172a" stroke-width="2" font-family="system-ui, -apple-system, sans-serif">
+    <rect fill="#38bdf8" height="34" rx="4" width="450" x="140" y="258"></rect>
+    <text fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle" x="365" y="279">P1 (Burst: 24 ms | Wait: 0 ms | Turnaround: 24 ms)</text>
+    
+    <rect fill="#f59e0b" height="34" rx="4" width="80" x="590" y="258"></rect>
+    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="630" y="279">P2 (3ms)</text>
+    
+    <rect fill="#34d399" height="34" rx="4" width="80" x="670" y="258"></rect>
+    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="710" y="279">P3 (3ms)</text>
+  </g>
+  <g fill="#94a3b8" font-size="10">
+    <text x="140" y="306">0 ms</text>
+    <text x="580" y="306">24 ms</text>
+    <text x="660" y="306">27 ms</text>
+    <text x="740" y="306">30 ms</text>
+  </g>
+</g>
+
+<!-- SJF TIMELINE -->
+<g font-family="monospace">
+  <text fill="#cbd5e1" font-size="11" font-weight="bold" x="25" y="332">SJF Timeline (Shortest Job First | Avg Wait: 3.0 ms | Avg Turnaround: 13.0 ms):</text>
+  <g stroke="#0f172a" stroke-width="2" font-family="system-ui, -apple-system, sans-serif">
+    <rect fill="#f59e0b" height="34" rx="4" width="80" x="140" y="342"></rect>
+    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="180" y="363">P2 (3ms)</text>
+    
+    <rect fill="#34d399" height="34" rx="4" width="80" x="220" y="342"></rect>
+    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="260" y="363">P3 (3ms)</text>
+    
+    <rect fill="#38bdf8" height="34" rx="4" width="450" x="300" y="342"></rect>
+    <text fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle" x="525" y="363">P1 (Burst: 24 ms | Wait: 6 ms | Turnaround: 30 ms)</text>
+  </g>
+  <g fill="#94a3b8" font-size="10">
+    <text x="140" y="390">0 ms</text>
+    <text x="215" y="390">3 ms</text>
+    <text x="295" y="390">6 ms</text>
+    <text x="740" y="390">30 ms</text>
+  </g>
+</g>
+
+<!-- FOOTER INVARIANT NOTE -->
+<text fill="#a9b7cb" font-family="monospace" font-size="11" text-anchor="middle" x="470" y="412">Scheduling discipline dictates queue latency: SJF slashes average waiting time by 82% over FCFS for identical workload bursts.</text>
+</svg><figcaption>Figure 8.5: CPU scheduling process state transitions and FCFS versus SJF Gantt chart timelines. Process bursts illustrate queue latency impact under non-preemptive arrival at t=0; live Linux CFS adjusts dynamic vruntime rather than static burst lengths.</figcaption></figure>'''
+
+FIG_8_6_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-fault-title d8-fault-desc" role="img" viewbox="0 0 940 330" xmlns="http://www.w3.org/2000/svg"><title id="d8-fault-title">Four-stage page fault interrupt, disk swap fetch, and frame mapping lifecycle</title><desc id="d8-fault-desc">Illustrates the hardware MMU missing-page interrupt trap, kernel context switch to waiting queue, synchronous secondary storage retrieval into free RAM frame, and page table remap restoring process to ready queue.</desc><defs><marker id="d8-fault-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker><marker id="d8-fault-arrow-ok" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"></path></marker></defs>
+<!-- HEADER BAR -->
+<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="900" x="20" y="12"></rect>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" x="32" y="29">FOUR-STAGE PAGE FAULT INTERRUPT TRAP, DISK SWAP FETCH, AND FRAME MAPPING SEQUENCE</text>
+
+<!-- 4 STAGE BOXES -->
+<g fill="#121526" stroke-width="2">
+  <rect height="145" rx="8" stroke="#f43f5e" width="205" x="20" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/decision.svg" preserveaspectratio="xMidYMid meet" width="24" x="30" y="58"/>
+  <rect height="145" rx="8" stroke="#38bdf8" width="205" x="255" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/server.svg" preserveaspectratio="xMidYMid meet" width="24" x="265" y="58"/>
+  <rect height="145" rx="8" stroke="#f59e0b" width="205" x="490" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/storage.svg" preserveaspectratio="xMidYMid meet" width="24" x="500" y="58"/>
+  <rect height="145" rx="8" stroke="#34d399" width="205" x="720" y="48"></rect>
+  <image height="24" href="../assets/icons/generic/outcome.svg" preserveaspectratio="xMidYMid meet" width="24" x="730" y="58"/>
+</g>
+
+<!-- STAGE TITLES -->
+<g fill="#fce7f3" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">
+  <text x="122" y="80">1. MMU TRAP</text>
+  <text x="357" y="80">2. CONTEXT SWITCH</text>
+  <text x="592" y="80">3. SWAP / DISK I/O</text>
+  <text x="822" y="80">4. REMAP &amp; DISPATCH</text>
+</g>
+
+<!-- STAGE DESCRIPTIONS -->
+<g fill="#a9b7cb" font-family="monospace" font-size="10.5" text-anchor="middle">
+  <text x="122" y="106">Present bit = 0</text>
+  <text x="122" y="126">Hardware trap triggered</text>
+  <text x="122" y="146">CPU transfers to Ring 0</text>
+  <text x="122" y="166">Interrupt Vector 14</text>
+
+  <text x="357" y="106">Preserve CPU registers</text>
+  <text x="357" y="126">Move task to Blocked</text>
+  <text x="357" y="146">Save PCB state context</text>
+  <text x="357" y="166">Dispatch runnable task</text>
+
+  <text x="592" y="106">Allocate free RAM frame</text>
+  <text x="592" y="126">Read 4 KB page block</text>
+  <text x="592" y="146">Persistent Disk I/O wait</text>
+  <text x="592" y="166">I/O interrupt signals ready</text>
+
+  <text x="822" y="106">Update Page Table Entry</text>
+  <text x="822" y="126">Set Present bit = 1</text>
+  <text x="822" y="146">Move task to Ready Queue</text>
+  <text x="822" y="166">Resume faulting opcode</text>
+</g>
+
+<!-- CONNECTING ARROWS -->
+<g fill="none" marker-end="url(#d8-fault-arrow)" stroke="#38bdf8" stroke-width="2">
+  <path d="M225 120 L255 120"></path>
+  <path d="M460 120 L490 120"></path>
+  <path d="M695 120 L720 120"></path>
+</g>
+
+<!-- RETURN LOOP -->
+<path d="M822 193 L822 225 L122 225 L122 193" fill="none" marker-end="url(#d8-fault-arrow-ok)" stroke="#34d399" stroke-width="2"></path>
+<text fill="#34d399" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="470" y="242">Execution restarts seamlessly: MMU address translation now hits newly populated RAM frame with zero trap</text>
+
+<!-- FOOTER CALLOUT -->
+<rect fill="#1e293b" height="34" opacity="0.6" rx="4" width="900" x="20" y="260"></rect>
+<text fill="#f59e0b" font-family="monospace" font-size="10.5" text-anchor="middle" x="470" y="281">Thrashing threshold: When major page faults overwhelm storage IOPS, context switches spike and system throughput collapses.</text>
+</svg><figcaption>Figure 8.6: Four-stage page fault interrupt, disk swap fetch, and frame mapping lifecycle. Illustrative sequence outlines kernel memory virtualization recovery; physical SSD latency dictates whether page load takes microseconds or milliseconds.</figcaption></figure>'''
+
+_subtopic_1_addition = f'''<p><strong class="side-heading">Process scheduling foundations and execution state machine:</strong> <strong class="keyword">CPU Scheduling</strong> is the core operating system subsystem (governed by the short-term dispatcher) that continuously evaluates the ready queue to decide which runnable process is dispatched onto an available physical processor core. The kernel coordinates execution across three fundamental lifecycle states:</p>
+<ul>
+<li><strong>Running State:</strong> The process currently occupies a CPU core, actively executing instructions in user space (Ring 3) or kernel space (Ring 0).</li>
+<li><strong>Ready State:</strong> The process is fully prepared to execute and resides queued in the scheduler runqueue awaiting core dispatch.</li>
+<li><strong>Waiting State (Blocked):</strong> The process cannot make forward progress because it is awaiting high-latency Input/Output (I/O) from a disk or network socket, or sleeping on a synchronization lock or timer.</li>
+</ul>
+<p><strong class="side-heading">Context switching mechanics and PCB preservation:</strong> Rapid time-sharing is achieved through a <strong class="keyword">Context Switch</strong>. To switch between active threads, the operating system saves the execution context—including CPU general-purpose registers, floating-point units, stack pointer, program counter, and <strong class="keyword">Process Control Block (PCB)</strong> metadata—of the running process and restores the previously preserved register state and PCB of the incoming process. While context switches create the illusion of smooth parallel execution (multitasking), excessive switching consumes non-trivial kernel CPU cycles and flushes L1/L2 hardware CPU caches.</p>
+<p><strong class="side-heading">Scheduling metrics and quantitative FCFS versus SJF analysis:</strong> When selecting processes from the ready queue, scheduling algorithms evaluate two core performance metrics: <strong class="keyword">Waiting Time</strong> (the total duration a process spends queued in the ready state awaiting processor allocation) and <strong class="keyword">Turnaround Time</strong> (the total elapsed wall-clock duration from initial process submission to final completion, equal to Waiting Time + CPU Burst Time).</p>
+<p>Consider a classic First-Come, First-Served (<strong class="keyword">FCFS</strong>) scheduling scenario with three processes arriving simultaneously at time <em>t</em> = 0:</p>
+<ul>
+<li><strong>Process 1 (<em>P</em><sub>1</sub>):</strong> Requires 24 ms of CPU burst time.</li>
+<li><strong>Process 2 (<em>P</em><sub>2</sub>):</strong> Requires 3 ms of CPU burst time.</li>
+<li><strong>Process 3 (<em>P</em><sub>3</sub>):</strong> Requires 3 ms of CPU burst time.</li>
+</ul>
+<p>Under FCFS execution order (<em>P</em><sub>1</sub> &rarr; <em>P</em><sub>2</sub> &rarr; <em>P</em><sub>3</sub>), the Gantt chart execution timeline runs <em>P</em><sub>1</sub> from 0 to 24 ms, <em>P</em><sub>2</sub> from 24 to 27 ms, and <em>P</em><sub>3</sub> from 27 to 30 ms.</p>
+<ul>
+<li><strong>Waiting Time:</strong> <em>P</em><sub>1</sub> = 0 ms, <em>P</em><sub>2</sub> = 24 ms, <em>P</em><sub>3</sub> = 27 ms. Average Waiting Time = (0 + 24 + 27) / 3 = <strong>17 ms</strong>.</li>
+<li><strong>Turnaround Time:</strong> <em>P</em><sub>1</sub> = 0 + 24 = 24 ms, <em>P</em><sub>2</sub> = 24 + 3 = 27 ms, <em>P</em><sub>3</sub> = 27 + 3 = 30 ms. Average Turnaround Time = (24 + 27 + 30) / 3 = <strong>27 ms</strong>.</li>
+</ul>
+<p>In contrast, if the operating system applies Shortest Job First (<strong class="keyword">SJF</strong>) scheduling, the shortest tasks execute first (<em>P</em><sub>2</sub> &rarr; <em>P</em><sub>3</sub> &rarr; <em>P</em><sub>1</sub>): <em>P</em><sub>2</sub> runs from 0 to 3 ms, <em>P</em><sub>3</sub> runs from 3 to 6 ms, and <em>P</em><sub>1</sub> runs from 6 to 30 ms. The waiting times become <em>P</em><sub>2</sub> = 0 ms, <em>P</em><sub>3</sub> = 3 ms, and <em>P</em><sub>1</sub> = 6 ms, plunging the Average Waiting Time to (0 + 3 + 6) / 3 = <strong>3 ms</strong>! This quantitative contrast proves why modern cloud hypervisors and kernel schedulers dynamically optimize timeslices to prevent compute-heavy batches from starving latency-sensitive interactive workloads.</p>
+{FIG_8_5_SVG}
+'''
+
+_subtopic_2_addition = f'''<p><strong class="side-heading">Virtual memory architecture, pages, and physical frames:</strong> <strong class="keyword">Virtual Memory</strong> decouples software addressing from physical hardware, granting each application the illusion of an expansive, contiguous memory space while transparently leveraging secondary storage (such as SSD swap partitions or swap files) as an extension to physical RAM. Physical memory (<strong class="keyword">RAM</strong>) is partitioned into fixed-size hardware blocks designated as <strong class="keyword">Frames</strong>. A process's logical address space is segmented into identically sized contiguous blocks designated as <strong class="keyword">Pages</strong> (typically 4 KB in x86/ARM architectures, or 2 MB / 1 GB HugePages). The hardware <strong class="keyword">Memory Management Unit (MMU)</strong> consults hierarchical <strong class="keyword">Page Tables</strong> to translate logical virtual addresses into physical RAM frame addresses.</p>
+<p><strong class="side-heading">Four-stage page fault handling lifecycle and thrashing dynamics:</strong> When an executing thread references an address on a virtual page that is not currently mapped to an active physical RAM frame, the CPU hardware generates an interrupt trap called a <strong class="keyword">Page Fault</strong>. The kernel handles this through a strict four-stage sequence:</p>
+<ol>
+<li><strong>Hardware Trap:</strong> The hardware MMU halts execution and triggers an interrupt trap, transferring CPU control from Ring 3 user space to the Ring 0 kernel page fault handler (Interrupt Vector 14).</li>
+<li><strong>Context Switch to Waiting Queue:</strong> The operating system saves the executing process's register state and PCB, transitioning the thread from the running state to the waiting (blocked) queue so processor cycles can be allocated to other runnable tasks.</li>
+<li><strong>Secondary Storage Read:</strong> The kernel I/O subsystem reads the missing page data from secondary storage (swap space or executable filesystem blocks) and loads it into an available physical RAM frame.</li>
+<li><strong>Page Table Update and Resume:</strong> The kernel updates the page table entry with the physical frame address, sets the page "present" bit, and moves the process back into the ready queue to resume execution at the instruction that caused the fault.</li>
+</ol>
+<p>If physical RAM is overcommitted and processes demand more memory than physical frames can accommodate, the system enters <strong class="keyword">Thrashing</strong>—an operational pathology where the operating system spends virtually all its CPU time swapping pages in and out of disk rather than executing application code, causing throughput to collapse to zero.</p>
+<p><strong class="side-heading">Page replacement algorithms and Belady's Anomaly:</strong> When a page fault occurs and all physical RAM frames are occupied, the operating system must choose a "victim" page to evict to secondary storage to free up a frame for the incoming page:</p>
+<ul>
+<li><strong>First-In, First-Out (<strong class="keyword">FIFO</strong>):</strong> Evicts the page that has resided in physical memory the longest. While straightforward to manage using a simple queue, FIFO suffers from <strong class="keyword">Belady's Anomaly</strong>, an architectural anomaly where allocating more physical RAM frames can paradoxically increase the total number of page faults for certain memory reference patterns.</li>
+<li><strong>Least Recently Used (<strong class="keyword">LRU</strong>):</strong> Evicts the page that has not been referenced for the longest period of time. By analyzing past access patterns to approximate future locality, LRU provides superior cache hit rates but incurs higher computational tracking overhead (requiring hardware timestamping or page stack manipulations).</li>
+<li><strong>Optimal Page Replacement (<strong class="keyword">OPT / MIN</strong>):</strong> Evicts the page that will not be referenced for the longest period of time in the future. Because an operating system kernel cannot predict future execution branches, OPT is purely theoretical and serves as the benchmark standard against which practical heuristics (such as LRU or clock algorithms) are evaluated.</li>
+</ul>
+{FIG_8_6_SVG}
+'''
+
+# 1. Expand Topic 1 with new subtopic explanations & diagrams
+_t0 = DATA['topics'][0]
+_t0['technical'] = _t0['technical'].replace('<h4>Virtual memory architecture', _subtopic_1_addition + '\n\n<h4>Virtual memory architecture', 1)
+_t0['technical'] = _t0['technical'].replace('<h4>Memory hierarchy', _subtopic_2_addition + '\n\n<h4>Memory hierarchy', 1)
+
+# 2. Highlight keywords with Google search links across all topic technical subtopics
+def _link_keywords(html_text):
+    def _repl(m):
+        inner = m.group(1)
+        if '<a ' in inner:
+            return m.group(0)
+        clean_text = re.sub(r'<[^>]+>', '', inner).strip()
+        search_url = f"http://www.google.com/search?q={urllib.parse.quote_plus(clean_text)}"
+        return f'<strong class="keyword"><a href="{search_url}" target="_blank" rel="noopener">{inner}</a></strong>'
+    return re.sub(r'<strong class="keyword">(.*?)</strong>', _repl, html_text)
+
+for _topic in DATA['topics']:
+    _topic['technical'] = _link_keywords(_topic['technical'])
+
+# 3. Add anchored headings & linked subtopics
+for _topic in DATA['topics']:
+    _technical = _topic['technical']
+    _headings = re.findall(r'<h4>(.*?)</h4>', _technical, re.S)
+    _links = []
+    for _number, _heading in enumerate(_headings, 1):
+        _anchor = f"{_topic['key']}-subtopic-{_number:02d}"
+        _technical = _technical.replace(
+            '<h4>' + _heading + '</h4>',
+            f'<h4 id="{_anchor}">' + _heading + '</h4>', 1
+        )
+        _links.append(f'<li><a href="#{_anchor}">{_heading}</a></li>')
+    _linked_list = '<ul>' + ''.join(_links) + '</ul>'
+    _technical = re.sub(
+        r'(<p><strong class="side-heading">Subtopics in this discussion:</strong></p>)\s*<ul>.*?</ul>',
+        lambda match: match.group(1) + _linked_list,
+        _technical, count=1, flags=re.S
+    )
+    _topic['technical'] = _technical
+    _nav_links = f'<p><a href="#{_topic["key"]}-technical">Technical discussion →</a> <a href="#{_topic["key"]}-problem">Real-world problem →</a> <a href="#{_topic["key"]}-lab">Step-by-step lab →</a></p>'
+    _card_pat = r'(<article class="topic-card overview" id="' + _topic['key'] + r'-overview">.*?)(</article>)'
+    DATA['part1_html'] = re.sub(
+        _card_pat,
+        lambda m: m.group(1) + '<p><strong class="side-heading">Linked subtopics:</strong></p>' + _linked_list + '\n' + _nav_links + '\n' + m.group(2),
+        DATA['part1_html'], count=1, flags=re.S
+    )
+
+# 4. Fix Lab steps for run_labs.py execution
+_t0_lab = DATA['topics'][0]['lab']
+_t0_lab['steps'][0] = _t0_lab['steps'][0].replace(
+    'command -v python3 >/dev/null && echo "PASS: python3 is available"',
+    'LAB_DIR=$(mktemp -d /tmp/lab_day8_t1.XXXXXX)\nexport LAB_DIR\ncd "$LAB_DIR"\ncommand -v python3 >/dev/null && echo "PASS: python3 is available" | tee "$LAB_DIR/preflight.log"'
+).replace('**Save:** none', '**Save:** `$LAB_DIR/preflight.log`')
+_t0_lab['steps'][1] = _t0_lab['steps'][1].replace(
+    'LAB_DIR="/home/naveen/GitRepos/Projects/GCP/RoadMap/gcp-180day-architect-site/scratch/day_008_lab_t1"\n',
+    ''
+)
+_t0_lab['steps'][7] = _t0_lab['steps'][7].replace(
+    'rm -rf "$LAB_DIR"\necho "PASS: Day 8 Topic 1 lab workspace cleaned up successfully."',
+    'cd "$LAB_DIR/.."\ncp "$LAB_DIR/resource_baseline_report.md" day-008-resource-evidence.log\nrm -rf "$LAB_DIR"\necho "PASS: Day 8 Topic 1 lab workspace cleaned up successfully. Evidence preserved at day-008-resource-evidence.log"'
+).replace('**Save:** none', '**Save:** `day-008-resource-evidence.log`')
+
+_t1_lab = DATA['topics'][1]['lab']
+_t1_lab['steps'][0] = _t1_lab['steps'][0].replace(
+    'command -v grep >/dev/null && echo "PASS: grep is available"',
+    'LAB_DIR=$(mktemp -d /tmp/lab_day8_t2.XXXXXX)\nexport LAB_DIR\ncd "$LAB_DIR"\ncommand -v grep >/dev/null && echo "PASS: grep is available" | tee "$LAB_DIR/preflight.log"'
+).replace('**Save:** none', '**Save:** `$LAB_DIR/preflight.log`')
+_t1_lab['steps'][1] = _t1_lab['steps'][1].replace(
+    'LAB_DIR="/home/naveen/GitRepos/Projects/GCP/RoadMap/gcp-180day-architect-site/scratch/day_008_lab_t2"\n',
+    ''
+)
+_t1_lab['steps'][2] = _t1_lab['steps'][2].replace(
+    'grep "503" "$LAB_DIR/orders.jsonl"\n'
+    'echo "EXPLANATION: While this finds line 2, it would also falsely match user ID \'user_503\' or latency \'503ms\'!"',
+    'grep "503" "$LAB_DIR/orders.jsonl"\n'
+    'echo "EXPLANATION: While this finds line 2, it would also falsely match user ID \'user_503\' or latency \'503ms\'!"\n'
+    'echo "PASS: grep diagnostic test completed" > "$LAB_DIR/grep_test.log"'
+)
+_t1_lab['steps'][7] = _t1_lab['steps'][7].replace(
+    'rm -rf "$LAB_DIR"\necho "PASS: Day 8 Topic 2 lab workspace cleaned up successfully."',
+    'cd "$LAB_DIR/.."\ncp "$LAB_DIR/diagnostic_toolchain_report.md" day-008-tools-evidence.log\nrm -rf "$LAB_DIR"\necho "PASS: Day 8 Topic 2 lab workspace cleaned up successfully. Evidence preserved at day-008-tools-evidence.log"'
+).replace('**Save:** none', '**Save:** `day-008-tools-evidence.log`')

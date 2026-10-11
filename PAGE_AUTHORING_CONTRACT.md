@@ -173,6 +173,10 @@ Part 2 flow qualifies. Place subtopic SVGs beside their explanation, not unrelat
 infrastructure. Number transitions with meaningful arrows and matching nearby
 prose; linear flows are valid.
 
+Evidence sequence diagrams inside Part 3 are allowed with `diagram_enabled`
+False when they qualify under the Diagram Generation Rule and carry a scope
+caption; they never replace the five-node incident diagram when the case qualifies.
+
 Applicable multi-tier topology standard: minimum 1120x690; non-overlapping tiers
 Ingress/Demand y=55..147, Runtime/Data y=185..395, Governance/Decision y=435..550;
 vertical drops x1=x2 into centers; boundary boxes end before y=560; bottom probe

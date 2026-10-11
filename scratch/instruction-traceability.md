@@ -15,6 +15,7 @@ Mappings name canonical contract sections unless a destination filename is expli
 - Serial multi-day subagent instruction applies only to an explicitly authorized multi-day page run, not this maintenance task.
 - Phase B delivered SPEC_SCHEMA.md, SPEC_DEFAULTS.json and the non-overwriting coverage skeleton. Read budget uses these instead of engine internals; legacy single-file loading remains. The prior forward reference is now resolved.
 - RENDER_REVIEW.md existed; no reconstruction. Its unique audit procedure remains, with global read-policy correction.
+- Evidence sequence diagrams inside Part 3 are allowed with diagram_enabled False when they qualify under the Diagram Generation Rule and carry a scope caption; they never replace the five-node incident diagram when the case qualifies.
 
 ## Requirement map
 

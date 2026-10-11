@@ -127,7 +127,7 @@ class ValidateSpecTests(unittest.TestCase):
         errors, _ = validator.validate_data(4, copy.deepcopy(v2_data), metadata=v2_meta)
         self.assertEqual(errors, [])
 
-        # 2. raw override with a bare caption fails (error for contract_version 2, warn for older specs)
+        # 2. raw override with a bare caption fails for contract_v2, warns for older specs
         bare_svg = (
             '<figure class="diagram-figure">'
             '<svg viewBox="0 0 10 10" role="img" aria-labelledby="t d"><title id="t">T</title><desc id="d">D</desc><rect width="10" height="10"/></svg>'
@@ -146,17 +146,103 @@ class ValidateSpecTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertTrue(any('scenario.caption' in w and 'missing' in w for w in warnings), warnings)
 
-        # 3. raw override with three fields passes
-        three_fields_svg = (
-            '<figure class="diagram-figure">'
-            '<svg viewBox="0 0 10 10" role="img" aria-labelledby="t d"><title id="t">T</title><desc id="d">D</desc><rect width="10" height="10"/></svg>'
-            '<figcaption>Figure 4.3: Supplied facts: Test facts. Architectural inference: Test inference. Expected post-fix behavior: Test expected.</figcaption>'
+        # 3. raw override with three fields passes (accepting either behavior or behaviour)
+        for spelling in ('Expected post-fix behavior', 'Expected post-fix behaviour'):
+            three_fields_svg = (
+                '<figure class="diagram-figure">'
+                '<svg viewBox="0 0 10 10" role="img" aria-labelledby="t d"><title id="t">T</title><desc id="d">D</desc><rect width="10" height="10"/></svg>'
+                f'<figcaption>Figure 4.3: Supplied facts: Test facts. Architectural inference: Test inference. {spelling}: Test expected.</figcaption>'
+                '</figure>'
+            )
+            valid_v2 = copy.deepcopy(v2_data)
+            valid_v2['topics'][0]['scenario']['incident_svg_html'] = three_fields_svg
+            errors, _ = validator.validate_data(4, valid_v2, metadata=v2_meta)
+            self.assertEqual(errors, [])
+
+    def test_part3_scope_caption(self):
+        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+
+        # Part 3 figure with scope keyword passes
+        for kw in ('does not prove', 'not a measurement', 'hypothetical', 'illustrative', 'scope'):
+            scope_svg = (
+                f'<figure><svg viewBox="0 0 10 10" role="img" aria-labelledby="t d"><title id="t">T</title><desc id="d">D</desc><rect width="10" height="10"/></svg>'
+                f'<figcaption>Figure 4.9: Evidence trace. This diagram {kw} production latency.</figcaption></figure>'
+            )
+            valid_v2 = copy.deepcopy(v2_data)
+            valid_v2['topics'][0]['scenario']['evidence'] = scope_svg
+            errors, _ = validator.validate_data(4, valid_v2, metadata=v2_meta)
+            self.assertEqual(errors, [])
+
+        # Part 3 figure without scope keyword fails for contract_v2, warns for older specs
+        no_scope_svg = (
+            '<figure><svg viewBox="0 0 10 10" role="img" aria-labelledby="t d"><title id="t">T</title><desc id="d">D</desc><rect width="10" height="10"/></svg>'
+            '<figcaption>Figure 4.9: Evidence trace showing packet routing.</figcaption></figure>'
+        )
+        bad_v2 = copy.deepcopy(v2_data)
+        bad_v2['topics'][0]['scenario']['evidence'] = no_scope_svg
+        errors, _ = validator.validate_data(4, bad_v2, metadata=v2_meta)
+        self.assertTrue(any('scenario.caption' in e and 'scope or limit statement' in e for e in errors), errors)
+
+        bad_v1 = copy.deepcopy(self.data)
+        bad_v1['topics'][0]['scenario']['evidence'] = no_scope_svg
+        errors, warnings = validator.validate_data(2, bad_v1, metadata=self.metadata)
+        self.assertEqual(errors, [])
+        self.assertTrue(any('scenario.caption' in w and 'scope or limit statement' in w for w in warnings), warnings)
+
+    def test_nested_figure_rejected(self):
+        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+
+        nested_svg = (
+            '<figure class="outer">'
+            '<figure class="inner"><svg viewBox="0 0 10 10" role="img" aria-labelledby="t d"><title id="t">T</title><desc id="d">D</desc><rect width="10" height="10"/></svg>'
+            '<figcaption>Scope: illustrative test.</figcaption></figure>'
             '</figure>'
         )
-        valid_v2 = copy.deepcopy(v2_data)
-        valid_v2['topics'][0]['scenario']['incident_svg_html'] = three_fields_svg
-        errors, _ = validator.validate_data(4, valid_v2, metadata=v2_meta)
-        self.assertEqual(errors, [])
+        bad_v2 = copy.deepcopy(v2_data)
+        bad_v2['topics'][0]['scenario']['evidence'] = nested_svg
+        errors, _ = validator.validate_data(4, bad_v2, metadata=v2_meta)
+        self.assertTrue(any('nested figure' in e for e in errors), errors)
+
+    def test_generic_template_topology_rejected(self):
+        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+        template_patterns = [
+            'CEL Attribute Rule',
+            'Cryptographic Check',
+            'Boundary under study',
+            'Protocol: HTTPS / TLS 1.3',
+            'TIERED PIPELINE',
+        ]
+        svg_template = (
+            '<figure><svg viewBox="0 0 100 100" role="img" aria-labelledby="t d">'
+            '<title id="t">{title}</title><desc id="d">Desc</desc>'
+            '<rect width="100" height="100"/><text>{content}</text>'
+            '</svg><figcaption>Scope: illustrative test.</figcaption></figure>'
+        )
+
+        for pat in template_patterns:
+            with self.subTest(pattern=pat):
+                bad_v2 = copy.deepcopy(v2_data)
+                bad_v2['topics'][0]['technical'] += svg_template.format(title='Custom Title', content=pat)
+                errors, _ = validator.validate_data(4, bad_v2, metadata=v2_meta)
+                self.assertTrue(any('generic template topology' in e and pat in e for e in errors), errors)
+
+                bad_v1 = copy.deepcopy(self.data)
+                bad_v1['topics'][0]['technical'] += svg_template.format(title='Custom Title', content=pat)
+                errors_v1, warnings_v1 = validator.validate_data(2, bad_v1, metadata=self.metadata)
+                self.assertEqual(errors_v1, [])
+                self.assertTrue(any('generic template topology' in w and pat in w for w in warnings_v1), warnings_v1)
+
+        with self.subTest(pattern='title'):
+            bad_v2 = copy.deepcopy(v2_data)
+            bad_v2['topics'][0]['technical'] += svg_template.format(title='Day 4 foundation path — Overview', content='Valid content')
+            errors, _ = validator.validate_data(4, bad_v2, metadata=v2_meta)
+            self.assertTrue(any('generic template topology' in e for e in errors), errors)
+
+            bad_v1 = copy.deepcopy(self.data)
+            bad_v1['topics'][0]['technical'] += svg_template.format(title='Day 2 foundation path — Overview', content='Valid content')
+            errors_v1, warnings_v1 = validator.validate_data(2, bad_v1, metadata=self.metadata)
+            self.assertEqual(errors_v1, [])
+            self.assertTrue(any('generic template topology' in w for w in warnings_v1), warnings_v1)
 
     def test_error_9_source_metadata(self):
         self.check(lambda d: d['topics'][0].update(reference='http://example.com'), 'https URL')
