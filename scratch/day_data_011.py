@@ -35,6 +35,12 @@ DATA = {'contract_version': 2,
                'during peak holiday traffic. The engineering team re-architects the endpoint onto Google Cloud Run, '
                'delegating host operating system patching to Google while eliminating 14 hours of potential '
                'downtime.</p>\n'
+               '<p><strong class="side-heading">Linked subtopics:</strong></p>\n'
+               '<ul><li><a href="#topic-01-subtopic-1">Infrastructure as a Service (IaaS): Virtual Machines, Persistent Disks, and Network Virtualization</a></li>\n'
+               '<li><a href="#topic-01-subtopic-2">Platform as a Service (PaaS) and Container as a Service (CaaS): Managed Runtimes and Orchestration</a></li>\n'
+               '<li><a href="#topic-01-subtopic-3">Function as a Service (FaaS): Event-Driven Ephemeral Execution</a></li>\n'
+               '<li><a href="#topic-01-subtopic-4">Software as a Service (SaaS): Fully Managed Application and Data Solutions</a></li>\n'
+               '<li><a href="#topic-01-subtopic-5">The Abstraction Spectrum Decision Matrix: Trade-offs between Operational Control and Development Velocity</a></li></ul>\n'
                '</article>\n'
                '\n'
                '<article class="topic-card overview" id="topic-02-overview">\n'
@@ -57,6 +63,12 @@ DATA = {'contract_version': 2,
                'requests. Because the team bound allUsers to the run invoker role, unauthenticated internet callers '
                'exfiltrate 128,000 sensitive customer records until least privilege OIDC authentication is '
                'restored.</p>\n'
+               '<p><strong class="side-heading">Linked subtopics:</strong></p>\n'
+               '<ul><li><a href="#topic-02-subtopic-1">Security OF the Cloud vs Security IN the Cloud: Demarcation of Hardware, Hypervisor, and Tenant Workloads</a></li>\n'
+               '<li><a href="#topic-02-subtopic-2">Workload-Specific Responsibility Boundaries across IaaS, PaaS, and SaaS</a></li>\n'
+               '<li><a href="#topic-02-subtopic-3">Identity, Access Management (IAM), and Ingress Protection as Customer Invariants</a></li>\n'
+               '<li><a href="#topic-02-subtopic-4">Data Protection, Encryption, and Backup Lifecycle Ownership</a></li>\n'
+               '<li><a href="#topic-02-subtopic-5">Google Cloud Shared Fate: From Contractual Liability to Collaborative Posture Management</a></li></ul>\n'
                '</article>\n',
  'part1_intro': 'Day 11 establishes the architectural boundaries between Infrastructure as a Service (IaaS), Platform '
                 'as a Service (PaaS), Function as a Service (FaaS), and Software as a Service (SaaS), and details the '
@@ -784,7 +796,8 @@ DATA = {'contract_version': 2,
                                     'horizontal autoscaling from 0 to 1,000 container instances. Verify deployment by '
                                     'simulating traffic bursts and validating zero host-level maintenance requirements '
                                     'with HTTP 200 responses across all requests.',
-                          'residual': 'While host OS patching is delegated entirely to Google Cloud, the development '
+                          'evidence_limit': 'Evidence limit: The simulated VM segfault and Cloud Run redeployment demonstrate operational maintenance boundaries; they do not reproduce Google Cloud data plane kernel outages or vendor hypervisor faults.',
+             'residual': 'While host OS patching is delegated entirely to Google Cloud, the development '
                                       'team remains responsible for scanning and updating application-level '
                                       'dependencies packaged within the container image (via Artifact Registry '
                                       'vulnerability scanning) and configuring appropriate Cloud Run maximum instance '
@@ -1379,9 +1392,11 @@ DATA = {'contract_version': 2,
                           'stroke-width="1.2"/>\n'
                           '<image href="../assets/icons/gcp/core/security-command-center.svg" x="35" y="325" '
                           'width="20" height="20"/>\n'
-                          '<text x="470" y="340" fill="#fce7f3" font-size="11" font-weight="600" '
+                          '<text x="470" y="335" fill="#fce7f3" font-size="10" font-weight="600" '
                           'text-anchor="middle">Google Cloud Shared Fate: Google provides Security Command Center, '
-                          'secure blueprints, and posture tooling to actively assist customers in fulfilling their '
+                          'secure blueprints,</text>\n'
+                          '<text x="470" y="347" fill="#fce7f3" font-size="10" font-weight="600" '
+                          'text-anchor="middle">and posture tooling to actively assist customers in fulfilling their '
                           'security duties.</text>\n'
                           '</svg>\n'
                           '</div>\n'
@@ -1684,7 +1699,8 @@ DATA = {'contract_version': 2,
                                     'present a signed Google-issued OIDC ID token or route traffic through an internal '
                                     'Application Load Balancer with Cloud Armor WAF and Identity-Aware Proxy (IAP) '
                                     'authentication.',
-                          'residual': 'Internal service accounts authorized to invoke Cloud Run must be audited '
+                          'evidence_limit': 'Evidence limit: The Cloud Run allUsers IAM misconfiguration demonstrates tenant access boundary errors; it does not indicate a flaw or failure in Google Cloud IAM infrastructure or OIDC token issuance.',
+             'residual': 'Internal service accounts authorized to invoke Cloud Run must be audited '
                                       'periodically using IAM Recommender to prevent over-privileged access tokens '
                                       'from being leaked or misused by compromised microservices.',
                           'diagram_enabled': False,
@@ -2044,3 +2060,22 @@ DATA['review_records'] = {
         'fig-11-4': 'Shared responsibility assumption breach and IAM access remediation.'
     }
 }
+
+
+# --- POST-PROCESSING ENHANCEMENTS FOR DAY 11 (S3 DISCOVERY LINKS) ---
+import re as _re
+import urllib.parse as _urlparse
+
+def _wrap_discovery_links(topic_tech):
+    def _kw_repl(m):
+        inner = m.group(1)
+        if '<a ' in inner:
+            return m.group(0)
+        clean = _re.sub(r'<[^>]+>', '', inner).strip()
+        link = f'<a href="http://www.google.com/search?q={_urlparse.quote_plus(clean)}" rel="noopener" target="_blank">{inner}</a>'
+        return f'<strong class="keyword">{link}</strong>'
+    return _re.sub(r'<strong class="keyword">(.*?)</strong>', _kw_repl, topic_tech)
+
+for _topic in DATA['topics']:
+    _topic['technical'] = _wrap_discovery_links(_topic['technical'])
+
