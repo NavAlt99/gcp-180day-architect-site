@@ -46,8 +46,123 @@ python3 -c 'import os, pathlib; pathlib.Path("preflight.txt").write_text("{prefl
 """
 
 
+import urllib.parse
+import re
+
+terms_file = Path(__file__).resolve().parent / 'audits' / 'day-002-terms.txt'
+if terms_file.exists():
+    TERMS = [line.strip() for line in terms_file.read_text().splitlines() if line.strip()]
+    TERMS.sort(key=len, reverse=True)
+else:
+    TERMS = []
+
+from bs4 import BeautifulSoup
+from bs4.element import NavigableString
+
+def link_terms(text, terms_list=TERMS):
+    soup = BeautifulSoup(f'<root>{text}</root>', 'html.parser')
+    for term in terms_list:
+        pat = re.compile(r'(?<!\w)(' + re.escape(term) + r')(?!\w)', re.IGNORECASE)
+        url = f'http://www.google.com/search?q={urllib.parse.quote_plus(term)}'
+        matched = False
+        for text_node in list(soup.find_all(string=True)):
+            if matched:
+                break
+            parent = text_node.parent
+            in_forbidden = False
+            while parent and parent.name != '[document]':
+                if parent.name in ('a', 'code', 'kbd', 'figcaption', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+                    in_forbidden = True
+                    break
+                if parent.name == 'strong' and 'side-heading' in parent.get('class', []):
+                    in_forbidden = True
+                    break
+                parent = parent.parent
+            if in_forbidden:
+                continue
+            m = pat.search(text_node)
+            if m:
+                before = text_node[:m.start()]
+                matched_text = m.group(1)
+                after = text_node[m.end():]
+                a_tag = soup.new_tag('a', href=url, rel='noopener', target='_blank')
+                a_tag.string = matched_text
+                new_nodes = []
+                if before:
+                    new_nodes.append(NavigableString(before))
+                new_nodes.append(a_tag)
+                if after:
+                    new_nodes.append(NavigableString(after))
+                text_node.replace_with(*new_nodes)
+                matched = True
+    return soup.root.decode_contents()
+
+SUBTOPICS_MAP = {
+    'topic-01': [
+        ('topic-01-subtopic-1', 'OSI and TCP/IP responsibility map'),
+        ('topic-01-subtopic-2', 'Layer 4 versus Layer 7 evidence')
+    ],
+    'topic-02': [
+        ('topic-02-subtopic-1', 'IPv4 prefixes and subnet arithmetic'),
+        ('topic-02-subtopic-2', 'RFC 1918 private ranges'),
+        ('topic-02-subtopic-3', 'ARP and NDP: resolve the local neighbor'),
+        ('topic-02-subtopic-4', 'Subnet splitting and provider reservations'),
+        ('topic-02-subtopic-5', 'Next-hop selection across two subnets')
+    ],
+    'topic-03': [
+        ('topic-03-subtopic-1', 'NIC receive buffers, DMA, and driver notification'),
+        ('topic-03-subtopic-2', 'Linux NAPI receive processing'),
+        ('topic-03-subtopic-3', 'IP input and local delivery'),
+        ('topic-03-subtopic-4', 'Transport demultiplexing and application reads')
+    ],
+    'topic-04': [
+        ('topic-04-subtopic-1', 'IPC: the process boundary'),
+        ('topic-04-subtopic-2', 'Unix domain sockets and local access'),
+        ('topic-04-subtopic-3', 'Loopback TCP and remote RPC boundaries')
+    ]
+}
+
+TITLE_TO_ID = {stitle: sid for items in SUBTOPICS_MAP.values() for sid, stitle in items}
+
+def render_linked_subtopics(key):
+    items = SUBTOPICS_MAP.get(key, [])
+    lis = ''.join(f'<li><a href=\"#{sid}\">{stitle}</a></li>' for sid, stitle in items)
+    return f'<p><strong class=\"side-heading\">Linked subtopics:</strong></p><ul>{lis}</ul>'
+
+def keyword(term):
+    q = urllib.parse.quote_plus(term)
+    url = f'http://www.google.com/search?q={q}'
+    return f'<strong class=\"keyword\"><a href=\"{url}\" rel=\"noopener\" target=\"_blank\">{escape(term)}</a></strong>'
+
 source = partial(_source, sources=SOURCES)
-subtopic = partial(_subtopic, sources=SOURCES, access_date=ACCESS_DATE)
+
+def subtopic(title, general, architect, gcp, refs, *, sources=SOURCES, access_date=ACCESS_DATE):
+    sid = TITLE_TO_ID.get(title, '')
+    id_attr = f' id="{sid}"' if sid else ''
+    further_html = f"{'; '.join(source(k) for k in refs)}. Accessed {access_date}."
+    section_html = f'''\n<h4{id_attr}>{escape(title)}</h4>\n<ul>
+<li><strong class="side-heading">What it is in general:</strong> {general}</li>
+<li><strong class="side-heading">Relevance to a cloud architect:</strong> {architect}</li>
+<li><strong class="side-heading">Relevance to GCP:</strong> {gcp}</li>
+<li><strong class="side-heading">Further study:</strong> {further_html}</li>
+</ul>\n'''
+    return link_terms(section_html)
+
+def discussion(titles, sections, example, limit):
+    items = []
+    for t in titles:
+        sid = TITLE_TO_ID.get(t, '')
+        if sid:
+            items.append(f'<li><a href=\"#{sid}\">{escape(t)}</a></li>')
+        else:
+            items.append(f'<li>{escape(t)}</li>')
+    subtopics_ol = '<p><strong class=\"side-heading\">Subtopics in this discussion:</strong></p><ol>' + ''.join(items) + '</ol>\n'
+    tail = f'''\n<ul>
+<li><strong class="side-heading">Concrete example:</strong> {example}</li>
+<li><strong class="side-heading">Evidence limit:</strong> {limit}</li>
+</ul>'''
+    return subtopics_ol + ''.join(sections) + link_terms(tail)
+
 stage = partial(_stage, location='Local Linux terminal')
 LAB_CONTEXT = {
     'mode': 'Local Linux terminal tabletop; supplied synthetic fixtures. Observed locally: command execution, script assertions, and file hashes. Simulated or predicted: host routing decisions, packet traversal, and boundary classifications. Untested on GCP: live Andromeda SDN forwarding, Compute Engine VPC network provisioning, and cloud firewall rules.',
@@ -64,7 +179,7 @@ case = partial(_case,
     expected='After the actual blockage is diagnosed and repaired, observe a read and valid response; neither is established here.')
 
 NEXT_HOP_SVG = flow_svg('d002-next-hop', 'Supplied Ethernet model: host A to host B', [
-    ('Host A selects route', ('10.240.0.10/26 → .75', 'Destination outside A subnet'), 'client'),
+    ('Host A routes', ('10.240.0.10/26 → .75', 'Destination outside A subnet'), 'client'),
     ('Resolve next hop', ('Gateway IP: 10.240.0.1', 'ARP learns gateway MAC'), 'router'),
     ('Send local frame', ('IP destination stays .75', 'Frame destination: gateway'), 'switch'),
     ('Router forwards', ('Connected 10.240.0.64/26', 'Outgoing interface: 10.240.0.65'), 'router'),
@@ -75,7 +190,7 @@ NEXT_HOP_SVG = flow_svg('d002-next-hop', 'Supplied Ethernet model: host A to hos
 
 NIC_SVG = flow_svg('d002-nic-socket', 'Receive sequence: NIC to application socket', [
     ('NIC receive queue', ('Frame arrives at interface', 'Driver-managed receive buffers'), 'endpoint'),
-    ('Driver processing', ('DMA: device transfers to RAM', 'Interrupt / polling notification'), 'queue'),
+    ('Driver processing', ('DMA: device transfers to RAM', 'Interrupt or poll signal'), 'queue'),
     ('NAPI polling', ('Linux processes receive work', 'Scheduling varies by driver'), 'queue'),
     ('IP input checks', ('Headers, policy, local delivery', 'Transit packets use forwarding'), 'firewall'),
     ('Transport + socket', ('TCP matches connection tuple', 'Bytes wait in receive buffer'), 'server'),
@@ -110,11 +225,12 @@ OVERVIEWS = [
      'A service on another machine is given a local Unix socket path. The client cannot reach that endpoint and the integration stops before any business request is processed.'),
 ]
 PART1_HTML = f'''<p>{escape(PART1_INTRO)}</p><p class="callout"><strong>Exit evidence:</strong> {escape(EXIT_SUMMARY)}</p>''' + ''.join(
-    f'''<article class="topic-card overview" id="{key}-overview"><h3>{i}. {escape(title)}</h3>
+    link_terms(f'''<article class="topic-card overview" id="{key}-overview"><h3>{i}. {escape(title)}</h3>
 <p>{intro}</p><p><strong class="side-heading">Why today:</strong> {escape(why)}</p>
 <p><strong class="side-heading">Where it sits:</strong> {escape(where)}</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> {escape(preview)}</p>
-<p><a href="#{key}-technical">Technical discussion →</a> <a href="#{key}-problem">Real-world problem →</a> <a href="#{key}-lab">Step-by-step lab →</a></p></article>'''
+{render_linked_subtopics(key)}
+<p><a href="#{key}-technical">Technical discussion →</a> <a href="#{key}-problem">Real-world problem →</a> <a href="#{key}-lab">Step-by-step lab →</a></p></article>''')
     for i, (key, title, intro, why, where, preview) in enumerate(OVERVIEWS, 1)
 )
 
