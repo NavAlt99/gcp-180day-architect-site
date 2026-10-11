@@ -95,26 +95,26 @@ OVERVIEWS = [
     (
         'topic-01',
         '1. IPv6 addressing and scope',
-        '<strong class="keyword"><a href="http://www.google.com/search?q=IPv6" rel="noopener" target="_blank">IPv6</a></strong> expands the network address space to 128 bits while establishing architectural scoping boundaries that strictly govern packet reachability. Link-local addresses (<samp>fe80::/10</samp>) require an explicit interface zone identifier, Unique Local Addresses (ULA, <samp>fc00::/7</samp>) provide private enterprise routing, and Global Unicast Addresses (GUA, <samp>2000::/3</samp>) provide internet-wide reachability. Neighbor Discovery Protocol (NDP) replaces broadcast ARP with multicast ICMPv6 messaging, forming the foundation for Google Cloud dual-stack VPC networking.',
+        '<strong class="keyword"><a href="http://www.google.com/search?q=IPv6" rel="noopener" target="_blank">IPv6</a></strong> expands the network address space to 128 bits while establishing architectural scoping boundaries that strictly govern packet reachability. <a href="http://www.google.com/search?q=Link-Local" rel="noopener" target="_blank">Link-local</a> addresses (<samp>fe80::/10</samp>) require an explicit interface zone identifier, <a href="http://www.google.com/search?q=Unique+Local" rel="noopener" target="_blank">Unique Local</a> Addresses (ULA, <samp>fc00::/7</samp>) provide private enterprise routing, and <a href="http://www.google.com/search?q=Global+Unicast" rel="noopener" target="_blank">Global Unicast</a> Addresses (GUA, <samp>2000::/3</samp>) provide internet-wide reachability. <a href="http://www.google.com/search?q=NDP" rel="noopener" target="_blank">Neighbor Discovery Protocol (NDP)</a> replaces broadcast ARP with multicast ICMPv6 messaging, forming the foundation for Google Cloud dual-stack <a href="http://www.google.com/search?q=VPC" rel="noopener" target="_blank">VPC</a> networking.',
         'Day 3 establishes modern 128-bit addressing mechanics following Day 2\'s IPv4 foundations.',
         'In enterprise cloud architecture, IPv6 sits at the edge ingress boundary, hybrid interconnects, and dual-stack VPC subnets.',
-        'A microservice client receives an IPv6 AAAA record resolving to a link-local address but attempts to initiate a TCP connection without specifying an interface scope index. The connection immediately errors out with Invalid Argument, halting automated canary deployments and blocking scheduled microservice updates.'
+        'A microservice client receives an IPv6 <a href="http://www.google.com/search?q=AAAA" rel="noopener" target="_blank">AAAA</a> record resolving to a link-local address but attempts to initiate a TCP connection without specifying an interface scope index. The connection immediately errors out with Invalid Argument, halting automated canary deployments and blocking scheduled microservice updates.'
     ),
     (
         'topic-02',
         '2. DNS records, TTL and resolver roles',
-        '<strong class="keyword"><a href="http://www.google.com/search?q=DNS" rel="noopener" target="_blank">DNS</a></strong> provides a globally distributed, hierarchical database mapping domain names to typed resource records across Root, TLD, and authoritative name servers. Stub resolvers delegate recursive queries to recursive resolvers, which traverse iterative referral chains and cache answers according to Time-To-Live (TTL) policies. Cryptographic extensions (DNSSEC) authenticate record authenticity via digital signatures, while Google Cloud DNS provides managed private and public zones with global Anycast resilience.',
-        'Day 3 connects network addressing to human-readable names before Day 4\'s TLS certificate validation and HTTP layer exploration.',
+        '<strong class="keyword"><a href="http://www.google.com/search?q=DNS" rel="noopener" target="_blank">DNS</a></strong> provides a globally distributed, hierarchical database mapping domain names to typed resource records across Root, TLD, and authoritative name servers. Stub resolvers delegate recursive queries to recursive resolvers, which traverse iterative referral chains and cache answers according to Time-To-Live (<a href="http://www.google.com/search?q=TTL" rel="noopener" target="_blank">TTL</a>) policies. Cryptographic extensions (<a href="http://www.google.com/search?q=DNSSEC" rel="noopener" target="_blank">DNSSEC</a>) authenticate record authenticity via digital signatures, while Google <a href="http://www.google.com/search?q=Cloud+DNS" rel="noopener" target="_blank">Cloud DNS</a> provides managed private and public zones with global Anycast resilience.',
+        'Day 3 connects network addressing to human-readable names before Day 4\'s TLS certificate validation and <a href="http://www.google.com/search?q=HTTP" rel="noopener" target="_blank">HTTP</a> layer exploration.',
         'In Google Cloud, DNS sits inside Cloud DNS managed private zones, split-horizon resolution paths, and metadata server resolvers.',
         'An operations team modifies a DNS A record during a critical database failover but overlooks a 3600-second TTL cached across upstream recursive resolvers. Application pods continue directing transactional traffic to the decommissioned primary database for over forty minutes, resulting in split-brain data corruption and order reconciliation failures.'
     ),
     (
         'topic-03',
         '3. TCP and UDP, ports, connection states and buffers',
-        '<strong class="keyword"><a href="http://www.google.com/search?q=Transport+protocols" rel="noopener" target="_blank">Transport protocols</a></strong> establish host-to-host process communication using 16-bit ports and Berkeley Software Distribution (BSD) socket abstractions. TCP enforces reliable byte-stream delivery through 3-way handshakes, sliding-window flow control, and model-based congestion control (BBR), while UDP provides lightweight, connectionless datagram transport powering modern QUIC and HTTP/3. Sockets manage kernel receive and send buffers, accept queues, and state lifecycles observable through kernel instrumentation tools.',
+        '<strong class="keyword"><a href="http://www.google.com/search?q=Transport+protocols" rel="noopener" target="_blank">Transport protocols</a></strong> establish host-to-host process communication using 16-bit ports and Berkeley Software Distribution (BSD) socket abstractions. TCP enforces reliable byte-stream delivery through 3-way handshakes, sliding-window flow control, and model-based congestion control (<a href="http://www.google.com/search?q=BBR" rel="noopener" target="_blank">BBR</a>), while <a href="http://www.google.com/search?q=UDP" rel="noopener" target="_blank">UDP</a> provides lightweight, connectionless datagram transport powering modern <a href="http://www.google.com/search?q=QUIC" rel="noopener" target="_blank">QUIC</a> and <a href="http://www.google.com/search?q=HTTP" rel="noopener" target="_blank">HTTP/3</a>. Sockets manage kernel receive and send buffers, accept queues, and state lifecycles observable through kernel instrumentation tools.',
         'Day 3 completes transport mechanics before examining application protocols on Day 4.',
         'In cloud systems, transport mechanics govern guest OS socket buffer depths, Compute Engine TCP throughput, and Cloud Load Balancer proxy timeouts.',
-        'A high-concurrency API service encounters socket accept queue saturation under peak promotional traffic while CPU utilization sits at barely thirty percent. Inbound TCP SYN packets are silently dropped by the kernel network stack, causing upstream load balancers to log HTTP 504 gateway timeouts and prompting clients to retry aggressively, amplifying the cascade.'
+        'A high-concurrency API service encounters socket accept queue saturation under peak promotional traffic while CPU utilization sits at barely thirty percent. Inbound TCP <a href="http://www.google.com/search?q=SYN" rel="noopener" target="_blank">SYN</a> packets are silently dropped by the kernel network stack, causing upstream load balancers to log HTTP 504 gateway timeouts and prompting clients to retry aggressively, amplifying the cascade.'
     )
 ]
 
@@ -249,11 +249,11 @@ ARCH_DIAGRAM = {
     ],
     "boundaries": [
         {
-            "x": 40,
-            "y": 425,
-            "w": 1040,
-            "h": 135,
-            "label": "VERIFICATION BOUNDARY · NAME RESOLUTION ≠ IP REACHABILITY ≠ TCP STATE ≠ APPLICATION READINESS",
+            "x": 150,
+            "y": 458,
+            "w": 820,
+            "h": 75,
+            "label": "VERIFICATION BOUNDARY: RESOLUTION ≠ REACHABILITY ≠ STATE",
             "color": "#f59e0b"
         }
     ],
@@ -292,8 +292,8 @@ DNS_TRANSPORT_SVG = """
     <rect width="305" height="65" rx="4" fill="#121827" stroke="#38bdf8" stroke-width="1.5"/>
     <image href="../assets/icons/generic/dns-resolver.svg" x="12" y="20" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
     <text x="48" y="24" font-family="monospace" font-size="11" fill="#38bdf8" font-weight="bold">DNS Recursive Resolver</text>
-    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">Queries Cloud DNS / 8.8.8.8 / 169.254.169.254</text>
-    <text x="48" y="52" font-family="monospace" font-size="8" fill="#7dd3fc">Returns: A / AAAA RRset with TTL</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="9" fill="#cbd5e1">Queries Cloud DNS / 8.8.8.8 / 169.254.169.254</text>
+    <text x="48" y="52" font-family="monospace" font-size="9" fill="#7dd3fc">Returns: A / AAAA RRset with TTL</text>
   </g>
 
   <!-- Arrow Down 1.1 -->
@@ -304,9 +304,9 @@ DNS_TRANSPORT_SVG = """
     <rect width="305" height="75" rx="4" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
     <image href="../assets/icons/generic/policy.svg" x="12" y="24" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
     <text x="48" y="24" font-family="monospace" font-size="10" fill="#4ade80" font-weight="bold">BOUNDARY PROVEN:</text>
-    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#bbf7d0">✓ Hostname exists in zone database</text>
-    <text x="48" y="52" font-family="sans-serif" font-size="8.5" fill="#bbf7d0">✓ Authoritative name servers respond</text>
-    <text x="48" y="65" font-family="sans-serif" font-size="8.5" fill="#bbf7d0">✓ DNSSEC signature valid (AD flag = 1)</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="9" fill="#bbf7d0">✓ Hostname exists in zone database</text>
+    <text x="48" y="52" font-family="sans-serif" font-size="9" fill="#bbf7d0">✓ Authoritative name servers respond</text>
+    <text x="48" y="65" font-family="sans-serif" font-size="9" fill="#bbf7d0">✓ DNSSEC signature valid (AD flag = 1)</text>
   </g>
 
   <!-- Arrow Down 1.2 -->
@@ -317,24 +317,24 @@ DNS_TRANSPORT_SVG = """
     <rect width="305" height="85" rx="4" fill="#3b0712" stroke="#f43f5e" stroke-width="1.5"/>
     <image href="../assets/icons/generic/failure.svg" x="12" y="28" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
     <text x="48" y="24" font-family="monospace" font-size="10" fill="#f87171" font-weight="bold">WHAT IS NOT PROVEN:</text>
-    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Does NOT prove IP route exists</text>
-    <text x="48" y="52" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Does NOT prove remote host is alive</text>
-    <text x="48" y="65" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Does NOT prove destination port listens</text>
-    <text x="48" y="78" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Link-local IPv6 fails without zone index</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Does NOT prove IP route exists</text>
+    <text x="48" y="52" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Does NOT prove remote host is alive</text>
+    <text x="48" y="65" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Does NOT prove destination port listens</text>
+    <text x="48" y="78" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Link-local IPv6 fails without zone index</text>
   </g>
 
   <!-- Box 1.4: Tools & Errors -->
   <g transform="translate(45, 420)">
     <rect width="305" height="65" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
-    <text x="12" y="18" font-family="monospace" font-size="8.5" fill="#94a3b8">Diagnostic Tooling:</text>
-    <text x="12" y="32" font-family="monospace" font-size="8" fill="#7dd3fc">dig +trace, dig +dnssec, delv, host</text>
-    <text x="12" y="46" font-family="monospace" font-size="8.5" fill="#f87171">Failure Signals:</text>
-    <text x="12" y="58" font-family="monospace" font-size="8" fill="#fca5a5">NXDOMAIN, SERVFAIL, REFUSED, Stale TTL</text>
+    <text x="12" y="18" font-family="monospace" font-size="9" fill="#94a3b8">Diagnostic Tooling:</text>
+    <text x="12" y="32" font-family="monospace" font-size="9" fill="#7dd3fc">dig +trace, dig +dnssec, delv, host</text>
+    <text x="12" y="46" font-family="monospace" font-size="9" fill="#f87171">Failure Signals:</text>
+    <text x="12" y="58" font-family="monospace" font-size="9" fill="#fca5a5">NXDOMAIN, SERVFAIL, REFUSED, Stale TTL</text>
   </g>
 
   <!-- Transition Arrow: Column 1 to Column 2 -->
   <line x1="370" y1="250" x2="385" y2="250" stroke="#38bdf8" stroke-width="2" marker-end="url(#exit-arr-blue)"/>
-  <text x="378" y="240" text-anchor="middle" font-family="monospace" font-size="8" fill="#38bdf8">pass</text>
+  <text x="378" y="240" text-anchor="middle" font-family="monospace" font-size="9" fill="#38bdf8">pass</text>
 
   <!-- Column 2: Phase 2 - L3 IP Reachability (Middle) -->
   <rect x="388" y="75" width="345" height="425" rx="6" fill="#090d16" stroke="#22c55e" stroke-width="1.5"/>
@@ -346,8 +346,8 @@ DNS_TRANSPORT_SVG = """
     <rect width="305" height="65" rx="4" fill="#121827" stroke="#22c55e" stroke-width="1.5"/>
     <image href="../assets/icons/generic/router.svg" x="12" y="20" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
     <text x="48" y="24" font-family="monospace" font-size="11" fill="#22c55e" font-weight="bold">IP Routing &amp; Link Discovery</text>
-    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">FIB Lookup · ARP (IPv4) / NDP (IPv6)</text>
-    <text x="48" y="52" font-family="monospace" font-size="8" fill="#a7f3d0">Transmits: IP Packet / ICMP Echo / NS-NA</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="9" fill="#cbd5e1">FIB Lookup · ARP (IPv4) / NDP (IPv6)</text>
+    <text x="48" y="52" font-family="monospace" font-size="9" fill="#a7f3d0">Transmits: IP Packet / ICMP Echo / NS-NA</text>
   </g>
 
   <!-- Arrow Down 2.1 -->
@@ -358,9 +358,9 @@ DNS_TRANSPORT_SVG = """
     <rect width="305" height="75" rx="4" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
     <image href="../assets/icons/generic/policy.svg" x="12" y="24" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
     <text x="48" y="24" font-family="monospace" font-size="10" fill="#4ade80" font-weight="bold">BOUNDARY PROVEN:</text>
-    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#bbf7d0">✓ Route table matches destination CIDR</text>
-    <text x="48" y="52" font-family="sans-serif" font-size="8.5" fill="#bbf7d0">✓ Neighbor MAC resolved on local segment</text>
-    <text x="48" y="65" font-family="sans-serif" font-size="8.5" fill="#bbf7d0">✓ Intermediate routers forward hop-by-hop</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="9" fill="#bbf7d0">✓ Route table matches destination CIDR</text>
+    <text x="48" y="52" font-family="sans-serif" font-size="9" fill="#bbf7d0">✓ Neighbor MAC resolved on local segment</text>
+    <text x="48" y="65" font-family="sans-serif" font-size="9" fill="#bbf7d0">✓ Intermediate routers forward hop-by-hop</text>
   </g>
 
   <!-- Arrow Down 2.2 -->
@@ -371,24 +371,24 @@ DNS_TRANSPORT_SVG = """
     <rect width="305" height="85" rx="4" fill="#3b0712" stroke="#f43f5e" stroke-width="1.5"/>
     <image href="../assets/icons/generic/failure.svg" x="12" y="28" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
     <text x="48" y="24" font-family="monospace" font-size="10" fill="#f87171" font-weight="bold">WHAT IS NOT PROVEN:</text>
-    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Does NOT prove destination TCP port open</text>
-    <text x="48" y="52" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Does NOT prove SYN handshake succeeds</text>
-    <text x="48" y="65" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Does NOT prove accept queue has space</text>
-    <text x="48" y="78" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Firewall may permit ICMP but drop TCP</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Does NOT prove destination TCP port open</text>
+    <text x="48" y="52" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Does NOT prove SYN handshake succeeds</text>
+    <text x="48" y="65" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Does NOT prove accept queue has space</text>
+    <text x="48" y="78" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Firewall may permit ICMP but drop TCP</text>
   </g>
 
   <!-- Box 2.4: Tools & Errors -->
   <g transform="translate(408, 420)">
     <rect width="305" height="65" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
-    <text x="12" y="18" font-family="monospace" font-size="8.5" fill="#94a3b8">Diagnostic Tooling:</text>
-    <text x="12" y="32" font-family="monospace" font-size="8" fill="#a7f3d0">ip route get, ip neigh, ping, traceroute -I</text>
-    <text x="12" y="46" font-family="monospace" font-size="8.5" fill="#f87171">Failure Signals:</text>
-    <text x="12" y="58" font-family="monospace" font-size="8" fill="#fca5a5">No route to host (ENETUNREACH), EINVAL, ICMP Time Exceeded</text>
+    <text x="12" y="18" font-family="monospace" font-size="9" fill="#94a3b8">Diagnostic Tooling:</text>
+    <text x="12" y="32" font-family="monospace" font-size="9" fill="#a7f3d0">ip route get, ip neigh, ping, traceroute -I</text>
+    <text x="12" y="46" font-family="monospace" font-size="9" fill="#f87171">Failure Signals:</text>
+    <text x="12" y="58" font-family="monospace" font-size="9" fill="#fca5a5">No route (ENETUNREACH), EINVAL, ICMP Exceeded</text>
   </g>
 
   <!-- Transition Arrow: Column 2 to Column 3 -->
   <line x1="733" y1="250" x2="748" y2="250" stroke="#22c55e" stroke-width="2" marker-end="url(#exit-arr-green)"/>
-  <text x="740" y="240" text-anchor="middle" font-family="monospace" font-size="8" fill="#22c55e">pass</text>
+  <text x="740" y="240" text-anchor="middle" font-family="monospace" font-size="9" fill="#22c55e">pass</text>
 
   <!-- Column 3: Phase 3 - L4 TCP Connection (Right) -->
   <rect x="750" y="75" width="345" height="425" rx="6" fill="#090d16" stroke="#f59e0b" stroke-width="1.5"/>
@@ -400,8 +400,8 @@ DNS_TRANSPORT_SVG = """
     <rect width="305" height="65" rx="4" fill="#121827" stroke="#f59e0b" stroke-width="1.5"/>
     <image href="../assets/icons/generic/server.svg" x="12" y="20" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
     <text x="48" y="24" font-family="monospace" font-size="11" fill="#f59e0b" font-weight="bold">TCP Transport State Machine</text>
-    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#cbd5e1">3-Way Handshake (SYN → SYN-ACK → ACK)</text>
-    <text x="48" y="52" font-family="monospace" font-size="8" fill="#fde68a">Kernel State: ESTABLISHED (4-Tuple Bound)</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="9" fill="#cbd5e1">3-Way Handshake (SYN → SYN-ACK → ACK)</text>
+    <text x="48" y="52" font-family="monospace" font-size="9" fill="#fde68a">Kernel State: ESTABLISHED (4-Tuple Bound)</text>
   </g>
 
   <!-- Arrow Down 3.1 -->
@@ -412,9 +412,9 @@ DNS_TRANSPORT_SVG = """
     <rect width="305" height="75" rx="4" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/>
     <image href="../assets/icons/generic/policy.svg" x="12" y="24" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
     <text x="48" y="24" font-family="monospace" font-size="10" fill="#4ade80" font-weight="bold">BOUNDARY PROVEN:</text>
-    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#bbf7d0">✓ Target process bound to IP:port (LISTEN)</text>
-    <text x="48" y="52" font-family="sans-serif" font-size="8.5" fill="#bbf7d0">✓ 3-Way handshake completed (ESTABLISHED)</text>
-    <text x="48" y="65" font-family="sans-serif" font-size="8.5" fill="#bbf7d0">✓ Socket buffers allocated (sk_rcvbuf/sndbuf)</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="9" fill="#bbf7d0">✓ Target process bound to IP:port (LISTEN)</text>
+    <text x="48" y="52" font-family="sans-serif" font-size="9" fill="#bbf7d0">✓ 3-Way handshake completed (ESTABLISHED)</text>
+    <text x="48" y="65" font-family="sans-serif" font-size="9" fill="#bbf7d0">✓ Socket buffers allocated (sk_rcvbuf/sndbuf)</text>
   </g>
 
   <!-- Arrow Down 3.2 -->
@@ -425,19 +425,19 @@ DNS_TRANSPORT_SVG = """
     <rect width="305" height="85" rx="4" fill="#3b0712" stroke="#f43f5e" stroke-width="1.5"/>
     <image href="../assets/icons/generic/failure.svg" x="12" y="28" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
     <text x="48" y="24" font-family="monospace" font-size="10" fill="#f87171" font-weight="bold">WHAT IS NOT PROVEN:</text>
-    <text x="48" y="39" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Does NOT prove application parsed request</text>
-    <text x="48" y="52" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Does NOT prove TLS handshake succeeds</text>
-    <text x="48" y="65" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Does NOT prove downstream DB is healthy</text>
-    <text x="48" y="78" font-family="sans-serif" font-size="8.5" fill="#fecaca">✗ Worker thread may hang on blocked I/O</text>
+    <text x="48" y="39" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Does NOT prove application parsed request</text>
+    <text x="48" y="52" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Does NOT prove TLS handshake succeeds</text>
+    <text x="48" y="65" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Does NOT prove downstream DB is healthy</text>
+    <text x="48" y="78" font-family="sans-serif" font-size="9" fill="#fecaca">✗ Worker thread may hang on blocked I/O</text>
   </g>
 
   <!-- Box 3.4: Tools & Errors -->
   <g transform="translate(770, 420)">
     <rect width="305" height="65" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1"/>
-    <text x="12" y="18" font-family="monospace" font-size="8.5" fill="#94a3b8">Diagnostic Tooling:</text>
-    <text x="12" y="32" font-family="monospace" font-size="8" fill="#fde68a">ss -tuanp, tcpdump -nn, netstat -s, lsof -i</text>
-    <text x="12" y="46" font-family="monospace" font-size="8.5" fill="#f87171">Failure Signals:</text>
-    <text x="12" y="58" font-family="monospace" font-size="8" fill="#fca5a5">ECONNREFUSED (RST), ETIMEDOUT, somaxconn overflow</text>
+    <text x="12" y="18" font-family="monospace" font-size="9" fill="#94a3b8">Diagnostic Tooling:</text>
+    <text x="12" y="32" font-family="monospace" font-size="9" fill="#fde68a">ss -tuanp, tcpdump -nn, netstat -s, lsof -i</text>
+    <text x="12" y="46" font-family="monospace" font-size="9" fill="#f87171">Failure Signals:</text>
+    <text x="12" y="58" font-family="monospace" font-size="9" fill="#fca5a5">ECONNREFUSED (RST), ETIMEDOUT, somaxconn overflow</text>
   </g>
 
   <!-- Bottom Diagnostic Footer Banner -->
@@ -448,40 +448,40 @@ DNS_TRANSPORT_SVG = """
   <g transform="translate(38, 542)">
     <rect width="250" height="72" rx="3" fill="#121827" stroke="#38bdf8" stroke-width="1"/>
     <image href="../assets/icons/generic/decision.svg" x="8" y="8" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
-    <text x="32" y="18" font-family="monospace" font-size="8.5" fill="#38bdf8" font-weight="bold">NAME RESOLUTION CHECK</text>
-    <text x="10" y="34" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Fails at DNS: Hostname cannot be queried</text>
-    <text x="10" y="47" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Check DNS TTL &amp; local resolver cache</text>
-    <text x="10" y="60" font-family="monospace" font-size="7.5" fill="#7dd3fc">Tool: dig +trace, resolvectl status</text>
+    <text x="32" y="18" font-family="monospace" font-size="9" fill="#38bdf8" font-weight="bold">NAME RESOLUTION CHECK</text>
+    <text x="10" y="34" font-family="sans-serif" font-size="9" fill="#cbd5e1">• Fails at DNS: Hostname cannot be queried</text>
+    <text x="10" y="47" font-family="sans-serif" font-size="9" fill="#cbd5e1">• Check DNS TTL &amp; local resolver cache</text>
+    <text x="10" y="60" font-family="monospace" font-size="9" fill="#7dd3fc">Tool: dig +trace, resolvectl status</text>
   </g>
 
   <!-- Card 2 -->
   <g transform="translate(300, 542)">
     <rect width="250" height="72" rx="3" fill="#121827" stroke="#22c55e" stroke-width="1"/>
     <image href="../assets/icons/generic/endpoint.svg" x="8" y="8" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
-    <text x="32" y="18" font-family="monospace" font-size="8.5" fill="#22c55e" font-weight="bold">IP REACHABILITY CHECK</text>
-    <text x="10" y="34" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Fails at L3: Packet dropped by route or ACL</text>
-    <text x="10" y="47" font-family="sans-serif" font-size="8" fill="#cbd5e1">• IPv6 requires zone index (%eth0) if link-local</text>
-    <text x="10" y="60" font-family="monospace" font-size="7.5" fill="#a7f3d0">Tool: ip route get, traceroute -I</text>
+    <text x="32" y="18" font-family="monospace" font-size="9" fill="#22c55e" font-weight="bold">IP REACHABILITY CHECK</text>
+    <text x="10" y="34" font-family="sans-serif" font-size="9" fill="#cbd5e1">• Fails at L3: Packet dropped by route or ACL</text>
+    <text x="10" y="47" font-family="sans-serif" font-size="9" fill="#cbd5e1">• IPv6 requires zone index (%eth0) if link-local</text>
+    <text x="10" y="60" font-family="monospace" font-size="9" fill="#a7f3d0">Tool: ip route get, traceroute -I</text>
   </g>
 
   <!-- Card 3 -->
   <g transform="translate(562, 542)">
     <rect width="250" height="72" rx="3" fill="#121827" stroke="#f59e0b" stroke-width="1"/>
     <image href="../assets/icons/generic/server.svg" x="8" y="8" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
-    <text x="32" y="18" font-family="monospace" font-size="8.5" fill="#f59e0b" font-weight="bold">TCP CONNECTION CHECK</text>
-    <text x="10" y="34" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Fails at L4: Port closed (RST) or queue full</text>
-    <text x="10" y="47" font-family="sans-serif" font-size="8" fill="#cbd5e1">• SYN drop under burst: check somaxconn</text>
-    <text x="10" y="60" font-family="monospace" font-size="7.5" fill="#fde68a">Tool: ss -lnt, netstat -s, tcpdump -nn</text>
+    <text x="32" y="18" font-family="monospace" font-size="9" fill="#f59e0b" font-weight="bold">TCP CONNECTION CHECK</text>
+    <text x="10" y="34" font-family="sans-serif" font-size="9" fill="#cbd5e1">• Fails at L4: Port closed (RST) or queue full</text>
+    <text x="10" y="47" font-family="sans-serif" font-size="9" fill="#cbd5e1">• SYN drop under burst: check somaxconn</text>
+    <text x="10" y="60" font-family="monospace" font-size="9" fill="#fde68a">Tool: ss -lnt, netstat -s, tcpdump -nn</text>
   </g>
 
   <!-- Card 4 -->
   <g transform="translate(824, 542)">
     <rect width="258" height="72" rx="3" fill="#121827" stroke="#ec4899" stroke-width="1"/>
     <image href="../assets/icons/generic/outcome.svg" x="8" y="8" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
-    <text x="32" y="18" font-family="monospace" font-size="8.5" fill="#ec4899" font-weight="bold">APPLICATION READINESS</text>
-    <text x="10" y="34" font-family="sans-serif" font-size="8" fill="#cbd5e1">• Fails at L7: HTTP 500/502/503 status code</text>
-    <text x="10" y="47" font-family="sans-serif" font-size="8" fill="#cbd5e1">• L4 success gives FALSE positive for L7 health</text>
-    <text x="10" y="60" font-family="monospace" font-size="7.5" fill="#fbcfe8">Tool: curl -iv, OpenTelemetry traces</text>
+    <text x="32" y="18" font-family="monospace" font-size="9" fill="#ec4899" font-weight="bold">APPLICATION READINESS</text>
+    <text x="10" y="34" font-family="sans-serif" font-size="9" fill="#cbd5e1">• Fails at L7: HTTP 500/502/503 status code</text>
+    <text x="10" y="47" font-family="sans-serif" font-size="9" fill="#cbd5e1">• L4 success gives FALSE positive for L7 health</text>
+    <text x="10" y="60" font-family="monospace" font-size="9" fill="#fbcfe8">Tool: curl -iv, OpenTelemetry traces</text>
   </g>
 </svg>
 </div>
@@ -493,12 +493,12 @@ DNS_PIPELINE_SVG = flow_svg(
     'd003-dns-pipeline',
     'Recursive DNS resolution pipeline: stub client to authoritative zone',
     [
-        ('Stub resolver query', ('Client getaddrinfo() query', 'Recursion Desired: RD=1'), 'client'),
-        ('Recursive resolver lookup', ('Checks local TTL cache', 'Cache miss triggers query'), 'dns-resolver'),
-        ('Root name server referral', ('Queries Anycast Root (.)', 'Referral to .com TLD servers'), 'decision'),
-        ('TLD name server referral', ('Queries TLD (.com) server', 'Referral to domain NS'), 'dns-resolver'),
-        ('Authoritative zone answer', ('Queries ns1.example.com', 'Authoritative Answer (AA=1)'), 'server'),
-        ('Cache & client delivery', ('Caches RRset for TTL duration', 'Returns IP to application'), 'outcome'),
+        ('Stub query', ('Client getaddrinfo() query', 'Recursion Desired: RD=1'), 'client'),
+        ('Resolver cache', ('Checks local TTL cache', 'Cache miss triggers query'), 'dns-resolver'),
+        ('Root referral', ('Queries Anycast Root (.)', 'Referral to .com TLD servers'), 'decision'),
+        ('TLD referral', ('Queries TLD (.com) server', 'Referral to domain NS'), 'dns-resolver'),
+        ('Auth zone answer', ('Queries ns1.example.com', 'Authoritative Answer (AA=1)'), 'server'),
+        ('Client delivery', ('Caches RRset for TTL duration', 'Returns IP to application'), 'outcome'),
     ],
     ['RD=1 query', 'Root query', 'TLD referral', 'Auth query', 'RRset answer'],
     'Read 1 → 2 → 3 → 4 → 5 → 6. The iterative DNS resolution pipeline executed by a recursive resolver on behalf of a stub client. The stub delegates traversal; the recursive resolver follows referrals from Root (.) to TLD (.com) down to the authoritative name server, caching the final RRset for the duration of its Time-To-Live (TTL).'
@@ -652,7 +652,23 @@ TOPICS = [
         "overview": OVERVIEWS[0][2],
         "preview": OVERVIEWS[0][5],
         "technical": (
-            "<p><strong class='side-heading'>Subtopics in this discussion:</strong></p>\n<ol>\n<li>IPv6 128-bit address architecture and canonical representation</li>\n<li>Address scoping boundaries (Link-Local, Unique Local, and Global Unicast)</li>\n<li>Neighbor Discovery Protocol (NDP) mechanics (RS/RA, NS/NA, SLAAC, DAD)</li>\n<li>Dual-stack VPC architecture, Happy Eyeballs (RFC 8305), and Google Cloud edge ingress</li>\n</ol>\n\n"
+            "<p><strong class='side-heading'>Subtopics in this discussion:</strong></p>\n"
+            "<ol>\n"
+            "<li><a href='#topic-01-subtopic-1'>IPv6 128-bit address architecture and canonical representation</a></li>\n"
+            "<li><a href='#topic-01-subtopic-2'>Address scoping boundaries (Link-Local, Unique Local, and Global Unicast)</a></li>\n"
+            "<li><a href='#topic-01-subtopic-3'>Neighbor Discovery Protocol (NDP) mechanics (RS/RA, NS/NA, SLAAC, DAD)</a></li>\n"
+            "<li><a href='#topic-01-subtopic-4'>Dual-stack VPC architecture, Happy Eyeballs (RFC 8305), and Google Cloud edge ingress</a></li>\n"
+            "</ol>\n\n"
+            "<p class='overview-chips'><strong>Core protocol terms:</strong> "
+            "<a href='http://www.google.com/search?q=Link-Local' rel='noopener' target='_blank'>Link-Local</a> · "
+            "<a href='http://www.google.com/search?q=Unique+Local' rel='noopener' target='_blank'>Unique Local</a> · "
+            "<a href='http://www.google.com/search?q=Global+Unicast' rel='noopener' target='_blank'>Global Unicast</a> · "
+            "<a href='http://www.google.com/search?q=NDP' rel='noopener' target='_blank'>NDP</a> · "
+            "<a href='http://www.google.com/search?q=SLAAC' rel='noopener' target='_blank'>SLAAC</a> · "
+            "<a href='http://www.google.com/search?q=DAD' rel='noopener' target='_blank'>DAD</a> · "
+            "<a href='http://www.google.com/search?q=VPC' rel='noopener' target='_blank'>VPC</a> · "
+            "<a href='http://www.google.com/search?q=Happy+Eyeballs' rel='noopener' target='_blank'>Happy Eyeballs</a>"
+            "</p>\n\n"
 
             "<h3 id='topic-01-subtopic-1'>IPv6 128-bit address architecture and canonical representation</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=Internet+Protocol+version+6+%28IPv6%29' rel='noopener' target='_blank'>Internet Protocol version 6 (IPv6)</a></strong> (RFC 8200, RFC 4291) expands the IP address space from 32 bits ($2^{32} \\approx 4.3 \\times 10^9$) "
@@ -664,32 +680,36 @@ TOPICS = [
             "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Canonical string parsing is critical for automated cloud infrastructure, Continuous Integration / Continuous Deployment (CI/CD) pipelines, firewall policies, "
             "and audit logging. Non-canonical variations of the same IPv6 address can bypass naive string-matching security rules, cause IP Address Management (IPAM) database deduplication "
             "failures, or break automated infrastructure-as-code validations across multi-cloud environments.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In Google Cloud, subnets support dual-stack operation. As documented in "
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a> (Google Cloud), subnets support dual-stack operation. As documented in "
             "[Google Cloud VPC documentation: IPv6 subnet ranges](https://cloud.google.com/vpc/docs/subnets#ipv6-ranges), Google Cloud allocates a <samp>/64</samp> IPv6 subnet prefix "
-            "from internal or external allocations, requiring architects to configure canonical IPv6 routes and firewall rules across Andromeda virtual network fabrics.</li>\n</ul>\n\n"
+            "from internal or external allocations, requiring architects to configure canonical IPv6 routes and firewall rules across Andromeda <a href='http://www.google.com/search?q=VPC' rel='noopener' target='_blank'>VPC</a> network fabrics.</li>\n</ul>\n\n"
 
             "<h3 id='topic-01-subtopic-2'>Address scoping boundaries (Link-Local, Unique Local, and Global Unicast)</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> Unlike IPv4 where private ranges (<strong class='keyword'><a href='http://www.google.com/search?q=address+scopes' rel='noopener' target='_blank'>address scopes</a></strong>) are routable across any private network, IPv6 introduces strict, architecturally enforced address scopes:\n"
-            "- <strong>Link-Local Unicast (<samp>fe80::/10</samp>):</strong> Automatically configured on every active IPv6 interface. Link-local addresses are topologically bounded to the local Layer 2 broadcast/broadcast-equivalent segment and are never forwarded by routers. Because identical link-local addresses can legally exist on distinct interfaces connected to different physical links, the operating system cannot route packets to a link-local destination without an explicit <strong>Zone Identifier / Interface Index</strong> (e.g., <samp>fe80::1%eth0</samp> on Linux). Initiating a socket connection to a bare link-local address without a zone index fails immediately with <samp>EINVAL</samp> (Invalid argument).\n"
-            "- <strong>Unique Local Address (ULA, <samp>fc00::/7</samp>, RFC 4193):</strong> Globally unique private addresses intended for local communications across an enterprise private Wide Area Network (WAN) or hybrid interconnect. Block <samp>fd00::/8</samp> is assigned with a 40-bit pseudo-random Global ID, preventing address collisions during future enterprise corporate mergers or Virtual Private Cloud (VPC) peerings without NAT.\n"
-            "- <strong>Global Unicast Address (GUA, <samp>2000::/3</samp>, RFC 3587):</strong> Globally routable public addresses allocated by Regional Internet Registries (RIRs). Typically structured as a 48-bit global routing prefix assigned to the enterprise, a 16-bit subnet ID (providing up to 65,536 individual subnets per enterprise site), and a 64-bit Interface Identifier (IID).\n"
-            "- <strong>Special Purpose Addresses:</strong> Loopback (<samp>::1/128</samp>), Unspecified (<samp>::/128</samp>, used as source during boot prior to Duplicate Address Detection [DAD]), and Multicast (<samp>ff00::/8</samp>, including All-Nodes <samp>ff02::1</samp> and All-Routers <samp>ff02::2</samp>).\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> A common and devastating cloud misconfiguration occurs when automated CI/CD registration scripts or metadata agents register an instance's link-local address into Cloud DNS or Consul service registries. Because link-local addresses are non-routable and require an explicit Linux interface zone index (<samp>%eth0</samp>), cross-VM or cross-container client requests fail instantly with kernel <samp>EINVAL</samp> errors. Architects must enforce DNS validation webhooks that reject non-GUA/ULA records.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> [Google Cloud Load Balancing documentation: HTTP/3 and QUIC support](https://cloud.google.com/load-balancing/docs/https#QUIC) allocates global Anycast IPv6 Virtual IP (VIP) addresses from Google's GUA pool, terminating public client IPv6 connections and proxying requests to backend Compute Engine instances or GKE pods over IPv4 or internal ULA/GUA IPv6.</li>\n</ul>\n\n"
+            "<ul>\n"
+            "<li><strong><a href='http://www.google.com/search?q=Link-Local' rel='noopener' target='_blank'>Link-Local</a> Unicast (<samp>fe80::/10</samp>):</strong> Automatically configured on every active IPv6 interface. Link-local addresses are topologically bounded to the local Layer 2 broadcast/broadcast-equivalent segment and are never forwarded by routers. Because identical link-local addresses can legally exist on distinct interfaces connected to different physical links, the operating system cannot route packets to a link-local destination without an explicit <strong>Zone Identifier / Interface Index</strong> (e.g., <samp>fe80::1%eth0</samp> on Linux). Initiating a socket connection to a bare link-local address without a zone index fails immediately with <samp>EINVAL</samp> (Invalid argument).</li>\n"
+            "<li><strong><a href='http://www.google.com/search?q=Unique+Local' rel='noopener' target='_blank'>Unique Local</a> Address (ULA, <samp>fc00::/7</samp>, RFC 4193):</strong> Globally unique private addresses intended for local communications across an enterprise private Wide Area Network (WAN) or hybrid interconnect. Block <samp>fd00::/8</samp> is assigned with a 40-bit pseudo-random Global ID, preventing address collisions during future enterprise corporate mergers or Virtual Private Cloud (<a href='http://www.google.com/search?q=VPC' rel='noopener' target='_blank'>VPC</a>) peerings without NAT.</li>\n"
+            "<li><strong><a href='http://www.google.com/search?q=Global+Unicast' rel='noopener' target='_blank'>Global Unicast</a> Address (GUA, <samp>2000::/3</samp>, RFC 3587):</strong> Globally routable public addresses allocated by Regional Internet Registries (RIRs). Typically structured as a 48-bit global routing prefix assigned to the enterprise, a 16-bit subnet ID (providing up to 65,536 individual subnets per enterprise site), and a 64-bit Interface Identifier (IID).</li>\n"
+            "<li><strong>Special Purpose Addresses:</strong> Loopback (<samp>::1/128</samp>), Unspecified (<samp>::/128</samp>, used as source during boot prior to Duplicate Address Detection [<a href='http://www.google.com/search?q=DAD' rel='noopener' target='_blank'>DAD</a>]), and Multicast (<samp>ff00::/8</samp>, including All-Nodes <samp>ff02::1</samp> and All-Routers <samp>ff02::2</samp>).</li>\n"
+            "</ul>\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> A common and devastating cloud misconfiguration occurs when automated CI/CD registration scripts or metadata agents register an instance's link-local address into <a href='http://www.google.com/search?q=Cloud+DNS' rel='noopener' target='_blank'>Cloud DNS</a> or Consul service registries. Because link-local addresses are non-routable and require an explicit Linux interface zone index (<samp>%eth0</samp>), cross-VM or cross-container client requests fail instantly with kernel <samp>EINVAL</samp> errors. Architects must enforce DNS validation webhooks that reject non-GUA/ULA records.\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a>, [Google Cloud Load Balancing documentation: HTTP/3 and QUIC support](https://cloud.google.com/load-balancing/docs/https#QUIC) allocates global Anycast IPv6 Virtual IP (VIP) addresses from Google's GUA pool, terminating public client IPv6 connections (<a href='http://www.google.com/search?q=HTTP' rel='noopener' target='_blank'>HTTP</a> and <a href='http://www.google.com/search?q=QUIC' rel='noopener' target='_blank'>QUIC</a>) and proxying requests to backend Compute Engine instances or GKE pods over IPv4 or internal ULA/GUA IPv6.</li>\n</ul>\n\n"
 
             "<h3 id='topic-01-subtopic-3'>Neighbor Discovery Protocol (NDP) mechanics (RS/RA, NS/NA, SLAAC, DAD)</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=Neighbor+Discovery+Protocol+%28NDP%29' rel='noopener' target='_blank'>Neighbor Discovery Protocol (NDP)</a></strong> completely deprecates broadcast transmissions and IPv4 Address Resolution Protocol (ARP) in favor of Internet Control Message Protocol version 6 (ICMPv6) multicast messaging (RFC 4861):\n"
-            "- <strong>Router Solicitation (RS, Type 133) & Router Advertisement (RA, Type 134):</strong> Hosts multicast an RS to <samp>ff02::2</samp> upon boot. Routers respond with periodic RAs to <samp>ff02::1</samp> advertising network prefixes, Maximum Transmission Unit (MTU), default gateway lifetime, and autoconfiguration flags.\n"
-            "- <strong>Stateless Address Autoconfiguration (SLAAC, RFC 4862):</strong> Hosts combine the 64-bit RA prefix with a 64-bit Interface Identifier (IID), generated via 64-bit Extended Unique Identifier (EUI-64, derived from MAC address) or RFC 7217 cryptographically stable privacy addresses.\n"
-            "- <strong>Neighbor Solicitation (NS, Type 135) & Neighbor Advertisement (NA, Type 136):</strong> Replaces ARP. Hosts query the target's link-layer MAC address by multicasting an NS to the target's Solicited-Node Multicast address (<samp>ff02::1:ffxx:xxxx</samp>). The target unicasts an NA reply.\n"
-            "- <strong>Duplicate Address Detection (DAD):</strong> Before binding an address, a host transmits an NS for its own tentative address from the unspecified source (<samp>::</samp>). If an NA returns, an address collision exists and the interface marks the address invalid.\n\n"
+            "<ul>\n"
+            "<li><strong>Router Solicitation (RS, Type 133) &amp; Router Advertisement (RA, Type 134):</strong> Hosts multicast an RS to <samp>ff02::2</samp> upon boot. Routers respond with periodic RAs to <samp>ff02::1</samp> advertising network prefixes, Maximum Transmission Unit (MTU), default gateway lifetime, and autoconfiguration flags.</li>\n"
+            "<li><strong>Stateless Address Autoconfiguration (<a href='http://www.google.com/search?q=SLAAC' rel='noopener' target='_blank'>SLAAC</a>, RFC 4862):</strong> Hosts combine the 64-bit RA prefix with a 64-bit Interface Identifier (IID), generated via 64-bit Extended Unique Identifier (EUI-64, derived from MAC address) or RFC 7217 cryptographically stable privacy addresses.</li>\n"
+            "<li><strong>Neighbor Solicitation (NS, Type 135) &amp; Neighbor Advertisement (NA, Type 136):</strong> Replaces ARP. Hosts query the target's link-layer MAC address by multicasting an NS to the target's Solicited-Node Multicast address (<samp>ff02::1:ffxx:xxxx</samp>). The target unicasts an NA reply.</li>\n"
+            "<li><strong>Duplicate Address Detection (<a href='http://www.google.com/search?q=DAD' rel='noopener' target='_blank'>DAD</a>):</strong> Before binding an address, a host transmits an NS for its own tentative address from the unspecified source (<samp>::</samp>). If an NA returns, an address collision exists and the interface marks the address invalid.</li>\n"
+            "</ul>\n\n"
             "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> In software-defined cloud networks, cloud hypervisors intercept NDP packets. Architects must understand how cloud Software-Defined Networking (SDN) fabrics (such as Andromeda) emulate NDP to assign guest IP addresses and ensure that guest OS firewalls do not block essential ICMPv6 types (133–136), which would cause silent interface deconfiguration.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In Google Cloud Compute Engine, guest OS virtual interfaces receive IPv6 gateway and subnet configuration via Andromeda-managed NDP Router Advertisements, as outlined in [Google Cloud VPC documentation: IPv6 subnet ranges](https://cloud.google.com/vpc/docs/subnets#ipv6-ranges).</li>\n</ul>\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a> Compute Engine, guest OS virtual interfaces receive IPv6 gateway and subnet configuration via Andromeda-managed NDP Router Advertisements, as outlined in [Google Cloud VPC documentation: IPv6 subnet ranges](https://cloud.google.com/vpc/docs/subnets#ipv6-ranges) for dual-stack <a href='http://www.google.com/search?q=VPC' rel='noopener' target='_blank'>VPC</a> topologies.</li>\n</ul>\n\n"
 
             "<h3 id='topic-01-subtopic-4'>Dual-stack VPC architecture, Happy Eyeballs (RFC 8305), and Google Cloud edge ingress</h3>\n"
-            "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=Dual-stack+architecture' rel='noopener' target='_blank'>Dual-stack architecture</a></strong> requires coexistence where endpoints maintain both IPv4 and IPv6 network stacks concurrently. Happy Eyeballs (RFC 8305) is a client-side connection algorithm designed to prevent poor user experience when IPv6 connectivity is impaired: the client initiates simultaneous DNS queries for both A (IPv4) and AAAA (IPv6) records, attempts connection to the IPv6 address first, but starts a fallback IPv4 connection if IPv6 connection setup does not complete within a recommended 250 milliseconds (Connection Attempt Delay).\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Dual-stack architectures eliminate the business risk of IPv6 adoption. By deploying dual-stack Anycast frontend VIPs with Happy Eyeballs-compliant client SDKs, cloud architects ensure zero user-facing degradation during regional ISP routing anomalies or transit peering outages.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> [Google Cloud Load Balancing documentation: HTTP/3 and QUIC support](https://cloud.google.com/load-balancing/docs/https#QUIC) terminates dual-stack ingress traffic at Google edge Points of Presence (PoPs), proxying requests across optimized Andromeda internal backbones to backend Compute Engine VMs or GKE clusters.</li>\n</ul>\n\n"
+            "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=Dual-stack+architecture' rel='noopener' target='_blank'>Dual-stack architecture</a></strong> requires coexistence where endpoints maintain both IPv4 and IPv6 network stacks concurrently. <a href='http://www.google.com/search?q=Happy+Eyeballs' rel='noopener' target='_blank'>Happy Eyeballs</a> (RFC 8305) is a client-side connection algorithm designed to prevent poor user experience when IPv6 connectivity is impaired: the client initiates simultaneous DNS queries for both A (IPv4) and <a href='http://www.google.com/search?q=AAAA' rel='noopener' target='_blank'>AAAA</a> (IPv6) records, attempts connection to the IPv6 address first, but starts a fallback IPv4 connection if IPv6 connection setup does not complete within a recommended 250 milliseconds (Connection Attempt Delay).\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Dual-stack architectures eliminate the business risk of IPv6 adoption. By deploying dual-stack Anycast frontend VIPs with Happy Eyeballs-compliant client SDKs, cloud architects ensure zero user-facing degradation during regional ISP routing anomalies or transit peering outages, avoiding fallback <a href='http://www.google.com/search?q=Link-Local' rel='noopener' target='_blank'>Link-Local</a>, <a href='http://www.google.com/search?q=Unique+Local' rel='noopener' target='_blank'>Unique Local</a>, <a href='http://www.google.com/search?q=DAD' rel='noopener' target='_blank'>DAD</a>, or <a href='http://www.google.com/search?q=NDP' rel='noopener' target='_blank'>NDP</a> failures.\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a>, [Google Cloud Load Balancing documentation: HTTP/3 and QUIC support](https://cloud.google.com/load-balancing/docs/https#QUIC) terminates dual-stack ingress traffic for <a href='http://www.google.com/search?q=HTTP' rel='noopener' target='_blank'>HTTP</a> and <a href='http://www.google.com/search?q=QUIC' rel='noopener' target='_blank'>QUIC</a> at Google edge Points of Presence (PoPs), proxying requests across optimized Andromeda internal backbones to backend Compute Engine VMs or GKE clusters.</li>\n</ul>\n\n"
 
             "<ul>\n<li><strong class='side-heading'>Concrete example:</strong> A microservice container on GKE attempts to connect to an internal cache endpoint whose AAAA record was incorrectly populated with a link-local address (<samp>fe80::a00:27ff:fe8e:7b21</samp>). The application invokes <kbd>socket.connect(('fe80::a00:27ff:fe8e:7b21', 6379))</kbd> without specifying an interface scope index. The Linux kernel immediately returns <samp>[Errno 22] Invalid argument</samp> because the kernel Forwarding Information Base (FIB) routing table has no default interface for link-local traffic. Appending the scope index <kbd>fe80::a00:27ff:fe8e:7b21%eth0</kbd> or correcting DNS to return a Unique Local Address (<samp>2001:db8:100::45</samp>) restores immediate socket connectivity.</li>\n</ul>\n\n"
 
@@ -810,7 +830,20 @@ TOPICS = [
         "overview": OVERVIEWS[1][2],
         "preview": OVERVIEWS[1][5],
         "technical": (
-            "<p><strong class='side-heading'>Subtopics in this discussion:</strong></p>\n<ol>\n<li>Hierarchical DNS architecture and authoritative name servers</li>\n<li>The resolution pipeline (stub resolver, recursive resolver, iterative referral chain)</li>\n<li>Core DNS resource record types and TTL caching dynamics</li>\n<li>DNS security protocols (DNSSEC, DoT, DoH) and Google Cloud DNS managed private zones</li>\n</ol>\n\n"
+            "<p><strong class='side-heading'>Subtopics in this discussion:</strong></p>\n"
+            "<ol>\n"
+            "<li><a href='#topic-02-subtopic-1'>Hierarchical DNS architecture and authoritative name servers</a></li>\n"
+            "<li><a href='#topic-02-subtopic-2'>The resolution pipeline (stub resolver, recursive resolver, iterative referral chain)</a></li>\n"
+            "<li><a href='#topic-02-subtopic-3'>Core DNS resource record types and TTL caching dynamics</a></li>\n"
+            "<li><a href='#topic-02-subtopic-4'>DNS security protocols (DNSSEC, DoT, DoH) and Google Cloud DNS managed private zones</a></li>\n"
+            "</ol>\n\n"
+            "<p class='overview-chips'><strong>Core protocol terms:</strong> "
+            "<a href='http://www.google.com/search?q=TTL' rel='noopener' target='_blank'>TTL</a> · "
+            "<a href='http://www.google.com/search?q=DNSSEC' rel='noopener' target='_blank'>DNSSEC</a> · "
+            "<a href='http://www.google.com/search?q=DoT' rel='noopener' target='_blank'>DoT</a> · "
+            "<a href='http://www.google.com/search?q=DoH' rel='noopener' target='_blank'>DoH</a> · "
+            "<a href='http://www.google.com/search?q=Cloud+DNS' rel='noopener' target='_blank'>Cloud DNS</a>"
+            "</p>\n\n"
 
             "<h3 id='topic-02-subtopic-1'>Hierarchical DNS architecture and authoritative name servers</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> The <strong class='keyword'><a href='http://www.google.com/search?q=Domain+Name+System+%28DNS%29' rel='noopener' target='_blank'>Domain Name System (DNS)</a></strong> (RFC 1034, RFC 1035) is structured as an inverted hierarchical tree starting at the Root Zone (<samp>.</samp>). "
@@ -819,34 +852,38 @@ TOPICS = [
             "and infrastructure domains (<samp>.arpa</samp>). Authoritative Name Servers hold the master database records (RRsets) for specific zones and have final authority over their namespace.\n\n"
             "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Understanding the authoritative chain allows architects to configure domain delegation, manage registrar Name Server (NS) records, "
             "and design multi-provider DNS resilience. Delegating subdomains to dedicated cloud managed zones decouples developer team operations from corporate root domain controls.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> [Google Cloud DNS documentation: DNS overview](https://cloud.google.com/dns/docs/overview#dns-forwarding-methods) provides an authoritative DNS service running on Google's Anycast "
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a>, [Google Cloud DNS documentation: DNS overview](https://cloud.google.com/dns/docs/overview#dns-forwarding-methods) provides an authoritative <a href='http://www.google.com/search?q=Cloud+DNS' rel='noopener' target='_blank'>Cloud DNS</a> service running on Google's Anycast "
             "global network infrastructure, delivering 100% availability SLA and ultra-low lookup latency worldwide.</li>\n</ul>\n\n"
 
             "<h3 id='topic-02-subtopic-2'>The resolution pipeline (stub resolver, recursive resolver, iterative referral chain)</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> The <strong class='keyword'><a href='http://www.google.com/search?q=DNS+resolution+pipeline' rel='noopener' target='_blank'>DNS resolution pipeline</a></strong> separates query roles into distinct actors:\n"
-            "- <strong>Stub Resolver:</strong> A lightweight client library embedded in the guest OS (<samp>glibc getaddrinfo</samp>, <samp>systemd-resolved</samp>) that does not traverse the DNS hierarchy. It formats a query with the Recursion Desired (<samp>RD=1</samp>) bit and sends it to a designated recursive resolver.\n"
-            "- <strong>Recursive Resolver (Full Resolver):</strong> Traverses the global hierarchy on behalf of the client. It queries a Root server, receives a referral (<samp>NS</samp> records + glue <samp>A/AAAA</samp>) to the TLD servers, queries the TLD server to receive a referral to the authoritative server, and finally queries the authoritative server for the answer.\n"
-            "- <strong>Authoritative Server:</strong> Answers authoritatively (<samp>AA=1</samp>) with the requested RRset or an error code (<samp>NXDOMAIN</samp> if name does not exist, <samp>NODATA</samp> if name exists but record type does not).\n\n"
+            "<ul>\n"
+            "<li><strong>Stub Resolver:</strong> A lightweight client library embedded in the guest OS (<samp>glibc getaddrinfo</samp>, <samp>systemd-resolved</samp>) that does not traverse the DNS hierarchy. It formats a query with the Recursion Desired (<samp>RD=1</samp>) bit and sends it to a designated recursive resolver.</li>\n"
+            "<li><strong>Recursive Resolver (Full Resolver):</strong> Traverses the global hierarchy on behalf of the client. It queries a Root server, receives a referral (<samp>NS</samp> records + glue <samp>A/AAAA</samp>) to the TLD servers, queries the TLD server to receive a referral to the authoritative server, and finally queries the authoritative server for the answer.</li>\n"
+            "<li><strong>Authoritative Server:</strong> Answers authoritatively (<samp>AA=1</samp>) with the requested RRset or an error code (<samp>NXDOMAIN</samp> if name does not exist, <samp>NODATA</samp> if name exists but record type does not).</li>\n"
+            "</ul>\n\n"
             f"{DNS_PIPELINE_SVG}\n\n"
             "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Cloud architects must architect private name resolution paths. Conflating stub resolver behavior with recursive caching can lead to split-brain resolution errors across hybrid Cloud VPN or Cloud Interconnect topologies.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In Google Cloud Compute Engine, every VM queries the internal metadata resolver at <samp>169.254.169.254</samp> over link-local address space. "
-            "As detailed in [Google Cloud DNS documentation: DNS zones overview](https://cloud.google.com/dns/docs/zones/zones-overview#forwarding_zones), Cloud DNS can forward queries to on-premises "
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a> Compute Engine, every VM queries the internal metadata resolver at <samp>169.254.169.254</samp> over <a href='http://www.google.com/search?q=Link-Local' rel='noopener' target='_blank'>Link-Local</a> address space. "
+            "As detailed in [Google Cloud DNS documentation: DNS zones overview](https://cloud.google.com/dns/docs/zones/zones-overview#forwarding_zones), <a href='http://www.google.com/search?q=Cloud+DNS' rel='noopener' target='_blank'>Cloud DNS</a> can forward queries to on-premises "
             "recursive resolvers or accept inbound queries via private Cloud DNS forwarding targets.</li>\n</ul>\n\n"
 
             "<h3 id='topic-02-subtopic-3'>Core DNS resource record types and TTL caching dynamics</h3>\n"
-            "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=Resource+Records+%28RRs%29' rel='noopener' target='_blank'>Resource Records (RRs)</a></strong> are typed data units grouped into Record Sets (RRsets). The complete spectrum of modern DNS records governs how names translate into operational traffic paths:\n\n"
+            "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=Resource+Records+%28RRs%29' rel='noopener' target='_blank'>Resource Records (RRs)</a></strong> are typed data units grouped into Record Sets (RRsets). The complete spectrum of modern DNS records governs how names translate into operational traffic paths, handling <a href='http://www.google.com/search?q=AAAA' rel='noopener' target='_blank'>AAAA</a>, <a href='http://www.google.com/search?q=CNAME' rel='noopener' target='_blank'>CNAME</a>, <a href='http://www.google.com/search?q=UDP' rel='noopener' target='_blank'>UDP</a>, <a href='http://www.google.com/search?q=HTTP' rel='noopener' target='_blank'>HTTP</a>, and <a href='http://www.google.com/search?q=Link-Local' rel='noopener' target='_blank'>Link-Local</a> mappings:\n\n"
             f"{DNS_RECORDS_TABLE_HTML}\n\n"
-            "Every RRset carries a <strong>Time-To-Live (TTL)</strong> in seconds. Recursive resolvers cache the RRset and count down the TTL, serving subsequent requests directly from cache without querying authoritative servers until the TTL counter reaches zero.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> TTL management is the central operational control for planned maintenance, migrations, and disaster recovery. Lowering TTLs to 60 seconds days before a database migration ensures that traffic redirects immediately upon record modification. Failing to lower TTLs locks application clients to old IP addresses for hours, causing split-brain data corruption during database failovers.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> [Google Cloud DNS documentation: DNS zones overview](https://cloud.google.com/dns/docs/zones/zones-overview#forwarding_zones) enables geo-routing and weighted round-robin policies directly at the DNS layer, allowing architects to shift traffic percentages dynamically between regions during releases.</li>\n</ul>\n\n"
+            "Every RRset carries a <strong>Time-To-Live (<a href='http://www.google.com/search?q=TTL' rel='noopener' target='_blank'>TTL</a>)</strong> in seconds. Recursive resolvers cache the RRset and count down the TTL, serving subsequent requests directly from cache without querying authoritative servers until the TTL counter reaches zero.\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> TTL management is the central operational control for planned maintenance, migrations, and disaster recovery. Lowering TTLs to 60 seconds days before a database migration ensures that traffic redirects immediately upon record modification, maintaining <a href='http://www.google.com/search?q=DNSSEC' rel='noopener' target='_blank'>DNSSEC</a> validation integrity. Failing to lower TTLs locks application clients to old IP addresses for hours, causing split-brain data corruption during database failovers.\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a>, [Google Cloud DNS documentation: DNS zones overview](https://cloud.google.com/dns/docs/zones/zones-overview#forwarding_zones) enables geo-routing and weighted round-robin policies directly at the <a href='http://www.google.com/search?q=Cloud+DNS' rel='noopener' target='_blank'>Cloud DNS</a> layer, allowing architects to shift traffic percentages dynamically between regions during releases.</li>\n</ul>\n\n"
 
             "<h3 id='topic-02-subtopic-4'>DNS security protocols (DNSSEC, DoT, DoH) and Google Cloud DNS managed private zones</h3>\n"
-            "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> Traditional DNS transmits plaintext over User Datagram Protocol (UDP) port 53 without cryptographic verification, exposing lookups to cache poisoning (Kaminsky attacks) and on-path eavesdropping:\n"
-            "- <strong>DNS Security Extensions (DNSSEC, RFC 4033–4035):</strong> Provides cryptographic origin authentication and data integrity using public key cryptography. Authoritative zones sign RRsets with Resource Record Signatures (<samp>RRSIG</samp>). Resolvers validate signatures against DNS Public Keys (<samp>DNSKEY</samp>) and verify the trust chain up to the ICANN Root Zone Trust Anchor via Delegation Signer (<samp>DS</samp>) records published in parent TLD zones. Authenticated Denial of Existence is proven via <samp>NSEC</samp> or salted <samp>NSEC3</samp> records (RFC 5155), preventing attackers from enumerating all zone records (\"zone walking\"). Validating resolvers set the Authenticated Data (<samp>AD=1</samp>) bit upon successful cryptographic validation, and fail with <samp>SERVFAIL</samp> if signatures are forged, expired, or invalid.\n"
-            "- <strong>DNS over TLS (DoT, RFC 7858):</strong> Encrypts DNS queries over dedicated Transmission Control Protocol (TCP) port 853 with Transport Layer Security (TLS) encryption, preventing eavesdropping and tampering by transit internet service providers.\n"
-            "- <strong>DNS over HTTPS (DoH, RFC 8484):</strong> Encrypts DNS queries inside HTTP/2 or HTTP/3 frames over standard TCP/UDP port 443, blending DNS traffic into standard encrypted web egress to prevent censorship and inspection.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Implementing DNSSEC prevents attackers from poisoning recursive caches and hijacking sensitive cloud API endpoints. Configuring private DNS zones prevents internal network topologies and database hostnames from leaking to the public internet.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> [Google Cloud DNS documentation: Use advanced DNSSEC](https://cloud.google.com/dns/docs/dnssec-advanced#advanced-signing-options) isolates internal service discovery to authorized VPCs, supporting cross-VPC DNS peering, automated Key Signing Key (KSK) rotation, and Response Policy Zones (RPZ) to block malicious egress domains.</li>\n</ul>\n\n"
+            "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> Traditional DNS transmits plaintext over <a href='http://www.google.com/search?q=UDP' rel='noopener' target='_blank'>UDP</a> port 53 without cryptographic verification, exposing lookups to cache poisoning (Kaminsky attacks) and on-path eavesdropping:\n"
+            "<ul>\n"
+            "<li><strong>DNS Security Extensions (<a href='http://www.google.com/search?q=DNSSEC' rel='noopener' target='_blank'>DNSSEC</a>, RFC 4033–4035):</strong> Provides cryptographic origin authentication and data integrity using public key cryptography. Authoritative zones sign RRsets with Resource Record Signatures (<samp>RRSIG</samp>). Resolvers validate signatures against DNS Public Keys (<samp>DNSKEY</samp>) and verify the trust chain up to the ICANN Root Zone Trust Anchor via Delegation Signer (<samp>DS</samp>) records published in parent TLD zones. Authenticated Denial of Existence is proven via <samp>NSEC</samp> or salted <samp>NSEC3</samp> records (RFC 5155), preventing attackers from enumerating all zone records (\"zone walking\"), while protecting <a href='http://www.google.com/search?q=CNAME' rel='noopener' target='_blank'>CNAME</a> and address records with strict <a href='http://www.google.com/search?q=TTL' rel='noopener' target='_blank'>TTL</a> verification. Validating resolvers set the Authenticated Data (<samp>AD=1</samp>) bit upon successful cryptographic validation, and fail with <samp>SERVFAIL</samp> if signatures are forged, expired, or invalid.</li>\n"
+            "<li><strong>DNS over TLS (<a href='http://www.google.com/search?q=DoT' rel='noopener' target='_blank'>DoT</a>, RFC 7858):</strong> Encrypts DNS queries over dedicated Transmission Control Protocol (TCP) port 853 with Transport Layer Security (TLS) encryption, preventing eavesdropping and tampering by transit internet service providers.</li>\n"
+            "<li><strong>DNS over HTTPS (<a href='http://www.google.com/search?q=DoH' rel='noopener' target='_blank'>DoH</a>, RFC 8484):</strong> Encrypts DNS queries inside <a href='http://www.google.com/search?q=HTTP' rel='noopener' target='_blank'>HTTP</a> (HTTP/2 or HTTP/3) frames over standard TCP/UDP port 443, blending DNS traffic into standard encrypted web egress to prevent censorship and inspection.</li>\n"
+            "</ul>\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Implementing DNSSEC prevents attackers from poisoning recursive caches and hijacking sensitive cloud API endpoints. Configuring private DNS zones prevents internal network topologies and database hostnames from leaking to the public internet across private <a href='http://www.google.com/search?q=VPC' rel='noopener' target='_blank'>VPC</a> perimeters.\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a>, [Google Cloud DNS documentation: Use advanced DNSSEC](https://cloud.google.com/dns/docs/dnssec-advanced#advanced-signing-options) isolates internal service discovery to authorized VPCs, supporting cross-VPC <a href='http://www.google.com/search?q=Cloud+DNS' rel='noopener' target='_blank'>Cloud DNS</a> peering, automated Key Signing Key (KSK) rotation, and Response Policy Zones (RPZ) to block malicious egress domains.</li>\n</ul>\n\n"
 
             "<ul>\n<li><strong class='side-heading'>Concrete example:</strong> During a PostgreSQL database cutover from an on-premises data center to Cloud SQL, the database team updates the internal DNS record <samp>db.prod.internal</samp> from <samp>10.10.0.50</samp> to Cloud SQL's IP <samp>10.240.4.12</samp>. However, the record had been provisioned with an unmanaged TTL of 86400 seconds (24 hours). Compute Engine microservices continue querying their local cache and sending transactions to the old database for up to 24 hours, corrupting financial records and forcing an emergency manual service freeze. Reducing the TTL to 60 seconds 48 hours prior to maintenance guarantees seamless cutover within one minute.</li>\n</ul>\n\n"
 
@@ -954,40 +991,61 @@ TOPICS = [
         "overview": OVERVIEWS[2][2],
         "preview": OVERVIEWS[2][5],
         "technical": (
-            "<p><strong class='side-heading'>Subtopics in this discussion:</strong></p>\n<ol>\n<li>Transport protocol paradigms (TCP vs UDP vs QUIC)</li>\n<li>BSD socket addressing, socket types, and the complete socket lifecycle API</li>\n<li>I/O multiplexing architectures (select, poll, epoll, io_uring, SO_REUSEPORT)</li>\n<li>TCP connection management (3-way/4-way handshakes, TIME_WAIT, RST), flow control, congestion algorithms, and socket buffers</li>\n<li>Packet inspection and analysis with tcpdump</li>\n</ol>\n\n"
+            "<p><strong class='side-heading'>Subtopics in this discussion:</strong></p>\n"
+            "<ol>\n"
+            "<li><a href='#topic-03-subtopic-1'>Transport protocol paradigms (TCP vs UDP vs QUIC)</a></li>\n"
+            "<li><a href='#topic-03-subtopic-2'>BSD socket addressing, socket types, and the complete socket lifecycle API</a></li>\n"
+            "<li><a href='#topic-03-subtopic-3'>I/O multiplexing architectures (select, poll, epoll, io_uring, SO_REUSEPORT)</a></li>\n"
+            "<li><a href='#topic-03-subtopic-4'>TCP connection management (3-way/4-way handshakes, TIME_WAIT, RST), flow control, congestion algorithms, and socket buffers</a></li>\n"
+            "<li><a href='#topic-03-subtopic-5'>Packet inspection and analysis with tcpdump</a></li>\n"
+            "</ol>\n\n"
+            "<p class='overview-chips'><strong>Core protocol terms:</strong> "
+            "<a href='http://www.google.com/search?q=UDP' rel='noopener' target='_blank'>UDP</a> · "
+            "<a href='http://www.google.com/search?q=QUIC' rel='noopener' target='_blank'>QUIC</a> · "
+            "<a href='http://www.google.com/search?q=epoll' rel='noopener' target='_blank'>epoll</a> · "
+            "<a href='http://www.google.com/search?q=io_uring' rel='noopener' target='_blank'>io_uring</a> · "
+            "<a href='http://www.google.com/search?q=SO_REUSEPORT' rel='noopener' target='_blank'>SO_REUSEPORT</a> · "
+            "<a href='http://www.google.com/search?q=TIME_WAIT' rel='noopener' target='_blank'>TIME_WAIT</a> · "
+            "<a href='http://www.google.com/search?q=tcpdump' rel='noopener' target='_blank'>tcpdump</a>"
+            "</p>\n\n"
 
             "<h3 id='topic-03-subtopic-1'>Transport protocol paradigms (TCP vs UDP vs QUIC)</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=Transport+layer+protocols' rel='noopener' target='_blank'>Transport layer protocols</a></strong> define host-to-host communication semantics across 16-bit port numbers (1–65535):\n"
-            "- <strong>Transmission Control Protocol (TCP, RFC 9293):</strong> Connection-oriented, reliable, ordered byte-stream protocol. Enforces data integrity via sequence numbers, checksums, and positive acknowledgments with retransmission.\n"
-            "- <strong>User Datagram Protocol (UDP, RFC 768):</strong> Connectionless, unreliable, unordered datagram protocol. Minimal 8-byte header overhead with zero handshake delay, ideal for real-time telemetry, DNS lookups, and media streaming.\n"
-            "- <strong>QUIC (RFC 9000):</strong> Modern multiplexed transport running in user space over UDP port 443. Integrates TLS 1.3 encryption directly into the transport handshake (0-RTT / 1-RTT), provides independent stream multiplexing without Head-of-Line (HoL) blocking, and supports seamless connection migration across IP addresses via 64-bit Connection IDs (CIDs).\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Choosing the appropriate transport protocol governs architectural latency and fault isolation. For video streaming and IoT telemetry, UDP avoids TCP retransmission stalls. For global web APIs and mobile apps, deploying HTTP/3 over QUIC cuts latency by eliminating multi-Round-Trip Time (RTT) connection handshakes.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> [Google Cloud Load Balancing documentation: HTTP/3 and QUIC support](https://cloud.google.com/load-balancing/docs/https#QUIC) terminates QUIC connections at Google's global edge network, proxying requests over optimized internal TCP backbones to backend Compute Engine or GKE workloads.</li>\n</ul>\n\n"
+            "<ul>\n"
+            "<li><strong>Transmission Control Protocol (TCP, RFC 9293):</strong> Connection-oriented, reliable, ordered byte-stream protocol. Enforces data integrity via sequence numbers, checksums, and positive acknowledgments with retransmission.</li>\n"
+            "<li><strong>User Datagram Protocol (<a href='http://www.google.com/search?q=UDP' rel='noopener' target='_blank'>UDP</a>, RFC 768):</strong> Connectionless, unreliable, unordered datagram protocol. Minimal 8-byte header overhead with zero handshake delay, ideal for real-time telemetry, DNS lookups, and media streaming.</li>\n"
+            "<li><strong><a href='http://www.google.com/search?q=QUIC' rel='noopener' target='_blank'>QUIC</a> (RFC 9000):</strong> Modern multiplexed transport running in user space over UDP port 443. Integrates TLS 1.3 encryption directly into the transport handshake (0-RTT / 1-RTT), provides independent stream multiplexing without Head-of-Line (HoL) blocking, and supports seamless connection migration across IP addresses via 64-bit Connection IDs (CIDs).</li>\n"
+            "</ul>\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Choosing the appropriate transport protocol governs architectural latency and fault isolation. For video streaming and IoT telemetry, UDP avoids TCP retransmission stalls. For global web APIs and mobile apps, deploying <a href='http://www.google.com/search?q=HTTP' rel='noopener' target='_blank'>HTTP</a>/3 over QUIC cuts latency by eliminating multi-Round-Trip Time (RTT) connection handshakes.\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a>, [Google Cloud Load Balancing documentation: HTTP/3 and QUIC support](https://cloud.google.com/load-balancing/docs/https#QUIC) terminates QUIC connections at Google's global edge network, proxying requests over optimized internal TCP backbones to backend Compute Engine or GKE workloads.</li>\n</ul>\n\n"
 
             "<h3 id='topic-03-subtopic-2'>BSD socket addressing, socket types, and the complete socket lifecycle API</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=Berkeley+Software+Distribution+%28BSD%29+sockets' rel='noopener' target='_blank'>Berkeley Software Distribution (BSD) sockets</a></strong> provide the operating system abstraction for network I/O. Sockets bind to a 4-tuple: (Source IP, Source Port, Destination IP, Destination Port). Socket address families include <samp>AF_INET</samp> (IPv4), <samp>AF_INET6</samp> (IPv6), and <samp>AF_UNIX</samp> (Unix Domain Sockets). Sockets support stream (<samp>SOCK_STREAM</samp>), datagram (<samp>SOCK_DGRAM</samp>), and raw (<samp>SOCK_RAW</samp>) types.\n"
             "The server socket lifecycle follows an explicit sequence: (1) <kbd>socket()</kbd> creates the file descriptor; (2) <kbd>bind()</kbd> associates it with a local IP and port; (3) <kbd>listen()</kbd> transitions the socket to passive mode and sizes the backlog queues; (4) <kbd>accept()</kbd> dequeues an established connection and returns a new connected socket; (5) <kbd>recv()</kbd> and <kbd>send()</kbd> transfer byte streams; (6) <kbd>close()</kbd> initiates connection teardown.\n\n"
             "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Cloud microservice performance depends on socket lifecycle ergonomics. Socket leaks (failing to call <kbd>close()</kbd>) exhaust file descriptors, crashing application runtimes. Understanding the socket 4-tuple prevents ephemeral port exhaustion on outbound NAT gateways.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In Google Cloud Compute Engine, guest OS network throughput is throttled by per-VM bandwidth caps and ephemeral port limits. Architects must tune Linux kernel socket allocations (<samp>net.ipv4.ip_local_port_range</samp>) to support high-throughput cloud proxies.</li>\n</ul>\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a> Compute Engine, guest OS network throughput is throttled by per-VM bandwidth caps and ephemeral port limits. Architects must tune Linux kernel socket allocations (<samp>net.ipv4.ip_local_port_range</samp>) to support high-throughput cloud proxies.</li>\n</ul>\n\n"
 
             "<h3 id='topic-03-subtopic-3'>I/O multiplexing architectures (select, poll, epoll, io_uring, SO_REUSEPORT)</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> Handling thousands of concurrent connections requires scalable <strong class='keyword'><a href='http://www.google.com/search?q=I%2FO+multiplexing' rel='noopener' target='_blank'>I/O multiplexing</a></strong> models beyond one-thread-per-connection:\n"
-            "- <samp>select()</samp> / <samp>poll()</samp>: $O(N)$ linear scans across file descriptor arrays, limited to 1024 descriptors in select.\n"
-            "- <samp>epoll()</samp>: Linux-specific $O(1)$ event-driven multiplexing. Kernel registers interest in file descriptors and returns only active events via <kbd>epoll_wait()</kbd>, supporting edge-triggered (<samp>EPOLLET</samp>) and level-triggered modes.\n"
-            "- <samp>io_uring</samp>: Modern Linux asynchronous ring buffer architecture eliminating system call overhead via lockless shared-memory ring queues between user space and kernel.\n"
-            "- <samp>SO_REUSEPORT</samp>: Allows multiple independent server processes or threads to bind to the exact same IP and port, with the kernel automatically load balancing incoming SYN packets across worker queues.\n\n"
+            "<ul>\n"
+            "<li><strong>select() / poll():</strong> $O(N)$ linear scans across file descriptor arrays, limited to 1024 descriptors in select.</li>\n"
+            "<li><strong><a href='http://www.google.com/search?q=epoll' rel='noopener' target='_blank'>epoll()</a>:</strong> Linux-specific $O(1)$ event-driven multiplexing. Kernel registers interest in file descriptors and returns only active events via <kbd>epoll_wait()</kbd>, supporting edge-triggered (<samp>EPOLLET</samp>) and level-triggered modes.</li>\n"
+            "<li><strong><a href='http://www.google.com/search?q=io_uring' rel='noopener' target='_blank'>io_uring</a>:</strong> Modern Linux asynchronous ring buffer architecture eliminating system call overhead via lockless shared-memory ring queues between user space and kernel.</li>\n"
+            "<li><strong><a href='http://www.google.com/search?q=SO_REUSEPORT' rel='noopener' target='_blank'>SO_REUSEPORT</a>:</strong> Allows multiple independent server processes or threads to bind to the exact same IP and port, with the kernel automatically load balancing incoming <a href='http://www.google.com/search?q=SYN' rel='noopener' target='_blank'>SYN</a> packets across worker queues.</li>\n"
+            "</ul>\n\n"
             "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> Cloud reverse proxies (such as NGINX and Envoy) and ingress controllers rely entirely on <samp>epoll</samp> and <samp>SO_REUSEPORT</samp>. Sizing container CPU limits without sufficient worker threads creates unhandled epoll event backlogs that lead to severe tail latency spikes.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> High-performance ingress proxies deployed on Compute Engine leverage multi-queue virtual networking combined with <samp>SO_REUSEPORT</samp> to achieve millions of packets per second per instance.</li>\n</ul>\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a>, high-performance ingress proxies deployed on Compute Engine leverage multi-queue virtual networking combined with <samp>SO_REUSEPORT</samp> to achieve millions of packets per second per instance.</li>\n</ul>\n\n"
 
             "<h3 id='topic-03-subtopic-4'>TCP connection management (3-way/4-way handshakes, TIME_WAIT, RST), flow control, congestion algorithms, and socket buffers</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=TCP+connection+management' rel='noopener' target='_blank'>TCP connection management</a></strong> and reliability are enforced through kernel state machines:\n"
-            "- <strong>Handshake Lifecycle:</strong> Initiated via 3-way handshake (<samp>SYN</samp> &rarr; <samp>SYN-ACK</samp> &rarr; <samp>ACK</samp>). Terminated via 4-way teardown (<samp>FIN</samp> &rarr; <samp>ACK</samp> &rarr; <samp>FIN</samp> &rarr; <samp>ACK</samp>). Abortive closure transmits Reset (<samp>RST</samp>). The terminating endpoint enters <samp>TIME_WAIT</samp> state for $2 \\times \\text{MSL}$ (Maximum Segment Lifetime, typically 60 seconds) to ensure delayed duplicate segments expire in transit.\n"
-            "- <strong>Kernel Queues:</strong> The <strong>SYN Queue</strong> holds partially open connections (<samp>SYN_RECV</samp>). Upon completing the 3-way handshake, the connection moves to the <strong>Accept Queue</strong> (<samp>listen(backlog)</samp>) waiting for user space to call <kbd>accept()</kbd>. If the accept queue fills, the kernel silently drops subsequent incoming SYN packets.\n"
-            "- <strong>Flow Control:</strong> Receiver advertises window size (<samp>rwnd</samp>) indicating free space in <samp>sk_rcvbuf</samp>. Window Scaling (RFC 7323) scales windows up to 1 GB.\n"
-            "- <strong>Congestion Control:</strong> Sender bounds inflight data by Congestion Window (<samp>cwnd</samp>). Algorithms include loss-based TCP CUBIC (RFC 8312) and rate-based Google Bottleneck Bandwidth and Round-trip propagation time (BBR), which models bottleneck bandwidth and RTprop to prevent bufferbloat.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> When high-throughput microservices report <30% CPU utilization while dropping requests and throwing HTTP 504 timeouts, the bottleneck is almost always accept queue overflow (<samp>somaxconn</samp> exhaustion) or ephemeral port exhaustion from sockets lingering in <samp>TIME_WAIT</samp>. Tuning TCP buffers and enabling BBR maximizes cross-region throughput across Cloud Interconnect.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> Google Cloud's Andromeda SDN and global BGP network are optimized for [Google Cloud Networking: TCP BBR Congestion Control in GCP](https://cloud.google.com/blog/products/networking/tcp-bbr-congestion-control-comes-to-gcp-your-internet-just-got-faster). Compute Engine instances can enable BBR via sysctl to maximize transfer speeds over long-haul paths.</li>\n</ul>\n\n"
-
+            "<ul>\n"
+            "<li><strong>Handshake Lifecycle:</strong> Initiated via 3-way handshake (<samp>SYN</samp> &rarr; <samp>SYN-ACK</samp> &rarr; <samp>ACK</samp>). Terminated via 4-way teardown (<samp>FIN</samp> &rarr; <samp>ACK</samp> &rarr; <samp>FIN</samp> &rarr; <samp>ACK</samp>). Abortive closure transmits Reset (<samp>RST</samp>). The terminating endpoint enters <a href='http://www.google.com/search?q=TIME_WAIT' rel='noopener' target='_blank'>TIME_WAIT</a> state for $2 \times \text{MSL}$ (Maximum Segment Lifetime, typically 60 seconds) to ensure delayed duplicate segments expire in transit.</li>\n"
+            "<li><strong>Kernel Queues:</strong> The <strong><a href='http://www.google.com/search?q=SYN' rel='noopener' target='_blank'>SYN</a> Queue</strong> holds partially open connections (<samp>SYN_RECV</samp>). Upon completing the 3-way handshake, the connection moves to the <strong>Accept Queue</strong> (<samp>listen(backlog)</samp>) waiting for user space to call <kbd>accept()</kbd>. If the accept queue fills, the kernel silently drops subsequent incoming SYN packets.</li>\n"
+            "<li><strong>Flow Control:</strong> Receiver advertises window size (<samp>rwnd</samp>) indicating free space in <samp>sk_rcvbuf</samp>. Window Scaling (RFC 7323) scales windows up to 1 GB.</li>\n"
+            "<li><strong>Congestion Control:</strong> Sender bounds inflight data by Congestion Window (<samp>cwnd</samp>). Algorithms include loss-based TCP <a href='http://www.google.com/search?q=CUBIC' rel='noopener' target='_blank'>CUBIC</a> (RFC 8312) and rate-based Google Bottleneck Bandwidth and Round-trip propagation time (<a href='http://www.google.com/search?q=BBR' rel='noopener' target='_blank'>BBR</a>), which models bottleneck bandwidth and RTprop to prevent bufferbloat.</li>\n"
+            "</ul>\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> When high-throughput microservices report <30% CPU utilization while dropping requests and throwing <a href='http://www.google.com/search?q=HTTP' rel='noopener' target='_blank'>HTTP</a> 504 timeouts, the bottleneck is almost always accept queue overflow (<samp>somaxconn</samp> exhaustion) or ephemeral port exhaustion from sockets lingering in <samp>TIME_WAIT</samp>. Tuning TCP buffers and enabling BBR maximizes cross-region throughput across Cloud Interconnect.\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a>, Google Cloud's Andromeda SDN and global BGP network are optimized for [Google Cloud Networking: TCP BBR Congestion Control in GCP](https://cloud.google.com/blog/products/networking/tcp-bbr-congestion-control-comes-to-gcp-your-internet-just-got-faster). Compute Engine instances can enable BBR via sysctl to maximize transfer speeds over long-haul paths.</li>\n</ul>\n\n"
             "<h3 id='topic-03-subtopic-5'>Packet inspection and analysis with tcpdump</h3>\n"
             "<ul>\n<li><strong class='side-heading'>What it is in general:</strong> <strong class='keyword'><a href='http://www.google.com/search?q=tcpdump' rel='noopener' target='_blank'>tcpdump</a></strong> is the foundational command-line packet analyzer built on the <samp>libpcap</samp> packet capture interface. "
             "It captures raw Layer 2 frames, Layer 3 IP packets, and Layer 4 transport segments traversing network interfaces. "
@@ -997,9 +1055,9 @@ TOPICS = [
             "<kbd>-w &lt;file.pcap&gt;</kbd> (write raw packets to PCAP format), and <kbd>-r &lt;file.pcap&gt;</kbd> (read and decode saved capture files). "
             "Reading tcpdump output requires decoding transport flags: <samp>[S]</samp> (SYN: connection request proposing ISN), <samp>[S.]</samp> (SYN-ACK: server acceptance acknowledging client ISN+1 and proposing server ISN), "
             "<samp>[.]</samp> (ACK: client acknowledgment completing handshake), <samp>[P.]</samp> (PSH-ACK: data push transmitting application payload), "
-            "<samp>[F.]</samp> (FIN-ACK: graceful connection teardown), and <samp>[R]</samp> / <samp>[R.]</samp> (RST / RST-ACK: connection abort or port closed).\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> When microservices fail silently behind cloud load balancers or cross-VPC peerings, high-level logs and CPU metrics provide zero insight into wire-level transport health. Packet capture analysis is the definitive tool to prove whether drops occur due to MTU black holes, SYN packet discards at queue bottlenecks, reset packets emitted by upstream middleboxes, or window stalls from unread socket buffers.\n\n"
-            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In Google Cloud, [Linux man-pages: tcpdump(1) packet capture tool description](https://man7.org/linux/man-pages/man1/tcpdump.1.html#DESCRIPTION) is used on Compute Engine instances to diagnose guest kernel networking. Furthermore, Google Cloud VPC Packet Mirroring allows non-intrusive traffic mirroring from VM instances and Internal Load Balancers directly to out-of-band capture collectors running tcpdump or Zeek.</li>\n</ul>\n\n"
+            "<samp>[F.]</samp> (FIN-ACK: graceful connection teardown), and <samp>[R]</samp> / <samp>[R.]</samp> (RST / RST-ACK: connection abort or port closed), observing <a href='http://www.google.com/search?q=TIME_WAIT' rel='noopener' target='_blank'>TIME_WAIT</a> and congestion state transitions (<a href='http://www.google.com/search?q=BBR' rel='noopener' target='_blank'>BBR</a>, <a href='http://www.google.com/search?q=CUBIC' rel='noopener' target='_blank'>CUBIC</a>) over <a href='http://www.google.com/search?q=HTTP' rel='noopener' target='_blank'>HTTP</a> flows.\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to a cloud architect:</strong> When microservices fail silently behind cloud load balancers or cross-VPC peerings, high-level logs and CPU metrics provide zero insight into wire-level transport health. Packet capture analysis is the definitive tool to prove whether drops occur due to MTU black holes, <a href='http://www.google.com/search?q=SYN' rel='noopener' target='_blank'>SYN</a> packet discards at queue bottlenecks, reset packets emitted by upstream middleboxes, or window stalls from unread socket buffers.\n\n"
+            "</li>\n<li><strong class='side-heading'>Relevance to GCP:</strong> In <a href='http://www.google.com/search?q=GCP' rel='noopener' target='_blank'>GCP</a>, [Linux man-pages: tcpdump(1) packet capture tool description](https://man7.org/linux/man-pages/man1/tcpdump.1.html#DESCRIPTION) is used on Compute Engine instances to diagnose guest kernel networking. Furthermore, Google Cloud <a href='http://www.google.com/search?q=VPC' rel='noopener' target='_blank'>VPC</a> Packet Mirroring allows non-intrusive traffic mirroring from VM instances and Internal Load Balancers directly to out-of-band capture collectors running tcpdump or <a href='http://www.google.com/search?q=Wireshark' rel='noopener' target='_blank'>Wireshark</a>.</li>\n</ul>\n\n"
 
             "<ul>\n<li><strong class='side-heading'>Concrete example:</strong> A promotion sends an unexpected burst of 10,000 HTTP requests/second to a Compute Engine web service configured with the default Linux backlog of <samp>somaxconn=128</samp>. The application thread pool cannot invoke <kbd>accept()</kbd> fast enough to clear the accept queue. Once 128 connections queue up, the Linux kernel silently drops all new incoming SYN packets. Upstream Google Cloud Application Load Balancers retry three times, fail to establish TCP handshakes, and return HTTP 504 Gateway Timeout errors to shoppers. Increasing <samp>net.core.somaxconn=4096</samp> and sizing the application server backlog eliminates the drops and absorbs traffic spikes.</li>\n</ul>\n\n"
 
