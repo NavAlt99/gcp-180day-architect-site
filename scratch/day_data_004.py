@@ -70,8 +70,23 @@ SOURCES['gcp_mtu_apis'] = ('VPC MTU — Communication to Google APIs and service
 source = partial(_source, sources=SOURCES)
 def subtopic(*args):
     return _subtopic(*args, sources=SOURCES, access_date=ACCESS_DATE).replace(f'. Accessed {ACCESS_DATE}.', '.')
-def flow_svg(*args):
-    return _flow_svg(*args).replace('../assets/icons/generic/../gcp/', '../assets/icons/gcp/')
+def flow_svg(uid, title, nodes, transitions, caption):
+    clean_nodes = []
+    for label, detail, icon in nodes:
+        if label == 'Identity & SAN Match':
+            label = 'Identity & SAN'
+        clean_nodes.append((label, detail, icon))
+    clean_transitions = []
+    for t in transitions:
+        t = t.replace('ClientHello status_request', 'status_request').replace('Staple CertificateStatus', 'Staple Status')
+        t = t.replace('Transmit 1500B (DF=1)', 'Send 1500B DF=1').replace('ICMP Type 3 Code 4', 'ICMP Type 3/4')
+        t = t.replace('Traverse internet', 'To Internet').replace('DNAT state lookup', 'DNAT lookup')
+        t = t.replace('BGP UPDATE (AS 65001)', 'BGP UPDATE').replace('LPM packet egress', 'LPM egress')
+        t = t.replace('CertVerify + Finished', 'Verify & Finish').replace('Verify Issuer Sig', 'Verify Sig')
+        clean_transitions.append(t)
+    html = _flow_svg(uid, title, clean_nodes, clean_transitions, caption)
+    html = html.replace('font-size="12"', 'font-size="11"')
+    return html.replace('../assets/icons/generic/../gcp/', '../assets/icons/gcp/')
 
 stage = partial(_stage, location='Local Linux Bash terminal / text editor.')
 def workspace(prefix, *, preflight_text):
@@ -121,6 +136,7 @@ PART1_INTRO = (
 )
 
 PART1_HTML = """
+<style>.technical { max-width: 100%; }</style>
 <p class="intro">Day 4 establishes the fundamental vocabulary, framing mechanisms, and failure boundaries spanning application protocols (HTTP/1.1, HTTP/2, HTTP/3), cryptographic trust chains (TLS 1.3), network framing (MTU and MSS clamping), address translation (SNAT/DNAT), and dynamic routing (BGP).</p>
 <p class="callout"><strong>Exit evidence:</strong> A failure worksheet that separates TLS trust, packet size, routing and HTTP errors.</p>
 
@@ -357,7 +373,7 @@ T1_SUBTOPICS = [
     )
 ]
 
-HTTP_SETUP_SVG = '<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg role="img" aria-labelledby="d004-http-setup-title d004-http-setup-desc" viewBox="0 0 1440 690" style="display:block;width:100%;min-width:1440px;height:auto;background:#090d16;font-family:ui-monospace,monospace">\n<title id="d004-http-setup-title">HTTP Versions: Connection Setup and First Request Sequences</title>\n<desc id="d004-http-setup-desc">Three independent numbered request-response sequences compare TCP plus TLS for HTTP/1.1 and HTTP/2 with QUIC and integrated TLS for HTTP/3. Each row progresses left to right; these are illustrative mechanisms, not locally captured traffic.</desc>\n<defs><marker id="d004-http-setup-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#38bdf8"/></marker></defs>\n<text x="30" y="42" fill="#f8fafc" font-size="22" font-weight="700">HTTP versions: connection setup → first request → response</text>\n<text x="30" y="101" fill="#7dd3fc" font-size="20" font-weight="700">HTTP/1.1 over TCP + TLS</text>\n<g transform="translate(30,125)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/client.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">1. TCP connection</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Client and server</text><text x="16" y="96" fill="#e2e8f0" font-size="14">establish TCP</text></g>\n<line x1="300" y1="182" x2="390" y2="182" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="345" y="164" text-anchor="middle" fill="#cbd5e1" font-size="14">1→2</text>\n<g transform="translate(400,125)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/policy.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">2. TLS handshake</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Authenticate certificate</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Establish encryption</text></g>\n<line x1="670" y1="182" x2="760" y2="182" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="715" y="164" text-anchor="middle" fill="#cbd5e1" font-size="14">2→3</text>\n<g transform="translate(770,125)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/artifact.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">3. First request</text><text x="16" y="72" fill="#e2e8f0" font-size="14">HTTP/1.1 method + target</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Headers and body</text></g>\n<line x1="1040" y1="182" x2="1130" y2="182" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="1085" y="164" text-anchor="middle" fill="#cbd5e1" font-size="14">3→4</text>\n<g transform="translate(1140,125)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/server.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">4. First response</text><text x="16" y="72" fill="#e2e8f0" font-size="14">HTTP status + headers</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Response body</text></g>\n<text x="30" y="291" fill="#7dd3fc" font-size="20" font-weight="700">HTTP/2 over TCP + TLS</text>\n<g transform="translate(30,315)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/client.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">1. TCP connection</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Client and server</text><text x="16" y="96" fill="#e2e8f0" font-size="14">establish TCP</text></g>\n<line x1="300" y1="372" x2="390" y2="372" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="345" y="354" text-anchor="middle" fill="#cbd5e1" font-size="14">1→2</text>\n<g transform="translate(400,315)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/policy.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">2. TLS + ALPN h2</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Authenticate certificate</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Select HTTP/2</text></g>\n<line x1="670" y1="372" x2="760" y2="372" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="715" y="354" text-anchor="middle" fill="#cbd5e1" font-size="14">2→3</text>\n<g transform="translate(770,315)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/artifact.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">3. First request stream</text><text x="16" y="72" fill="#e2e8f0" font-size="14">HTTP/2 binary frames</text><text x="16" y="96" fill="#e2e8f0" font-size="14">HEADERS then DATA</text></g>\n<line x1="1040" y1="372" x2="1130" y2="372" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="1085" y="354" text-anchor="middle" fill="#cbd5e1" font-size="14">3→4</text>\n<g transform="translate(1140,315)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/server.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">4. Response stream</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Frames carry status/body</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Stream ID identifies flow</text></g>\n<text x="30" y="481" fill="#7dd3fc" font-size="20" font-weight="700">HTTP/3 over QUIC / UDP</text>\n<g transform="translate(30,505)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/client.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">1. QUIC connection</text><text x="16" y="72" fill="#e2e8f0" font-size="14">UDP transport</text><text x="16" y="96" fill="#e2e8f0" font-size="14">No TCP connection</text></g>\n<line x1="300" y1="562" x2="390" y2="562" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="345" y="544" text-anchor="middle" fill="#cbd5e1" font-size="14">1→2</text>\n<g transform="translate(400,505)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/policy.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">2. Integrated TLS + h3</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Authenticate certificate</text><text x="16" y="96" fill="#e2e8f0" font-size="14">QUIC handshake + TLS 1.3</text></g>\n<line x1="670" y1="562" x2="760" y2="562" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="715" y="544" text-anchor="middle" fill="#cbd5e1" font-size="14">2→3</text>\n<g transform="translate(770,505)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/artifact.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">3. First request stream</text><text x="16" y="72" fill="#e2e8f0" font-size="14">HTTP/3 frames</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Independent QUIC stream</text></g>\n<line x1="1040" y1="562" x2="1130" y2="562" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="1085" y="544" text-anchor="middle" fill="#cbd5e1" font-size="14">3→4</text>\n<g transform="translate(1140,505)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/server.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">4. Response stream</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Status/body on stream</text><text x="16" y="96" fill="#e2e8f0" font-size="14">No TCP loss blocking</text></g>\n</svg></div><figcaption>Illustrative setup and first-request sequences, read 1→2→3→4 in each independent row: (1) establish the transport, (2) authenticate and secure it, (3) send the request, (4) receive the response. HTTP/2 uses TLS ALPN and framed streams; HTTP/3 integrates TLS into QUIC over UDP. Resumption, early data and packet-level handshake timing are omitted. RFC 9110 §4.2.2, RFC 9113 §§3.2/8.2.1, RFC 8446 §4 (historical) and RFC 9114 §§3/4 support the scope; Lab 1 locally speaks HTTP/1.0 and simulates later-version behavior.</figcaption></figure>'
+HTTP_SETUP_SVG = '<figure class="diagram-container"><div style="max-width:100%;overflow-x:auto"><svg role="img" aria-labelledby="d004-http-setup-title d004-http-setup-desc" viewBox="0 0 1440 690" style="display:block;width:100%;min-width:1440px;height:auto;background:#090d16;font-family:ui-monospace,monospace">\n<title id="d004-http-setup-title">HTTP Versions: Connection Setup and First Request Sequences</title>\n<desc id="d004-http-setup-desc">Three independent numbered request-response sequences compare TCP plus TLS for HTTP/1.1 and HTTP/2 with QUIC and integrated TLS for HTTP/3. Each row progresses left to right; these are illustrative mechanisms, not locally captured traffic.</desc>\n<defs><marker id="d004-http-setup-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#38bdf8"/></marker></defs>\n<text x="30" y="42" fill="#f8fafc" font-size="22" font-weight="700">HTTP versions: connection setup → first request → response</text>\n<text x="30" y="101" fill="#7dd3fc" font-size="20" font-weight="700">HTTP/1.1 over TCP + TLS</text>\n<g transform="translate(30,125)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/client.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">1. TCP connection</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Client and server</text><text x="16" y="96" fill="#e2e8f0" font-size="14">establish TCP</text></g>\n<line x1="300" y1="182" x2="390" y2="182" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="345" y="164" text-anchor="middle" fill="#cbd5e1" font-size="14">1→2</text>\n<g transform="translate(400,125)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/policy.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">2. TLS handshake</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Authenticate certificate</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Establish encryption</text></g>\n<line x1="670" y1="182" x2="760" y2="182" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="715" y="164" text-anchor="middle" fill="#cbd5e1" font-size="14">2→3</text>\n<g transform="translate(770,125)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/artifact.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">3. First request</text><text x="16" y="72" fill="#e2e8f0" font-size="14">HTTP/1.1 method + target</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Headers and body</text></g>\n<line x1="1040" y1="182" x2="1130" y2="182" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="1085" y="164" text-anchor="middle" fill="#cbd5e1" font-size="14">3→4</text>\n<g transform="translate(1140,125)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/server.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">4. First response</text><text x="16" y="72" fill="#e2e8f0" font-size="14">HTTP status + headers</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Response body</text></g>\n<text x="30" y="291" fill="#7dd3fc" font-size="20" font-weight="700">HTTP/2 over TCP + TLS</text>\n<g transform="translate(30,315)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/client.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">1. TCP connection</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Client and server</text><text x="16" y="96" fill="#e2e8f0" font-size="14">establish TCP</text></g>\n<line x1="300" y1="372" x2="390" y2="372" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="345" y="354" text-anchor="middle" fill="#cbd5e1" font-size="14">1→2</text>\n<g transform="translate(400,315)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/policy.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">2. TLS + ALPN h2</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Authenticate certificate</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Select HTTP/2</text></g>\n<line x1="670" y1="372" x2="760" y2="372" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="715" y="354" text-anchor="middle" fill="#cbd5e1" font-size="14">2→3</text>\n<g transform="translate(770,315)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/artifact.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">3. Request stream</text><text x="16" y="72" fill="#e2e8f0" font-size="14">HTTP/2 binary frames</text><text x="16" y="96" fill="#e2e8f0" font-size="14">HEADERS then DATA</text></g>\n<line x1="1040" y1="372" x2="1130" y2="372" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="1085" y="354" text-anchor="middle" fill="#cbd5e1" font-size="14">3→4</text>\n<g transform="translate(1140,315)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/server.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">4. Response stream</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Frames carry status/body</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Stream ID identifies flow</text></g>\n<text x="30" y="481" fill="#7dd3fc" font-size="20" font-weight="700">HTTP/3 over QUIC / UDP</text>\n<g transform="translate(30,505)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/client.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">1. QUIC connection</text><text x="16" y="72" fill="#e2e8f0" font-size="14">UDP transport</text><text x="16" y="96" fill="#e2e8f0" font-size="14">No TCP connection</text></g>\n<line x1="300" y1="562" x2="390" y2="562" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="345" y="544" text-anchor="middle" fill="#cbd5e1" font-size="14">1→2</text>\n<g transform="translate(400,505)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/policy.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">2. TLS + QUIC h3</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Authenticate certificate</text><text x="16" y="96" fill="#e2e8f0" font-size="14">QUIC handshake + TLS 1.3</text></g>\n<line x1="670" y1="562" x2="760" y2="562" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="715" y="544" text-anchor="middle" fill="#cbd5e1" font-size="14">2→3</text>\n<g transform="translate(770,505)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/artifact.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">3. Request stream</text><text x="16" y="72" fill="#e2e8f0" font-size="14">HTTP/3 frames</text><text x="16" y="96" fill="#e2e8f0" font-size="14">Independent QUIC stream</text></g>\n<line x1="1040" y1="562" x2="1130" y2="562" stroke="#38bdf8" stroke-width="2" marker-end="url(#d004-http-setup-arrow)"/><text x="1085" y="544" text-anchor="middle" fill="#cbd5e1" font-size="14">3→4</text>\n<g transform="translate(1140,505)"><rect width="270" height="115" rx="10" fill="#121526" stroke="#38bdf8"/><image href="../assets/icons/generic/server.svg" x="15" y="15" width="30" height="30" preserveAspectRatio="xMidYMid meet"/><text x="54" y="35" fill="#7dd3fc" font-size="15" font-weight="700">4. Response stream</text><text x="16" y="72" fill="#e2e8f0" font-size="14">Status/body on stream</text><text x="16" y="96" fill="#e2e8f0" font-size="14">No TCP loss blocking</text></g>\n</svg></div><figcaption>Illustrative setup and first-request sequences, read 1→2→3→4 in each independent row: (1) establish the transport, (2) authenticate and secure it, (3) send the request, (4) receive the response. HTTP/2 uses TLS ALPN and framed streams; HTTP/3 integrates TLS into QUIC over UDP. Resumption, early data and packet-level handshake timing are omitted. RFC 9110 §4.2.2, RFC 9113 §§3.2/8.2.1, RFC 8446 §4 (historical) and RFC 9114 §§3/4 support the scope; Lab 1 locally speaks HTTP/1.0 and simulates later-version behavior.</figcaption></figure>'
 
 T1_TECH = discussion(
     [
@@ -1009,7 +1025,9 @@ P1_CASE = case(
         "Update mobile client SDK and API client libraries to enforce standard lowercase HTTP header conventions across all endpoints."
     ],
     verify="Execute checkout request with mixed-case headers through the updated ingress proxy and verify HTTP 200 OK with valid stream allocation.",
-    residual="Client requests containing invalid pseudo-headers or prohibited non-ASCII characters may still trigger stream resets; monitor downstream reset counters.",
+    residual="""Client requests containing invalid pseudo-headers or prohibited non-ASCII characters may still trigger stream resets; monitor downstream reset counters.
+
+**Evidence limit:** Diagnostic validation is evaluated via local packet traces and supplied logs; synthetic testing models architectural boundaries but does not guarantee provider routing or edge behavior without live observation.""",
     enabled=True,
     diagram=(
         "Client sends HTTP/2 request with uppercase headers",
@@ -1049,7 +1067,9 @@ P2_CASE = case(
         "Deploy updated certificate and reload the analytics receiver service daemon without downtime."
     ],
     verify="Connect from client using openssl s_client with CA verification enabled and verify Verify return code: 0 (ok).",
-    residual="Ensure automated certificate renewal pipelines (such as Google Certificate Manager or cert-manager) preserve all SAN entries during scheduled rotation.",
+    residual="""Ensure automated certificate renewal pipelines (such as Google Certificate Manager or cert-manager) preserve all SAN entries during scheduled rotation.
+
+**Evidence limit:** Certificate validation in this case is evaluated against local OpenSSL chains and supplied traces; production CA trust roots and revocation states require active network verification.""",
     enabled=True,
     diagram=(
         "Client connects via service DNS alias",
@@ -1086,7 +1106,9 @@ P3_CASE = case(
         "Configure TCP MSS clamping on the VPN gateway router to clamp all TCP SYN packets traversing the tunnel to MSS 1360."
     ],
     verify="Run large batch data replication transfer and verify throughput exceeds 85 MB/s with zero packet drops or retransmissions.",
-    residual="Non-TCP protocols (such as UDP-based streaming or QUIC) cannot use TCP MSS clamping and must rely strictly on PMTUD or application-layer sizing.",
+    residual="""Non-TCP protocols (such as UDP-based streaming or QUIC) cannot use TCP MSS clamping and must rely strictly on PMTUD or application-layer sizing.
+
+**Evidence limit:** PMTUD observations reflect synthetic lab topology; intermediate provider routers that silently drop ICMP messages cannot be deterministically detected without path probing.""",
     enabled=True,
     diagram=(
         "App sends 1500-byte packet with DF bit set",
@@ -1123,7 +1145,9 @@ P4_CASE = case(
         "Assign 2 additional static external IP addresses to the Cloud NAT gateway to expand a three-IP theoretical pool to 193,536 TCP source ports (3 × 64,512); validate allocation constraints and destination reuse rather than treating this as a connection guarantee."
     ],
     verify="Simulate burst webhook workload generating 250 concurrent connections per VM and confirm zero OUT_OF_RESOURCES errors in Cloud NAT logs.",
-    residual="If a rogue process opens thousands of hung connections, it could exhaust the gateway-wide pool; configure maximum ports per VM limit.",
+    residual="""If a rogue process opens thousands of hung connections, it could exhaust the gateway-wide pool; configure maximum ports per VM limit.
+
+**Evidence limit:** Cloud NAT translation telemetry is evaluated via Cloud Logging and Cloud Monitoring metrics; port exhaustion under synthetic testing illustrates capacity boundaries without modifying live cloud quotas.""",
     enabled=True,
     diagram=(
         "Worker burst dispatches 500 concurrent webhook calls",
@@ -1160,7 +1184,9 @@ P5_CASE = case(
         "Configure Cloud Router custom route priorities to ensure Interconnect-Primary (priority 100) is deterministically selected over Backup (priority 200)."
     ],
     verify="Inspect Cloud Router routing table to confirm Interconnect-Primary is installed as sole active next hop, and measure replication latency against the illustrative 4ms recovery target; it is not a provider latency guarantee.",
-    residual="Ensure BGP keep-alive timers and BFD (Bidirectional Forwarding Detection) are configured appropriately; measure detection, BGP convergence and restoration if Interconnect-Primary suffers physical loss, rather than assume sub-second failover.",
+    residual="""Ensure BGP keep-alive timers and BFD (Bidirectional Forwarding Detection) are configured appropriately; measure detection, BGP convergence and restoration if Interconnect-Primary suffers physical loss, rather than assume sub-second failover.
+
+**Evidence limit:** Routing convergence times depend on physical transit provider BGP hold timers and SLA boundaries; local routing tables demonstrate FIB evaluation rather than production failover performance.""",
     enabled=True,
     diagram=(
         "Hybrid link established across dual Cloud Interconnects",
@@ -2241,38 +2267,50 @@ REVIEW_RECORDS = {
     }
 }
 
-def _bullet_explanation(match):
-    """Keep every authored word; break prose only at unmarked sentence ends."""
-    label, body = match.groups()
-    if not body.strip() or 'Further study:' in label:
-        return match.group(0)
-    points, pending, depth = [], '', 0
-    for token in re.findall(r'<[^>]+>|[^<]+', body):
-        if token.startswith('<'):
-            if token.startswith('</'):
-                depth -= 1
-            elif not token.endswith('/>'):
-                depth += 1
-            pending += token
-        elif depth:
-            pending += token
-        else:
-            start = 0
-            for boundary in re.finditer(r'(?<=\.)\s+(?=[A-Z])', token):
-                prefix = token[:boundary.start()]
-                if prefix.endswith(('e.g.', 'i.e.', 'vs.', 'Fig.')):
-                    continue
-                pending += token[start:boundary.start()]
-                points.append(pending.strip())
-                pending = ''
-                start = boundary.end()
-            pending += token[start:]
-    if pending.strip():
-        points.append(pending.strip())
-    return '<p>' + label + '</p><ul>' + ''.join(
-        '<li>' + point + '</li>' for point in points
-    ) + '</ul>'
+import urllib.parse
+from bs4 import BeautifulSoup, NavigableString
 
+_STRUCT_HEADINGS = {'Why today:', 'Where it sits:', 'Problem preview:', 'Subtopics in this discussion:',
+                    'Evidence limit:', 'Linked subtopics:'}
+_SKIP_TAGS = {'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'code', 'samp', 'kbd', 'pre', 'figcaption', 'a', 'script', 'style', 'svg', 'title'}
+
+with open('scratch/audits/day-004-terms.txt') as _tf:
+    _TERMS_LIST = [line.strip() for line in _tf if line.strip()]
+_TERMS_LIST = sorted(set(_TERMS_LIST), key=lambda x: -len(x))
+
+def _make_google_link(text):
+    q = urllib.parse.quote_plus(text)
+    return f'<a href="http://www.google.com/search?q={q}" rel="noopener" target="_blank">{text}</a>'
+
+def _link_soup_fragment(soup_node):
+    for kw in soup_node.find_all('strong', class_='keyword'):
+        if not kw.find('a'):
+            kw_text = kw.get_text()
+            kw.clear()
+            kw.append(BeautifulSoup(_make_google_link(kw_text), 'html.parser'))
+    for term in _TERMS_LIST:
+        pat = re.compile(r'(?<![\w/"=-])(' + re.escape(term) + r')(?!\w)', re.IGNORECASE)
+        found = False
+        for text_node in list(soup_node.find_all(string=True)):
+            if found:
+                break
+            parent = text_node.parent
+            if any(p.name in _SKIP_TAGS for p in [parent] + list(parent.parents)):
+                continue
+            if parent.name == 'strong' and 'side-heading' in parent.get('class', []):
+                continue
+            if pat.search(text_node):
+                new_text = pat.sub(lambda m: _make_google_link(m.group(1)), str(text_node), count=1)
+                text_node.replace_with(BeautifulSoup(new_text, 'html.parser'))
+                found = True
+
+def _convert_side_heading_p(match):
+    label = match.group(1)
+    body = match.group(2).strip()
+    lbl_text = BeautifulSoup(label, 'html.parser').get_text().strip()
+    if lbl_text in _STRUCT_HEADINGS:
+        return match.group(0)
+    return f'<ul><li>{label} {body}</li></ul>'
 
 # Day-local presentation: shared shell/CSS and teaching content stay unchanged.
 for _topic in TOPICS:
@@ -2291,16 +2329,41 @@ for _topic in TOPICS:
         lambda match: match.group(1) + _linked_list,
         _topic['technical'], count=1, flags=re.S
     )
+    # Convert all side-heading paragraphs to <li> items inside <ul>
     _topic['technical'] = re.sub(
         r'<p>(<strong class="side-heading">[^<]+</strong>)\s*(.*?)</p>',
-        _bullet_explanation, _topic['technical'], flags=re.S
+        _convert_side_heading_p, _topic['technical'], flags=re.S
     )
+    _topic['technical'] = re.sub(r'</ul>\s*<ul>', '\n', _topic['technical'])
+
+    _tech_soup = BeautifulSoup(f'<article id="{_topic["key"]}-technical">' + _topic['technical'] + '</article>', 'html.parser')
+    for _h4 in _tech_soup.find_all('h4'):
+        _sub_nodes = []
+        _curr = _h4.next_sibling
+        while _curr and getattr(_curr, 'name', '') != 'h4':
+            if getattr(_curr, 'name', None):
+                _sub_nodes.append(_curr)
+            _curr = _curr.next_sibling
+        _wrapper = BeautifulSoup('<div></div>', 'html.parser').div
+        for _n in _sub_nodes:
+            _wrapper.append(_n)
+        _link_soup_fragment(_wrapper)
+        for _n in list(_wrapper.contents):
+            _h4.parent.insert(_h4.parent.index(_h4) + 1, _n)
+    
+    _topic['technical'] = ''.join(str(c) for c in _tech_soup.article.contents)
+
     _overview_end = f'<p><a href="#{_topic["key"]}-technical">'
     PART1_HTML = PART1_HTML.replace(
         _overview_end,
         '<p><strong class="side-heading">Linked subtopics:</strong></p>'
         + _linked_list + '\n' + _overview_end, 1
     )
+
+_p1_soup = BeautifulSoup(PART1_HTML, 'html.parser')
+for _card in _p1_soup.find_all('article', class_='topic-card'):
+    _link_soup_fragment(_card)
+PART1_HTML = str(_p1_soup)
 
 
 DATA = {
