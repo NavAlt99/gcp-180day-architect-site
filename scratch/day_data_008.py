@@ -150,306 +150,7 @@ DATA = {'contract_version': 2,
                         'operators to double the host VM instance memory based on low free RAM graphs. The service '
                         'restarts persist because the application exceeded a strict container cgroup memory quota '
                         'rather than host-wide physical memory capacity.',
-             'technical': '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n'
-                          '<ul>\n'
-                          '<li>CPU scheduling algorithms, run queues, and CFS context switching</li>\n'
-                          '<li>Virtual memory architecture, MMU page tables, and page fault dynamics</li>\n'
-                          '<li>Memory hierarchy: active/inactive RAM, page cache, dirty writeback, and swap '
-                          'space</li>\n'
-                          '<li>Out-Of-Memory (OOM) killer mechanics, badness heuristics, and cgroup memory '
-                          'boundaries</li>\n'
-                          '<li>Pressure Stall Information (PSI): quantifying CPU, memory, and I/O starvation</li>\n'
-                          '</ul>\n'
-                          '\n'
-                          '<h4>CPU scheduling algorithms, run queues, and CFS context switching</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> The Linux kernel allocates '
-                          'processor cores among runnable threads using the <strong class="keyword">Completely Fair '
-                          'Scheduler</strong> (CFS, evolved into EEVDF in newer kernels). CFS models an "ideal '
-                          'multi-tasking CPU" on hardware by assigning each thread a virtual runtime '
-                          '(<code>vruntime</code>) metric representing the scaled processor execution time it has '
-                          'consumed. Threads with smaller <code>vruntime</code> values take priority on red-black run '
-                          'queues. When the kernel interrupts a running thread to dispatch another, it executes a '
-                          '<strong class="keyword">Context Switch</strong>: flushing CPU hardware registers, swapping '
-                          'kernel stack pointers, updating CPU program counters, and invalidating Translation '
-                          'Lookaside Buffer (TLB) virtual memory address mappings. Context switches divide into '
-                          '<strong class="keyword">Voluntary Switches</strong> (where a thread blocks waiting for I/O, '
-                          'locks, or timers) and <strong class="keyword">Involuntary Switches</strong> (where a thread '
-                          'exhausts its allocated scheduling time slice or is preempted by a higher-priority '
-                          'task).</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> Saturated host '
-                          'CPUs manifest as high run queue depths (load average exceeding physical core counts) and '
-                          'elevated involuntary context switching rates. High context switching rates degrade '
-                          'performance because cache lines are constantly evicted from L1/L2 hardware caches. '
-                          'Architects must separate compute saturation (tasks actively executing instruction '
-                          'pipelines) from scheduling starvation (tasks queued and waiting for access to physical '
-                          'cores).</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine shared-core '
-                          'machine types (such as <code>e2-micro</code>, <code>e2-small</code>, and '
-                          '<code>e2-medium</code>) rely on CPU hypervisor time-sharing and burst allowances. If an e2 '
-                          'shared-core VM exhausts its CPU credit balance, the KVM hypervisor throttles physical CPU '
-                          'execution timeslices, creating severe scheduler wait stalls inside the guest OS that mimic '
-                          'hardware saturation. In contrast, dedicated Compute Engine C2, C3, and N2 machine types '
-                          'provide dedicated hardware execution threads and NUMA alignment. Primary documentation: <a '
-                          'href="https://man7.org/linux/man-pages/man7/sched.7.html#DESCRIPTION">sched(7) Linux CPU '
-                          'scheduling overview description (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://man7.org/linux/man-pages/man7/sched.7.html#DESCRIPTION">sched(7) completely '
-                          'fair scheduling and priority policies (accessed 2026-10-04)</a>; <a '
-                          'href="https://man7.org/linux/man-pages/man8/vmstat.8.html#DESCRIPTION">vmstat(8) system '
-                          'activity and context switch reporting (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<h4>Virtual memory architecture, MMU page tables, and page fault dynamics</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> Linux user-space processes '
-                          'do not interact directly with physical RAM. Instead, each process operates inside an '
-                          'isolated virtual address space governed by the CPU\'s <strong class="keyword">Memory '
-                          'Management Unit</strong> (MMU). The kernel organizes virtual memory into fixed-size units '
-                          'known as <strong class="keyword">Memory Pages</strong> (standard 4 KB architectures, or 2 '
-                          'MB / 1 GB HugePages). Virtual addresses map to physical memory frames via hierarchical page '
-                          'tables. When a thread accesses a virtual page that has not yet been mapped to a physical '
-                          'frame, the MMU triggers a CPU hardware interrupt called a <strong class="keyword">Page '
-                          'Fault</strong>. Page faults divide into two critical operational classes:\n'
-                          '<br>1. <strong class="keyword">Minor Page Faults:</strong> The requested memory page is '
-                          'already resident in physical RAM (for example, shared library text segments or freshly '
-                          'allocated anonymous memory claimed via <code>malloc</code>) and the kernel satisfies the '
-                          'fault simply by establishing a page table entry without triggering disk I/O.\n'
-                          '<br>2. <strong class="keyword">Major Page Faults:</strong> The requested page is absent '
-                          'from physical RAM and must be read synchronously from backing storage (such as disk swap '
-                          'space or an executable binary on a persistent filesystem), causing the requesting thread to '
-                          'block until storage I/O completes.</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> A spike in minor '
-                          'page faults indicates high process allocation churn or fork-exec activity, typically '
-                          'consuming modest CPU overhead. In contrast, an elevated rate of major page faults signals '
-                          'memory starvation: the working set of the workload exceeds available physical RAM, forcing '
-                          'the kernel to fetch swapped or unmapped memory from disk, inducing catastrophic latency '
-                          'tail events.</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine Persistent Disks '
-                          '(standard PD, balanced PD, SSD PD) have bounded IOPS and read throughput ratings governed '
-                          'by provisioned disk size. A workload that incurs continuous major page faults on a Compute '
-                          'Engine instance with standard HDD storage quickly exhausts disk IOPS quotas, causing the '
-                          'entire VM to stall as threads freeze in uninterruptible sleep (D state) awaiting page '
-                          'reads. Primary documentation: <a '
-                          'href="https://docs.kernel.org/admin-guide/mm/concepts.html#page-cache">Linux kernel memory '
-                          'concepts — virtual memory and page cache (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://docs.kernel.org/admin-guide/mm/concepts.html#page-cache">Linux kernel memory '
-                          'concepts — address spaces and page allocation (accessed 2026-10-04)</a>; <a '
-                          'href="https://man7.org/linux/man-pages/man5/proc_meminfo.5.html#DESCRIPTION">proc_meminfo(5) '
-                          'kernel memory counters description (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<h4>Memory hierarchy: active/inactive RAM, page cache, dirty writeback, and swap '
-                          'space</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> The Linux memory subsystem '
-                          'classifies physical RAM into active/inactive anonymous allocations and file-backed memory. '
-                          'Unused physical memory is automatically utilized by the kernel as <strong '
-                          'class="keyword">Page Cache</strong>, storing recently read and written filesystem blocks in '
-                          'RAM to avoid expensive persistent disk transactions. When applications write to files, '
-                          'modifications remain buffered in RAM as <strong class="keyword">Dirty Pages</strong> until '
-                          'kernel flush daemons (<code>kswapd</code> and writeback threads) asynchronously flush them '
-                          'to persistent storage. Consequently, examining raw free memory (<code>MemFree</code> in '
-                          '<code>/proc/meminfo</code>) frequently reveals low single-digit gigabytes on healthy '
-                          'production nodes. The crucial metric is <strong class="keyword">MemAvailable</strong>, '
-                          'which estimates the total memory available for starting new applications without swapping, '
-                          'taking into account reclaimable page cache and dentries. <strong class="keyword">Swap '
-                          'Space</strong> provides disk-backed overflow storage for anonymous memory pages, allowing '
-                          'the kernel to evict cold process heap allocations to preserve page cache for hot I/O '
-                          'paths.</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> Naive monitoring '
-                          'rules that trigger alerts when "Free RAM" drops below 10% produce widespread false '
-                          'positives because the Linux kernel deliberately fills idle RAM with reclaimable page cache. '
-                          'Conversely, systems without configured swap space or with aggressive memory consumption '
-                          'experience sudden catastrophic crashes rather than gradual degradation. Architects rely on '
-                          '<code>MemAvailable</code> and kernel reclaim rates rather than raw <code>MemFree</code> to '
-                          'evaluate true host memory headroom.</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud public VM images '
-                          'for Debian, Ubuntu, and CentOS are distributed with swap space disabled by default to '
-                          'prevent unpredictable latency degradation on network-attached Persistent Disks. In '
-                          'high-throughput streaming and database workloads (e.g. Kafka or PostgreSQL on Compute '
-                          'Engine), architects configure kernel dirty page ratios (<code>vm.dirty_ratio</code> and '
-                          '<code>vm.dirty_background_ratio</code>) to ensure dirty memory writeback occurs smoothly '
-                          'without choking Persistent Disk write queues. Primary documentation: <a '
-                          'href="https://man7.org/linux/man-pages/man5/proc_meminfo.5.html#DESCRIPTION">proc_meminfo(5) '
-                          'memory distribution and page cache metrics (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://man7.org/linux/man-pages/man5/proc_meminfo.5.html#DESCRIPTION">proc_meminfo(5) '
-                          'MemAvailable and page cache fields (accessed 2026-10-04)</a>; <a '
-                          'href="https://man7.org/linux/man-pages/man8/vmstat.8.html#DESCRIPTION">vmstat(8) memory and '
-                          'swap transfer reporting (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<h4>Out-Of-Memory (OOM) killer mechanics, badness heuristics, and cgroup memory '
-                          'boundaries</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> When physical memory and '
-                          'swap exhaustion prevents the kernel from fulfilling an urgent memory allocation request, '
-                          'the kernel invokes the <strong class="keyword">Out-Of-Memory (OOM) Killer</strong> to '
-                          'prevent a complete system deadlock. The kernel scans all running processes and computes an '
-                          'internal "badness" heuristic score (exposed via <code>/proc/[pid]/oom_score</code>), '
-                          'prioritizing processes consuming massive proportions of RAM while having low privilege or '
-                          'run time. System administrators can influence this choice by writing to '
-                          '<code>/proc/[pid]/oom_score_adj</code> (-1000 immunizes a critical process like sshd or '
-                          'systemd, while +1000 targets sacrificial workers). Crucially, in modern containerized '
-                          'operating systems, memory enforcement operates at both the host VM level and the <strong '
-                          'class="keyword">Control Group</strong> (cgroup v1/v2) boundary. In cgroups v2, the kernel '
-                          'enforces limits such as <code>memory.high</code> (throttling and asynchronous reclaim) and '
-                          '<code>memory.max</code> (hard ceiling triggering a cgroup-level OOM killer). When a process '
-                          'inside a cgroup exceeds its <code>memory.max</code>, the kernel terminates the container '
-                          'process even if the underlying host VM has hundreds of gigabytes of unallocated physical '
-                          'RAM.</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> Containerized '
-                          'applications running on Kubernetes (GKE) or container runtimes frequently crash with exit '
-                          'status 137 (SIGKILL issued by OOM). Blindly upsizing host VMs does not resolve container '
-                          'OOM terminations if the pod specification or container manifest specifies an inadequate '
-                          'container memory limit. Architects must inspect cgroup <code>memory.events</code> and '
-                          'kernel dmesg logs to distinguish container-level quota violations from host-wide physical '
-                          'exhaustion.</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> Google Kubernetes Engine (GKE) '
-                          'nodes utilize cgroup v2 on modern Container-Optimized OS (COS) images. When a pod exceeds '
-                          'its configured container memory limit, the Linux kernel terminates the offending process '
-                          'and GKE records an <code>OOMKilled</code> status event. If the host VM itself runs low on '
-                          'memory, the GKE kubelet eviction manager intervenes before the kernel OOM killer, evicting '
-                          'pods based on Quality of Service (QoS) classes (BestEffort before Burstable before '
-                          'Guaranteed). Primary documentation: <a '
-                          'href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) process '
-                          'oom_score and oom_score_adj description (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) oom_score '
-                          'heuristics and adjustments (accessed 2026-10-04)</a>; <a '
-                          'href="https://docs.kernel.org/admin-guide/mm/concepts.html#page-cache">Linux kernel memory '
-                          'concepts — OOM handling (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<h4>Pressure Stall Information (PSI): quantifying CPU, memory, and I/O starvation</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> Traditional utilization '
-                          'metrics (such as CPU percentage or free memory) describe current resource usage but fail to '
-                          'indicate whether workloads are actually delayed or impaired by resource shortages. <strong '
-                          'class="keyword">Pressure Stall Information</strong> (PSI) is a Linux kernel accounting '
-                          'facility that directly tracks the percentage of wall-clock time that tasks spend stalled '
-                          'while waiting for congested CPU, memory, or block I/O resources. Exposed through '
-                          'pseudo-files in <code>/proc/pressure/{cpu,memory,io}</code> and inside cgroup directories, '
-                          'PSI reports two distinct starvation levels:\n'
-                          '<br>1. <strong class="keyword">some:</strong> The percentage of time in which at least one '
-                          'non-idle task was stalled waiting for the contended resource (indicating micro-contention '
-                          'and beginning latency degradation).\n'
-                          '<br>2. <strong class="keyword">full:</strong> The percentage of time in which <em>all</em> '
-                          'non-idle tasks were simultaneously stalled waiting for the resource (indicating complete '
-                          'workload paralysis, such as during synchronous memory reclaim or storage thrashing).\n'
-                          'PSI provides rolling moving averages over 10-second, 60-second, and 300-second windows '
-                          'alongside cumulative total stall time in microseconds.</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> PSI allows '
-                          'architects to establish automated, proactive health checks and auto-scaling triggers. '
-                          'Rather than waiting for a fatal OOM kill or severe API timeout, monitoring agents trigger '
-                          'proactive traffic draining or horizontal pod autoscaling when <code>memory:some</code> or '
-                          '<code>cpu:some</code> pressure exceeds defined operational thresholds (such as 10% over a '
-                          '60-second window).</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> The Google Cloud Ops Agent '
-                          'collects Linux PSI metrics directly and streams them to Cloud Monitoring dashboards. '
-                          'Compute Engine autoscalers and GKE custom metric horizontal pod autoscalers (HPAs) can '
-                          'query PSI stall rates to scale application clusters dynamically based on real hardware '
-                          'contention rather than inaccurate CPU utilization averages. Primary documentation: <a '
-                          'href="https://docs.kernel.org/accounting/psi.html#pressure-interface">Linux kernel '
-                          'documentation — Pressure Stall Information interface (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://docs.kernel.org/accounting/psi.html#pressure-interface">Linux PSI interface '
-                          'and cgroup monitoring (accessed 2026-10-04)</a>; <a '
-                          'href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) pressure '
-                          'accounting pseudo-filesystem (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<div class="table-responsive">\n'
-                          '<table class="table">\n'
-                          '<caption>Resource signal decision map: distinguishing execution saturation, scheduling '
-                          'starvation, and boundary limits.</caption>\n'
-                          '<thead>\n'
-                          '<tr>\n'
-                          '<th>Signal</th>\n'
-                          '<th>What it supports</th>\n'
-                          '<th>What it does not prove</th>\n'
-                          '<th>Next comparison</th>\n'
-                          '</tr>\n'
-                          '</thead>\n'
-                          '<tbody>\n'
-                          '<tr>\n'
-                          '<td>CPU PSI (<code>some</code> / <code>full</code>)</td>\n'
-                          '<td>Quantifies exact percentage of time runnable tasks stalled waiting for available CPU '
-                          'cores</td>\n'
-                          '<td>Does not identify which specific application thread or algorithm is consuming CPU '
-                          'cycles</td>\n'
-                          '<td>Inspect runnable thread count, thread priority, cgroup CPU quota, and application flame '
-                          'graphs</td>\n'
-                          '</tr>\n'
-                          '<tr>\n'
-                          '<td>Minor / Major Page Faults</td>\n'
-                          '<td>Measures rate of virtual page table resolution (minor: in RAM; major: disk read '
-                          'required)</td>\n'
-                          '<td>Does not prove an imminent OOM kill or distinguish normal code startup from storage '
-                          'thrashing</td>\n'
-                          '<td>Correlate major fault rate with Persistent Disk IOPS limits, swap activity, and memory '
-                          'reclaim</td>\n'
-                          '</tr>\n'
-                          '<tr>\n'
-                          '<td><code>MemAvailable</code> vs Page Cache</td>\n'
-                          '<td>Estimates actual RAM capacity reclaimable for applications without invoking swap</td>\n'
-                          '<td>Does not prove whether a specific container or cgroup has exceeded its local memory '
-                          'limit</td>\n'
-                          '<td>Compare host-level <code>MemAvailable</code> against container cgroup '
-                          '<code>memory.current</code> and <code>memory.max</code></td>\n'
-                          '</tr>\n'
-                          '<tr>\n'
-                          '<td>Cgroup <code>memory.events</code></td>\n'
-                          '<td>Records discrete kernel events: <code>high</code>, <code>max</code>, and '
-                          '<code>oom_kill</code> occurrences inside a cgroup</td>\n'
-                          '<td>Does not prove that the underlying host VM ran out of physical memory</td>\n'
-                          '<td>Examine host <code>/proc/meminfo</code> to verify if exhaustion was host-wide or '
-                          'isolated to a container limit</td>\n'
-                          '</tr>\n'
-                          '</tbody>\n'
-                          '</table>\n'
-                          '</div>\n'
-                          '\n'
-                          '<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view '
-                          'the full diagram.</p><svg aria-labelledby="d8-resource-title d8-resource-desc" role="img" '
-                          'viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title '
-                          'id="d8-resource-title">Workload latency across CPU, memory and I/O boundaries</title><desc '
-                          'id="d8-resource-desc">An Order worker can wait for scheduler time, memory reclaim or '
-                          'storage. Host memory and a smaller cgroup memory limit are separate boundaries, so evidence '
-                          'must be correlated with the restart time.</desc><defs><marker id="d8-resource-arrow" '
-                          'markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" '
-                          'fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="125" '
-                          'rx="10" stroke="#38bdf8" width="205" x="20" y="40"></rect><image '
-                          'href="../assets/icons/gcp/core/compute-engine.svg" x="32" y="52" width="24" height="24" '
-                          'preserveAspectRatio="xMidYMid meet"/><rect height="125" rx="10" stroke="#38bdf8" '
-                          'width="205" x="258" y="40"></rect><image href="../assets/icons/generic/server.svg" x="270" '
-                          'y="52" width="24" height="24" preserveAspectRatio="xMidYMid meet"/><rect height="125" '
-                          'rx="10" stroke="#f43f5e" width="205" x="496" y="40"></rect><image '
-                          'href="../assets/icons/generic/policy.svg" x="508" y="52" width="24" height="24" '
-                          'preserveAspectRatio="xMidYMid meet"/><rect height="125" rx="10" stroke="#34d399" '
-                          'width="188" x="734" y="40"></rect><image href="../assets/icons/generic/storage.svg" x="746" '
-                          'y="52" width="24" height="24" preserveAspectRatio="xMidYMid meet"/></g><g fill="#fce7f3" '
-                          'font-size="14" font-weight="700" text-anchor="middle"><text x="122" y="74">Order '
-                          'worker</text><text x="360" y="74">CPU scheduler</text><text x="598" y="74">Cgroup '
-                          'memory</text><text x="828" y="74">Host memory</text></g><g fill="#a9b7cb" font-size="12" '
-                          'text-anchor="middle"><text x="122" y="108">latency + PID</text><text x="360" y="108">run or '
-                          'wait</text><text x="598" y="106">limit + memory.events</text><text fill="#f43f5e" x="598" '
-                          'y="132">possible OOM kill</text><text x="828" y="108">cache + available</text></g><g '
-                          'marker-end="url(#d8-resource-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M225 '
-                          '102L252 102"></path><path d="M463 102L490 102"></path><path d="M701 102L728 '
-                          '102"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" '
-                          'y="215">Host headroom cannot disprove a kill at the smaller cgroup '
-                          'boundary.</text></svg><figcaption>Figure 8.1: Conceptual resource boundaries for the '
-                          'supplied worker scenario. The diagram does not assign causality without timestamped PSI, '
-                          'limit, OOM and application evidence.</figcaption></figure>\n'
-                          '\n'
-                          '<p><strong class="side-heading">Concrete example:</strong> A compute-intensive order batch '
-                          'processor runs inside a container on a 16 GB host VM. SREs observe order latency jumping '
-                          'from 50 ms to 1,200 ms. Querying <code>/proc/pressure/cpu</code> reveals <code>some '
-                          'avg10=28.40</code> and <code>/proc/pressure/memory</code> shows <code>some '
-                          'avg10=0.00</code>. Concurrently, <code>vmstat 1</code> reports involuntary context switches '
-                          'spiking to 14,000/sec while run queue depth (<code>r</code>) reaches 18 on an 8-core host. '
-                          'This isolates the root cause directly to CPU scheduling starvation and time slice '
-                          'preemption rather than memory thrashing, proving that increasing VM memory would be '
-                          'completely ineffective while adjusting CPU limits or thread concurrency resolves the '
-                          'issue.</p>\n'
-                          '\n'
-                          '<p><strong class="side-heading">Evidence limit:</strong> Resource utilization metrics, '
-                          'context switch counters, and free memory graphs provide diagnostic telemetry but cannot '
-                          'prove causal performance degradation without correlating timestamped Pressure Stall '
-                          'Information, cgroup limit boundaries, and application response latency.</p>\n',
+             'technical': '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n<ul>\n<li>CPU scheduling algorithms, run queues, and CFS context switching</li>\n<li>Virtual memory architecture, MMU page tables, and page fault dynamics</li>\n<li>Memory hierarchy: active/inactive RAM, page cache, dirty writeback, and swap space</li>\n<li>Out-Of-Memory (OOM) killer mechanics, badness heuristics, and cgroup memory boundaries</li>\n<li>Pressure Stall Information (PSI): quantifying CPU, memory, and I/O starvation</li>\n</ul>\n\n<h4>CPU scheduling algorithms, run queues, and CFS context switching</h4>\n<p><strong class="side-heading">What it is in general:</strong> The Linux kernel allocates processor cores among runnable threads using the <strong class="keyword">Completely Fair Scheduler</strong> (CFS, evolved into EEVDF in newer kernels). CFS models an "ideal multi-tasking CPU" on hardware by assigning each thread a virtual runtime (<code>vruntime</code>) metric representing the scaled processor execution time it has consumed. The classic CFS model orders runnable entities by virtual runtime; EEVDF additionally uses eligibility and virtual deadlines. The active policy depends on the running kernel. When the kernel interrupts a running thread to dispatch another, it executes a <strong class="keyword">Context Switch</strong>: flushing CPU hardware registers, swapping kernel stack pointers, updating CPU program counters, and changing address-space state as required; TLB invalidation is architecture- and address-space-dependent, not mandatory for every switch. Context switches divide into <strong class="keyword">Voluntary Switches</strong> (where a thread blocks waiting for I/O, locks, or timers) and <strong class="keyword">Involuntary Switches</strong> (where a thread exhausts its allocated scheduling time slice or is preempted by a higher-priority task).</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> Saturated host CPUs manifest as high run queue depths (runnable demand exceeding available CPU capacity; load average also includes uninterruptible tasks) and elevated involuntary context switching rates. High context switching rates degrade performance because competing working sets can displace cache lines; a context switch does not inherently flush every hardware cache. Architects must separate compute saturation (tasks actively executing instruction pipelines) from scheduling starvation (tasks queued and waiting for access to physical cores).</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine shared-core machine types (such as <code>e2-micro</code>, <code>e2-small</code>, and <code>e2-medium</code>) rely on CPU hypervisor time-sharing and burst allowances. E2 shared-core VMs have documented sustained CPU shares and limited bursting. Compare observed CPU demand, quota and scheduling signals with those documented allowances; do not infer a specific KVM mechanism or universal severe stall from one counter. In contrast, non-shared-core machine families provide documented vCPU resources, but dedicated tenancy and NUMA placement are separate properties that must not be assumed. Primary documentation: <a href="https://man7.org/linux/man-pages/man7/sched.7.html#DESCRIPTION">sched(7) Linux CPU scheduling overview description (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man7/sched.7.html#DESCRIPTION">sched(7) completely fair scheduling and priority policies (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man8/vmstat.8.html#DESCRIPTION">vmstat(8) system activity and context switch reporting (accessed 2026-10-04)</a>. <a href="https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files">cgroup v2 memory interfaces (accessed 2026-10-16)</a>; <a href="https://docs.kernel.org/scheduler/sched-eevdf.html">EEVDF Scheduler (accessed 2026-10-16)</a>; <a href="https://docs.cloud.google.com/compute/docs/general-purpose-machines#e2_machine_types">E2 shared-core machine types (accessed 2026-10-16)</a>.</p>\n\n<h4>Virtual memory architecture, MMU page tables, and page fault dynamics</h4>\n<p><strong class="side-heading">What it is in general:</strong> Linux user-space processes do not interact directly with physical RAM. Instead, each process operates inside an isolated virtual address space governed by the CPU\'s <strong class="keyword">Memory Management Unit</strong> (MMU). The kernel organizes virtual memory into fixed-size units known as <strong class="keyword">Memory Pages</strong> (architecture- and configuration-dependent base page sizes and supported huge-page sizes, for example 4 KiB, 2 MiB or 1 GiB on common x86 configurations). Virtual addresses map to physical memory frames via hierarchical page tables. When a thread accesses a virtual page that has not yet been mapped to a physical frame, the MMU triggers a synchronous CPU exception called a <strong class="keyword">Page Fault</strong>. Page faults divide into two critical operational classes:\n<br>1. <strong class="keyword">Minor Page Faults:</strong> The requested memory page is already resident in physical RAM (for example, shared library text segments or freshly allocated anonymous memory claimed via <code>malloc</code>) and the kernel satisfies the fault without backing-storage reads; allocation, zero-fill or copy-on-write work can still be required.\n<br>2. <strong class="keyword">Major Page Faults:</strong> The requested page is absent from physical RAM and must be read synchronously from backing storage (such as disk swap space or an executable binary on a persistent filesystem), causing the requesting thread to block until storage I/O completes.</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> A spike in minor page faults indicates high process allocation churn or fork-exec activity, typically consuming modest CPU overhead. In contrast, an elevated rate of major page faults can reflect normal cold file access or memory pressure and must be correlated with the workload: the working set of the workload exceeds available physical RAM, forcing the kernel to fetch swapped or unmapped memory from disk, inducing catastrophic latency tail events.</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine Persistent Disks (standard PD, balanced PD, SSD PD) have bounded IOPS and read throughput ratings governed by disk type, provisioned size and applicable VM and performance limits. A workload that incurs continuous major page faults on a Compute Engine instance with standard HDD storage quickly exhausts disk IOPS quotas, potentially increasing affected workload latency as faulting threads wait in uninterruptible sleep (D state) awaiting page reads. Primary documentation: <a href="https://docs.kernel.org/admin-guide/mm/concepts.html#page-cache">Linux kernel memory concepts — virtual memory and page cache (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://docs.kernel.org/admin-guide/mm/concepts.html#page-cache">Linux kernel memory concepts — address spaces and page allocation (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man5/proc_meminfo.5.html#DESCRIPTION">proc_meminfo(5) kernel memory counters description (accessed 2026-10-04)</a>.</p>\n\n<h4>Memory hierarchy: active/inactive RAM, page cache, dirty writeback, and swap space</h4>\n<p><strong class="side-heading">What it is in general:</strong> The Linux memory subsystem classifies physical RAM into active/inactive anonymous allocations and file-backed memory. Unused physical memory is automatically utilized by the kernel as <strong class="keyword">Page Cache</strong>, storing recently read and written filesystem blocks in RAM to avoid expensive persistent disk transactions. When applications write to files, modifications remain buffered in RAM as <strong class="keyword">Dirty Pages</strong> until writeback workers; <code>kswapd</code> primarily performs background memory reclaim and can interact with writeback asynchronously flush them to persistent storage. Consequently, examining raw free memory (<code>MemFree</code> in <code>/proc/meminfo</code>) frequently reveals low single-digit gigabytes on healthy production nodes. The crucial metric is <strong class="keyword">MemAvailable</strong>, which estimates the total memory available for starting new applications without swapping, taking into account reclaimable page cache and dentries. <strong class="keyword">Swap Space</strong> provides disk-backed overflow storage for anonymous memory pages, allowing the kernel to evict cold process heap allocations to preserve page cache for hot I/O paths.</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> Naive monitoring rules that trigger alerts when "Free RAM" drops below 10% produce widespread false positives because the Linux kernel deliberately fills idle RAM with reclaimable page cache. Conversely, systems without swap have fewer anonymous-page eviction options, but reclaim, allocation failures, pressure and OOM behavior depend on workload and limits rather than a universal crash pattern. Architects rely on <code>MemAvailable</code> and kernel reclaim rates rather than raw <code>MemFree</code> to evaluate true host memory headroom.</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> Inspect the actual VM image and <kbd>swapon --show</kbd> output rather than assuming one swap policy for all public images; swap can affect latency and its suitability is workload-specific. In high-throughput streaming and database workloads (e.g. Kafka or PostgreSQL on Compute Engine), architects first observe writeback and storage latency; optional advanced tuning can review kernel dirty page ratios (<code>vm.dirty_ratio</code> and <code>vm.dirty_background_ratio</code>) to ensure dirty memory writeback occurs smoothly without choking Persistent Disk write queues. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/proc_meminfo.5.html#DESCRIPTION">proc_meminfo(5) memory distribution and page cache metrics (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/proc_meminfo.5.html#DESCRIPTION">proc_meminfo(5) MemAvailable and page cache fields (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man8/vmstat.8.html#DESCRIPTION">vmstat(8) memory and swap transfer reporting (accessed 2026-10-04)</a>.</p>\n\n<h4>Out-Of-Memory (OOM) killer mechanics, badness heuristics, and cgroup memory boundaries</h4>\n<p><strong class="side-heading">What it is in general:</strong> When physical memory and swap exhaustion prevents the kernel from fulfilling an urgent memory allocation request, the kernel invokes the <strong class="keyword">Out-Of-Memory (OOM) Killer</strong> to prevent a complete system deadlock. The kernel scans all running processes and computes an internal "badness" heuristic score (exposed via <code>/proc/[pid]/oom_score</code>), considering eligible tasks and accounted memory with oom_score_adj; low privilege or runtime is not a general current scoring rule. System administrators can influence this choice by writing to <code>/proc/[pid]/oom_score_adj</code> (-1000 immunizes a critical process like sshd or systemd, while +1000 targets sacrificial workers). Crucially, in modern containerized operating systems, memory enforcement operates at both the host VM level and the <strong class="keyword">Control Group</strong> (cgroup v1/v2) boundary. In cgroups v2, the kernel enforces limits such as <code>memory.high</code> (throttling and direct reclaim pressure without invoking the OOM killer solely for memory.high) and <code>memory.max</code> (hard ceiling triggering a cgroup-level OOM killer). When a process inside a cgroup exceeds its <code>memory.max</code>, reclaim failure can invoke OOM selection within the affected cgroup even if the underlying host VM has hundreds of gigabytes of unallocated physical RAM.</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> Containerized applications running on Kubernetes (GKE) or container runtimes frequently crash with exit status 137 (a shell convention consistent with SIGKILL, which is signal 9; OOM requires corroboration). Blindly upsizing host VMs does not resolve container OOM terminations if the pod specification or container manifest specifies an inadequate container memory limit. Architects must inspect cgroup <code>memory.events</code> and kernel dmesg logs to distinguish container-level quota violations from host-wide physical exhaustion.</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> Google Kubernetes Engine (GKE) nodes utilize cgroup v2 on modern Container-Optimized OS (COS) images. When a pod exceeds its configured container memory limit, the Linux kernel terminates the offending process and GKE records an <code>OOMKilled</code> status event. If the host VM itself runs low on memory, kubelet can perform node-pressure eviction, but rapid allocation can reach kernel OOM first; eviction ordering considers requests, priority and usage rather than an unconditional QoS-only ordering. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) process oom_score and oom_score_adj description (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) oom_score heuristics and adjustments (accessed 2026-10-04)</a>; <a href="https://docs.kernel.org/admin-guide/mm/concepts.html#page-cache">Linux kernel memory concepts — OOM handling (accessed 2026-10-04)</a>.</p>\n\n<h4>Pressure Stall Information (PSI): quantifying CPU, memory, and I/O starvation</h4>\n<p><strong class="side-heading">What it is in general:</strong> Traditional utilization metrics (such as CPU percentage or free memory) describe current resource usage but fail to indicate whether workloads are actually delayed or impaired by resource shortages. <strong class="keyword">Pressure Stall Information</strong> (PSI) is a Linux kernel accounting facility that directly tracks the percentage of wall-clock time that tasks spend stalled while waiting for congested CPU, memory, or block I/O resources. Exposed through pseudo-files in <code>/proc/pressure/{cpu,memory,io}</code> and inside cgroup directories, PSI reports two distinct starvation levels:\n<br>1. <strong class="keyword">some:</strong> The percentage of time in which at least one non-idle task was stalled waiting for the contended resource (indicating micro-contention and beginning latency degradation).\n<br>2. <strong class="keyword">full:</strong> The percentage of time in which <em>all</em> non-idle tasks were simultaneously stalled waiting for the resource (indicating complete workload paralysis, such as during synchronous memory reclaim or storage thrashing).\nPSI provides rolling moving averages over 10-second, 60-second, and 300-second windows alongside cumulative total stall time in microseconds.</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> PSI allows architects to establish automated, proactive health checks and auto-scaling triggers. Rather than waiting for a fatal OOM kill or severe API timeout, monitoring agents trigger proactive traffic draining or horizontal pod autoscaling when <code>memory:some</code> or <code>cpu:some</code> pressure exceeds defined operational thresholds (such as 10% over a 60-second window).</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> Verify metric availability in the current Ops Agent metric catalog before claiming default PSI collection; a separate collection/export path may be required. Compute Engine autoscalers and GKE custom metric horizontal pod autoscalers (HPAs) can query PSI stall rates to scale application clusters dynamically based on real hardware contention rather than inaccurate CPU utilization averages. Primary documentation: <a href="https://docs.kernel.org/accounting/psi.html#pressure-interface">Linux kernel documentation — Pressure Stall Information interface (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://docs.kernel.org/accounting/psi.html#pressure-interface">Linux PSI interface and cgroup monitoring (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man5/proc.5.html#DESCRIPTION">proc(5) pressure accounting pseudo-filesystem (accessed 2026-10-04)</a>.</p>\n\n<div class="table-responsive">\n<table class="table">\n<caption>Resource signal decision map: distinguishing execution saturation, scheduling starvation, and boundary limits.</caption>\n<thead>\n<tr>\n<th>Signal</th>\n<th>What it supports</th>\n<th>What it does not prove</th>\n<th>Next comparison</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>CPU PSI (<code>some</code>; system-wide <code>full</code> is undefined/zero for compatibility)</td>\n<td>Quantifies exact percentage of time runnable tasks stalled waiting for available CPU cores</td>\n<td>Does not identify which specific application thread or algorithm is consuming CPU cycles</td>\n<td>Inspect runnable thread count, thread priority, cgroup CPU quota, and application flame graphs</td>\n</tr>\n<tr>\n<td>Minor / Major Page Faults</td>\n<td>Measures rate of virtual page table resolution (minor: in RAM; major: disk read required)</td>\n<td>Does not prove an imminent OOM kill or distinguish normal code startup from storage thrashing</td>\n<td>Correlate major fault rate with Persistent Disk IOPS limits, swap activity, and memory reclaim</td>\n</tr>\n<tr>\n<td><code>MemAvailable</code> vs Page Cache</td>\n<td>Estimates actual RAM capacity reclaimable for applications without invoking swap</td>\n<td>Does not prove whether a specific container or cgroup has exceeded its local memory limit</td>\n<td>Compare host-level <code>MemAvailable</code> against container cgroup <code>memory.current</code> and <code>memory.max</code></td>\n</tr>\n<tr>\n<td>Cgroup <code>memory.events</code></td>\n<td>Records discrete kernel events: <code>high</code>, <code>max</code>, and <code>oom_kill</code> occurrences inside a cgroup</td>\n<td>Does not prove that the underlying host VM ran out of physical memory</td>\n<td>Examine host <code>/proc/meminfo</code> to verify if exhaustion was host-wide or isolated to a container limit</td>\n</tr>\n</tbody>\n</table>\n</div>\n\n<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-resource-title d8-resource-desc" role="img" viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title id="d8-resource-title">Workload latency across CPU, memory and I/O boundaries</title><desc id="d8-resource-desc">An Order worker can wait for scheduler time, memory reclaim or storage. Host memory and a smaller cgroup memory limit are separate boundaries, so evidence must be correlated with the restart time.</desc><defs><marker id="d8-resource-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke-width="2"><rect height="125" rx="10" stroke="#38bdf8" width="205" x="20" y="40"></rect><image href="../assets/icons/gcp/core/compute-engine.svg" x="32" y="52" width="24" height="24" preserveAspectRatio="xMidYMid meet"/><rect height="125" rx="10" stroke="#38bdf8" width="205" x="258" y="40"></rect><image href="../assets/icons/generic/server.svg" x="270" y="52" width="24" height="24" preserveAspectRatio="xMidYMid meet"/><rect height="125" rx="10" stroke="#f43f5e" width="205" x="496" y="40"></rect><image href="../assets/icons/generic/policy.svg" x="508" y="52" width="24" height="24" preserveAspectRatio="xMidYMid meet"/><rect height="125" rx="10" stroke="#34d399" width="188" x="734" y="40"></rect><image href="../assets/icons/generic/storage.svg" x="746" y="52" width="24" height="24" preserveAspectRatio="xMidYMid meet"/></g><g fill="#fce7f3" font-size="14" font-weight="700" text-anchor="middle"><text x="122" y="74">Order worker</text><text x="360" y="74">CPU scheduler</text><text x="598" y="74">Cgroup memory</text><text x="828" y="74">Host memory</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="122" y="108">latency + PID</text><text x="360" y="108">run or wait</text><text x="598" y="106">limit + memory.events</text><text fill="#f43f5e" x="598" y="132">possible OOM kill</text><text x="828" y="108">cache + available</text></g><g marker-end="url(#d8-resource-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M225 102L252 102"></path><path d="M463 102L490 102"></path><path d="M701 102L728 102"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="215">Host headroom cannot disprove a kill at the smaller cgroup boundary.</text></svg><figcaption>Figure 8.1: Conceptual resource boundaries for the supplied worker scenario. The diagram does not assign causality without timestamped PSI, limit, OOM and application evidence.</figcaption></figure>\n\n<p><strong class="side-heading">Concrete example:</strong> A compute-intensive order batch processor runs inside a container on a 16 GB host VM. SREs observe order latency jumping from 50 ms to 1,200 ms. Querying <code>/proc/pressure/cpu</code> reveals <code>some avg10=28.40</code> and <code>/proc/pressure/memory</code> shows <code>some avg10=0.00</code>. Concurrently, <code>vmstat 1</code> reports total context switches spiking to 14,000/sec while run queue depth (<code>r</code>) reaches 18 on an 8-core host. These signals support a CPU-contention hypothesis, not a proven cause or remedy. Compare cgroup cpu.stat throttling deltas, available CPU capacity, timestamps and application latency before deciding whether CPU limits, concurrency or other resources require adjustment.</p>\n\n<p><strong class="side-heading">Evidence limit:</strong> Resource utilization metrics, context switch counters, and free memory graphs provide diagnostic telemetry but cannot prove causal performance degradation without correlating timestamped Pressure Stall Information, cgroup limit boundaries, and application response latency.</p>\n',
              'questions': ['Why does low raw free RAM (MemFree) in Linux frequently represent healthy page cache '
                            'utilization rather than an imminent Out-Of-Memory failure?',
                            'How do Pressure Stall Information (PSI) metrics distinguish between CPU execution '
@@ -458,462 +159,8 @@ DATA = {'contract_version': 2,
                            'despite the underlying virtual machine host having ample available memory?'],
              'reference': 'https://man7.org/linux/man-pages/man7/sched.7.html#DESCRIPTION',
              'reference_label': 'sched(7) Linux CPU scheduling overview description (accessed 2026-10-04)',
-             'scenario': {'scenario': 'Host resize misses a smaller cgroup OOM boundary',
-                          'impact': 'Production payment worker containers intermittently crash and restart during peak '
-                                    'transaction processing, dropping active customer checkout sessions.',
-                          'constraints': 'Do not induce actual host-wide memory exhaustion or crash production VMs; '
-                                         'preserve restart timestamps and process IDs; do not modify cgroup memory '
-                                         'limits before capturing baseline values.',
-                          'evidence': '**illustrative supplied records**\n'
-                                      '\n'
-                                      '```text\n'
-                                      '[Host Monitoring Alert] Host free memory below 8% (Host MemTotal: 16,384 MB, '
-                                      'MemFree: 1,120 MB)\n'
-                                      '[SRE Action] Upgraded Compute Engine instance from n2-standard-4 (16 GB) to '
-                                      'n2-standard-8 (32 GB)\n'
-                                      '[Worker Crash Log] Process terminated abruptly at 2026-10-04T10:14:22Z; exit '
-                                      'status 137 (SIGKILL)\n'
-                                      '[Kernel dmesg] [18492.104] Memory cgroup out of memory: Killed process 4182 '
-                                      '(order-worker) total-vm:812044kB, anon-rss:518420kB, file-rss:1240kB, '
-                                      'shmem-rss:0kB\n'
-                                      '[Kernel dmesg] [18492.105] oom_reaper: reaped process 4182 (order-worker), now '
-                                      'anon-rss:0kB\n'
-                                      '[Cgroup Telemetry] /sys/fs/cgroup/payment.slice/memory.max: 536870912 (512 MB)\n'
-                                      '[Cgroup Telemetry] /sys/fs/cgroup/payment.slice/memory.events: oom 14, oom_kill '
-                                      '14\n'
-                                      '[Host /proc/meminfo at crash]\n'
-                                      'MemTotal:       32890412 kB\n'
-                                      'MemFree:         4128904 kB\n'
-                                      'MemAvailable:   26840112 kB\n'
-                                      'Cached:         22104880 kB\n'
-                                      '```\n'
-                                      '\n'
-                                      '<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe '
-                                      'horizontally to view the full incident diagram.</p><svg '
-                                      'aria-labelledby="d8-oom-inc-title d8-oom-inc-desc" role="img" viewbox="0 0 940 '
-                                      '350" xmlns="http://www.w3.org/2000/svg"><title id="d8-oom-inc-title">Host '
-                                      'resize misses a smaller cgroup OOM boundary</title><desc '
-                                      'id="d8-oom-inc-desc">Before repair, low host free memory leads to a VM resize '
-                                      'while the unchanged cgroup limit continues killing the worker. After diagnosis, '
-                                      'timestamped cgroup OOM evidence identifies the first violated boundary and the '
-                                      'workload or limit is corrected.</desc><defs><marker id="d8-oom-inc-arrow" '
-                                      'markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 '
-                                      '0L10 4L0 8Z" fill="#38bdf8"></path></marker></defs><text fill="#f43f5e" '
-                                      'font-weight="700" x="20" y="28">BEFORE · host graph drives the wrong '
-                                      'repair</text><text fill="#34d399" font-weight="700" x="20" y="195">AFTER · '
-                                      'first violated boundary drives the repair</text><g fill="#121526" '
-                                      'stroke-width="2"><rect height="100" rx="10" stroke="#38bdf8" width="260" x="24" '
-                                      'y="48"></rect><image href="../assets/icons/generic/storage.svg" x="34" y="58" '
-                                      'width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" '
-                                      'rx="10" stroke="#f43f5e" width="260" x="340" y="48"></rect><image '
-                                      'href="../assets/icons/gcp/core/compute-engine.svg" x="350" y="58" width="22" '
-                                      'height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" '
-                                      'stroke="#f43f5e" width="260" x="656" y="48"></rect><image '
-                                      'href="../assets/icons/generic/failure.svg" x="666" y="58" width="22" '
-                                      'height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" '
-                                      'stroke="#38bdf8" width="260" x="24" y="215"></rect><image '
-                                      'href="../assets/icons/generic/event.svg" x="34" y="225" width="22" height="22" '
-                                      'preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" '
-                                      'stroke="#34d399" width="260" x="340" y="215"></rect><image '
-                                      'href="../assets/icons/generic/monitoring.svg" x="350" y="225" width="22" '
-                                      'height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" '
-                                      'stroke="#34d399" width="260" x="656" y="215"></rect><image '
-                                      'href="../assets/icons/generic/outcome.svg" x="666" y="225" width="22" '
-                                      'height="22" preserveAspectRatio="xMidYMid meet"/></g><g fill="#fce7f3" '
-                                      'text-anchor="middle"><text x="154" y="82">Low host free RAM</text><text x="470" '
-                                      'y="82">Resize host</text><text x="786" y="82">Cgroup still OOM '
-                                      'kills</text><text x="154" y="249">Restart timestamp</text><text x="470" '
-                                      'y="249">memory.events increases</text><text x="786" y="249">Limit or usage '
-                                      'repaired</text></g><g marker-end="url(#d8-oom-inc-arrow)" stroke="#38bdf8" '
-                                      'stroke-width="2"><path d="M284 100L334 100"></path><path d="M600 100L650 '
-                                      '100"></path><path d="M284 267L334 267"></path><path d="M600 267L650 '
-                                      '267"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" '
-                                      'x="470" y="340">Verification observes stable PID, no new OOM kill and recovered '
-                                      'synthetic-order latency.</text></svg><figcaption>Figure 8.3: Supplied incident '
-                                      'example. The before row shows a boundary mismatch; the after row shows the '
-                                      'evidence sequence and expected verification. Supplied facts: illustrative records show worker '
-                                      'killed with signal 137; kernel dmesg confirms cgroup OOM for process 4182; host MemAvailable '
-                                      'was over 26 GB; cgroup memory.max was strictly 512 MB. Architectural inference: memory '
-                                      'exhaustion occurred strictly at the cgroup boundary (512 MB) rather than the physical VM host '
-                                      'boundary. Expected post-fix behavior: correlating cgroup memory.events with process restart '
-                                      'timestamps pinpoints the container limit; adjusting the cgroup boundary eliminates the crash. '
-                                      'Scope is limited to memory boundary comparison; the diagram does not prove host memory headroom '
-                                      'or container memory stability under production load.</figcaption></figure>',                          'root': 'The worker process was constrained within a cgroup v2 container slice with '
-                                  'memory.max configured to 512 MB. While the host VM initially showed low MemFree due '
-                                  'to 12 GB of reclaimable page cache, the host actually had ample available memory '
-                                  '(14 GB MemAvailable). Blindly resizing the host VM to 32 GB did not alter the 512 '
-                                  'MB container cgroup limit, so the kernel OOM killer continued terminating the '
-                                  'container whenever its anonymous memory footprint exceeded 512 MB.',
-                          'verify': 'Correlate the container restart timestamp directly with cgroup memory.events '
-                                    'counters rather than host-level graphs. Reconfigure the container memory.max '
-                                    'limit from 512 MB to 1024 MB, verify that the cgroup oom_kill counter stops '
-                                    'incrementing, and observe stable worker execution without crashes.',
-                          'residual': 'Increasing container memory ceilings addresses immediate OOM termination but '
-                                      'does not resolve underlying memory leaks if the application heap grows '
-                                      'monotonically; heap profiling must be scheduled to establish true steady-state '
-                                      'memory requirements.',
-                          'diagram_enabled': True,
-                          'facts': 'Worker process killed with signal 137; kernel dmesg confirms cgroup OOM invocation '
-                                   'for process 4182; host MemAvailable was over 26 GB; cgroup memory.max was strictly '
-                                   'set to 512 MB.',
-                          'inference': 'The memory exhaustion event occurred strictly at the cgroup boundary (512 MB) '
-                                       'rather than the physical VM host boundary.',
-                          'expected': 'Correlating cgroup memory.events with process restart timestamps pinpoints the '
-                                      'container limit; adjusting the cgroup boundary eliminates the crash.',
-                          'diagnostic_steps': ['Inspect container exit status (exit 137 indicates SIGKILL from kernel '
-                                               'OOM killer).',
-                                               'Inspect host-level /proc/meminfo to verify host MemAvailable vs '
-                                               'MemFree.',
-                                               'Examine cgroup memory.events for the workload slice to inspect oom and '
-                                               'oom_kill counters.',
-                                               'Inspect kernel dmesg for "Memory cgroup out of memory: Killed process" '
-                                               'entries.'],
-                          'remediation_steps': ['Capture baseline cgroup memory.max and peak container RSS usage.',
-                                                'Reconfigure container manifest memory.max limit to provide adequate '
-                                                'operational headroom.',
-                                                'Verify container stability and confirm cgroup memory.events oom_kill '
-                                                'counter remains static.'],
-                          'diagram': ('Peak load surge',
-                                      'Cgroup quota mismatch',
-                                      'Worker killed (exit 137)',
-                                      'Resize cgroup memory.max',
-                                      'Stable execution verified'),
-                          'icons': ['../assets/icons/generic/event.svg',
-                                    '../assets/icons/generic/failure.svg',
-                                    '../assets/icons/generic/failure.svg',
-                                    '../assets/icons/generic/decision.svg',
-                                    '../assets/icons/generic/outcome.svg']},
-             'lab': {'name': 'Resource telemetry baseline and OOM/PSI diagnostic classification',
-                     'goal': 'Measure a bounded local CPU task, inspect host memory and page cache metrics, and '
-                             'classify supplied OOM and PSI telemetry without exhausting host resources.',
-                     'expected': 'Accurate recording of process CPU time vs wall time, calculation of reclaimable page '
-                                 'cache from /proc/meminfo, and structured classification of supplied OOM/PSI incident '
-                                 'logs.',
-                     'mode': 'Observed locally: local CPU task and memory metrics. Simulated or predicted: synthetic '
-                             'OOM and PSI log classification. Untested on GCP: Compute Engine hypervisor credit '
-                             'throttling.',
-                     'covers': 'Observe a bounded local CPU task and inspect memory/page-cache metrics; explain '
-                               'supplied OOM and PSI examples without exhausting the host.',
-                     'prereq': 'Local Linux bash terminal with Python 3 and standard procfs (/proc).',
-                     'preflight': 'Verify python3, coreutils, and read access to /proc/meminfo and /proc/pressure/.',
-                     'verification': 'Validate that script reports wall time ~0.5s, /proc/meminfo calculates '
-                                     'MemAvailable, and diagnostic parser correctly classifies the cgroup OOM failure.',
-                     'trouble': 'If /proc/pressure is unavailable (older kernel), the diagnostic script falls back '
-                                'gracefully to simulated PSI inputs.',
-                     'cleanup': 'Remove the temporary lab directory and all generated log artifacts.',
-                     'accept': 'Comprehensive resource baseline report ($LAB_DIR/resource_baseline_report.md) '
-                               'generated with all calculations and classifications verified.',
-                     'file': 'day-008-topic-01.md',
-                     'steps': ['**Stage 1: Preflight environment and diagnostic tool check**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Verify that Python 3 and basic Linux inspection utilities are available, and check '
-                               'read accessibility of `/proc/meminfo` and `/proc/pressure`:\n'
-                               '\n'
-                               '```bash\n'
-                               'command -v python3 >/dev/null && echo "PASS: python3 is available"\n'
-                               'command -v grep >/dev/null && echo "PASS: grep is available"\n'
-                               'command -v cat >/dev/null && echo "PASS: cat is available"\n'
-                               '\n'
-                               'test -r /proc/meminfo && echo "PASS: /proc/meminfo is readable"\n'
-                               'if [ -d /proc/pressure ]; then\n'
-                               '  echo "PASS: /proc/pressure is supported by kernel"\n'
-                               'else\n'
-                               '  echo "NOTE: /proc/pressure not present on host kernel; synthetic PSI fallback will '
-                               'be utilized"\n'
-                               'fi\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Tool checks confirm python3, grep, and /proc/meminfo '
-                               'accessibility.\n'
-                               '\n'
-                               '**Save:** none',
-                               '**Stage 2: Establish isolated lab workspace and capture host baseline**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Initialize an isolated workspace in scratch directory and record host CPU and memory '
-                               'baselines:\n'
-                               '\n'
-                               '```bash\n'
-                               'LAB_DIR="/home/naveen/GitRepos/Projects/GCP/RoadMap/gcp-180day-architect-site/scratch/day_008_lab_t1"\n'
-                               'mkdir -p "$LAB_DIR"\n'
-                               'cd "$LAB_DIR"\n'
-                               '\n'
-                               'echo "=== Host Baseline Architecture ===" | tee "$LAB_DIR/host_baseline.log"\n'
-                               'uname -srm | tee -a "$LAB_DIR/host_baseline.log"\n'
-                               'nproc | xargs -I{} echo "CPU Cores: {}" | tee -a "$LAB_DIR/host_baseline.log"\n'
-                               'uptime | tee -a "$LAB_DIR/host_baseline.log"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Workspace directory created and initial host hardware parameters '
-                               'logged.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/host_baseline.log`',
-                               '**Stage 3: Author bounded CPU and context switch measurement script**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Create a Python script that executes an intensive compute loop bounded strictly to 0.5 '
-                               'seconds of wall-clock time, recording wall time, process CPU time, and '
-                               'involuntary/voluntary context switches via `resource.getrusage`:\n'
-                               '\n'
-                               '```bash\n'
-                               'cat > "$LAB_DIR/bounded_cpu_bench.py" <<\'EOF\'\n'
-                               'import resource\n'
-                               'import time\n'
-                               'import sys\n'
-                               '\n'
-                               '# Record starting resource counters\n'
-                               'start_wall = time.perf_counter()\n'
-                               'start_cpu = time.process_time()\n'
-                               'ru_start = resource.getrusage(resource.RUSAGE_SELF)\n'
-                               '\n'
-                               '# Execute bounded workload for exactly 0.5 seconds\n'
-                               'deadline = start_wall + 0.5\n'
-                               'work_iterations = 0\n'
-                               'while time.perf_counter() < deadline:\n'
-                               '    work_iterations += 1\n'
-                               '\n'
-                               '# Record ending resource counters\n'
-                               'end_wall = time.perf_counter()\n'
-                               'end_cpu = time.process_time()\n'
-                               'ru_end = resource.getrusage(resource.RUSAGE_SELF)\n'
-                               '\n'
-                               'wall_duration = end_wall - start_wall\n'
-                               'cpu_duration = end_cpu - start_cpu\n'
-                               'vol_cs = ru_end.ru_nvcsw - ru_start.ru_nvcsw\n'
-                               'invol_cs = ru_end.ru_nivcsw - ru_start.ru_nivcsw\n'
-                               '\n'
-                               '# Format and report results\n'
-                               'print("=== Bounded CPU Execution Telemetry ===")\n'
-                               'print(f"Wall Time Seconds:          {wall_duration:.4f}")\n'
-                               'print(f"Process CPU Time Seconds:   {cpu_duration:.4f}")\n'
-                               'print(f"Work Iterations Completed:  {work_iterations}")\n'
-                               'print(f"Voluntary Context Switches:   {vol_cs}")\n'
-                               'print(f"Involuntary Context Switches: {invol_cs}")\n'
-                               'print(f"CPU Utilization Ratio:      {(cpu_duration / wall_duration) * 100:.1f}%")\n'
-                               '\n'
-                               'if wall_duration < 0.45 or wall_duration > 0.65:\n'
-                               '    print("FATAL: Wall duration outside bounded 0.5s tolerance")\n'
-                               '    sys.exit(1)\n'
-                               '\n'
-                               'print("PASS: Bounded CPU benchmark completed within safe tolerance.")\n'
-                               'EOF\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Script written to `$LAB_DIR/bounded_cpu_bench.py`.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/bounded_cpu_bench.py`',
-                               '**Stage 4: Execute bounded CPU workload and log telemetry**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Run the bounded benchmark script and save execution metrics:\n'
-                               '\n'
-                               '```bash\n'
-                               'python3 "$LAB_DIR/bounded_cpu_bench.py" | tee "$LAB_DIR/cpu_telemetry.log"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Workload terminates within ~0.50 seconds wall time, logging high '
-                               'CPU utilization and context switches without stalling the host.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/cpu_telemetry.log`',
-                               '**Stage 5: Inspect virtual memory, page cache, and MemAvailable**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Create and execute a memory analyzer that parses `/proc/meminfo` to extract physical '
-                               'RAM allocation, page cache buffers, and calculate true reclaimable memory:\n'
-                               '\n'
-                               '```bash\n'
-                               'cat > "$LAB_DIR/parse_meminfo.py" <<\'EOF\'\n'
-                               'import sys\n'
-                               '\n'
-                               'fields = {}\n'
-                               "with open('/proc/meminfo', 'r') as f:\n"
-                               '    for line in f:\n'
-                               "        parts = line.split(':')\n"
-                               '        if len(parts) == 2:\n'
-                               '            key = parts[0].strip()\n'
-                               '            val_parts = parts[1].strip().split()\n'
-                               '            fields[key] = int(val_parts[0]) # values in kB\n'
-                               '\n'
-                               "mem_total = fields.get('MemTotal', 0)\n"
-                               "mem_free = fields.get('MemFree', 0)\n"
-                               "mem_avail = fields.get('MemAvailable', 0)\n"
-                               "cached = fields.get('Cached', 0)\n"
-                               "buffers = fields.get('Buffers', 0)\n"
-                               "swap_total = fields.get('SwapTotal', 0)\n"
-                               "swap_free = fields.get('SwapFree', 0)\n"
-                               '\n'
-                               'reclaimable_cache = cached + buffers\n'
-                               'pct_free = (mem_free / mem_total) * 100 if mem_total else 0\n'
-                               'pct_avail = (mem_avail / mem_total) * 100 if mem_total else 0\n'
-                               '\n'
-                               'print("=== Linux Kernel Memory Telemetry (/proc/meminfo) ===")\n'
-                               'print(f"Total Physical Memory:   {mem_total / 1024:.1f} MB ({mem_total / '
-                               '(1024*1024):.2f} GB)")\n'
-                               'print(f"Raw Free Memory:         {mem_free / 1024:.1f} MB ({pct_free:.1f}%)")\n'
-                               'print(f"Page Cache & Buffers:    {reclaimable_cache / 1024:.1f} MB")\n'
-                               'print(f"Available Memory:        {mem_avail / 1024:.1f} MB ({pct_avail:.1f}%)")\n'
-                               'print(f"Swap Total:              {swap_total / 1024:.1f} MB")\n'
-                               'print(f"Swap Free:               {swap_free / 1024:.1f} MB")\n'
-                               'print("-" * 55)\n'
-                               'print(f"Diagnostic Insight: MemAvailable is {mem_avail / (mem_free or 1):.1f}x larger '
-                               'than raw MemFree.")\n'
-                               'print("Conclusion: Evaluating memory health on MemFree alone generates severe false '
-                               'alarms.")\n'
-                               'EOF\n'
-                               'python3 "$LAB_DIR/parse_meminfo.py" | tee "$LAB_DIR/memory_telemetry.log"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Output displays memory breakdown, confirming `MemAvailable` '
-                               'accounts for reclaimable page cache and exceeds raw `MemFree`.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/memory_telemetry.log`',
-                               '**Stage 6: Rehearse classification of supplied OOM and PSI telemetry**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Create and execute a telemetry classifier script that parses supplied incident '
-                               'fixtures (dmesg OOM logs and `/proc/pressure` metrics), distinguishing container '
-                               'cgroup quota limits from host-wide memory exhaustion:\n'
-                               '\n'
-                               '```bash\n'
-                               'cat > "$LAB_DIR/classify_incident.py" <<\'EOF\'\n'
-                               'import sys\n'
-                               '\n'
-                               'supplied_dmesg = """\n'
-                               '[18492.104] Memory cgroup out of memory: Killed process 4182 (order-worker) '
-                               'total-vm:812044kB, anon-rss:518420kB, file-rss:1240kB, shmem-rss:0kB\n'
-                               '[18492.105] oom_reaper: reaped process 4182 (order-worker), now anon-rss:0kB\n'
-                               '"""\n'
-                               '\n'
-                               'supplied_cgroup_events = """\n'
-                               'low 0\n'
-                               'high 0\n'
-                               'max 14\n'
-                               'oom 14\n'
-                               'oom_kill 14\n'
-                               '"""\n'
-                               '\n'
-                               'supplied_psi_memory = """\n'
-                               'some avg10=22.45 avg60=14.20 avg300=5.10 total=48201944\n'
-                               'full avg10=18.12 avg60=11.05 avg300=3.80 total=31204550\n'
-                               '"""\n'
-                               '\n'
-                               'supplied_psi_cpu = """\n'
-                               'some avg10=0.00 avg60=0.00 avg300=0.00 total=1240\n'
-                               '"""\n'
-                               '\n'
-                               'print("=== Diagnostic Classification of Incident Telemetry ===")\n'
-                               '\n'
-                               '# Check for Cgroup OOM\n'
-                               'is_cgroup_oom = "Memory cgroup out of memory" in supplied_dmesg\n'
-                               'oom_kills = 0\n'
-                               'for line in supplied_cgroup_events.strip().splitlines():\n'
-                               '    if line.startswith("oom_kill"):\n'
-                               '        oom_kills = int(line.split()[1])\n'
-                               '\n'
-                               '# Parse Memory PSI\n'
-                               'mem_some_10 = 0.0\n'
-                               'mem_full_10 = 0.0\n'
-                               'for line in supplied_psi_memory.strip().splitlines():\n'
-                               '    if line.startswith("some"):\n'
-                               '        mem_some_10 = float(line.split("avg10=")[1].split()[0])\n'
-                               '    elif line.startswith("full"):\n'
-                               '        mem_full_10 = float(line.split("avg10=")[1].split()[0])\n'
-                               '\n'
-                               'print(f"1. Cgroup Boundary Violation:   {\'DETECTED\' if is_cgroup_oom else '
-                               '\'ABSENT\'}")\n'
-                               'print(f"2. Recorded Cgroup OOM Kills:    {oom_kills}")\n'
-                               'print(f"3. Memory PSI \'some\' (10s avg):  {mem_some_10}%")\n'
-                               'print(f"4. Memory PSI \'full\' (10s avg):  {mem_full_10}%")\n'
-                               'print(f"5. CPU PSI \'some\' (10s avg):     0.0%")\n'
-                               'print("-" * 55)\n'
-                               '\n'
-                               'if is_cgroup_oom and oom_kills > 0 and mem_some_10 > 10.0:\n'
-                               '    print("CLASSIFICATION: SEVERE CGROUP MEMORY EXHAUSTION DETECTED.")\n'
-                               '    print("RECOMMENDATION: Resize container cgroup memory.max; host VM resize will NOT '
-                               'resolve this.")\n'
-                               'else:\n'
-                               '    print("CLASSIFICATION: Inconclusive or normal state.")\n'
-                               '    sys.exit(1)\n'
-                               'EOF\n'
-                               'python3 "$LAB_DIR/classify_incident.py" | tee "$LAB_DIR/incident_classification.log"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Classifier identifies cgroup OOM boundary violation and severe '
-                               'memory pressure, outputting the correct architectural recommendation.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/incident_classification.log`',
-                               '**Stage 7: Diagnose evidence and compile resource baseline report**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Synthesize the CPU execution telemetry, physical memory breakdown, and incident '
-                               'classifications into a comprehensive resource baseline audit report:\n'
-                               '\n'
-                               '```bash\n'
-                               'cat > "$LAB_DIR/resource_baseline_report.md" <<EOF\n'
-                               '# System Resource Baseline and Diagnostic Signal Report\n'
-                               '\n'
-                               '## 1. System Baseline Summary\n'
-                               '- **Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")\n'
-                               '- **Architecture:** $(uname -m)\n'
-                               '- **Kernel Version:** $(uname -r)\n'
-                               '- **Host CPU Cores:** $(nproc)\n'
-                               '\n'
-                               '## 2. Bounded CPU Workload Telemetry\n'
-                               '$(cat "$LAB_DIR/cpu_telemetry.log")\n'
-                               '\n'
-                               '## 3. Host Memory Distribution\n'
-                               '$(cat "$LAB_DIR/memory_telemetry.log")\n'
-                               '\n'
-                               '## 4. Predicted Symptoms: CPU Throttling vs Memory Pressure\n'
-                               '| Diagnostic Symptom | CPU Quota Throttling | Memory Pressure / OOM |\n'
-                               '| :--- | :--- | :--- |\n'
-                               '| **Primary Telemetry** | CPU PSI (\\`cpu:some\\`) elevated; high run queue | Memory '
-                               'PSI (\\`memory:some\\`, \\`memory:full\\`) elevated |\n'
-                               '| **Process State** | Tasks runnable but delayed in scheduler queue | Tasks blocked in '
-                               'uninterruptible sleep (D) reclaiming RAM |\n'
-                               '| **Context Switching** | Elevated involuntary context switches (\\`ru_nivcsw\\`) | '
-                               'Low CPU activity; high major page faults |\n'
-                               '| **Crash Signature** | Does not terminate process; causes latency spikes | Process '
-                               'terminated abruptly with exit code 137 (SIGKILL) |\n'
-                               '| **Kernel Log Proof** | CPU CFS bandwidth throttling counters increment | \\`Memory '
-                               'cgroup out of memory: Killed process\\` in dmesg |\n'
-                               '| **Corrective Action** | Increase cgroup CPU quota / provision dedicated cores | '
-                               'Increase cgroup \\`memory.max\\` or fix application memory leak |\n'
-                               '\n'
-                               '## 5. Verification Conclusion\n'
-                               'The evidence establishes that MemAvailable accounts for reclaimable page cache and '
-                               'confirms that container cgroup memory.max limits operate independently of host VM '
-                               'physical memory capacity.\n'
-                               'EOF\n'
-                               'cat "$LAB_DIR/resource_baseline_report.md"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Markdown report compiles all test findings and clearly '
-                               'distinguishes CPU throttling from memory pressure symptoms.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/resource_baseline_report.md`',
-                               '**Stage 8: Clean up lab workspace**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Remove temporary benchmark scripts and data files:\n'
-                               '\n'
-                               '```bash\n'
-                               'rm -rf "$LAB_DIR"\n'
-                               'echo "PASS: Day 8 Topic 1 lab workspace cleaned up successfully."\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Workspace directory removed; environment clean.\n'
-                               '\n'
-                               '**Save:** none']}},
+             'scenario': {'scenario': 'Host resize misses a smaller cgroup OOM boundary', 'impact': 'Production payment worker containers intermittently crash and restart during peak transaction processing, dropping active customer checkout sessions.', 'constraints': 'Do not induce actual host-wide memory exhaustion or crash production VMs; preserve restart timestamps and process IDs; do not modify cgroup memory limits before capturing baseline values.', 'evidence': '**illustrative supplied records**\n\n```text\n[Host Monitoring Alert] Host free memory below 8% (Host MemTotal: 16,384 MB, MemFree: 1,120 MB)\n[SRE Action] Upgraded Compute Engine instance from n2-standard-4 (16 GB) to n2-standard-8 (32 GB)\n[Worker Crash Log] Process terminated abruptly at 2026-10-04T10:14:22Z; exit status 137 (SIGKILL)\n[Kernel dmesg] [18492.104] Memory cgroup out of memory: Killed process 4182 (order-worker) total-vm:812044kB, anon-rss:518420kB, file-rss:1240kB, shmem-rss:0kB\n[Kernel dmesg] [18492.105] oom_reaper: reaped process 4182 (order-worker), now anon-rss:0kB\n[Cgroup Telemetry] /sys/fs/cgroup/payment.slice/memory.max: 536870912 (512 MB)\n[Cgroup Telemetry] /sys/fs/cgroup/payment.slice/memory.events: oom 14, oom_kill 14\n[Host /proc/meminfo at crash]\nMemTotal:       32890412 kB\nMemFree:         4128904 kB\nMemAvailable:   26840112 kB\nCached:         22104880 kB\n```\n\n<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p><svg aria-labelledby="d8-oom-inc-title d8-oom-inc-desc" role="img" viewbox="0 0 940 350" xmlns="http://www.w3.org/2000/svg"><title id="d8-oom-inc-title">Host resize misses a smaller cgroup OOM boundary</title><desc id="d8-oom-inc-desc">Before repair, low host free memory leads to a VM resize while the unchanged cgroup limit continues killing the worker. After diagnosis, timestamped cgroup OOM evidence identifies the first violated boundary and the workload or limit is corrected.</desc><defs><marker id="d8-oom-inc-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"></path></marker></defs><text fill="#f43f5e" font-weight="700" x="20" y="28">BEFORE · host graph drives the wrong repair</text><text fill="#34d399" font-weight="700" x="20" y="195">AFTER · first violated boundary drives the repair</text><g fill="#121526" stroke-width="2"><rect height="100" rx="10" stroke="#38bdf8" width="260" x="24" y="48"></rect><image href="../assets/icons/generic/storage.svg" x="34" y="52" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#f43f5e" width="260" x="340" y="48"></rect><image href="../assets/icons/gcp/core/compute-engine.svg" x="350" y="52" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#f43f5e" width="260" x="656" y="48"></rect><image href="../assets/icons/generic/failure.svg" x="666" y="52" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#38bdf8" width="260" x="24" y="215"></rect><image href="../assets/icons/generic/event.svg" x="34" y="225" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#34d399" width="260" x="340" y="215"></rect><image href="../assets/icons/generic/monitoring.svg" x="350" y="225" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#34d399" width="260" x="656" y="215"></rect><image href="../assets/icons/generic/outcome.svg" x="666" y="225" width="22" height="22" preserveAspectRatio="xMidYMid meet"/></g><g fill="#fce7f3" text-anchor="middle"><text x="154" y="102">Low host free RAM</text><text x="470" y="102">Resize host</text><text x="786" y="102">Cgroup still OOM kills</text><text x="154" y="269">Restart timestamp</text><text x="470" y="269">memory.events increases</text><text x="786" y="269">Limit or usage repaired</text></g><g marker-end="url(#d8-oom-inc-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M284 100L334 100"></path><path d="M600 100L650 100"></path><path d="M284 267L334 267"></path><path d="M600 267L650 267"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="340">Verification observes stable PID, no new OOM kill and recovered synthetic-order latency.</text></svg><figcaption>Supplied facts: Worker process killed with exit status 137 (consistent with SIGKILL, signal 9); kernel dmesg confirms cgroup OOM invocation for process 4182; host MemAvailable was over 26 GB; cgroup memory.max was strictly set to 512 MiB. Architectural inference: The memory exhaustion event occurred strictly at the cgroup boundary (512 MB) rather than the physical VM host boundary. Expected post-fix behavior: Expected post-fix behavior: an appropriately sized cgroup or corrected memory demand may prevent repeated OOM events; a limit increase is not a guarantee and must be verified. Evidence limit: illustrative records only; no live production result is established.</figcaption></figure>', 'root': 'The supplied before/after records describe a host resize from 16 GiB to 32 GiB while the workload memory.max remained 536870912 bytes (512 MiB). The post-resize host MemAvailable reading indicates host headroom, while the explicit memory-cgroup OOM record supports a cgroup-local event. Aggregate cgroup charges can exceed the limit even when the shown process RSS is lower; neither one cumulative counter nor exit 137 alone establishes event timing.', 'verify': 'Record timestamped memory.current, memory.max and memory.events deltas for the same cgroup and correlate PID/boot identity with the OOM record and restart. Review peak demand and node capacity before an approved limit change, then observe counters and workload health over a stated interval.', 'residual': 'Increasing a container memory ceiling can reduce quota-triggered OOM events when demand and node capacity support that change but does not resolve underlying memory leaks if the application heap grows monotonically; heap profiling must be scheduled to establish true steady-state memory requirements. Evidence limit: the supplied illustrative records do not prove a live production outage or post-fix outcome; timestamp, boot identity and collection scope must be established.', 'diagram_enabled': True, 'facts': 'Worker process killed with exit status 137 (consistent with SIGKILL, signal 9); kernel dmesg confirms cgroup OOM invocation for process 4182; host MemAvailable was over 26 GB; cgroup memory.max was strictly set to 512 MiB.', 'inference': 'The memory exhaustion event occurred strictly at the cgroup boundary (512 MB) rather than the physical VM host boundary.', 'expected': 'Expected post-fix behavior: an appropriately sized cgroup or corrected memory demand may prevent repeated OOM events; a limit increase is not a guarantee and must be verified.', 'diagnostic_steps': ['Inspect exit status; 137 is consistent with SIGKILL but does not establish OOM without matching kernel/runtime and cgroup evidence.', 'Inspect host-level /proc/meminfo to verify host MemAvailable vs MemFree.', 'Examine cgroup memory.events for the workload slice to inspect oom and oom_kill counters.', 'Inspect kernel dmesg for "Memory cgroup out of memory: Killed process" entries.'], 'remediation_steps': ['Capture timestamped cgroup memory.current, memory.max, memory.stat and memory.events deltas along with host headroom.', 'Investigate workload demand, leaks, concurrency and node capacity before choosing a reviewed cgroup limit or application correction.', 'Observe OOM-counter deltas and workload health during a stated test interval; do not induce actual host exhaustion.'], 'diagram': ('Peak load surge', 'Cgroup quota mismatch', 'Worker killed (exit 137)', 'Resize cgroup memory.max', 'Stable execution verified'), 'icons': ['../assets/icons/generic/event.svg', '../assets/icons/generic/failure.svg', '../assets/icons/generic/failure.svg', '../assets/icons/generic/decision.svg', '../assets/icons/generic/outcome.svg'], 'incident_svg_html': '<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full sequence.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 260" role="img" aria-labelledby="day8-incident-0-title day8-incident-0-desc"><title id="day8-incident-0-title">Cgroup OOM evidence and bounded verification</title><desc id="day8-incident-0-desc">Numbered illustrative sequence; each node is a bounded step, not proof of a production result.</desc><rect x="20" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="134" y="48" width="22" height="22"/><text x="145" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Worker restart observed</text><path d="M276 150 L289 150 l-5 -4 m5 4 l-5 4" stroke="#38bdf8" fill="none"/><text x="283" y="135" text-anchor="middle" font-size="11" fill="#a9b7cb">1</text><rect x="295" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="409" y="48" width="22" height="22"/><text x="420" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Cgroup OOM record</text><path d="M551 150 L564 150 l-5 -4 m5 4 l-5 4" stroke="#38bdf8" fill="none"/><text x="558" y="135" text-anchor="middle" font-size="11" fill="#a9b7cb">2</text><rect x="570" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="684" y="48" width="22" height="22"/><text x="695" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Review demand and limit</text><path d="M826 150 L839 150 l-5 -4 m5 4 l-5 4" stroke="#38bdf8" fill="none"/><text x="833" y="135" text-anchor="middle" font-size="11" fill="#a9b7cb">3</text><rect x="845" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="959" y="48" width="22" height="22"/><text x="970" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Measure subsequent health</text></svg><figcaption>Supplied facts: Worker process killed with exit status 137 (consistent with SIGKILL, signal 9); kernel dmesg confirms cgroup OOM invocation for process 4182; host MemAvailable was over 26 GB; cgroup memory.max was strictly set to 512 MiB. Architectural inference: The memory exhaustion event occurred strictly at the cgroup boundary (512 MB) rather than the physical VM host boundary. Expected post-fix behavior: Expected post-fix behavior: an appropriately sized cgroup or corrected memory demand may prevent repeated OOM events; a limit increase is not a guarantee and must be verified. Evidence limit: illustrative records only; no live production result is established.</figcaption></figure>'},
+             'lab': {'name': 'Resource telemetry baseline and OOM/PSI diagnostic classification', 'goal': 'Measure a bounded local CPU task, inspect host memory and page cache metrics, and classify supplied OOM and PSI telemetry without exhausting host resources.', 'expected': 'Record measured process CPU versus elapsed time, host memory/cache fields and the kernel MemAvailable estimate; classify only the supplied OOM/PSI evidence with explicit scope limits.', 'mode': 'Observed locally: local CPU task and memory metrics. Simulated or predicted: synthetic OOM and PSI log classification. Untested on GCP: Compute Engine burst behavior or hypervisor scheduling mechanisms.', 'covers': 'Observe a bounded local CPU task and inspect memory/page-cache metrics; explain supplied OOM and PSI examples without exhausting the host.', 'prereq': 'Local Linux bash terminal with Python 3 and standard procfs (/proc).', 'preflight': 'Verify python3, coreutils, and read access to /proc/meminfo and /proc/pressure/.', 'verification': 'Check the workload stops at its approximately 0.5-second deadline when scheduled; report observed duration without imposing a universal scheduling-latency guarantee. Read MemAvailable rather than calculating it from cache fields, and corroborate the supplied cgroup OOM record.', 'trouble': 'If /proc/pressure is unavailable (older kernel), the diagnostic script falls back gracefully to simulated PSI inputs.', 'cleanup': 'Remove the temporary lab directory and all generated log artifacts.', 'accept': 'Measured baseline and synthetic classification are saved; no actual OOM, PSI stress, host exhaustion or cloud throttling was induced. The supplied OOM message supports the stated cgroup-local inference, with counter/timestamp scope limits.', 'file': 'day-008-topic-01.md', 'steps': ['**Stage 1: Preflight environment and diagnostic tool check**\n\n**Location:** local bash terminal\n\nVerify that Python 3 and basic Linux inspection utilities are available, and check read accessibility of `/proc/meminfo` and `/proc/pressure`:\n\n```bash\nset -euo pipefail\nLAB_DIR=$(mktemp -d /tmp/lab_day8_t1.XXXXXX)\nexport LAB_DIR\ncd "$LAB_DIR"\ncommand -v python3 >/dev/null\necho "PASS: python3 is available" | tee "$LAB_DIR/preflight.log"\ncommand -v grep >/dev/null\necho "PASS: grep is available"\ncommand -v cat >/dev/null\necho "PASS: cat is available"\n\ntest -r /proc/meminfo\necho "PASS: /proc/meminfo is readable"\nif [ -d /proc/pressure ]; then\n  echo "PASS: /proc/pressure is supported by kernel"\nelse\n  echo "NOTE: /proc/pressure not present on host kernel; synthetic PSI fallback will be utilized"\nfi\n```\n\n**Expected result:** Tool checks confirm python3, grep, and /proc/meminfo accessibility.\n\n**Save:** none', '**Stage 2: Establish isolated lab workspace and capture host baseline**\n\n**Location:** local bash terminal\n\nInitialize an isolated workspace in scratch directory and record host CPU and memory baselines:\n\n```bash\nLAB_DIR="/home/naveen/GitRepos/Projects/GCP/RoadMap/gcp-180day-architect-site/scratch/day_008_lab_t1"\nmkdir -p "$LAB_DIR"\ncd "$LAB_DIR"\n\necho "=== Host Baseline Architecture ===" | tee "$LAB_DIR/host_baseline.log"\nuname -srm | tee -a "$LAB_DIR/host_baseline.log"\nnproc | xargs -I{} echo "CPU Cores: {}" | tee -a "$LAB_DIR/host_baseline.log"\nuptime | tee -a "$LAB_DIR/host_baseline.log"\n```\n\n**Expected result:** Workspace directory created and initial host hardware parameters logged.\n\n**Save:** `$LAB_DIR/host_baseline.log`', '**Stage 3: Author bounded CPU and context switch measurement script**\n\n**Location:** local bash terminal\n\nCreate a Python script that executes an intensive compute loop bounded strictly to 0.5 seconds of wall-clock time, recording wall time, process CPU time, and involuntary/voluntary context switches via `resource.getrusage`:\n\n```bash\ncat > "$LAB_DIR/bounded_cpu_bench.py" <<\'EOF\'\nimport resource\nimport time\nimport sys\n\n# Record starting resource counters\nstart_wall = time.perf_counter()\nstart_cpu = time.process_time()\nru_start = resource.getrusage(resource.RUSAGE_SELF)\n\n# Execute bounded workload for approximately 0.5 seconds, subject to scheduling\ndeadline = start_wall + 0.5\nwork_iterations = 0\nwhile time.perf_counter() < deadline:\n    work_iterations += 1\n\n# Record ending resource counters\nend_wall = time.perf_counter()\nend_cpu = time.process_time()\nru_end = resource.getrusage(resource.RUSAGE_SELF)\n\nwall_duration = end_wall - start_wall\ncpu_duration = end_cpu - start_cpu\nvol_cs = ru_end.ru_nvcsw - ru_start.ru_nvcsw\ninvol_cs = ru_end.ru_nivcsw - ru_start.ru_nivcsw\n\n# Format and report results\nprint("=== Bounded CPU Execution Telemetry ===")\nprint(f"Wall Time Seconds:          {wall_duration:.4f}")\nprint(f"Process CPU Time Seconds:   {cpu_duration:.4f}")\nprint(f"Work Iterations Completed:  {work_iterations}")\nprint(f"Voluntary Context Switches:   {vol_cs}")\nprint(f"Involuntary Context Switches: {invol_cs}")\nprint(f"CPU Utilization Ratio:      {(cpu_duration / wall_duration) * 100:.1f}%")\n\nif wall_duration < 0.5 or cpu_duration < 0 or work_iterations <= 0:\n    print("FATAL: Invalid benchmark counters"); sys.exit(1)\nif wall_duration > 0.65:\n    print("NOTE: Scheduling delay increased observed elapsed time; this is not evidence of an unbounded CPU loop")\n\nprint("PASS: Bounded CPU benchmark completed within safe tolerance.")\nEOF\n```\n\n**Expected result:** Script written to `$LAB_DIR/bounded_cpu_bench.py`.\n\n**Save:** `$LAB_DIR/bounded_cpu_bench.py`', '**Stage 4: Execute bounded CPU workload and log telemetry**\n\n**Location:** local bash terminal\n\nRun the bounded benchmark script and save execution metrics:\n\n```bash\npython3 "$LAB_DIR/bounded_cpu_bench.py" | tee "$LAB_DIR/cpu_telemetry.log"\n```\n\n**Expected result:** Workload terminates within ~0.50 seconds wall time, logging high CPU utilization and context switches without stalling the host.\n\n**Save:** `$LAB_DIR/cpu_telemetry.log`', '**Stage 5: Inspect virtual memory, page cache, and MemAvailable**\n\n**Location:** local bash terminal\n\nCreate and execute a memory analyzer that parses `/proc/meminfo` to extract physical RAM allocation, page cache buffers, and report observed cache fields and the kernel availability estimate:\n\n```bash\ncat > "$LAB_DIR/parse_meminfo.py" <<\'EOF\'\nimport sys\n\nfields = {}\nwith open(\'/proc/meminfo\', \'r\') as f:\n    for line in f:\n        parts = line.split(\':\')\n        if len(parts) == 2:\n            key = parts[0].strip()\n            val_parts = parts[1].strip().split()\n            fields[key] = int(val_parts[0]) # values in kB\n\nmem_total = fields.get(\'MemTotal\', 0)\nmem_free = fields.get(\'MemFree\', 0)\nmem_avail = fields.get(\'MemAvailable\', 0)\ncached = fields.get(\'Cached\', 0)\nbuffers = fields.get(\'Buffers\', 0)\nswap_total = fields.get(\'SwapTotal\', 0)\nswap_free = fields.get(\'SwapFree\', 0)\n\ncache_and_buffers = cached + buffers # reported sum, not exact reclaimable capacity\npct_free = (mem_free / mem_total) * 100 if mem_total else 0\npct_avail = (mem_avail / mem_total) * 100 if mem_total else 0\n\nprint("=== Linux Kernel Memory Telemetry (/proc/meminfo) ===")\nprint(f"Total Physical Memory:   {mem_total / 1024:.1f} MiB ({mem_total / (1024*1024):.2f} GiB)")\nprint(f"Raw Free Memory:         {mem_free / 1024:.1f} MiB ({pct_free:.1f}%)")\nprint(f"Page Cache & Buffers:    {cache_and_buffers / 1024:.1f} MiB")\nprint(f"Available Memory:        {mem_avail / 1024:.1f} MiB ({pct_avail:.1f}%)")\nprint(f"Swap Total:              {swap_total / 1024:.1f} MiB")\nprint(f"Swap Free:               {swap_free / 1024:.1f} MiB")\nprint("-" * 55)\nprint(f"Diagnostic Insight: MemAvailable is {mem_avail / (mem_free or 1):.1f}x larger than raw MemFree.")\nprint("Conclusion: Evaluating memory health on MemFree alone generates severe false alarms.")\nEOF\npython3 "$LAB_DIR/parse_meminfo.py" | tee "$LAB_DIR/memory_telemetry.log"\n```\n\n**Expected result:** Output displays memory breakdown, reporting the kernel MemAvailable estimate alongside MemFree and cache fields; their relationship is an observation, not a fixed assertion.\n\n**Save:** `$LAB_DIR/memory_telemetry.log`', '**Stage 6: Rehearse classification of supplied OOM and PSI telemetry**\n\n**Location:** local bash terminal\n\nCreate and execute a telemetry classifier script that parses supplied incident fixtures (dmesg OOM logs and `/proc/pressure` metrics), distinguishing container cgroup quota limits from host-wide memory exhaustion:\n\n```bash\ncat > "$LAB_DIR/classify_incident.py" <<\'EOF\'\nimport sys\n\nsupplied_dmesg = """\n[18492.104] Memory cgroup out of memory: Killed process 4182 (order-worker) total-vm:812044kB, anon-rss:518420kB, file-rss:1240kB, shmem-rss:0kB\n[18492.105] oom_reaper: reaped process 4182 (order-worker), now anon-rss:0kB\n"""\n\nsupplied_cgroup_events = """\nlow 0\nhigh 0\nmax 14\noom 14\noom_kill 14\n"""\n\nsupplied_psi_memory = """\nsome avg10=22.45 avg60=14.20 avg300=5.10 total=48201944\nfull avg10=18.12 avg60=11.05 avg300=3.80 total=31204550\n"""\n\nsupplied_psi_cpu = """\nsome avg10=0.00 avg60=0.00 avg300=0.00 total=1240\n"""\n\nprint("=== Diagnostic Classification of Incident Telemetry ===")\n\n# Check for Cgroup OOM\nis_cgroup_oom = "Memory cgroup out of memory" in supplied_dmesg\noom_kills = 0\nfor line in supplied_cgroup_events.strip().splitlines():\n    if line.startswith("oom_kill"):\n        oom_kills = int(line.split()[1])\n\n# Parse Memory PSI\nmem_some_10 = 0.0\nmem_full_10 = 0.0\nfor line in supplied_psi_memory.strip().splitlines():\n    if line.startswith("some"):\n        mem_some_10 = float(line.split("avg10=")[1].split()[0])\n    elif line.startswith("full"):\n        mem_full_10 = float(line.split("avg10=")[1].split()[0])\n\nprint(f"1. Cgroup Boundary Violation:   {\'DETECTED\' if is_cgroup_oom else \'ABSENT\'}")\nprint(f"2. Recorded Cgroup OOM Kills:    {oom_kills}")\nprint(f"3. Memory PSI \'some\' (10s avg):  {mem_some_10}%")\nprint(f"4. Memory PSI \'full\' (10s avg):  {mem_full_10}%")\nprint(f"5. CPU PSI \'some\' (10s avg):     0.0%")\nprint("-" * 55)\n\nif is_cgroup_oom and oom_kills > 0 and mem_some_10 > 10.0:\n    print("CLASSIFICATION: SEVERE CGROUP MEMORY EXHAUSTION DETECTED.")\n    print("INFERENCE: Explicit memory-cgroup OOM record supports a cgroup-local event; cumulative oom_kill alone has no event timestamp.")\n    print("RECOMMENDATION: Review cgroup demand/limits and correlate scopes before choosing a limit or application change; do not exhaust the host.")\nelse:\n    print("CLASSIFICATION: Inconclusive or normal state.")\n    sys.exit(1)\nEOF\npython3 "$LAB_DIR/classify_incident.py" | tee "$LAB_DIR/incident_classification.log"\n```\n\n**Expected result:** Classifier identifies cgroup OOM boundary violation and severe memory pressure, outputting the correct architectural recommendation.\n\n**Save:** `$LAB_DIR/incident_classification.log`', '**Stage 7: Diagnose evidence and compile resource baseline report**\n\n**Location:** local bash terminal\n\nSynthesize the CPU execution telemetry, physical memory breakdown, and incident classifications into a comprehensive resource baseline audit report:\n\n```bash\ncat > "$LAB_DIR/resource_baseline_report.md" <<EOF\n# System Resource Baseline and Diagnostic Signal Report\n\n## 1. System Baseline Summary\n- **Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")\n- **Architecture:** $(uname -m)\n- **Kernel Version:** $(uname -r)\n- **Host CPU Cores:** $(nproc)\n\n## 2. Bounded CPU Workload Telemetry\n$(cat "$LAB_DIR/cpu_telemetry.log")\n\n## 3. Host Memory Distribution\n$(cat "$LAB_DIR/memory_telemetry.log")\n\n## 4. Predicted Symptoms: CPU Throttling vs Memory Pressure\n| Diagnostic Symptom | CPU Quota Throttling | Memory Pressure / OOM |\n| :--- | :--- | :--- |\n| **Primary Telemetry** | CPU PSI (\\`cpu:some\\`) elevated; high run queue | Memory PSI (\\`memory:some\\`, \\`memory:full\\`) elevated |\n| **Process State** | Runnable tasks may be delayed; verify cpu.stat quota-throttling deltas | Tasks blocked in uninterruptible sleep (D) reclaiming RAM |\n| **Context Switching** | Elevated involuntary context switches (\\`ru_nivcsw\\`) | Reclaim, faults and I/O may increase; none is a unique pressure signature |\n| **Crash Signature** | Does not terminate process; causes latency spikes | 137 is consistent with SIGKILL; match OOM logs/counters before attribution |\n| **Kernel Log Proof** | CPU CFS bandwidth throttling counters increment | \\`Memory cgroup out of memory: Killed process\\` in dmesg |\n| **Corrective Action** | Review CPU demand, quota and scheduling capacity | Review memory demand, limits and leaks before choosing a change |\n\n## 5. Verification Conclusion\nThe evidence establishes that MemAvailable accounts for reclaimable page cache and confirms that container cgroup memory.max limits operate independently of host VM physical memory capacity.\nEOF\ncat "$LAB_DIR/resource_baseline_report.md"\n```\n\n**Expected result:** Markdown report compiles all test findings and clearly distinguishes CPU throttling from memory pressure symptoms.\n\n**Save:** `$LAB_DIR/resource_baseline_report.md`', '**Stage 8: Clean up lab workspace**\n\n**Location:** local bash terminal\n\nRemove temporary benchmark scripts and data files:\n\n```bash\nrm -rf "$LAB_DIR"\necho "PASS: Day 8 Topic 1 lab workspace cleaned up successfully."\n```\n\n**Expected result:** Workspace directory removed; environment clean.\n\n**Save:** none']}},
             {'key': 'topic-02',
              'title': 'Grep/sed/awk/jq and curl/dig/ss/tcpdump as diagnostic tools',
              'anchors': {'overview': 'topic-02-overview',
@@ -929,285 +176,7 @@ DATA = {'contract_version': 2,
                         'JSON logs reports zero customer impact during an active outage. Downstream payment processing '
                         'requests were actively failing with HTTP 503 status codes that contained no textual error '
                         'keywords in their structured payload fields.',
-             'technical': '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n'
-                          '<ul>\n'
-                          '<li>Stream text filtering with grep and sed: patterns, word boundaries, and limits</li>\n'
-                          '<li>Field processing with awk: columnar aggregation, record splitting, and reporting</li>\n'
-                          '<li>Structured data parsing with jq: JSON filters, nested traversal, and numeric '
-                          'selections</li>\n'
-                          '<li>Network endpoint diagnostics: curl and dig for DNS and application layer probing</li>\n'
-                          '<li>Kernel socket and packet analysis: ss socket states and tcpdump packet captures</li>\n'
-                          '</ul>\n'
-                          '\n'
-                          '<h4>Stream text filtering with grep and sed: patterns, word boundaries, and limits</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> Text stream inspection '
-                          'tools process unstructured log streams line-by-line using regular expressions. The <strong '
-                          'class="keyword">grep</strong> utility evaluates input streams against Basic Regular '
-                          'Expressions (BRE) or Extended Regular Expressions (ERE with <code>-E</code>), returning '
-                          'matching records based on exact literal substrings, character classes, or word boundaries '
-                          '(<code>\x08</code>). Options such as <code>-i</code> (case-insensitivity), <code>-v</code> '
-                          '(inverting matches), <code>-c</code> (counting occurrences), and <code>-C</code> (emitting '
-                          'surrounding context lines) allow operators to quickly narrow down unstructured syslogs. The '
-                          '<strong class="keyword">sed</strong> (stream editor) utility performs non-interactive text '
-                          'transformations, deletions, and substitutions on piped streams using programmable '
-                          'addressing scripts (e.g. <code>s/regex/replacement/g</code>). Crucially, stream text tools '
-                          'evaluate records as flat string sequences: they lack schema awareness, syntactic data '
-                          'validation, and multiline field boundary understanding.</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> Relying on naive '
-                          'text grepping across semi-structured or JSON application logs introduces severe '
-                          'false-negative and false-positive diagnostic errors: searching for the substring '
-                          '<code>"error"</code> misses structured numeric failure codes (such as HTTP 500 or gRPC '
-                          'status 14), while returning false positives for informational logs stating '
-                          '<code>"error_count=0"</code> or customer addresses containing "Terrace". Architects mandate '
-                          'structured logging schemas and establish standardized log parsing rules for observability '
-                          'pipelines.</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> While Google Cloud CLI commands '
-                          'support local piping to grep (e.g. <kbd>gcloud compute instances list | grep '
-                          'RUNNING</kbd>), enterprise cloud operations utilize Cloud Logging log filters (written in '
-                          'Cloud Logging Query Language) on the backend to filter structured JSON payload fields '
-                          'server-side before egressing data over networks. Primary documentation: <a '
-                          'href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) pattern search '
-                          'utility description (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) regular '
-                          'expression syntax and matching modes (accessed 2026-10-04)</a>; <a '
-                          'href="https://man7.org/linux/man-pages/man1/sed.1.html#DESCRIPTION">sed(1) stream editor '
-                          'command language (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<h4>Field processing with awk: columnar aggregation, record splitting, and reporting</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> When log streams or system '
-                          'command outputs follow tabular, columnar formatting (such as space-delimited Web server '
-                          'access logs, <code>vmstat</code>, or <code>ps</code> outputs), the <strong '
-                          'class="keyword">awk</strong> pattern scanning and processing language provides powerful '
-                          'field-based extraction and statistical computation. The tool automatically splits each '
-                          'incoming line into positional field variables (<code>$1</code>, <code>$2</code>, ... '
-                          '<code>$NF</code>) based on a configurable field separator (<code>-F</code>). In addition to '
-                          'printing specific columns, awk supports associative arrays, arithmetic aggregations, '
-                          'conditional branching, and pattern action blocks (<code>BEGIN</code>, pattern matching, '
-                          '<code>END</code>). This allows operators to compute average latency, calculate response '
-                          'code percentiles, or identify top talker IP addresses from access log streams in a single '
-                          'one-line command without writing full Python or shell scripts.</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> Field extraction '
-                          'tools allow operators to extract actionable quantitative metrics from legacy flat log files '
-                          'during real-time incident triage without requiring external log aggregation databases to be '
-                          'functional. However, column-positional parsing breaks immediately if upstream log formats '
-                          'introduce unquoted spaces within fields or alter column ordering.</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine serial console '
-                          'logs, Linux startup script logs (<code>/var/log/messages</code>), and Google Cloud Ops '
-                          'Agent local configuration files frequently require column-based extraction during '
-                          'bare-metal instance debugging. Architects standardize log formats on structured JSON to '
-                          'replace brittle positional awk scripts with schema-validated parsers. Primary '
-                          'documentation: <a '
-                          'href="https://man7.org/linux/man-pages/man1/gawk.1.html#DESCRIPTION">gawk(1) pattern '
-                          'scanning and processing language description (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://man7.org/linux/man-pages/man1/gawk.1.html#DESCRIPTION">gawk(1) field '
-                          'splitting, patterns, and actions (accessed 2026-10-04)</a>; <a '
-                          'href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) matching '
-                          'options and context control (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<h4>Structured data parsing with jq: JSON filters, nested traversal, and numeric '
-                          'selections</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> Modern cloud telemetry, API '
-                          'payloads, and container runtime logs are formatted as JavaScript Object Notation (JSON). '
-                          'The <strong class="keyword">jq</strong> command-line processor provides a complete, '
-                          'type-aware query language for slicing, filtering, mapping, and transforming structured JSON '
-                          'documents. Unlike text stream filters, jq parses JSON text into an in-memory Document '
-                          'Object Model (DOM), validating syntax and supporting hierarchical path traversals (e.g. '
-                          '<code>.user.credentials[0].id</code>). It supports exact type comparisons, boolean '
-                          'filtering (e.g. <code>select(.http.status_code &gt;= 500)</code>), array projections, field '
-                          'restructuring, and raw text output (<code>-r</code>). If an input stream contains corrupted '
-                          'or non-JSON text, jq fails explicitly with a syntax parse error rather than silently '
-                          'returning erroneous empty output.</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> JSON-aware parsing '
-                          'is mandatory for automated continuous deployment gates, incident triage scripts, and cloud '
-                          'telemetry evaluation. Parsing JSON with grep or sed is a severe anti-pattern that leads to '
-                          'false conclusions during production outages: key ordering in JSON objects is '
-                          'non-deterministic, whitespace is arbitrary, and numeric values cannot be filtered by '
-                          'relational inequalities without a true JSON engine.</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> The Google Cloud CLI '
-                          '(<kbd>gcloud</kbd>) returns structured JSON for all administrative resource queries via the '
-                          'global flag <code>--format=json</code>. Cloud architects pair gcloud JSON output with jq to '
-                          'extract project IDs, VPC subnet allocations, firewall rule configurations, and instance '
-                          'status fields reliably across automated deployment pipelines. Primary documentation: <a '
-                          'href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) pattern search '
-                          'utility description (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) comparison '
-                          'with structured filtering (accessed 2026-10-04)</a>; <a '
-                          'href="https://man7.org/linux/man-pages/man1/gawk.1.html#DESCRIPTION">gawk(1) structured '
-                          'field processing (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<h4>Network endpoint diagnostics: curl and dig for DNS and application layer probing</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> Probing service '
-                          'availability across network boundaries requires tools that isolate name resolution from '
-                          'application protocol transactions. The <strong class="keyword">dig</strong> (domain '
-                          'information groper) utility performs flexible DNS lookups directly against designated '
-                          'nameservers (<code>@nameserver</code>), querying specific record types (A, AAAA, CNAME, '
-                          'SRV), tracing delegation hierarchies from root servers (<code>+trace</code>), and '
-                          'displaying authoritative DNS flags, return codes (NOERROR, NXDOMAIN, SERVFAIL), and '
-                          'Time-To-Live (TTL) expiration counters. The <strong class="keyword">curl</strong> '
-                          'command-line tool transfers data across network protocols (HTTP, HTTPS, FTP), allowing '
-                          'operators to inspect raw HTTP status headers (<code>-I</code>), view TLS handshakes and '
-                          'cipher negotiation (<code>-v</code>), override DNS resolution locally without changing '
-                          '<code>/etc/hosts</code> (<code>--resolve</code>), and extract detailed network timing '
-                          'breakdowns using write-out format variables (<code>-w "%{time_namelookup} %{time_connect} '
-                          '%{time_appconnect} %{time_total}\n'
-                          '"</code>).</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> Testing network '
-                          'connectivity requires isolating the failure boundary: an API call failure can originate '
-                          'from DNS misconfiguration, firewall blockages, TLS certificate expiration, or backend '
-                          'service application crashes. Probing with dig isolates whether the domain name maps to the '
-                          'correct IP address; probing with curl isolates whether TCP transport, TLS negotiation, and '
-                          'HTTP routing succeed independently.</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> Cloud architects utilize dig to '
-                          'verify Google Cloud DNS private zones, Split-Horizon DNS configurations, and DNS forwarding '
-                          'rules. They utilize curl to probe Google Cloud Internal Application Load Balancers, Cloud '
-                          'Run endpoints, and Cloud Storage signed URLs, verifying IAM authentication headers and '
-                          'inspecting latency metrics along the Google Cloud network path. Primary documentation: <a '
-                          'href="https://man7.org/linux/man-pages/man1/curl.1.html#DESCRIPTION">curl(1) command-line '
-                          'URL transfer tool description (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://man7.org/linux/man-pages/man1/curl.1.html#DESCRIPTION">curl(1) HTTP transfer '
-                          'options and timing variables (accessed 2026-10-04)</a>; <a '
-                          'href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) searching '
-                          'command output (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<h4>Kernel socket and packet analysis: ss socket states and tcpdump packet captures</h4>\n'
-                          '<p><strong class="side-heading">What it is in general:</strong> When higher-level HTTP or '
-                          'application diagnostic tools report connectivity failures, operators drop to the transport '
-                          'and network layers to observe kernel socket tables and interface packet streams. The '
-                          '<strong class="keyword">ss</strong> (socket statistics) utility dumps live kernel socket '
-                          'tables directly from the Linux <code>inet_diag</code> netlink subsystem, replacing the '
-                          'legacy <code>netstat</code> command. It displays active listening ports (<code>-l</code>), '
-                          'established TCP connections (<code>-t</code>), UDP sockets (<code>-u</code>), associated '
-                          'process PIDs (<code>-p</code>), and socket buffer queue depths (<code>Recv-Q</code> and '
-                          '<code>Send-Q</code>). Sockets with high <code>Recv-Q</code> indicate that the application '
-                          'process is backlogged and failing to consume incoming TCP payload bytes from the kernel '
-                          'buffer. The <strong class="keyword">tcpdump</strong> utility captures raw network packets '
-                          'directly from the network interface using the <code>libpcap</code> library and kernel '
-                          'Berkeley Packet Filters (BPF). Filtering packets by protocol, IP address, port, and TCP '
-                          'flags (e.g. SYN, ACK, RST), tcpdump proves whether packets are physically arriving at the '
-                          'network interface or being dropped before reaching the host.</p>\n'
-                          '<p><strong class="side-heading">Relevance to a cloud architect:</strong> Transport-level '
-                          'tools provide ground truth during perimeter connectivity failures: an operator can '
-                          'definitively prove whether a packet reached the virtual machine or was dropped by upstream '
-                          'VPC firewall rules by capturing packets on the VM network interface. Socket queue '
-                          'inspection with ss separates application deadlocks (zero socket reads) from external '
-                          'network routing failures.</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine virtual '
-                          'interfaces (virtio-net or gVNIC) process traffic encapsulated within Andromeda virtual '
-                          'networking. Running tcpdump inside a Compute Engine VM captures traffic only after it has '
-                          'traversed VPC firewall evaluation. To observe packets blocked by VPC firewalls before '
-                          'reaching the instance, architects enable Google Cloud VPC Flow Logs and Packet Mirroring '
-                          'rather than relying exclusively on VM-local tcpdump. Primary documentation: <a '
-                          'href="https://man7.org/linux/man-pages/man8/ss.8.html#DESCRIPTION">ss(8) socket statistics '
-                          'utility description (accessed 2026-10-04)</a>.</p>\n'
-                          '<p><strong class="side-heading">Further study:</strong> <a '
-                          'href="https://man7.org/linux/man-pages/man8/ss.8.html#DESCRIPTION">ss(8) TCP connection '
-                          'states and socket memory (accessed 2026-10-04)</a>; <a '
-                          'href="https://man7.org/linux/man-pages/man8/tcpdump.8.html#DESCRIPTION">tcpdump(8) network '
-                          'traffic capture and filter syntax (accessed 2026-10-04)</a>.</p>\n'
-                          '\n'
-                          '<div class="table-responsive">\n'
-                          '<table class="table">\n'
-                          '<caption>Tool-to-boundary map: selecting appropriate diagnostic instruments based on '
-                          'failure hypothesis.</caption>\n'
-                          '<thead>\n'
-                          '<tr>\n'
-                          '<th>Diagnostic Question</th>\n'
-                          '<th>Tool</th>\n'
-                          '<th>Evidence Produced</th>\n'
-                          '<th>Visibility Limit</th>\n'
-                          '</tr>\n'
-                          '</thead>\n'
-                          '<tbody>\n'
-                          '<tr>\n'
-                          '<td>Which structured records failed?</td>\n'
-                          '<td><code>jq</code> or JSON parser</td>\n'
-                          '<td>Extracted numeric status codes and error payloads</td>\n'
-                          '<td>Valid only for supplied structured records; cannot prove live network health</td>\n'
-                          '</tr>\n'
-                          '<tr>\n'
-                          '<td>Which IP address is resolved?</td>\n'
-                          '<td><code>dig</code></td>\n'
-                          '<td>Authoritative DNS record, TTL, and return code</td>\n'
-                          '<td>Proves name resolution only; does not prove network reachability or open ports</td>\n'
-                          '</tr>\n'
-                          '<tr>\n'
-                          '<td>Is a local socket listening?</td>\n'
-                          '<td><code>ss</code></td>\n'
-                          '<td>Kernel socket table state, PID, and buffer depths</td>\n'
-                          '<td>Shows local host state only; does not prove upstream VPC firewall rules permit '
-                          'traffic</td>\n'
-                          '</tr>\n'
-                          '<tr>\n'
-                          '<td>What HTTP response was returned?</td>\n'
-                          '<td><code>curl</code></td>\n'
-                          '<td>Status code, response headers, and handshake timings</td>\n'
-                          '<td>Valid for tested URL path and client identity; does not prove health of other '
-                          'routes</td>\n'
-                          '</tr>\n'
-                          '<tr>\n'
-                          '<td>Are packets arriving at the interface?</td>\n'
-                          '<td><code>tcpdump</code></td>\n'
-                          '<td>Raw packet headers, timestamps, and TCP flags</td>\n'
-                          '<td>Constrained by interface visibility; cannot inspect traffic dropped upstream by VPC '
-                          'firewalls</td>\n'
-                          '</tr>\n'
-                          '</tbody>\n'
-                          '</table>\n'
-                          '</div>\n'
-                          '\n'
-                          '<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view '
-                          'the full diagram.</p><svg aria-labelledby="d8-tools-title d8-tools-desc" role="img" '
-                          'viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title '
-                          'id="d8-tools-title">Diagnostic evidence along an order request path</title><desc '
-                          'id="d8-tools-desc">DNS, sockets, packets, HTTP and structured logs occupy different '
-                          'boundaries. Each tool answers one question and hands the next hypothesis to the following '
-                          'boundary.</desc><defs><marker id="d8-tools-arrow" markerheight="8" markerwidth="10" '
-                          'orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" '
-                          'fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke="#38bdf8" '
-                          'stroke-width="2"><rect height="120" rx="10" width="160" x="14" y="42"></rect><image '
-                          'href="../assets/icons/generic/dns-resolver.svg" x="24" y="52" width="22" height="22" '
-                          'preserveAspectRatio="xMidYMid meet"/><rect height="120" rx="10" width="160" x="202" '
-                          'y="42"></rect><image href="../assets/icons/generic/endpoint.svg" x="212" y="52" width="22" '
-                          'height="22" preserveAspectRatio="xMidYMid meet"/><rect height="120" rx="10" width="160" '
-                          'x="390" y="42"></rect><image href="../assets/icons/generic/router.svg" x="400" y="52" '
-                          'width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="120" rx="10" '
-                          'width="160" x="578" y="42"></rect><image href="../assets/icons/generic/client.svg" x="588" '
-                          'y="52" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="120" '
-                          'rx="10" width="160" x="766" y="42"></rect><image '
-                          'href="../assets/icons/generic/artifact.svg" x="776" y="52" width="22" height="22" '
-                          'preserveAspectRatio="xMidYMid meet"/></g><g fill="#fce7f3" font-size="14" font-weight="700" '
-                          'text-anchor="middle"><text x="94" y="76">dig</text><text x="282" y="76">ss</text><text '
-                          'x="470" y="76">tcpdump</text><text x="658" y="76">curl</text><text x="846" y="76">jq / '
-                          'parser</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="94" '
-                          'y="112">name → address</text><text x="282" y="112">local socket</text><text x="470" '
-                          'y="112">interface packets</text><text x="658" y="112">HTTP exchange</text><text x="846" '
-                          'y="112">status field</text></g><g marker-end="url(#d8-tools-arrow)" stroke="#38bdf8" '
-                          'stroke-width="2"><path d="M174 102L196 102"></path><path d="M362 102L384 102"></path><path '
-                          'd="M550 102L572 102"></path><path d="M738 102L760 102"></path></g><text fill="#a9b7cb" '
-                          'font-size="12" text-anchor="middle" x="470" y="215">One green result advances the '
-                          'investigation; it does not prove the full path.</text></svg><figcaption>Figure 8.2: A '
-                          'boundary-ordered diagnostic sequence. Capture only approved synthetic traffic and treat '
-                          "every result within the tool's visibility limit.</figcaption></figure>\n"
-                          '\n'
-                          '<p><strong class="side-heading">Concrete example:</strong> An incident responder '
-                          'investigates elevated error rates on an authentication service. Inspecting '
-                          '<code>/var/log/auth.jsonl</code> with a naive string search <kbd>grep "error" '
-                          'auth.jsonl</kbd> returns zero lines because the microservice emits structured JSON records '
-                          'where failures are logged as <code>{"status": 503, "code": "upstream_timeout"}</code> '
-                          'without textual error keywords. By running structured JSON filtering <kbd>python3 -c '
-                          '"import sys, json; [print(r[\'order_id\']) for r in map(json.loads, sys.stdin) if '
-                          'r.get(\'status\', 0) >= 500]" &lt; auth.jsonl</kbd>, the responder extracts 100% of the '
-                          'failed transactions, correlating failure timestamps with socket pool exhaustion observed '
-                          'via <kbd>ss -s</kbd>.</p>\n'
-                          '\n'
-                          '<p><strong class="side-heading">Evidence limit:</strong> Command-line diagnostic tools '
-                          'yield evidence specific to the isolated boundary they inspect; a successful DNS lookup or '
-                          'local socket state does not prove end-to-end transport reachability or distributed '
-                          'application health without end-to-end transaction tracing.</p>\n',
+             'technical': '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n<ul>\n<li>Stream text filtering with grep and sed: patterns, word boundaries, and limits</li>\n<li>Field processing with awk: columnar aggregation, record splitting, and reporting</li>\n<li>Structured data parsing with jq: JSON filters, nested traversal, and numeric selections</li>\n<li>Network endpoint diagnostics: curl and dig for DNS and application layer probing</li>\n<li>Kernel socket and packet analysis: ss socket states and tcpdump packet captures</li>\n</ul>\n\n<h4>Stream text filtering with grep and sed: patterns, word boundaries, and limits</h4>\n<p><strong class="side-heading">What it is in general:</strong> Text stream inspection tools process unstructured log streams line-by-line using regular expressions. The <strong class="keyword">grep</strong> utility evaluates input streams against Basic Regular Expressions (BRE) or Extended Regular Expressions (ERE with <code>-E</code>), returning matching records based on the selected regular expression; use -F for literal fixed-string matching, character classes, or word boundaries (<code>\x08</code>). Options such as <code>-i</code> (case-insensitivity), <code>-v</code> (inverting matches), <code>-c</code> (counting matching lines), and <code>-C</code> (emitting surrounding context lines) allow operators to quickly narrow down unstructured syslogs. The <strong class="keyword">sed</strong> (stream editor) utility performs non-interactive text transformations, deletions, and substitutions on piped streams using programmable addressing scripts (e.g. <code>s/regex/replacement/g</code>). Crucially, stream text tools evaluate records as flat string sequences: they lack schema awareness, syntactic data validation, and multiline field boundary understanding.</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> Relying on naive text grepping across semi-structured or JSON application logs introduces severe false-negative and false-positive diagnostic errors: searching for the substring <code>"error"</code> misses structured numeric failure codes (such as HTTP 500 or gRPC status 14), while returning false positives for informational logs stating <code>"error_count=0"</code> or a field value containing the literal substring "error". Architects mandate structured logging schemas and establish standardized log parsing rules for observability pipelines.</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> While Google Cloud CLI commands support local piping to grep (e.g. <kbd>gcloud compute instances list | grep RUNNING</kbd>), enterprise cloud operations utilize Cloud Logging log filters (written in Cloud Logging Query Language) on the backend to filter structured JSON payload fields server-side before egressing data over networks. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) pattern search utility description (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) regular expression syntax and matching modes (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/sed.1.html#DESCRIPTION">sed(1) stream editor command language (accessed 2026-10-04)</a>. <a href="https://jqlang.org/manual/">jq manual (accessed 2026-10-16)</a>; <a href="https://docs.cloud.google.com/vpc/docs/flow-logs#logs_collection">VPC Flow Logs collection (accessed 2026-10-16)</a>.</p>\n\n<h4>Field processing with awk: columnar aggregation, record splitting, and reporting</h4>\n<p><strong class="side-heading">What it is in general:</strong> When log streams or system command outputs follow tabular, columnar formatting (such as space-delimited Web server access logs, <code>vmstat</code>, or <code>ps</code> outputs), the <strong class="keyword">awk</strong> pattern scanning and processing language provides powerful field-based extraction and statistical computation. The tool automatically splits each incoming line into positional field variables (<code>$1</code>, <code>$2</code>, ... <code>$NF</code>) based on a configurable field separator (<code>-F</code>). In addition to printing specific columns, awk supports associative arrays, arithmetic aggregations, conditional branching, and pattern action blocks (<code>BEGIN</code>, pattern matching, <code>END</code>). This allows operators to compute average latency, calculate response code percentiles, or identify top talker IP addresses from access log streams in a single one-line command without writing full Python or shell scripts.</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> Field extraction tools allow operators to extract actionable quantitative metrics from legacy flat log files during real-time incident triage without requiring external log aggregation databases to be functional. However, column-positional parsing breaks immediately if upstream log formats introduce unquoted spaces within fields or alter column ordering.</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine serial console logs, Linux startup script logs (<code>/var/log/messages</code>), and Google Cloud Ops Agent local configuration files frequently require column-based extraction during bare-metal instance debugging. Architects standardize log formats on structured JSON to replace brittle positional awk scripts with schema-validated parsers. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/gawk.1.html#DESCRIPTION">gawk(1) pattern scanning and processing language description (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/gawk.1.html#DESCRIPTION">gawk(1) field splitting, patterns, and actions (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) matching options and context control (accessed 2026-10-04)</a>.</p>\n\n<h4>Structured data parsing with jq: JSON filters, nested traversal, and numeric selections</h4>\n<p><strong class="side-heading">What it is in general:</strong> Modern cloud telemetry, API payloads, and container runtime logs are formatted as JavaScript Object Notation (JSON). The <strong class="keyword">jq</strong> command-line processor provides a complete, type-aware query language for slicing, filtering, mapping, and transforming structured JSON documents. Unlike text stream filters, jq parses JSON values for structured evaluation; it is not a browser DOM, validating syntax and supporting hierarchical path traversals (e.g. <code>.user.credentials[0].id</code>). It supports exact type comparisons, boolean filtering (e.g. <code>select(.http.status_code &gt;= 500)</code>), array projections, field restructuring, and raw text output (<code>-r</code>). If an input stream contains corrupted or non-JSON text, jq fails explicitly with a syntax parse error rather than silently returning erroneous empty output.</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> JSON-aware parsing is mandatory for automated continuous deployment gates, incident triage scripts, and cloud telemetry evaluation. Parsing JSON with grep or sed is a severe anti-pattern that leads to false conclusions during production outages: key ordering in JSON objects is non-deterministic, whitespace is arbitrary, and reliable numeric-field comparisons require parsing the JSON field rather than matching unrelated digits.</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> The Google Cloud CLI (<kbd>gcloud</kbd>) returns structured JSON for supported resource commands via the global flag <code>--format=json</code>. Cloud architects pair gcloud JSON output with jq to extract project IDs, VPC subnet allocations, firewall rule configurations, and instance status fields reliably across automated deployment pipelines. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) pattern search utility description (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) comparison with structured filtering (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/gawk.1.html#DESCRIPTION">gawk(1) structured field processing (accessed 2026-10-04)</a>.</p>\n\n<h4>Network endpoint diagnostics: curl and dig for DNS and application layer probing</h4>\n<p><strong class="side-heading">What it is in general:</strong> Probing service availability across network boundaries requires tools that isolate name resolution from application protocol transactions. The <strong class="keyword">dig</strong> (domain information groper) utility performs flexible DNS lookups directly against designated nameservers (<code>@nameserver</code>), querying specific record types (A, AAAA, CNAME, SRV), tracing delegation hierarchies from root servers (<code>+trace</code>), and displaying authoritative DNS flags, return codes (NOERROR, NXDOMAIN, SERVFAIL), and Time-To-Live (TTL) expiration counters. The <strong class="keyword">curl</strong> command-line tool transfers data across network protocols (HTTP, HTTPS, FTP), allowing operators to inspect raw HTTP status headers (<code>-I</code>), view TLS handshakes and cipher negotiation (<code>-v</code>), override DNS resolution locally without changing <code>/etc/hosts</code> (<code>--resolve</code>), and extract detailed network timing breakdowns using write-out format variables (<code>-w "%{time_namelookup} %{time_connect} %{time_appconnect} %{time_total}\n"</code>).</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> Testing network connectivity requires isolating the failure boundary: an API call failure can originate from DNS misconfiguration, firewall blockages, TLS certificate expiration, or backend service application crashes. Probing with dig isolates whether the domain name maps to the correct IP address; probing with curl isolates whether TCP transport, TLS negotiation, and HTTP routing succeed independently.</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> Cloud architects utilize dig to verify Google Cloud DNS private zones, Split-Horizon DNS configurations, and DNS forwarding rules. They utilize curl to probe Google Cloud Internal Application Load Balancers, Cloud Run endpoints, and Cloud Storage signed URLs, verifying IAM authentication headers and inspecting latency metrics along the Google Cloud network path. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/curl.1.html#DESCRIPTION">curl(1) command-line URL transfer tool description (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/curl.1.html#DESCRIPTION">curl(1) HTTP transfer options and timing variables (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION">grep(1) searching command output (accessed 2026-10-04)</a>.</p>\n\n<h4>Kernel socket and packet analysis: ss socket states and tcpdump packet captures</h4>\n<p><strong class="side-heading">What it is in general:</strong> When higher-level HTTP or application diagnostic tools report connectivity failures, operators drop to the transport and network layers to observe kernel socket tables and interface packet streams. The <strong class="keyword">ss</strong> (socket statistics) utility dumps live kernel socket tables directly from the Linux <code>inet_diag</code> netlink subsystem, replacing the legacy <code>netstat</code> command. It displays active listening ports (<code>-l</code>), established TCP connections (<code>-t</code>), UDP sockets (<code>-u</code>), associated process PIDs (<code>-p</code>), and socket buffer queue depths (<code>Recv-Q</code> and <code>Send-Q</code>). Interpret Recv-Q by socket state: on established TCP sockets it represents unread queued data, while listening sockets report queued connections. One snapshot alone does not prove application failure. The <strong class="keyword">tcpdump</strong> utility captures raw network packets directly from the network interface using the <code>libpcap</code> library and kernel Berkeley Packet Filters (BPF). Filtering packets by protocol, IP address, port, and TCP flags (e.g. SYN, ACK, RST), tcpdump can show packets visible at the selected capture point; absent packets can also reflect the wrong interface/filter, capture loss or timing and do not locate an upstream drop by themselves.</p>\n<p><strong class="side-heading">Relevance to a cloud architect:</strong> Transport-level tools provide ground truth during perimeter connectivity failures: a capture can establish visibility at the selected interface; attribution to an upstream firewall requires corroborating policy and logging evidence. Socket queue inspection with ss separates application deadlocks (zero socket reads) from external network routing failures.</p>\n<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine virtual interfaces (virtio-net or gVNIC) process traffic encapsulated within Andromeda virtual networking. Running tcpdump inside a Compute Engine VM captures traffic only after it has traversed VPC firewall evaluation. To observe packets blocked by VPC firewalls before reaching the instance, use applicable Firewall Rules Logging and connectivity/policy evidence. VPC Flow Logs ingress sampling occurs after ingress firewall evaluation, so denied ingress is absent there; Packet Mirroring also has documented visibility limits. Primary documentation: <a href="https://man7.org/linux/man-pages/man8/ss.8.html#DESCRIPTION">ss(8) socket statistics utility description (accessed 2026-10-04)</a>.</p>\n<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man8/ss.8.html#DESCRIPTION">ss(8) TCP connection states and socket memory (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man8/tcpdump.8.html#DESCRIPTION">tcpdump(8) network traffic capture and filter syntax (accessed 2026-10-04)</a>.</p>\n\n<div class="table-responsive">\n<table class="table">\n<caption>Tool-to-boundary map: selecting appropriate diagnostic instruments based on failure hypothesis.</caption>\n<thead>\n<tr>\n<th>Diagnostic Question</th>\n<th>Tool</th>\n<th>Evidence Produced</th>\n<th>Visibility Limit</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Which structured records failed?</td>\n<td><code>jq</code> or JSON parser</td>\n<td>Extracted numeric status codes and error payloads</td>\n<td>Valid only for supplied structured records; cannot prove live network health</td>\n</tr>\n<tr>\n<td>Which IP address is resolved?</td>\n<td><code>dig</code></td>\n<td>Authoritative DNS record, TTL, and return code</td>\n<td>Proves name resolution only; does not prove network reachability or open ports</td>\n</tr>\n<tr>\n<td>Is a local socket listening?</td>\n<td><code>ss</code></td>\n<td>Kernel socket table state, PID, and buffer depths</td>\n<td>Shows local host state only; does not prove upstream VPC firewall rules permit traffic</td>\n</tr>\n<tr>\n<td>What HTTP response was returned?</td>\n<td><code>curl</code></td>\n<td>Status code, response headers, and handshake timings</td>\n<td>Valid for tested URL path and client identity; does not prove health of other routes</td>\n</tr>\n<tr>\n<td>Are packets arriving at the interface?</td>\n<td><code>tcpdump</code></td>\n<td>Raw packet headers, timestamps, and TCP flags</td>\n<td>Constrained by interface visibility; cannot inspect traffic dropped upstream by VPC firewalls</td>\n</tr>\n</tbody>\n</table>\n</div>\n\n<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-tools-title d8-tools-desc" role="img" viewbox="0 0 940 250" xmlns="http://www.w3.org/2000/svg"><title id="d8-tools-title">Diagnostic evidence along an order request path</title><desc id="d8-tools-desc">DNS, sockets, packets, HTTP and structured logs occupy different boundaries. Each tool answers one question and hands the next hypothesis to the following boundary.</desc><defs><marker id="d8-tools-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"></path></marker></defs><g fill="#121526" stroke="#38bdf8" stroke-width="2"><rect height="120" rx="10" width="160" x="14" y="42"></rect><image href="../assets/icons/generic/dns-resolver.svg" x="24" y="52" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="120" rx="10" width="160" x="202" y="42"></rect><image href="../assets/icons/generic/endpoint.svg" x="212" y="52" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="120" rx="10" width="160" x="390" y="42"></rect><image href="../assets/icons/generic/router.svg" x="400" y="52" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="120" rx="10" width="160" x="578" y="42"></rect><image href="../assets/icons/generic/client.svg" x="588" y="52" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="120" rx="10" width="160" x="766" y="42"></rect><image href="../assets/icons/generic/artifact.svg" x="776" y="52" width="22" height="22" preserveAspectRatio="xMidYMid meet"/></g><g fill="#fce7f3" font-size="14" font-weight="700" text-anchor="middle"><text x="94" y="76">dig</text><text x="282" y="76">ss</text><text x="470" y="76">tcpdump</text><text x="658" y="76">curl</text><text x="846" y="76">jq / parser</text></g><g fill="#a9b7cb" font-size="12" text-anchor="middle"><text x="94" y="112">name → address</text><text x="282" y="112">local socket</text><text x="470" y="112">interface packets</text><text x="658" y="112">HTTP exchange</text><text x="846" y="112">status field</text></g><g marker-end="url(#d8-tools-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M174 102L196 102"></path><path d="M362 102L384 102"></path><path d="M550 102L572 102"></path><path d="M738 102L760 102"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="215">One green result advances the investigation; it does not prove the full path.</text></svg><figcaption>Figure 8.2: A boundary-ordered diagnostic sequence. Capture only approved synthetic traffic and treat every result within the tool\'s visibility limit.</figcaption></figure>\n\n<p><strong class="side-heading">Concrete example:</strong> An incident responder investigates elevated error rates on an authentication service. Inspecting <code>/var/log/auth.jsonl</code> with a naive string search <kbd>grep "error" auth.jsonl</kbd> returns zero lines because the microservice emits structured JSON records where failures are logged as <code>{"status": 503, "code": "upstream_timeout"}</code> without textual error keywords. By running structured JSON filtering <kbd>python3 -c "import sys, json; [print(r[\'order_id\']) for r in map(json.loads, sys.stdin) if r.get(\'status\', 0) >= 500]" &lt; auth.jsonl</kbd>, the responder extracts the supplied records satisfying the numeric 5xx criterion; business failures and malformed or missing fields require separate validation, correlating failure timestamps with socket summary observations from <kbd>ss -s</kbd>; those aggregate counters alone do not establish socket-pool exhaustion.</p>\n\n<p><strong class="side-heading">Evidence limit:</strong> Command-line diagnostic tools yield evidence specific to the isolated boundary they inspect; a successful DNS lookup or local socket state does not prove end-to-end transport reachability or distributed application health without end-to-end transaction tracing.</p>\n',
              'questions': ['Why does evaluating structured JSON log streams with flat text search tools like grep '
                            'introduce severe false-negative conclusions during production incident triage?',
                            'How does the ss utility differentiate between an external network routing failure and a '
@@ -1216,392 +185,8 @@ DATA = {'contract_version': 2,
                            'provide over raw TCP socket testing or ICMP ping probes?'],
              'reference': 'https://man7.org/linux/man-pages/man1/grep.1.html#DESCRIPTION',
              'reference_label': 'grep(1) pattern search utility description (accessed 2026-10-04)',
-             'scenario': {'scenario': 'Text search misses structured 503 records',
-                          'impact': 'Silent customer order checkout failures accumulate undetected in production '
-                                    'payment gateways because monitoring alerts rely on string matching rather than '
-                                    'HTTP status codes.',
-                          'constraints': 'Preserve raw historical log fixtures unchanged; do not run unapproved packet '
-                                         'captures on shared network interfaces; validate log schema before asserting '
-                                         'health.',
-                          'evidence': '**illustrative supplied records**\n'
-                                      '\n'
-                                      '```text\n'
-                                      '[Synthetic Log Fixture: /var/log/orders.jsonl]\n'
-                                      '{"timestamp":"2026-10-04T10:00:01Z","order_id":"ord-101","status":200,"latency_ms":42,"region":"us-central1"}\n'
-                                      '{"timestamp":"2026-10-04T10:00:02Z","order_id":"ord-102","status":503,"latency_ms":1250,"region":"us-central1","gateway":"auth-v2","detail":"upstream_connect_timeout"}\n'
-                                      '{"timestamp":"2026-10-04T10:00:03Z","order_id":"ord-103","status":200,"latency_ms":38,"region":"us-central1"}\n'
-                                      '\n'
-                                      '[Naive Operator Triage via Grep]\n'
-                                      '$ grep -i "error" /var/log/orders.jsonl\n'
-                                      '(no output returned, exit status 1)\n'
-                                      '\n'
-                                      '[Operator Conclusion Reported on Incident Bridge]\n'
-                                      '"Log inspection complete: 0 errors detected in /var/log/orders.jsonl. Outage '
-                                      'report is a false alarm."\n'
-                                      '\n'
-                                      '[Simultaneous Customer Telemetry]\n'
-                                      'Payment Gateway Error Rate: 33.3% checkout failures; HTTP 503 Service '
-                                      'Unavailable returned to clients.\n'
-                                      '```\n'
-                                      '\n'
-                                      '<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe '
-                                      'horizontally to view the full incident diagram.</p><svg '
-                                      'aria-labelledby="d8-log-inc-title d8-log-inc-desc" role="img" viewbox="0 0 940 '
-                                      '350" xmlns="http://www.w3.org/2000/svg"><title id="d8-log-inc-title">Text '
-                                      'search misses structured 503 records</title><desc id="d8-log-inc-desc">Before '
-                                      'repair, grep searches for the absent word error and produces an empty result '
-                                      'that is misreported as zero failures. After repair, a JSON parser selects '
-                                      'numeric status values at least 500 and correlates demo-2 with the incident '
-                                      'window.</desc><defs><marker id="d8-log-inc-arrow" markerheight="8" '
-                                      'markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" '
-                                      'fill="#38bdf8"></path></marker></defs><text fill="#f43f5e" font-weight="700" '
-                                      'x="20" y="28">BEFORE · unmatched text pattern becomes a false '
-                                      'conclusion</text><text fill="#34d399" font-weight="700" x="20" y="195">AFTER · '
-                                      'schema-aware selection supports the claim</text><g fill="#121526" '
-                                      'stroke-width="2"><rect height="100" rx="10" stroke="#38bdf8" width="260" x="24" '
-                                      'y="48"></rect><image href="../assets/icons/generic/artifact.svg" x="34" y="58" '
-                                      'width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" '
-                                      'rx="10" stroke="#f43f5e" width="260" x="340" y="48"></rect><image '
-                                      'href="../assets/icons/generic/decision.svg" x="350" y="58" width="22" '
-                                      'height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" '
-                                      'stroke="#f43f5e" width="260" x="656" y="48"></rect><image '
-                                      'href="../assets/icons/generic/failure.svg" x="666" y="58" width="22" '
-                                      'height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" '
-                                      'stroke="#38bdf8" width="260" x="24" y="215"></rect><image '
-                                      'href="../assets/icons/generic/artifact.svg" x="34" y="225" width="22" '
-                                      'height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" '
-                                      'stroke="#34d399" width="260" x="340" y="215"></rect><image '
-                                      'href="../assets/icons/generic/decision.svg" x="350" y="225" width="22" '
-                                      'height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" '
-                                      'stroke="#34d399" width="260" x="656" y="215"></rect><image '
-                                      'href="../assets/icons/generic/outcome.svg" x="666" y="225" width="22" '
-                                      'height="22" preserveAspectRatio="xMidYMid meet"/></g><g fill="#fce7f3" '
-                                      'text-anchor="middle"><text x="154" y="82">JSON status: 503</text><text x="470" '
-                                      'y="82">grep "error"</text><text x="786" y="82">Wrong: zero failures</text><text '
-                                      'x="154" y="249">Inspect schema</text><text x="470" y="249">select status ≥ '
-                                      '500</text><text x="786" y="249">demo-2 + timestamp</text></g><g '
-                                      'marker-end="url(#d8-log-inc-arrow)" stroke="#38bdf8" stroke-width="2"><path '
-                                      'd="M284 100L334 100"></path><path d="M600 100L650 100"></path><path d="M284 '
-                                      '267L334 267"></path><path d="M600 267L650 267"></path></g><text fill="#a9b7cb" '
-                                      'font-size="12" text-anchor="middle" x="470" y="340">The parser proves one '
-                                      'matching record in the supplied fixture, not end-to-end service '
-                                      'health.</text></svg><figcaption>Figure 8.4: Supplied incident example '
-                                      'contrasting literal text matching with structured field selection. Supplied facts: '
-                                      'illustrative fixture contains 3 JSON orders with one failed status 503; grep for "error" '
-                                      'returns 0 lines while customers experienced 33% transaction failures. Architectural inference: '
-                                      'flat text pattern searching fails on structured JSON logs because numeric status codes and '
-                                      'non-"error" reason codes bypass substring filters. Expected post-fix behavior: schema-aware '
-                                      'JSON evaluation extracts the failed record and isolates the exact failure timestamp and gateway '
-                                      'timeout cause. Scope is limited to log filter expression matching; the diagram does not prove '
-                                      'end-to-end service availability or downstream error rates.</figcaption></figure>',                          'root': 'The operational monitoring filter utilized unstructured text grepping for the '
-                                  'literal substring "error". The application generates structured JSON logs where '
-                                  'failure events are encoded as numeric integer fields (`"status": 503`) accompanied '
-                                  'by operational reason strings (`"upstream_connect_timeout"`). Because the record '
-                                  'omitted the exact literal string "error", the flat text search returned an empty '
-                                  'result, leading the operator to erroneously declare zero customer failures.',
-                          'verify': 'Replace unstructured text regex filtering with structured JSON parsing using `jq` '
-                                    'or Python JSON processors selecting records where `.status >= 500`. The parser '
-                                    'immediately isolates order `ord-102` with status 503 and latency 1250ms, proving '
-                                    'failure occurrence.',
-                          'residual': 'Testing numeric HTTP status codes detects application and gateway errors but '
-                                      'does not catch semantic payload failures that return HTTP 200 with an embedded '
-                                      'business rejection; application-level schema assertions must complement HTTP '
-                                      'status filtering.',
-                          'diagram_enabled': True,
-                          'facts': 'Fixture contains 3 JSON orders, one of which failed with status 503; grep for '
-                                   '"error" returns 0 lines; customers experienced 33% transaction failures.',
-                          'inference': 'Flat text pattern searching fails on structured JSON logs because numeric '
-                                       'status codes and non-"error" reason codes bypass substring filters.',
-                          'expected': 'Schema-aware JSON evaluation extracts the failed record and isolates the exact '
-                                      'failure timestamp and gateway timeout cause.',
-                          'diagnostic_steps': ['Inspect log file formatting to confirm serialization structure (JSON '
-                                               'Lines format).',
-                                               'Execute unstructured grep to reproduce the false-negative observation.',
-                                               'Execute structured jq/Python filter to query numeric status field for '
-                                               'values >= 500.',
-                                               'Map downstream network boundaries (DNS, socket, packet, HTTP) to '
-                                               'investigate gateway timeout.'],
-                          'remediation_steps': ['Decommission unstructured regex log alerts across monitoring '
-                                                'dashboards.',
-                                                'Implement structured JSON query filters targeting numeric status '
-                                                'fields (e.g. status >= 500).',
-                                                'Deploy synthetic endpoint validation scripts asserting on HTTP '
-                                                'response codes.'],
-                          'diagram': ('Customer checkout failure',
-                                      'Substring text search',
-                                      'Silent false negative',
-                                      'Schema-aware JSON filter',
-                                      '100% 5xx errors isolated'),
-                          'icons': ['../assets/icons/generic/artifact.svg',
-                                    '../assets/icons/generic/failure.svg',
-                                    '../assets/icons/generic/failure.svg',
-                                    '../assets/icons/generic/decision.svg',
-                                    '../assets/icons/generic/outcome.svg']},
-             'lab': {'name': 'Diagnostic toolchain evaluation: structured parsing vs network boundary isolation',
-                     'goal': 'Demonstrate why unstructured text search fails on structured JSON logs, implement '
-                             'schema-aware filtering, and map diagnostic network tools across isolation boundaries.',
-                     'expected': 'Proof of false-negative outcome with grep, successful 100% extraction of failure '
-                                 'records with structured parser, and inspection of local socket states via ss.',
-                     'mode': 'Observed locally: log parsing, Python JSON filtering, and local ss socket inspection. '
-                             'Simulated or predicted: network packet flow mapping. Untested on GCP: live VPC packet '
-                             'mirroring.',
-                     'covers': 'grep/sed/awk/jq and curl/dig/ss/tcpdump as diagnostic tools. Learn to interpret one '
-                               'signal at a time.',
-                     'prereq': 'Local Linux bash terminal with Python 3, grep, and ss.',
-                     'preflight': 'Verify grep, python3, and ss availability in PATH.',
-                     'verification': 'Validate that grep returns 0 matches while structured parser outputs ord-102 '
-                                     'with status 503.',
-                     'trouble': 'If ss requires root privileges for process mapping, execute with -tln to view '
-                                'listening sockets without PID flags.',
-                     'cleanup': 'Remove synthetic log fixtures and diagnostic scripts.',
-                     'accept': 'Comprehensive diagnostic toolchain report ($LAB_DIR/diagnostic_toolchain_report.md) '
-                               'generated and verified.',
-                     'file': 'day-008-topic-02.md',
-                     'steps': ['**Stage 1: Preflight environment and command check**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Confirm availability of core utilities used across the diagnostic sequence:\n'
-                               '\n'
-                               '```bash\n'
-                               'command -v grep >/dev/null && echo "PASS: grep is available"\n'
-                               'command -v sed >/dev/null && echo "PASS: sed is available"\n'
-                               'command -v awk >/dev/null && echo "PASS: awk is available"\n'
-                               'command -v python3 >/dev/null && echo "PASS: python3 is available"\n'
-                               'command -v ss >/dev/null && echo "PASS: ss is available"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** All diagnostic tools confirmed present in system PATH.\n'
-                               '\n'
-                               '**Save:** none',
-                               '**Stage 2: Create synthetic structured log fixture**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Initialize a test workspace and create a synthetic JSON Lines (`.jsonl`) order log '
-                               'fixture with varied HTTP statuses and field order:\n'
-                               '\n'
-                               '```bash\n'
-                               'LAB_DIR="/home/naveen/GitRepos/Projects/GCP/RoadMap/gcp-180day-architect-site/scratch/day_008_lab_t2"\n'
-                               'mkdir -p "$LAB_DIR"\n'
-                               'cd "$LAB_DIR"\n'
-                               '\n'
-                               'cat > "$LAB_DIR/orders.jsonl" <<\'EOF\'\n'
-                               '{"timestamp":"2026-10-04T10:00:01Z","order_id":"ord-101","status":200,"latency_ms":42,"region":"us-central1"}\n'
-                               '{"timestamp":"2026-10-04T10:00:02Z","order_id":"ord-102","status":503,"latency_ms":1250,"region":"us-central1","detail":"upstream_connect_timeout"}\n'
-                               '{"timestamp":"2026-10-04T10:00:03Z","order_id":"ord-103","status":200,"latency_ms":38,"region":"us-central1"}\n'
-                               '{"timestamp":"2026-10-04T10:00:04Z","order_id":"ord-104","status":404,"latency_ms":12,"region":"us-east1","detail":"item_not_found"}\n'
-                               '{"timestamp":"2026-10-04T10:00:05Z","order_id":"ord-105","status":500,"latency_ms":890,"region":"us-central1","detail":"database_deadlock"}\n'
-                               'EOF\n'
-                               '\n'
-                               'cat "$LAB_DIR/orders.jsonl"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Synthetic log fixture created with 5 structured order records.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/orders.jsonl`',
-                               '**Stage 3: Demonstrate false-negative failure mode of unstructured grep**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Execute naive text searches across the log fixture to demonstrate why flat text search '
-                               'fails on structured data:\n'
-                               '\n'
-                               '```bash\n'
-                               'echo "=== Test 1: Searching for literal \'error\' ==="\n'
-                               'if grep -i "error" "$LAB_DIR/orders.jsonl"; then\n'
-                               '  echo "Found errors via text search"\n'
-                               'else\n'
-                               '  echo "RESULT: grep found 0 matches (exit code 1)."\n'
-                               '  echo "EXPLANATION: None of the records contain the literal string \'error\', despite '
-                               '503 and 500 failures!"\n'
-                               'fi\n'
-                               '\n'
-                               'echo "=== Test 2: Naive regex search for \'503\' ==="\n'
-                               'grep "503" "$LAB_DIR/orders.jsonl"\n'
-                               'echo "EXPLANATION: While this finds line 2, it would also falsely match user ID '
-                               '\'user_503\' or latency \'503ms\'!"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Literal grep for "error" returns zero records, proving the '
-                               'diagnostic blind spot.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/grep_test.log`',
-                               '**Stage 4: Author and execute schema-aware structured JSON parser**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Implement a structured Python filter that validates JSON syntax and selects records '
-                               'using numeric comparison (`status >= 500`):\n'
-                               '\n'
-                               '```bash\n'
-                               'cat > "$LAB_DIR/parse_orders.py" <<\'EOF\'\n'
-                               'import json\n'
-                               'import sys\n'
-                               '\n'
-                               'log_file = sys.argv[1] if len(sys.argv) > 1 else "orders.jsonl"\n'
-                               'total_records = 0\n'
-                               'failed_records = []\n'
-                               '\n'
-                               "with open(log_file, 'r', encoding='utf-8') as f:\n"
-                               '    for line_num, line in enumerate(f, 1):\n'
-                               '        line = line.strip()\n'
-                               '        if not line:\n'
-                               '            continue\n'
-                               '        total_records += 1\n'
-                               '        try:\n'
-                               '            record = json.loads(line)\n'
-                               '        except json.JSONDecodeError as e:\n'
-                               '            print(f"ERROR: Corrupted JSON on line {line_num}: {e}")\n'
-                               '            continue\n'
-                               '\n'
-                               '        status = record.get("status")\n'
-                               '        # Strict numeric filtering\n'
-                               '        if isinstance(status, int) and status >= 500:\n'
-                               '            failed_records.append(record)\n'
-                               '\n'
-                               'print(f"Total Records Analyzed:     {total_records}")\n'
-                               'print(f"5xx Server Errors Detected: {len(failed_records)}")\n'
-                               'print("-" * 55)\n'
-                               'for rec in failed_records:\n'
-                               '    print(f"FAILED ORDER: {rec.get(\'order_id\')} | Status: {rec.get(\'status\')} | '
-                               'Latency: {rec.get(\'latency_ms\')}ms | Reason: {rec.get(\'detail\')}")\n'
-                               '\n'
-                               'if len(failed_records) == 2:\n'
-                               '    print("\\nPASS: Successfully isolated 100% of server errors (ord-102 and ord-105).")\n'
-                               'else:\n'
-                               '    print(f"\\nFATAL: Expected 2 failed records, found {len(failed_records)}")\n'
-                               '    sys.exit(1)\n'
-                               'EOF\n'
-                               'python3 "$LAB_DIR/parse_orders.py" "$LAB_DIR/orders.jsonl" | tee '
-                               '"$LAB_DIR/structured_parse.log"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Parser extracts ord-102 (503) and ord-105 (500) accurately using '
-                               'numeric criteria.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/structured_parse.log`',
-                               '**Stage 5: Inspect local socket state machine using ss**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Query Linux kernel socket tables to observe active TCP sockets, listening ports, and '
-                               'queue depths:\n'
-                               '\n'
-                               '```bash\n'
-                               'echo "=== Active TCP Listening Sockets ===" | tee "$LAB_DIR/sockets.log"\n'
-                               'ss -tln | tee -a "$LAB_DIR/sockets.log"\n'
-                               '\n'
-                               'echo "=== Socket Summary Statistics ===" | tee -a "$LAB_DIR/sockets.log"\n'
-                               'ss -s | tee -a "$LAB_DIR/sockets.log"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Output displays kernel socket summary and listening TCP endpoints '
-                               'with zero Recv-Q congestion.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/sockets.log`',
-                               '**Stage 6: Rehearse network diagnostic boundary isolation mapping**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Create an automated boundary tester script that documents the ordered diagnostic '
-                               'workflow:\n'
-                               '\n'
-                               '```bash\n'
-                               'cat > "$LAB_DIR/boundary_tester.py" <<\'EOF\'\n'
-                               'boundaries = [\n'
-                               '    {"stage": 1, "boundary": "DNS Resolution", "tool": "dig +short api.example.com", '
-                               '"validates": "Hostname maps to valid IP address"},\n'
-                               '    {"stage": 2, "boundary": "TCP Socket Establishment", "tool": "ss -tna | grep '
-                               '<IP>:<PORT>", "validates": "TCP SYN/ACK handshake completed (ESTAB)"},\n'
-                               '    {"stage": 3, "boundary": "Packet Interface Path", "tool": "tcpdump -nn -c 5 host '
-                               '<IP>", "validates": "Packets physically reaching local network interface"},\n'
-                               '    {"stage": 4, "boundary": "Application Transport / TLS", "tool": "curl -Iv '
-                               'https://api.example.com", "validates": "TLS certificate verified and HTTP status '
-                               'received"},\n'
-                               '    {"stage": 5, "boundary": "Structured Payload Schema", "tool": "python3 / jq '
-                               'select(.status >= 500)", "validates": "Payload contains valid JSON and parses status '
-                               'codes"}\n'
-                               ']\n'
-                               '\n'
-                               'print("=== Standard Operating Procedure: Boundary-Ordered Diagnostics ===")\n'
-                               'for b in boundaries:\n'
-                               '    print(f"Stage {b[\'stage\']}: [{b[\'boundary\']}]")\n'
-                               '    print(f"  Command:   {b[\'tool\']}")\n'
-                               '    print(f"  Validates: {b[\'validates\']}")\n'
-                               'print("-" * 65)\n'
-                               'print("Diagnostic Principle: Test one boundary at a time; never jump to application '
-                               'conclusions before transport proof.")\n'
-                               'EOF\n'
-                               'python3 "$LAB_DIR/boundary_tester.py" | tee "$LAB_DIR/boundary_sop.log"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Structured diagnostic sequence printed, outlining boundary '
-                               'separation principles.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/boundary_sop.log`',
-                               '**Stage 7: Diagnose evidence and compile diagnostic toolchain report**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Compile the comparative log parsing results and boundary diagnostics into a '
-                               'comprehensive operational audit report:\n'
-                               '\n'
-                               '```bash\n'
-                               'cat > "$LAB_DIR/diagnostic_toolchain_report.md" <<EOF\n'
-                               '# Command-Line Diagnostic Toolchain Audit Report\n'
-                               '\n'
-                               '## 1. Summary\n'
-                               '- **Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")\n'
-                               '- **Investigator:** Site Reliability Engineering\n'
-                               '- **Target Fixture:** \\`orders.jsonl\\` (5 structured records)\n'
-                               '\n'
-                               '## 2. Text Search vs Structured Parsing Comparison\n'
-                               '| Tool / Methodology | Query Syntax | Result Observed | Accuracy Assessment |\n'
-                               '| :--- | :--- | :--- | :--- |\n'
-                               '| **Naive Grep** | \\`grep -i "error"\\` | 0 records returned (exit 1) | **FALSE '
-                               'NEGATIVE**: Missed all 5xx outages |\n'
-                               '| **Positional Regex** | \\`grep "503"\\` | 1 record returned | **FRAGILE**: Matches '
-                               'non-status numbers |\n'
-                               '| **Structured JSON** | \\`select(.status >= 500)\\` | 2 records returned '
-                               '(\\`ord-102\\`, \\`ord-105\\`) | **100% ACCURATE**: Schema-validated |\n'
-                               '\n'
-                               '## 3. Network Boundary Tool Selection\n'
-                               '- **DNS Boundary:** Use \\`dig\\` to verify resolver answers independently of '
-                               'transport.\n'
-                               '- **Kernel Socket Boundary:** Use \\`ss -tln\\` to verify local port binding and '
-                               'backlog queue depth.\n'
-                               '- **Packet Interface Boundary:** Use \\`tcpdump\\` with BPF filters to verify physical '
-                               'interface transit.\n'
-                               '- **Application Boundary:** Use \\`curl -v\\` to isolate TLS negotiation from HTTP '
-                               'status handling.\n'
-                               '\n'
-                               '## 4. Conclusion\n'
-                               'Unstructured text searching must never be used as an acceptance gate for structured '
-                               'JSON telemetry. Diagnostic procedures must test boundaries hierarchically from DNS '
-                               'through socket, packet, transport, and schema validation.\n'
-                               'EOF\n'
-                               'cat "$LAB_DIR/diagnostic_toolchain_report.md"\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Comprehensive markdown report generated comparing parsing methods '
-                               'and boundary isolation.\n'
-                               '\n'
-                               '**Save:** `$LAB_DIR/diagnostic_toolchain_report.md`',
-                               '**Stage 8: Clean up lab workspace**\n'
-                               '\n'
-                               '**Location:** local bash terminal\n'
-                               '\n'
-                               'Remove temporary fixtures and testing scripts:\n'
-                               '\n'
-                               '```bash\n'
-                               'rm -rf "$LAB_DIR"\n'
-                               'echo "PASS: Day 8 Topic 2 lab workspace cleaned up successfully."\n'
-                               '```\n'
-                               '\n'
-                               '**Expected result:** Workspace directory removed; environment clean.\n'
-                               '\n'
-                               '**Save:** none']}}]}
+             'scenario': {'scenario': 'Text search misses structured 503 records', 'impact': 'Silent customer order checkout failures accumulate undetected in production payment gateways because monitoring alerts rely on string matching rather than HTTP status codes.', 'constraints': 'Preserve raw historical log fixtures unchanged; do not run unapproved packet captures on shared network interfaces; validate log schema before asserting health.', 'evidence': '**illustrative supplied records**\n\n```text\n[Synthetic Log Fixture: /var/log/orders.jsonl]\n{"timestamp":"2026-10-04T10:00:01Z","order_id":"ord-101","status":200,"latency_ms":42,"region":"us-central1"}\n{"timestamp":"2026-10-04T10:00:02Z","order_id":"ord-102","status":503,"latency_ms":1250,"region":"us-central1","gateway":"auth-v2","detail":"upstream_connect_timeout"}\n{"timestamp":"2026-10-04T10:00:03Z","order_id":"ord-103","status":200,"latency_ms":38,"region":"us-central1"}\n\n[Naive Operator Triage via Grep]\n$ grep -i "error" /var/log/orders.jsonl\n(no output returned, exit status 1)\n\n[Operator Conclusion Reported on Incident Bridge]\n"Log inspection complete: 0 errors detected in /var/log/orders.jsonl. Outage report is a false alarm."\n\n[Simultaneous Customer Telemetry]\nPayment Gateway Error Rate: 33.3% checkout failures; HTTP 503 Service Unavailable returned to clients.\n```\n\n<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full incident diagram.</p><svg aria-labelledby="d8-log-inc-title d8-log-inc-desc" role="img" viewbox="0 0 940 350" xmlns="http://www.w3.org/2000/svg"><title id="d8-log-inc-title">Text search misses structured 503 records</title><desc id="d8-log-inc-desc">Before repair, grep searches for the absent word error and produces an empty result that is misreported as zero failures. After repair, a JSON parser selects numeric status values at least 500 and correlates demo-2 with the incident window.</desc><defs><marker id="d8-log-inc-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0 0L10 4L0 8Z" fill="#38bdf8"></path></marker></defs><text fill="#f43f5e" font-weight="700" x="20" y="28">BEFORE · unmatched text pattern becomes a false conclusion</text><text fill="#34d399" font-weight="700" x="20" y="195">AFTER · schema-aware selection supports the claim</text><g fill="#121526" stroke-width="2"><rect height="100" rx="10" stroke="#38bdf8" width="260" x="24" y="48"></rect><image href="../assets/icons/generic/artifact.svg" x="34" y="58" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#f43f5e" width="260" x="340" y="48"></rect><image href="../assets/icons/generic/decision.svg" x="350" y="58" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#f43f5e" width="260" x="656" y="48"></rect><image href="../assets/icons/generic/failure.svg" x="666" y="58" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#38bdf8" width="260" x="24" y="215"></rect><image href="../assets/icons/generic/artifact.svg" x="34" y="225" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#34d399" width="260" x="340" y="215"></rect><image href="../assets/icons/generic/decision.svg" x="350" y="225" width="22" height="22" preserveAspectRatio="xMidYMid meet"/><rect height="100" rx="10" stroke="#34d399" width="260" x="656" y="215"></rect><image href="../assets/icons/generic/outcome.svg" x="666" y="225" width="22" height="22" preserveAspectRatio="xMidYMid meet"/></g><g fill="#fce7f3" text-anchor="middle"><text x="154" y="82">JSON status: 503</text><text x="470" y="82">grep "error"</text><text x="786" y="82">Wrong: zero failures</text><text x="154" y="249">Inspect schema</text><text x="470" y="249">select status ≥ 500</text><text x="786" y="249">demo-2 + timestamp</text></g><g marker-end="url(#d8-log-inc-arrow)" stroke="#38bdf8" stroke-width="2"><path d="M284 100L334 100"></path><path d="M600 100L650 100"></path><path d="M284 267L334 267"></path><path d="M600 267L650 267"></path></g><text fill="#a9b7cb" font-size="12" text-anchor="middle" x="470" y="340">The parser proves one matching record in the supplied fixture, not end-to-end service health.</text></svg><figcaption>Supplied facts: The supplied three-record fixture contains one numeric 503 response; grep for the literal error returns no lines. A separate illustrative customer telemetry record reports 33.3% checkout failures; fixture proportions alone are not a population estimate. Architectural inference: Flat text pattern searching fails on structured JSON logs because numeric status codes and non-&quot;error&quot; reason codes bypass substring filters. Expected post-fix behavior: Expected post-fix behavior: schema-aware parsing selects the supplied 5xx record and its reported timestamp/detail; the upstream root cause still requires independent evidence. Evidence limit: illustrative records only; no live production result is established.</figcaption></figure>', 'root': 'The operational monitoring filter utilized unstructured text grepping for the literal substring "error". The application generates structured JSON logs where failure events are encoded as numeric integer fields (<code>&quot;status&quot;: 503</code>) accompanied by operational reason strings (<code>&quot;upstream_connect_timeout&quot;</code>). Because the record omitted the exact literal string "error", the flat text search returned an empty result, leading the operator to erroneously declare zero customer failures.', 'verify': 'Replace unstructured text regex filtering with structured JSON parsing using <kbd>jq</kbd> or Python JSON processors selecting records where <code>.status &gt;= 500</code>. The parser immediately isolates order <code>ord-102</code> with status 503 and latency 1250ms, establishing a reported 503 record in this fixture, not its upstream cause.', 'residual': 'Testing numeric HTTP status codes detects application and gateway errors but does not catch semantic payload failures that return HTTP 200 with an embedded business rejection; application-level schema assertions must complement HTTP status filtering. Evidence limit: the supplied illustrative records do not prove a live production outage or post-fix outcome; timestamp, boot identity and collection scope must be established.', 'diagram_enabled': True, 'facts': 'The supplied three-record fixture contains one numeric 503 response; grep for the literal error returns no lines. A separate illustrative customer telemetry record reports 33.3% checkout failures; fixture proportions alone are not a population estimate.', 'inference': 'Flat text pattern searching fails on structured JSON logs because numeric status codes and non-"error" reason codes bypass substring filters.', 'expected': 'Expected post-fix behavior: schema-aware parsing selects the supplied 5xx record and its reported timestamp/detail; the upstream root cause still requires independent evidence.', 'diagnostic_steps': ['Inspect log file formatting to confirm serialization structure (JSON Lines format).', 'Execute unstructured grep to reproduce the false-negative observation.', 'Execute structured jq/Python filter to query numeric status field for values >= 500.', 'Map downstream network boundaries (DNS, socket, packet, HTTP) to investigate gateway timeout.'], 'remediation_steps': ['Decommission unstructured regex log alerts across monitoring dashboards.', 'Implement structured JSON query filters targeting numeric status fields (e.g. status >= 500).', 'Deploy synthetic endpoint validation scripts asserting on HTTP response codes.'], 'diagram': ('Customer checkout failure', 'Substring text search', 'Silent false negative', 'Schema-aware JSON filter', '100% 5xx errors isolated'), 'icons': ['../assets/icons/generic/artifact.svg', '../assets/icons/generic/failure.svg', '../assets/icons/generic/failure.svg', '../assets/icons/generic/decision.svg', '../assets/icons/generic/outcome.svg'], 'incident_svg_html': '<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full sequence.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 260" role="img" aria-labelledby="day8-incident-1-title day8-incident-1-desc"><title id="day8-incident-1-title">Structured log evidence and bounded verification</title><desc id="day8-incident-1-desc">Numbered illustrative sequence; each node is a bounded step, not proof of a production result.</desc><rect x="20" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="134" y="48" width="22" height="22"/><text x="145" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Three JSON log records</text><path d="M276 150 L289 150 l-5 -4 m5 4 l-5 4" stroke="#38bdf8" fill="none"/><text x="283" y="135" text-anchor="middle" font-size="11" fill="#a9b7cb">1</text><rect x="295" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="409" y="48" width="22" height="22"/><text x="420" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Text search misses 503</text><path d="M551 150 L564 150 l-5 -4 m5 4 l-5 4" stroke="#38bdf8" fill="none"/><text x="558" y="135" text-anchor="middle" font-size="11" fill="#a9b7cb">2</text><rect x="570" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="684" y="48" width="22" height="22"/><text x="695" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Validate status schema</text><path d="M826 150 L839 150 l-5 -4 m5 4 l-5 4" stroke="#38bdf8" fill="none"/><text x="833" y="135" text-anchor="middle" font-size="11" fill="#a9b7cb">3</text><rect x="845" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="959" y="48" width="22" height="22"/><text x="970" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Select reported 5xx row</text></svg><figcaption>Supplied facts: The supplied three-record fixture contains one numeric 503 response; grep for the literal error returns no lines. A separate illustrative customer telemetry record reports 33.3% checkout failures; fixture proportions alone are not a population estimate. Architectural inference: Flat text pattern searching fails on structured JSON logs because numeric status codes and non-&quot;error&quot; reason codes bypass substring filters. Expected post-fix behavior: Expected post-fix behavior: schema-aware parsing selects the supplied 5xx record and its reported timestamp/detail; the upstream root cause still requires independent evidence. Evidence limit: illustrative records only; no live production result is established.</figcaption></figure>'},
+             'lab': {'name': 'Diagnostic toolchain evaluation: structured parsing vs network boundary isolation', 'goal': 'Demonstrate why unstructured text search fails on structured JSON logs, implement schema-aware filtering, and map diagnostic network tools across isolation boundaries.', 'expected': 'Proof of false-negative outcome with grep, successful 100% extraction of failure records with structured parser, and inspection of local socket states via ss.', 'mode': 'Observed locally: log parsing, Python JSON filtering, and local ss socket inspection. Simulated or predicted: network packet flow mapping. Untested on GCP: live VPC packet mirroring.', 'covers': 'grep/sed/awk/jq and curl/dig/ss/tcpdump as diagnostic tools. Learn to interpret one signal at a time.', 'prereq': 'Local Linux bash terminal with Python 3, grep, and ss.', 'preflight': 'Verify grep, python3, and ss availability in PATH.', 'verification': 'Validate that grep returns 0 matches while structured parser outputs ord-102 with status 503.', 'trouble': 'If ss requires root privileges for process mapping, execute with -tln to view listening sockets without PID flags.', 'cleanup': 'Remove synthetic log fixtures and diagnostic scripts.', 'accept': 'The five-record fixture yields ord-102 and ord-105 only, malformed/schema-invalid input fails explicitly, and local socket inspection must finish without permission errors. DNS, curl and packet capture entries remain explanatory mapping, not executed probes.', 'file': 'day-008-topic-02.md', 'steps': ['**Stage 1: Preflight environment and command check**\n\n**Location:** local bash terminal\n\nConfirm availability of core utilities used across the diagnostic sequence:\n\n```bash\nset -euo pipefail\nLAB_DIR=$(mktemp -d /tmp/lab_day8_t2.XXXXXX)\nexport LAB_DIR\ncd "$LAB_DIR"\ncommand -v grep >/dev/null\necho "PASS: grep is available" | tee "$LAB_DIR/preflight.log"\ncommand -v sed >/dev/null\necho "PASS: sed is available"\ncommand -v awk >/dev/null\necho "PASS: awk is available"\ncommand -v python3 >/dev/null\necho "PASS: python3 is available"\ncommand -v ss >/dev/null\necho "PASS: ss is available"\n```\n\n**Expected result:** All diagnostic tools confirmed present in system PATH.\n\n**Save:** none', '**Stage 2: Create synthetic structured log fixture**\n\n**Location:** local bash terminal\n\nInitialize a test workspace and create a synthetic JSON Lines (`.jsonl`) order log fixture with varied HTTP statuses and field order:\n\n```bash\nLAB_DIR="/home/naveen/GitRepos/Projects/GCP/RoadMap/gcp-180day-architect-site/scratch/day_008_lab_t2"\nmkdir -p "$LAB_DIR"\ncd "$LAB_DIR"\n\ncat > "$LAB_DIR/orders.jsonl" <<\'EOF\'\n{"timestamp":"2026-10-04T10:00:01Z","order_id":"ord-101","status":200,"latency_ms":42,"region":"us-central1"}\n{"timestamp":"2026-10-04T10:00:02Z","order_id":"ord-102","status":503,"latency_ms":1250,"region":"us-central1","detail":"upstream_connect_timeout"}\n{"timestamp":"2026-10-04T10:00:03Z","order_id":"ord-103","status":200,"latency_ms":38,"region":"us-central1"}\n{"timestamp":"2026-10-04T10:00:04Z","order_id":"ord-104","status":404,"latency_ms":12,"region":"us-east1","detail":"item_not_found"}\n{"timestamp":"2026-10-04T10:00:05Z","order_id":"ord-105","status":500,"latency_ms":890,"region":"us-central1","detail":"database_deadlock"}\nEOF\n\ncat "$LAB_DIR/orders.jsonl"\n```\n\n**Expected result:** Synthetic log fixture created with 5 structured order records.\n\n**Save:** `$LAB_DIR/orders.jsonl`', '**Stage 3: Demonstrate false-negative failure mode of unstructured grep**\n\n**Location:** local bash terminal\n\nExecute naive text searches across the log fixture to demonstrate why flat text search fails on structured data:\n\n```bash\necho "=== Test 1: Searching for literal \'error\' ==="\nif grep -i "error" "$LAB_DIR/orders.jsonl"; then\n  echo "Found errors via text search"\nelse\n  GREP_STATUS=$?\n  test "$GREP_STATUS" -eq 1 || { echo "FATAL: grep failed with status $GREP_STATUS" >&2; exit "$GREP_STATUS"; }\n  echo "RESULT: grep found 0 matches (exit code 1)."\n  echo "EXPLANATION: None of the records contain the literal string \'error\', despite 503 and 500 failures!"\nfi\n\necho "=== Test 2: Naive regex search for \'503\' ==="\ngrep "503" "$LAB_DIR/orders.jsonl"\necho "EXPLANATION: While this finds line 2, it would also falsely match user ID \'user_503\' or latency \'503ms\'!"\n```\n\n**Expected result:** Literal grep for "error" returns zero records, proving the diagnostic blind spot.\n\n**Save:** `$LAB_DIR/grep_test.log`', '**Stage 4: Author and execute schema-aware structured JSON parser**\n\n**Location:** local bash terminal\n\nImplement a structured Python filter that validates JSON syntax and selects records using numeric comparison (`status >= 500`):\n\n```bash\ncat > "$LAB_DIR/parse_orders.py" <<\'EOF\'\nimport json\nimport sys\n\nlog_file = sys.argv[1] if len(sys.argv) > 1 else "orders.jsonl"\ntotal_records = 0\nfailed_records = []\n\nwith open(log_file, \'r\', encoding=\'utf-8\') as f:\n    for line_num, line in enumerate(f, 1):\n        line = line.strip()\n        if not line:\n            continue\n        total_records += 1\n        try:\n            record = json.loads(line)\n        except json.JSONDecodeError as e:\n            print(f"ERROR: Corrupted JSON on line {line_num}: {e}")\n            sys.exit(2)\n\n        if not isinstance(record, dict) or type(record.get("status")) is not int or not 100 <= record["status"] <= 599 or not isinstance(record.get("order_id"), str):\n            print(f"ERROR: Invalid record schema on line {line_num}", file=sys.stderr); sys.exit(2)\n        status = record.get("status")\n        # Strict numeric filtering\n        if type(status) is int and 500 <= status <= 599:\n            failed_records.append(record)\n\nprint(f"Total Records Analyzed:     {total_records}")\nprint(f"5xx Server Errors Detected: {len(failed_records)}")\nprint("-" * 55)\nfor rec in failed_records:\n    print(f"FAILED ORDER: {rec.get(\'order_id\')} | Status: {rec.get(\'status\')} | Latency: {rec.get(\'latency_ms\')}ms | Reason: {rec.get(\'detail\')}")\n\nif {r["order_id"] for r in failed_records} == {"ord-102", "ord-105"} and len(failed_records) == 2:\n    print("\\nPASS: Successfully isolated 100% of server errors (ord-102 and ord-105).")\nelse:\n    print(f"\\nFATAL: Expected 2 failed records, found {len(failed_records)}")\n    sys.exit(1)\nEOF\npython3 "$LAB_DIR/parse_orders.py" "$LAB_DIR/orders.jsonl" | tee "$LAB_DIR/structured_parse.log"\n# Verify advertised rejection behavior with bounded invalid fixtures.\nprintf \'%s\\n\' \'{\' > "$LAB_DIR/bad_syntax.jsonl"\nprintf \'%s\\n\' \'[]\' > "$LAB_DIR/bad_root.jsonl"\nprintf \'%s\\n\' \'{"order_id":"bad","status":true}\' > "$LAB_DIR/bad_type.jsonl"\nfor BAD_CASE in bad_syntax bad_root bad_type; do\n  if python3 "$LAB_DIR/parse_orders.py" "$LAB_DIR/$BAD_CASE.jsonl" > "$LAB_DIR/$BAD_CASE.log" 2>&1; then\n    echo "FATAL: invalid fixture accepted: $BAD_CASE" >&2\n    exit 1\n  else\n    BAD_STATUS=$?\n    test "$BAD_STATUS" -eq 2 || { echo "FATAL: unexpected rejection status $BAD_STATUS" >&2; exit 1; }\n  fi\ndone\necho "PASS: invalid syntax, root and status types rejected" | tee -a "$LAB_DIR/structured_parse.log"\n\n```\n\n**Expected result:** Parser extracts ord-102 (503) and ord-105 (500) accurately using numeric criteria.\n\n**Save:** `$LAB_DIR/structured_parse.log`', '**Stage 5: Inspect local socket state machine using ss**\n\n**Location:** local bash terminal\n\nQuery Linux kernel socket tables to observe active TCP sockets, listening ports, and queue depths:\n\n```bash\necho "=== Active TCP Listening Sockets ===" | tee "$LAB_DIR/sockets.log"\nss -tln > "$LAB_DIR/listen.out" 2> "$LAB_DIR/listen.err"\nif test -s "$LAB_DIR/listen.err"; then cat "$LAB_DIR/listen.err" >&2; exit 1; fi\ncat "$LAB_DIR/listen.out" | tee -a "$LAB_DIR/sockets.log"\n\necho "=== Socket Summary Statistics ===" | tee -a "$LAB_DIR/sockets.log"\nss -s > "$LAB_DIR/summary.out" 2> "$LAB_DIR/summary.err"\nif test -s "$LAB_DIR/summary.err"; then cat "$LAB_DIR/summary.err" >&2; exit 1; fi\ncat "$LAB_DIR/summary.out" | tee -a "$LAB_DIR/sockets.log"\n```\n\n**Expected result:** Output displays kernel socket summary and listening TCP endpoints as observed; listening Recv-Q is a queued-connection count and not established-socket unread bytes.\n\n**Save:** `$LAB_DIR/sockets.log`', '**Stage 6: Rehearse network diagnostic boundary isolation mapping**\n\n**Location:** local bash terminal\n\nCreate an automated boundary tester script that documents the ordered diagnostic workflow:\n\n```bash\ncat > "$LAB_DIR/boundary_tester.py" <<\'EOF\'\nboundaries = [\n    {"stage": 1, "boundary": "DNS Resolution", "tool": "dig +short api.example.com", "validates": "Shows the selected resolver answer; reachability is separate"},\n    {"stage": 2, "boundary": "TCP Socket Establishment", "tool": "ss -tna | grep <IP>:<PORT>", "validates": "A matching ESTAB record supports a local established socket, not application health"},\n    {"stage": 3, "boundary": "Packet Interface Path", "tool": "tcpdump -nn -c 5 host <IP>", "validates": "Packets visible at the selected capture point; absence does not locate a firewall drop"},\n    {"stage": 4, "boundary": "Application Transport / TLS", "tool": "curl -Iv https://api.example.com", "validates": "TLS certificate verified and HTTP status received"},\n    {"stage": 5, "boundary": "Structured Payload Schema", "tool": "python3 / jq select(.status >= 500)", "validates": "Payload contains valid JSON and parses status codes"}\n]\n\nprint("=== Standard Operating Procedure: Boundary-Ordered Diagnostics ===")\nfor b in boundaries:\n    print(f"Stage {b[\'stage\']}: [{b[\'boundary\']}]")\n    print(f"  Command:   {b[\'tool\']}")\n    print(f"  Validates: {b[\'validates\']}")\nprint("-" * 65)\nprint("Diagnostic Principle: Test one boundary at a time; never jump to application conclusions before transport proof.")\nEOF\npython3 "$LAB_DIR/boundary_tester.py" | tee "$LAB_DIR/boundary_sop.log"\n```\n\n**Expected result:** Structured diagnostic sequence printed, outlining boundary separation principles.\n\n**Save:** `$LAB_DIR/boundary_sop.log`', '**Stage 7: Diagnose evidence and compile diagnostic toolchain report**\n\n**Location:** local bash terminal\n\nCompile the comparative log parsing results and boundary diagnostics into a comprehensive operational audit report:\n\n```bash\ncat > "$LAB_DIR/diagnostic_toolchain_report.md" <<EOF\n# Command-Line Diagnostic Toolchain Audit Report\n\n## 1. Summary\n- **Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")\n- **Investigator:** Site Reliability Engineering\n- **Target Fixture:** \\`orders.jsonl\\` (5 structured records)\n\n## 2. Text Search vs Structured Parsing Comparison\n| Tool / Methodology | Query Syntax | Result Observed | Accuracy Assessment |\n| :--- | :--- | :--- | :--- |\n| **Naive Grep** | \\`grep -i "error"\\` | 0 records returned (exit 1) | **FALSE NEGATIVE**: Missed all 5xx outages |\n| **Positional Regex** | \\`grep "503"\\` | 1 record returned | **FRAGILE**: Matches non-status numbers |\n| **Structured JSON** | \\`select(.status >= 500)\\` | 2 records returned (\\`ord-102\\`, \\`ord-105\\`) | **FIXTURE RESULT**: Two supplied 5xx records selected; not production accuracy |\n\n## 3. Network Boundary Tool Selection\n- **DNS Boundary:** Use \\`dig\\` to verify resolver answers independently of transport.\n- **Kernel Socket Boundary:** Use \\`ss -tln\\` to verify local port binding and backlog queue depth.\n- **Packet Interface Boundary:** Use \\`tcpdump\\` with BPF filters to verify visibility at the selected capture point.\n- **Application Boundary:** Use \\`curl -v\\` to isolate TLS negotiation from HTTP status handling.\n\n## 4. Conclusion\nUnstructured text searching must never be used as an acceptance gate for structured JSON telemetry. Diagnostic procedures must test boundaries hierarchically from DNS through socket, packet, transport, and schema validation.\nEOF\ncat "$LAB_DIR/diagnostic_toolchain_report.md"\n```\n\n**Expected result:** Comprehensive markdown report generated comparing parsing methods and boundary isolation.\n\n**Save:** `$LAB_DIR/diagnostic_toolchain_report.md`', '**Stage 8: Clean up lab workspace**\n\n**Location:** local bash terminal\n\nRemove temporary fixtures and testing scripts:\n\n```bash\nrm -rf "$LAB_DIR"\necho "PASS: Day 8 Topic 2 lab workspace cleaned up successfully."\n```\n\n**Expected result:** Workspace directory removed; environment clean.\n\n**Save:** none']}}]}
 
 
 import re
@@ -1610,7 +195,7 @@ import urllib.parse
 FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-sched-title d8-sched-desc" role="img" viewbox="0 0 940 420" xmlns="http://www.w3.org/2000/svg"><title id="d8-sched-title">Process scheduling lifecycle states and FCFS versus SJF execution timeline</title><desc id="d8-sched-desc">Upper tier illustrates process transitions between ready, running, and waiting states coordinated by context switching. Lower tier shows FCFS execution with 17 ms average wait time contrasted with SJF scheduling yielding 3 ms average wait time.</desc><defs><marker id="d8-sched-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker><marker id="d8-sched-arrow-warn" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#f59e0b"></path></marker><marker id="d8-sched-arrow-ok" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"></path></marker></defs>
 <!-- SECTION 1 HEADER -->
 <rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="900" x="20" y="12"></rect>
-<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" x="32" y="29">TIER 1 · PROCESS SCHEDULING STATE MACHINE &amp; CONTEXT SWITCHING LIFECYCLE</text>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="400" x="32" y="29">TIER 1 · PROCESS SCHEDULING STATE MACHINE &amp; CONTEXT SWITCHING LIFECYCLE</text>
 
 <!-- STATE BOXES -->
 <g fill="#121526" stroke-width="2">
@@ -1623,7 +208,7 @@ FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">S
 </g>
 
 <!-- STATE TITLES -->
-<g fill="#fce7f3" font-family="monospace" font-size="13" font-weight="bold" text-anchor="middle">
+<g fill="#fce7f3" font-family="monospace" font-size="13" font-weight="400" text-anchor="middle">
   <text x="145" y="76">READY QUEUE</text>
   <text x="470" y="76">RUNNING STATE</text>
   <text x="795" y="76">WAITING / BLOCKED</text>
@@ -1653,7 +238,7 @@ FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">S
 </g>
 
 <!-- TRANSITION LABELS -->
-<g font-family="monospace" font-size="9.5" font-weight="bold" text-anchor="middle">
+<g font-family="monospace" font-size="9.5" font-weight="400" text-anchor="middle">
   <text fill="#38bdf8" x="307" y="78">Dispatch</text>
   <text fill="#94a3b8" x="307" y="130">Preempt</text>
   <text fill="#f59e0b" x="632" y="78">I/O Wait</text>
@@ -1662,20 +247,20 @@ FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">S
 
 <!-- SECTION 2 HEADER -->
 <rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="900" x="20" y="195"></rect>
-<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" x="32" y="212">TIER 2 · CPU SCHEDULING ALGORITHM BENCHMARK: FCFS vs SJF METRIC ANALYSIS</text>
+<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="400" x="32" y="212">TIER 2 · CPU SCHEDULING ALGORITHM BENCHMARK: FCFS vs SJF METRIC ANALYSIS</text>
 
 <!-- FCFS TIMELINE -->
 <g font-family="monospace">
-  <text fill="#cbd5e1" font-size="11" font-weight="bold" x="25" y="248">FCFS Timeline (Arrival t=0 | Avg Wait: 17.0 ms | Avg Turnaround: 27.0 ms):</text>
+  <text fill="#cbd5e1" font-size="11" font-weight="400" x="25" y="248">FCFS Timeline (Arrival t=0 | Avg Wait: 17.0 ms | Avg Turnaround: 27.0 ms):</text>
   <g stroke="#0f172a" stroke-width="2" font-family="system-ui, -apple-system, sans-serif">
     <rect fill="#38bdf8" height="34" rx="4" width="450" x="140" y="258"></rect>
-    <text fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle" x="365" y="279">P1 (Burst: 24 ms | Wait: 0 ms | Turnaround: 24 ms)</text>
+    <text fill="#0f172a" font-size="11" font-weight="400" text-anchor="middle" x="365" y="279">P1 (Burst: 24 ms | Wait: 0 ms | Turnaround: 24 ms)</text>
     
     <rect fill="#f59e0b" height="34" rx="4" width="80" x="590" y="258"></rect>
-    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="630" y="279">P2 (3ms)</text>
+    <text fill="#0f172a" font-size="10.5" font-weight="400" text-anchor="middle" x="630" y="279">P2 (3ms)</text>
     
     <rect fill="#34d399" height="34" rx="4" width="80" x="670" y="258"></rect>
-    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="710" y="279">P3 (3ms)</text>
+    <text fill="#0f172a" font-size="10.5" font-weight="400" text-anchor="middle" x="710" y="279">P3 (3ms)</text>
   </g>
   <g fill="#94a3b8" font-size="10">
     <text x="140" y="306">0 ms</text>
@@ -1687,16 +272,16 @@ FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">S
 
 <!-- SJF TIMELINE -->
 <g font-family="monospace">
-  <text fill="#cbd5e1" font-size="11" font-weight="bold" x="25" y="332">SJF Timeline (Shortest Job First | Avg Wait: 3.0 ms | Avg Turnaround: 13.0 ms):</text>
+  <text fill="#cbd5e1" font-size="11" font-weight="400" x="25" y="332">SJF Timeline (Shortest Job First | Avg Wait: 3.0 ms | Avg Turnaround: 13.0 ms):</text>
   <g stroke="#0f172a" stroke-width="2" font-family="system-ui, -apple-system, sans-serif">
     <rect fill="#f59e0b" height="34" rx="4" width="80" x="140" y="342"></rect>
-    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="180" y="363">P2 (3ms)</text>
+    <text fill="#0f172a" font-size="10.5" font-weight="400" text-anchor="middle" x="180" y="363">P2 (3ms)</text>
     
     <rect fill="#34d399" height="34" rx="4" width="80" x="220" y="342"></rect>
-    <text fill="#0f172a" font-size="10.5" font-weight="bold" text-anchor="middle" x="260" y="363">P3 (3ms)</text>
+    <text fill="#0f172a" font-size="10.5" font-weight="400" text-anchor="middle" x="260" y="363">P3 (3ms)</text>
     
     <rect fill="#38bdf8" height="34" rx="4" width="450" x="300" y="342"></rect>
-    <text fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle" x="525" y="363">P1 (Burst: 24 ms | Wait: 6 ms | Turnaround: 30 ms)</text>
+    <text fill="#0f172a" font-size="11" font-weight="400" text-anchor="middle" x="525" y="363">P1 (Burst: 24 ms | Wait: 6 ms | Turnaround: 30 ms)</text>
   </g>
   <g fill="#94a3b8" font-size="10">
     <text x="140" y="390">0 ms</text>
@@ -1710,69 +295,7 @@ FIG_8_5_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">S
 <text fill="#a9b7cb" font-family="monospace" font-size="11" text-anchor="middle" x="470" y="412">Scheduling discipline dictates queue latency: SJF slashes average waiting time by 82% over FCFS for identical workload bursts.</text>
 </svg><figcaption>Figure 8.5: CPU scheduling process state transitions and FCFS versus SJF Gantt chart timelines. Process bursts illustrate queue latency impact under non-preemptive arrival at t=0; live Linux CFS adjusts dynamic vruntime rather than static burst lengths.</figcaption></figure>'''
 
-FIG_8_6_SVG = '''<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full diagram.</p><svg aria-labelledby="d8-fault-title d8-fault-desc" role="img" viewbox="0 0 940 330" xmlns="http://www.w3.org/2000/svg"><title id="d8-fault-title">Four-stage page fault interrupt, disk swap fetch, and frame mapping lifecycle</title><desc id="d8-fault-desc">Illustrates the hardware MMU missing-page interrupt trap, kernel context switch to waiting queue, synchronous secondary storage retrieval into free RAM frame, and page table remap restoring process to ready queue.</desc><defs><marker id="d8-fault-arrow" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#38bdf8"></path></marker><marker id="d8-fault-arrow-ok" markerheight="8" markerwidth="10" orient="auto" refx="9" refy="4"><path d="M0,0 L10,4 L0,8 Z" fill="#34d399"></path></marker></defs>
-<!-- HEADER BAR -->
-<rect fill="#1e293b" height="26" opacity="0.8" rx="4" width="900" x="20" y="12"></rect>
-<text fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" x="32" y="29">FOUR-STAGE PAGE FAULT INTERRUPT TRAP, DISK SWAP FETCH, AND FRAME MAPPING SEQUENCE</text>
-
-<!-- 4 STAGE BOXES -->
-<g fill="#121526" stroke-width="2">
-  <rect height="145" rx="8" stroke="#f43f5e" width="205" x="20" y="48"></rect>
-  <image height="24" href="../assets/icons/generic/decision.svg" preserveaspectratio="xMidYMid meet" width="24" x="30" y="58"/>
-  <rect height="145" rx="8" stroke="#38bdf8" width="205" x="255" y="48"></rect>
-  <image height="24" href="../assets/icons/generic/server.svg" preserveaspectratio="xMidYMid meet" width="24" x="265" y="58"/>
-  <rect height="145" rx="8" stroke="#f59e0b" width="205" x="490" y="48"></rect>
-  <image height="24" href="../assets/icons/generic/storage.svg" preserveaspectratio="xMidYMid meet" width="24" x="500" y="58"/>
-  <rect height="145" rx="8" stroke="#34d399" width="205" x="720" y="48"></rect>
-  <image height="24" href="../assets/icons/generic/outcome.svg" preserveaspectratio="xMidYMid meet" width="24" x="730" y="58"/>
-</g>
-
-<!-- STAGE TITLES -->
-<g fill="#fce7f3" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">
-  <text x="122" y="80">1. MMU TRAP</text>
-  <text x="357" y="80">2. CONTEXT SWITCH</text>
-  <text x="592" y="80">3. SWAP / DISK I/O</text>
-  <text x="822" y="80">4. REMAP &amp; DISPATCH</text>
-</g>
-
-<!-- STAGE DESCRIPTIONS -->
-<g fill="#a9b7cb" font-family="monospace" font-size="10.5" text-anchor="middle">
-  <text x="122" y="106">Present bit = 0</text>
-  <text x="122" y="126">Hardware trap triggered</text>
-  <text x="122" y="146">CPU transfers to Ring 0</text>
-  <text x="122" y="166">Interrupt Vector 14</text>
-
-  <text x="357" y="106">Preserve CPU registers</text>
-  <text x="357" y="126">Move task to Blocked</text>
-  <text x="357" y="146">Save PCB state context</text>
-  <text x="357" y="166">Dispatch runnable task</text>
-
-  <text x="592" y="106">Allocate free RAM frame</text>
-  <text x="592" y="126">Read 4 KB page block</text>
-  <text x="592" y="146">Persistent Disk I/O wait</text>
-  <text x="592" y="166">I/O interrupt signals ready</text>
-
-  <text x="822" y="106">Update Page Table Entry</text>
-  <text x="822" y="126">Set Present bit = 1</text>
-  <text x="822" y="146">Move task to Ready Queue</text>
-  <text x="822" y="166">Resume faulting opcode</text>
-</g>
-
-<!-- CONNECTING ARROWS -->
-<g fill="none" marker-end="url(#d8-fault-arrow)" stroke="#38bdf8" stroke-width="2">
-  <path d="M225 120 L255 120"></path>
-  <path d="M460 120 L490 120"></path>
-  <path d="M695 120 L720 120"></path>
-</g>
-
-<!-- RETURN LOOP -->
-<path d="M822 193 L822 225 L122 225 L122 193" fill="none" marker-end="url(#d8-fault-arrow-ok)" stroke="#34d399" stroke-width="2"></path>
-<text fill="#34d399" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" x="470" y="242">Execution restarts seamlessly: MMU address translation now hits newly populated RAM frame with zero trap</text>
-
-<!-- FOOTER CALLOUT -->
-<rect fill="#1e293b" height="34" opacity="0.6" rx="4" width="900" x="20" y="260"></rect>
-<text fill="#f59e0b" font-family="monospace" font-size="10.5" text-anchor="middle" x="470" y="281">Thrashing threshold: When major page faults overwhelm storage IOPS, context switches spike and system throughput collapses.</text>
-</svg><figcaption>Figure 8.6: Four-stage page fault interrupt, disk swap fetch, and frame mapping lifecycle. Illustrative sequence outlines kernel memory virtualization recovery; physical SSD latency dictates whether page load takes microseconds or milliseconds.</figcaption></figure>'''
+FIG_8_6_SVG = '<figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full sequence.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 260" role="img" aria-labelledby="day8-major-fault-title day8-major-fault-desc"><title id="day8-major-fault-title">Storage-backed major page-fault handling example</title><desc id="day8-major-fault-desc">Numbered illustrative sequence; each node is a bounded step, not proof of a production result.</desc><rect x="20" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="134" y="48" width="22" height="22"/><text x="145" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Synchronous page fault</text><path d="M276 150 L289 150 l-5 -4 m5 4 l-5 4" stroke="#38bdf8" fill="none"/><text x="283" y="135" text-anchor="middle" font-size="11" fill="#a9b7cb">1</text><rect x="295" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="409" y="48" width="22" height="22"/><text x="420" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Locate backing page</text><path d="M551 150 L564 150 l-5 -4 m5 4 l-5 4" stroke="#38bdf8" fill="none"/><text x="558" y="135" text-anchor="middle" font-size="11" fill="#a9b7cb">2</text><rect x="570" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="684" y="48" width="22" height="22"/><text x="695" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Wait for required read</text><path d="M826 150 L839 150 l-5 -4 m5 4 l-5 4" stroke="#38bdf8" fill="none"/><text x="833" y="135" text-anchor="middle" font-size="11" fill="#a9b7cb">3</text><rect x="845" y="35" width="250" height="155" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="959" y="48" width="22" height="22"/><text x="970" y="100" text-anchor="middle" font-size="12" fill="#fce7f3">Map page and retry</text></svg><figcaption>Scope: successful storage-backed major fault. Minor faults may need allocation, zero-fill or copy-on-write without a storage read; invalid/protected accesses can signal the process. Waiting and scheduling occur only as required. This diagram does not prove memory pressure or describe every page fault.</figcaption></figure>'
 
 _subtopic_1_addition = f'''<p><strong class="side-heading">Process scheduling foundations and execution state machine:</strong> <strong class="keyword">CPU Scheduling</strong> is the core operating system subsystem (governed by the short-term dispatcher) that continuously evaluates the ready queue to decide which runnable process is dispatched onto an available physical processor core. The kernel coordinates execution across three fundamental lifecycle states:</p>
 <ul>
@@ -1780,8 +303,8 @@ _subtopic_1_addition = f'''<p><strong class="side-heading">Process scheduling fo
 <li><strong>Ready State:</strong> The process is fully prepared to execute and resides queued in the scheduler runqueue awaiting core dispatch.</li>
 <li><strong>Waiting State (Blocked):</strong> The process cannot make forward progress because it is awaiting high-latency Input/Output (I/O) from a disk or network socket, or sleeping on a synchronization lock or timer.</li>
 </ul>
-<p><strong class="side-heading">Context switching mechanics and PCB preservation:</strong> Rapid time-sharing is achieved through a <strong class="keyword">Context Switch</strong>. To switch between active threads, the operating system saves the execution context—including CPU general-purpose registers, floating-point units, stack pointer, program counter, and <strong class="keyword">Process Control Block (PCB)</strong> metadata—of the running process and restores the previously preserved register state and PCB of the incoming process. While context switches create the illusion of smooth parallel execution (multitasking), excessive switching consumes non-trivial kernel CPU cycles and flushes L1/L2 hardware CPU caches.</p>
-<p><strong class="side-heading">Scheduling metrics and quantitative FCFS versus SJF analysis:</strong> When selecting processes from the ready queue, scheduling algorithms evaluate two core performance metrics: <strong class="keyword">Waiting Time</strong> (the total duration a process spends queued in the ready state awaiting processor allocation) and <strong class="keyword">Turnaround Time</strong> (the total elapsed wall-clock duration from initial process submission to final completion, equal to Waiting Time + CPU Burst Time).</p>
+<p><strong class="side-heading">Context switching mechanics and PCB preservation:</strong> Rapid time-sharing is achieved through a <strong class="keyword">Context Switch</strong>. To switch between active threads, the operating system saves the execution context—including CPU general-purpose registers, floating-point units, stack pointer, program counter, and <strong class="keyword">Process Control Block (PCB)</strong> metadata—of the running process and restores the previously preserved register state and PCB of the incoming process. While context switches create the illusion of smooth parallel execution (multitasking), excessive switching consumes non-trivial kernel CPU cycles and can incur cache-working-set interference rather than inherently flushing all L1/L2 caches.</p>
+<p><strong class="side-heading">Scheduling metrics and quantitative FCFS versus SJF analysis:</strong> When selecting processes from the ready queue, scheduling algorithms evaluate two core performance metrics: <strong class="keyword">Waiting Time</strong> (the total duration a process spends queued in the ready state awaiting processor allocation) and <strong class="keyword">Turnaround Time</strong> (the total elapsed wall-clock duration from initial process submission to final completion, equal to Waiting Time + CPU Burst Time only in the no-I/O, zero-overhead example below).</p>
 <p>Consider a classic First-Come, First-Served (<strong class="keyword">FCFS</strong>) scheduling scenario with three processes arriving simultaneously at time <em>t</em> = 0:</p>
 <ul>
 <li><strong>Process 1 (<em>P</em><sub>1</sub>):</strong> Requires 24 ms of CPU burst time.</li>
@@ -1793,23 +316,23 @@ _subtopic_1_addition = f'''<p><strong class="side-heading">Process scheduling fo
 <li><strong>Waiting Time:</strong> <em>P</em><sub>1</sub> = 0 ms, <em>P</em><sub>2</sub> = 24 ms, <em>P</em><sub>3</sub> = 27 ms. Average Waiting Time = (0 + 24 + 27) / 3 = <strong>17 ms</strong>.</li>
 <li><strong>Turnaround Time:</strong> <em>P</em><sub>1</sub> = 0 + 24 = 24 ms, <em>P</em><sub>2</sub> = 24 + 3 = 27 ms, <em>P</em><sub>3</sub> = 27 + 3 = 30 ms. Average Turnaround Time = (24 + 27 + 30) / 3 = <strong>27 ms</strong>.</li>
 </ul>
-<p>In contrast, if the operating system applies Shortest Job First (<strong class="keyword">SJF</strong>) scheduling, the shortest tasks execute first (<em>P</em><sub>2</sub> &rarr; <em>P</em><sub>3</sub> &rarr; <em>P</em><sub>1</sub>): <em>P</em><sub>2</sub> runs from 0 to 3 ms, <em>P</em><sub>3</sub> runs from 3 to 6 ms, and <em>P</em><sub>1</sub> runs from 6 to 30 ms. The waiting times become <em>P</em><sub>2</sub> = 0 ms, <em>P</em><sub>3</sub> = 3 ms, and <em>P</em><sub>1</sub> = 6 ms, plunging the Average Waiting Time to (0 + 3 + 6) / 3 = <strong>3 ms</strong>! This quantitative contrast proves why modern cloud hypervisors and kernel schedulers dynamically optimize timeslices to prevent compute-heavy batches from starving latency-sensitive interactive workloads.</p>
+<p>In contrast, if the operating system applies Shortest Job First (<strong class="keyword">SJF</strong>) scheduling, the shortest tasks execute first (<em>P</em><sub>2</sub> &rarr; <em>P</em><sub>3</sub> &rarr; <em>P</em><sub>1</sub>): <em>P</em><sub>2</sub> runs from 0 to 3 ms, <em>P</em><sub>3</sub> runs from 3 to 6 ms, and <em>P</em><sub>1</sub> runs from 6 to 30 ms. The waiting times become <em>P</em><sub>2</sub> = 0 ms, <em>P</em><sub>3</sub> = 3 ms, and <em>P</em><sub>1</sub> = 6 ms, plunging the Average Waiting Time to (0 + 3 + 6) / 3 = <strong>3 ms</strong>! This simplified simultaneous-arrival example illustrates head-of-line waiting; it does not demonstrate that Linux or a cloud hypervisor uses SJF or establish a production latency result. Treat algorithm comparison as optional background, not a tuning instruction.</p>
 {FIG_8_5_SVG}
 '''
 
 _subtopic_2_addition = f'''<p><strong class="side-heading">Virtual memory architecture, pages, and physical frames:</strong> <strong class="keyword">Virtual Memory</strong> decouples software addressing from physical hardware, granting each application the illusion of an expansive, contiguous memory space while transparently leveraging secondary storage (such as SSD swap partitions or swap files) as an extension to physical RAM. Physical memory (<strong class="keyword">RAM</strong>) is partitioned into fixed-size hardware blocks designated as <strong class="keyword">Frames</strong>. A process's logical address space is segmented into identically sized contiguous blocks designated as <strong class="keyword">Pages</strong> (typically 4 KB in x86/ARM architectures, or 2 MB / 1 GB HugePages). The hardware <strong class="keyword">Memory Management Unit (MMU)</strong> consults hierarchical <strong class="keyword">Page Tables</strong> to translate logical virtual addresses into physical RAM frame addresses.</p>
-<p><strong class="side-heading">Four-stage page fault handling lifecycle and thrashing dynamics:</strong> When an executing thread references an address on a virtual page that is not currently mapped to an active physical RAM frame, the CPU hardware generates an interrupt trap called a <strong class="keyword">Page Fault</strong>. The kernel handles this through a strict four-stage sequence:</p>
+<p><strong class="side-heading">Four-stage page fault handling lifecycle and thrashing dynamics:</strong> When an executing thread references an address on a virtual page that is not currently mapped to an active physical RAM frame, the CPU hardware generates an interrupt trap called a <strong class="keyword">Page Fault</strong>. The kernel handles this through a four-stage storage-backed major-fault example; minor faults and protection violations take different paths:</p>
 <ol>
-<li><strong>Hardware Trap:</strong> The hardware MMU halts execution and triggers an interrupt trap, transferring CPU control from Ring 3 user space to the Ring 0 kernel page fault handler (Interrupt Vector 14).</li>
+<li><strong>Hardware Trap:</strong> The hardware MMU halts execution and triggers an interrupt trap, transferring CPU control from Ring 3 user space to the Ring 0 kernel page fault handler (vector 14 on x86; exception encoding and privilege levels differ on other architectures).</li>
 <li><strong>Context Switch to Waiting Queue:</strong> The operating system saves the executing process's register state and PCB, transitioning the thread from the running state to the waiting (blocked) queue so processor cycles can be allocated to other runnable tasks.</li>
 <li><strong>Secondary Storage Read:</strong> The kernel I/O subsystem reads the missing page data from secondary storage (swap space or executable filesystem blocks) and loads it into an available physical RAM frame.</li>
 <li><strong>Page Table Update and Resume:</strong> The kernel updates the page table entry with the physical frame address, sets the page "present" bit, and moves the process back into the ready queue to resume execution at the instruction that caused the fault.</li>
 </ol>
-<p>If physical RAM is overcommitted and processes demand more memory than physical frames can accommodate, the system enters <strong class="keyword">Thrashing</strong>—an operational pathology where the operating system spends virtually all its CPU time swapping pages in and out of disk rather than executing application code, causing throughput to collapse to zero.</p>
-<p><strong class="side-heading">Page replacement algorithms and Belady's Anomaly:</strong> When a page fault occurs and all physical RAM frames are occupied, the operating system must choose a "victim" page to evict to secondary storage to free up a frame for the incoming page:</p>
+<p>Sustained reclaim and repeated storage-backed faults can lead to <strong class="keyword">Thrashing</strong>—an operational pathology where the operating system spends substantial time reclaiming memory or waiting for page I/O, reducing useful throughput without requiring a literal zero-throughput state.</p>
+<p><strong class="side-heading">Page replacement algorithms and Belady's Anomaly:</strong> When a page fault occurs and all physical RAM frames are occupied, the operating system may need to reclaim a page; a clean file-backed page can be discarded and reread without a swap write to free up a frame for the incoming page:</p>
 <ul>
 <li><strong>First-In, First-Out (<strong class="keyword">FIFO</strong>):</strong> Evicts the page that has resided in physical memory the longest. While straightforward to manage using a simple queue, FIFO suffers from <strong class="keyword">Belady's Anomaly</strong>, an architectural anomaly where allocating more physical RAM frames can paradoxically increase the total number of page faults for certain memory reference patterns.</li>
-<li><strong>Least Recently Used (<strong class="keyword">LRU</strong>):</strong> Evicts the page that has not been referenced for the longest period of time. By analyzing past access patterns to approximate future locality, LRU provides superior cache hit rates but incurs higher computational tracking overhead (requiring hardware timestamping or page stack manipulations).</li>
+<li><strong>Least Recently Used (<strong class="keyword">LRU</strong>):</strong> Evicts the page that has not been referenced for the longest period of time. By analyzing past access patterns to approximate future locality, LRU exploits locality but is not universally superior for every reference sequence but incurs higher computational tracking overhead (requiring hardware timestamping or page stack manipulations).</li>
 <li><strong>Optimal Page Replacement (<strong class="keyword">OPT / MIN</strong>):</strong> Evicts the page that will not be referenced for the longest period of time in the future. Because an operating system kernel cannot predict future execution branches, OPT is purely theoretical and serves as the benchmark standard against which practical heuristics (such as LRU or clock algorithms) are evaluated.</li>
 </ul>
 {FIG_8_6_SVG}
@@ -1821,6 +344,48 @@ _t0['technical'] = _t0['technical'].replace('<h4>Virtual memory architecture', _
 _t0['technical'] = _t0['technical'].replace('<h4>Memory hierarchy', _subtopic_2_addition + '\n\n<h4>Memory hierarchy', 1)
 
 # 2. Highlight keywords with Google search links across all topic technical subtopics
+_d8_expansion_marker = '<h4>Virtual memory architecture, MMU page tables, and page fault dynamics</h4>'
+assert DATA['topics'][0]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][0]['technical'] = DATA['topics'][0]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-cpu-states"><p class="mechanism-title"><strong>CPU time states and load average</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> Top-style us/sy/ni/id/wa/hi/si/st distinguish ordinary user, kernel, niced user, idle, I/O-wait accounting, hardware interrupts, softirq work and steal time. Tool labels differ; avoid double-counting guest time. Load average counts runnable and uninterruptible tasks, not utilization percent.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> Compare demand with effective CPU capacity, including affinity and quota. High load with idle time is not proof of compute saturation. iowait is idle-time accounting with outstanding I/O, not a per-process timer or a unique disk diagnosis.</li><li><strong class="side-heading">Relevance to GCP:</strong> On Compute Engine, compare guest observations with documented machine-series CPU allowances. Steal time does not identify a particular hypervisor mechanism; zero steal does not rule out every scheduling delay.</li><li><strong class="side-heading">Concrete example:</strong> For an owned PID, sample <kbd>mpstat -P ALL 1 3</kbd>, <kbd>pidstat -u -w -p "$PID" 1 3</kbd> and <kbd>iostat -y -xz 1 3</kbd>. Compare the same interval: CPU imbalance, process CPU/switches and device latency answer different questions.</li><li><strong class="side-heading">Evidence limit:</strong> Tool availability and sample scope must be established before a conclusion.</li><li><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/mpstat.1.html#OPTIONS">mpstat OPTIONS (accessed 2026-10-16)</a>; <a href="https://man7.org/linux/man-pages/man1/pidstat.1.html#OPTIONS">pidstat OPTIONS (accessed 2026-10-16)</a>; <a href="https://man7.org/linux/man-pages/man1/iostat.1.html#REPORTS">iostat REPORTS (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+_d8_expansion_marker = '<h4>Virtual memory architecture, MMU page tables, and page fault dynamics</h4>'
+assert DATA['topics'][0]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][0]['technical'] = DATA['topics'][0]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-process-states"><p class="mechanism-title"><strong>Process states and scheduling controls</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> R means running or runnable; S interruptible sleep, D uninterruptible sleep, Z a zombie process and T a stopped process. A zombie retains exit bookkeeping until reaped; it is not a runnable CPU-consuming worker.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> Nice changes ordinary fair-scheduling preference, not a reserved CPU share. SCHED_FIFO is real-time policy that can starve other tasks; it is described without changing policy. Affinity limits eligible CPUs without reserving them.</li><li><strong class="side-heading">Relevance to GCP:</strong> Inside a VM/container, interpret taskset output with guest topology, cpusets and quotas. High interrupt or softirq time suggests kernel work to investigate, not an automatic CPU limit change.</li><li><strong class="side-heading">Concrete example:</strong> Read <kbd>ps -o pid,ppid,stat,ni,comm -p "$PID"</kbd> and <kbd>taskset -pc "$PID"</kbd> for an owned PID. For Z, inspect the parent/reaper; for persistent R, compare CPU-time growth with capacity.</li><li><strong class="side-heading">Evidence limit:</strong> One snapshot misses short transitions. No real-time scheduling, affinity or interrupt setting is changed, and observed state alone does not establish latency causality.</li><li><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/ps.1.html#PROCESS_STATE_CODES">ps PROCESS STATE CODES (accessed 2026-10-16)</a>; <a href="https://man7.org/linux/man-pages/man7/sched.7.html#DESCRIPTION">sched DESCRIPTION (accessed 2026-10-16)</a>; <a href="https://man7.org/linux/man-pages/man1/taskset.1.html#DESCRIPTION">taskset DESCRIPTION (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+_d8_expansion_marker = '<h4>Virtual memory architecture, MMU page tables, and page fault dynamics</h4>'
+assert DATA['topics'][0]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][0]['technical'] = DATA['topics'][0]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-cpu-controller"><p class="mechanism-title"><strong>cgroup v2 CPU controller</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> cpu.max sets bandwidth quota/period; cpu.weight controls relative allocation under contention within the hierarchy. cpu.stat includes cumulative throttling fields such as nr_throttled: inspect interval deltas, not just lifetime totals.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> A quota <code>50000 100000</code> represents half a CPU of average bandwidth, not a fixed half-core or latency guarantee. Weight does not reserve idle capacity or override ancestor limits.</li><li><strong class="side-heading">Relevance to GCP:</strong> Kubernetes CPU requests inform scheduling and relative allocation; CPU limits can enforce bandwidth. QoS also depends on memory and request/limit configuration. Inspect effective cgroup settings rather than assuming a label describes active limits.</li><li><strong class="side-heading">Concrete example:</strong> Compare two timestamped reads of cpu.max, cpu.weight and cpu.stat for the same supplied cgroup. Growing nr_throttled supports a quota-throttling hypothesis during that interval; correlate demand and request latency.</li><li><strong class="side-heading">Evidence limit:</strong> Counters alone do not identify a slow request or every host scheduling delay. Read supplied/existing values only; no controller writes are proposed.</li><li><strong class="side-heading">Further study:</strong> <a href="https://docs.kernel.org/admin-guide/cgroup-v2.html#cpu-interface-files">cgroup v2 CPU Interface Files (accessed 2026-10-16)</a>; <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run">Kubernetes resource-limit enforcement (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+_d8_expansion_marker = '<h4>Memory hierarchy: active/inactive RAM, page cache, dirty writeback, and swap space</h4>'
+assert DATA['topics'][0]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][0]['technical'] = DATA['topics'][0]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-memory-accounting"><p class="mechanism-title"><strong>Process memory accounting</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> VSS describes virtual address mappings, RSS resident pages, and PSS the proportional share of resident shared pages. Summed process RSS can count shared pages repeatedly. smaps provides mapping accounting; pmap summarizes mappings, not a cgroup memory bill.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> mmap can reserve/map address space without making every page resident. Copy-on-write permits physical sharing until writes require private copies; private residency can grow without a comparable new virtual mapping.</li><li><strong class="side-heading">Relevance to GCP:</strong> Compare process accounting with host MemAvailable and cgroup memory.current separately on Compute Engine. These scopes include different charges and cannot be substituted for one another.</li><li><strong class="side-heading">Concrete example:</strong> For an owned readable process, inspect <code>/proc/$PID/smaps</code> Rss/Pss/Shared/Private fields and <kbd>pmap -x "$PID"</kbd>. Supplied RSS=100 MiB and PSS=60 MiB supports sharing, not 40 MiB of immediately reclaimable memory.</li><li><strong class="side-heading">Evidence limit:</strong> Permissions, concurrent mapping changes and sharing attribution affect snapshots. PSS is not a precise marginal allocation cost or a substitute for cgroup-limit evidence.</li><li><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/proc_pid_smaps.5.html#DESCRIPTION">proc_pid_smaps DESCRIPTION (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+_d8_expansion_marker = '<h4>Out-Of-Memory (OOM) killer mechanics, badness heuristics, and cgroup memory boundaries</h4>'
+assert DATA['topics'][0]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][0]['technical'] = DATA['topics'][0]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-memory-knobs"><p class="mechanism-title"><strong>Memory tuning knobs (optional)</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> vm.swappiness influences reclaim preference; zero does not universally disable swapping. vm.overcommit_memory selects allocation-accounting policy, not an RSS limit. min_free_kbytes affects allocator reserves. Slab cache includes reclaimable and unreclaimable allocations.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> Transparent huge pages can reduce translation overhead but incur allocation/compaction tradeoffs. NUMA policy affects memory locality; CPU and memory placement differ. None is a universal fix for a low free-memory graph.</li><li><strong class="side-heading">Relevance to GCP:</strong> VM size, guest configuration and workload determine relevance. Observe existing policy and pressure first; no universal Google Cloud sysctl values are recommended.</li><li><strong class="side-heading">Concrete example:</strong> Read existing <code>/proc/sys/vm/swappiness</code>, <code>/proc/sys/vm/overcommit_memory</code>, <code>/proc/sys/vm/min_free_kbytes</code> and Slab/SReclaimable/SUnreclaim fields. Record them alongside PSI without sysctl writes or dropping caches.</li><li><strong class="side-heading">Evidence limit:</strong> Optional interpretation only. Configuration changes require workload evidence and rollback planning; readings do not certify improvement.</li><li><strong class="side-heading">Further study:</strong> <a href="https://docs.kernel.org/admin-guide/sysctl/vm.html#swappiness">VM swappiness (accessed 2026-10-16)</a>; <a href="https://docs.kernel.org/admin-guide/mm/transhuge.html">Transparent Hugepage Support (accessed 2026-10-16)</a>; <a href="https://docs.kernel.org/admin-guide/mm/numa_memory_policy.html">NUMA Memory Policy (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+_d8_expansion_marker = '<h4>Pressure Stall Information (PSI): quantifying CPU, memory, and I/O starvation</h4>'
+assert DATA['topics'][0]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][0]['technical'] = DATA['topics'][0]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-userspace-oom"><p class="mechanism-title"><strong>Userspace OOM handling (optional)</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> systemd-oomd uses configured cgroup/PSI policy to select eligible groups on supported systems. earlyoom uses a separate memory/swap-availability policy. A userspace kill can also yield SIGKILL; exit 137 does not identify its actor.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> Distinguish memory.high direct-reclaim pressure, memory.max failure and daemon policy. zram is compressed RAM-backed block storage that can provide swap; it consumes RAM/CPU rather than creating unlimited physical capacity.</li><li><strong class="side-heading">Relevance to GCP:</strong> Do not assume a VM image enables either daemon or zram. Establish service state, configuration, scope and timestamps before attributing a restart to an image default or kernel limit.</li><li><strong class="side-heading">Concrete example:</strong> On a system already using it, read <kbd>systemctl status systemd-oomd --no-pager</kbd> and <kbd>journalctl -u systemd-oomd --since "10 minutes ago" --no-pager</kbd>. Compare with kernel OOM and cgroup records; no service is enabled or reconfigured.</li><li><strong class="side-heading">Evidence limit:</strong> Features depend on installed versions/configuration. Missing records do not rule out another killer. No OOM, swap exhaustion or zram setup is induced.</li><li><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man8/systemd-oomd.service.8.html#DESCRIPTION">systemd-oomd DESCRIPTION (accessed 2026-10-16)</a>; <a href="https://github.com/rfjakob/earlyoom#what-does-it-do">earlyoom What does it do (accessed 2026-10-16)</a>; <a href="https://docs.kernel.org/admin-guide/blockdev/zram.html">zram documentation (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+_d8_expansion_marker = '<h4>Structured data parsing with jq: JSON filters, nested traversal, and numeric selections</h4>'
+assert DATA['topics'][1]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][1]['technical'] = DATA['topics'][1]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-log-pipeline"><p class="mechanism-title"><strong>Text pipeline helpers for bounded log analysis</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> sort orders extracted records; uniq -c counts adjacent equal lines, so sort first unless input is already grouped. cut/tr handle text delimiters/characters, not JSON grammar. head/tail bound displayed samples without validating omitted records.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> Parse and validate the structured field first, then aggregate it. A top-N count describes a selected sample, not a production error rate without a denominator and time window.</li><li><strong class="side-heading">Relevance to GCP:</strong> Exported Cloud Logging records require the same separation. No live export or backend query is executed in this mechanism.</li><li><strong class="side-heading">Concrete example:</strong> For the already validated five-row fixture: <kbd>jq -r ".status" orders.jsonl | LC_ALL=C sort -n | uniq -c | sort -nr | head -n 5</kbd>. Expect two 200 values and one each of 404, 500 and 503; tie ordering has no causal meaning.</li><li><strong class="side-heading">Evidence limit:</strong> The fixture is bounded. On larger streams head can close a pipe early and cause SIGPIPE under pipefail; never hide unrelated pipeline failures.</li><li><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man1/sort.1.html#DESCRIPTION">sort DESCRIPTION (accessed 2026-10-16)</a>; <a href="https://jqlang.org/manual/">jq manual (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+_d8_expansion_marker = '<table class="table">'
+assert DATA['topics'][1]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][1]['technical'] = DATA['topics'][1]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-tcp-states"><p class="mechanism-title"><strong>TCP state diagnosis</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> TIME_WAIT is normal after active close, not automatically a leak. CLOSE_WAIT means peer close was received while local closure remains outstanding. SYN-SENT means an active opener is awaiting establishment.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> Persistent growing CLOSE_WAIT supports an application-closure hypothesis, not proof from one snapshot. Retransmission can accompany loss, congestion, reordering or other conditions; compare the same connection over time.</li><li><strong class="side-heading">Relevance to GCP:</strong> Guest ss output describes the local network namespace, not Google Cloud VPC policy, backend health or a specific upstream loss point.</li><li><strong class="side-heading">Concrete example:</strong> Compare <kbd>ss -tan state close-wait</kbd>, <kbd>ss -tan state time-wait</kbd> and <kbd>ss -ti</kbd> at two recorded times. Keep connection identity and sample interval with any retransmission observation.</li><li><strong class="side-heading">Evidence limit:</strong> Permissions, namespaces and tool/kernel versions affect visibility. A high TIME_WAIT count does not authorize TCP tuning or process termination.</li><li><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man8/ss.8.html#OPTIONS">ss OPTIONS (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+_d8_expansion_marker = '<h4>Kernel socket and packet analysis: ss socket states and tcpdump packet captures</h4>'
+assert DATA['topics'][1]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][1]['technical'] = DATA['topics'][1]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-path-tls"><p class="mechanism-title"><strong>Path and TLS probing with the named tools</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> dig reports the selected resolver answer; curl verbose output separates connection, TLS and HTTP observations. Valid TLS does not establish health of every route or business operation.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> Preserve the hostname used for TLS and HTTP while testing an address. Compare DNS, socket state and capture visibility before attributing a timeout to routing or policy.</li><li><strong class="side-heading">Relevance to GCP:</strong> Use an owned endpoint and appropriate identity. Google Cloud frontend, VPC and application boundaries can differ; no public scan or cross-project probe is proposed.</li><li><strong class="side-heading">Concrete example:</strong> For an owned test endpoint, read <kbd>curl --connect-timeout 2 --max-time 5 -v https://api.example.test/health</kbd> output. Replace the example hostname with the authorized endpoint and keep certificate verification enabled.</li><li><strong class="side-heading">Evidence limit:</strong> DNS/TLS success alone does not prove every packet path; certificate validation and application response evidence address different boundaries.</li><li><strong class="side-heading">Further study:</strong> <a href="https://curl.se/docs/manpage.html">curl manual (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+_d8_expansion_marker = '<table class="table">'
+assert DATA['topics'][1]['technical'].count(_d8_expansion_marker) == 1
+DATA['topics'][1]['technical'] = DATA['topics'][1]['technical'].replace(_d8_expansion_marker, '<section class="worked-mechanism" id="d8-firewall-boundary"><p class="mechanism-title"><strong>Firewall and connection-tracking questions: evidence limits</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> A socket, packet capture and firewall decision are distinct observations. Seeing a SYN establishes visibility at that capture point; missing packets do not uniquely locate a drop.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> Check interface, namespace, filter and time window first. Guest firewall processing differs from Google Cloud VPC enforcement; ss does not enumerate either policy.</li><li><strong class="side-heading">Relevance to GCP:</strong> VPC Flow Logs ingress sampling follows ingress firewall evaluation, so denied ingress is absent. Applicable Firewall Rules Logging and reviewed policy can corroborate denial; mirroring is not a universal view of dropped packets.</li><li><strong class="side-heading">Concrete example:</strong> If curl times out and ss shows SYN-SENT, establishment is incomplete. A permitted tcpdump capture can add evidence of retries; correlate policy/logging before naming a responsible rule.</li><li><strong class="side-heading">Evidence limit:</strong> An empty capture or connection-table snapshot does not prove a specific firewall dropped the request. The investigation may remain inconclusive.</li><li><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/vpc/docs/flow-logs#logs_collection">VPC Flow Logs Logs collection (accessed 2026-10-16)</a></li></ul></section>' + _d8_expansion_marker, 1)
+
+DATA['topics'][1]['technical'] += '<section class="worked-mechanism" id="d8-triage-mechanism"><p class="mechanism-title"><strong>Triage decision flow</strong></p><ul><li><strong class="side-heading">What it is in general:</strong> Record symptom, workload identity and time window. Read host or cgroup PSI in the relevant scope, then choose the next resource observation.</li><li><strong class="side-heading">Relevance to a cloud architect:</strong> CPU, memory and I/O pressure can overlap. A branch gathers evidence rather than declaring its label the root cause; preserve the connection to request latency.</li><li><strong class="side-heading">Relevance to GCP:</strong> Guest and container signals have different scopes. A Compute Engine resize or Kubernetes limit change requires establishing the relevant boundary first.</li><li><strong class="side-heading">Concrete example:</strong> For delayed requests with growing cgroup CPU pressure, compare cpu.stat deltas and process CPU. For memory pressure, compare host MemAvailable, cgroup memory.current/max and matching OOM records.</li><li><strong class="side-heading">Evidence limit:</strong> Pressure does not rule out network or application faults. This flow recommends a bounded next observation, not a tuning or production action.</li><li><strong class="side-heading">Further study:</strong> <a href="https://docs.kernel.org/accounting/psi.html#pressure-interface">PSI Pressure interface (accessed 2026-10-16)</a></li></ul><figure class="diagram-figure"><p class="diagram-scroll-hint">Swipe horizontally to view the full decision flow.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 510" role="img" aria-labelledby="d8-triage-title d8-triage-desc" font-weight="400"><title id="d8-triage-title">Symptom to scoped pressure evidence and matching diagnostic tool</title><desc id="d8-triage-desc">Record symptom and time, inspect relevant resource pressure, then select CPU, memory or I/O evidence. Branches are hypotheses requiring correlation.</desc><rect x="440" y="20" width="320" height="100" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/event.svg" x="589" y="32" width="22" height="22"/><text x="600" y="78" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">Record symptom and time</text><text x="600" y="101" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">Keep request and workload identity</text><rect x="440" y="160" width="320" height="100" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/monitoring.svg" x="589" y="172" width="22" height="22"/><text x="600" y="218" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">Read PSI in the relevant scope</text><text x="600" y="241" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">Pressure suggests the next observation</text><rect x="40" y="320" width="320" height="140" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/server.svg" x="189" y="332" width="22" height="22"/><text x="200" y="378" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">CPU pressure / runnable delay</text><text x="200" y="401" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">mpstat, pidstat; cpu.stat deltas</text><text x="200" y="424" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">Check quota and effective capacity</text><rect x="440" y="320" width="320" height="140" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/database.svg" x="589" y="332" width="22" height="22"/><text x="600" y="378" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">Memory pressure / OOM evidence</text><text x="600" y="401" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">meminfo, smaps; memory.events</text><text x="600" y="424" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">Compare host and cgroup scopes</text><rect x="840" y="320" width="320" height="140" rx="10" fill="#121526" stroke="#38bdf8" stroke-width="2"/><image href="../assets/icons/generic/storage.svg" x="989" y="332" width="22" height="22"/><text x="1000" y="378" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">I/O pressure / blocked work</text><text x="1000" y="401" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">iostat; faults and device timing</text><text x="1000" y="424" text-anchor="middle" font-size="12" font-weight="400" fill="#fce7f3">Correlate storage and request latency</text><path d="M600 126 V154 m-4 -5 l4 5 l4 -5 M600 266 V288 H200 V314 m-4 -5 l4 5 l4 -5 M600 288 V314 m-4 -5 l4 5 l4 -5 M600 288 H1000 V314 m-4 -5 l4 5 l4 -5" fill="none" stroke="#38bdf8" stroke-width="2"/><text x="600" y="490" text-anchor="middle" font-size="12" font-weight="400" fill="#a9b7cb">If pressure does not explain the symptom, continue bounded DNS, socket, TLS and application checks.</text></svg><figcaption>Scope: a resource-triage decision sequence joining the existing signal/tool discussions. Evidence limit: branches select observations, not proven causes or automatic resizing.</figcaption></figure></section>'
+
 def _link_keywords(html_text):
     def _repl(m):
         inner = m.group(1)
@@ -1860,6 +425,52 @@ for _topic in DATA['topics']:
         lambda m: m.group(1) + '<p><strong class="side-heading">Linked subtopics:</strong></p>' + _linked_list + '\n' + _nav_links + '\n' + m.group(2),
         DATA['part1_html'], count=1, flags=re.S
     )
+
+import html as _d8_html
+from urllib.parse import quote_plus as _d8_quote
+_d8_terms = ['api', 'awk', "belady's anomaly", 'bpf', 'cfs', 'cgroup', 'close_wait', 'cloud logging', 'cloud monitoring', 'completely fair scheduler', 'compute engine', 'conntrack', 'context switch', 'control group', 'copy-on-write', 'cpu', 'cpu quota', 'cpu scheduling', 'cpu throttling', 'cpu.max', 'cpu.weight', 'curl', 'diagnostic command-line utilities', 'dig', 'dirty pages', 'dns', 'earlyoom', 'eevdf', 'exit status', 'fcfs', 'fifo', 'firewall rules logging', 'frames', 'full:', 'gke', 'grep', 'http', 'http 500', 'http 503', 'involuntary switches', 'iostat', 'iowait', 'journalctl', 'jq', 'json', 'json lines', 'kswapd', 'libpcap', 'linux', 'load average', 'lru', 'lsof', 'major page fault', 'major page faults:', 'memavailable', 'memfree', 'memory management unit', 'memory management unit (mmu)', 'memory pages', 'memory.current', 'memory.events', 'memory.high', 'memory.max', 'min_free_kbytes', 'minor page fault', 'minor page faults:', 'mmap', 'mmu', 'mpstat', 'mtr', 'netcat', 'netlink', 'nftables', 'nice', 'nr_throttled', 'numa', 'oom', 'oom_score', 'oom_score_adj', 'openssl s_client', 'operating system resource telemetry', 'ops agent', 'opt / min', 'out-of-memory (oom) killer', 'packet mirroring', 'page cache', 'page fault', 'page tables', 'pages', 'perf', 'persistent disk', 'physical frames', 'pidstat', 'pmap', 'pressure stall information', 'process control block (pcb)', 'psi', 'pss', 'rss', 'vss', 'ram', 'recv-q', 'retransmission', 'run queue', 'SCHED_FIFO', 'schema validation', 'sed', 'send-q', 'sigkill', 'sjf', 'slab cache', 'smaps', 'socket', 'softirq', 'some:', 'ss', 'steal time', 'strace', 'structured logging', 'swap', 'swap space', 'SYN-SENT', 'systemd-oomd', 'taskset', 'tcp', 'tcpdump', 'thrashing', 'time_wait', 'tlb', 'tls', 'traceroute', 'transparent huge pages', 'turnaround time', 'udp', 'virtual memory', 'vm.overcommit_memory', 'vm.swappiness', 'vmstat', 'voluntary switches', 'vpc', 'vpc flow logs', 'waiting time', 'writeback', 'zombie process', 'zram']
+_d8_pat = re.compile(r'(?<!\w)(' + '|'.join(re.escape(t) for t in sorted(_d8_terms, key=len, reverse=True)) + r')(?!\w)', re.I)
+def _d8_links(value):
+    stack, seen, out = [], set(), []
+    for token in re.split(r'(<[^>]+>)', value):
+        if token.startswith('<'):
+            m = re.match(r'</?\s*([\w:-]+)', token)
+            if m:
+                tag = m.group(1).lower()
+                if tag in ('article','h4') and not token.startswith('</'):
+                    seen = set()
+                if token.startswith('</'):
+                    if tag in stack:
+                        stack = stack[:len(stack)-1-stack[::-1].index(tag)]
+                elif tag not in ('br','hr','img','input','link','meta','image','path','rect') and not token.endswith('/>'):
+                    stack.append(tag)
+            out.append(token)
+            continue
+        if set(stack) & {'h1','h2','h3','h4','h5','h6','code','samp','pre','kbd','a','figcaption','svg','title','desc','script','style'}:
+            out.append(token)
+            continue
+        def wrap(m):
+            term = m.group(0)
+            if term.casefold() in seen:
+                return term
+            seen.add(term.casefold())
+            return '<a href="http://www.google.com/search?q=' + _d8_quote(_d8_html.unescape(term)) + '" rel="noopener" target="_blank">' + term + '</a>'
+        out.append(_d8_pat.sub(wrap, token))
+    return ''.join(out)
+def _d8_bullet(m):
+    body = m.group(1)
+    label = re.match(r'<strong class="side-heading">([^<]+)</strong>', body)
+    if label and label.group(1) not in {'Subtopics in this discussion:','Linked subtopics:','Evidence limit:','Keyword searches:'}:
+        return '<ul><li>' + body + '</li></ul>'
+    return m.group(0)
+DATA['part1_html'] = _d8_links(DATA['part1_html'])
+for _topic in DATA['topics']:
+    _topic['technical'] = _d8_links(re.sub(r'<p>(.*?)</p>', _d8_bullet, _topic['technical'], flags=re.S))
+    if 'Keyword searches:' not in _topic['technical']:
+        plain = re.sub('<[^>]+>', ' ', _topic['technical'])
+        found = [t for t in _d8_terms if re.search(r'(?<!\w)' + re.escape(t) + r'(?!\w)', plain, re.I)]
+        _topic['technical'] += '<div><strong class="side-heading">Keyword searches:</strong></div><ul>' + ''.join('<li><a href="http://www.google.com/search?q=' + _d8_quote(t) + '" rel="noopener" target="_blank">' + t + '</a> — discovery aid</li>' for t in found) + '</ul>'
+
 
 # 4. Fix Lab steps for run_labs.py execution
 _t0_lab = DATA['topics'][0]['lab']
