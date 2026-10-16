@@ -35,15 +35,19 @@ If changing the checker, also run:
 python3 -m unittest discover -s tests -p "test_check_study_links.py"
 
 Review durable-spec coverage, subtopic explanations, exercise stages, sources,
-and diagram eligibility. Run the contract's rendering acceptance checks within
-its read budget. Do not treat HTTP success as source relevance or an audit pass
-as proof of technical accuracy.
+and diagrams. Audit diagrams for:
+- Eligibility: only actual multi-step sequences, packet traversals, or request/response lifecycles.
+- Technical accuracy: verify exact syscalls, protocol transitions, and persistence/network boundaries (e.g., POSIX write() vs fsync() durability, cache flush mechanics, handshake stages).
+- Visual geometry & layout: check arrow paths (must connect clean boundary edges, never start inside boxes or slice through text/borders), consistent grid spacing between stages, cross-column alignment, and no clipping or overlapping.
+- Color semantics & contrast: do not use alert/danger hues (e.g. #f43f5e) for ordinary non-fault stages; ensure self-explanatory text labels without relying solely on color recognition.
+- Contract compliance: viewBox, role="img", unique title/desc IDs, aria-labelledby, scroll hint wrapper, and scope-bounded figcaption.
+Run the contract's rendering acceptance checks within its read budget. Do not treat HTTP success as source relevance or an audit pass as proof of technical accuracy.
 
 Handoff only:
 1. Clickable paths to specification, generated override and rendered page.
 2. Layout & navigation: confirm preserved wide container (assets/site.css), complete top
    header navigation, and active-step sprint rail (.sprint-rail).
-3. Reviewed anchors, subtopic depth, diagram eligibility and exercise completeness.
+3. Reviewed anchors, subtopic depth, exercise completeness, and diagram audit (eligibility, technical correctness of lifecycle/syscall stages, arrow paths without box/text collisions, consistent geometry/spacing, and valid color semantics).
 4. Roadmap exit artifact/acceptance; distinguish instructions from artifacts
    actually produced by executed labs.
 5. Checks actually run/results, structural errors, study-link report, semantic
