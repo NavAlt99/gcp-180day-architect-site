@@ -49,10 +49,49 @@ def fetch_url(url: str, timeout: float) -> tuple[str, str, bytes]:
         return response.geturl(), response.headers.get("Content-Type", ""), content
 
 
+
+def section_excerpt(document, fragment):
+    """Return a bounded heading/paragraph excerpt, including RFC named anchors."""
+    if not fragment:
+        heading = document.find('h1')
+        return heading.get_text(' ', strip=True)[:300] if heading else ''
+    target = document.find(id=fragment) or document.find('a', attrs={'name': fragment})
+    legacy = target.find_parent('span', class_=re.compile(r'^h[1-6]$')) if target else None
+    if legacy:
+        tail = ''.join(str(x) for x in legacy.next_siblings)
+        paragraph = re.split(r'\n\s*\n', BeautifulSoup(tail, 'html.parser').get_text().strip())[0]
+        return (legacy.get_text(' ', strip=True) + ' ' + ' '.join(paragraph.split()))[:300]
+    heading = target if target and target.name in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6') else None
+    if target and not heading:
+        heading = target.find_parent(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+        if not heading:
+            heading = target.find_next(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+    paragraph = target.find('p') if target and target.name == 'section' else None
+    if heading and not paragraph:
+        for following in heading.find_all_next(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+            if following.name == 'p':
+                paragraph = following
+                break
+            if int(following.name[1]) <= int(heading.name[1]):
+                break
+    return ' '.join(x.get_text(' ', strip=True) for x in (heading, paragraph) if x)[:300]
+
+
+def obsoleted_by(document):
+    # RFC info pages embed the RFC text, which can discuss other RFCs' status.
+    # Read the status metadata pair, never an incidental prose mention.
+    for label in document.find_all(['dt', 'th']):
+        if re.fullmatch(r'Obsoleted by(?:\s*\(\d+\))?\s*:?', label.get_text(' ', strip=True), re.I):
+            value = label.find_next_sibling(['dd', 'td'])
+            numbers = re.findall(r'RFC\s*(\d+)', value.get_text(' ', strip=True), re.I) if value else []
+            return ', '.join('RFC ' + n for n in numbers) or None
+    return None
+
 def check_link(url: str, page: Path, timeout: float = 15, fetch=fetch_url) -> dict:
     result = {"url": url, "status": "unverified", "relevance": "manual review required"}
     try:
         parsed = urlsplit(url)
+        result['link_scope'] = 'fragment-level' if parsed.fragment else 'whole-document'
         if parsed.scheme in ("http", "https"):
             final, content_type, body = fetch(urlunsplit(parsed._replace(fragment="")), timeout)
             result["final_url"] = final
@@ -77,6 +116,23 @@ def check_link(url: str, page: Path, timeout: float = 15, fetch=fetch_url) -> di
                 raise ValueError("Non-HTML fragment requires manual verification")
             if not (soup.find(id=fragment) or soup.find("a", attrs={"name": fragment})):
                 raise ValueError(f"Missing section fragment #{fragment}; dynamic anchors require manual verification")
+        if html:
+            result['excerpt'] = section_excerpt(soup, unquote(parsed.fragment))
+        if parsed.hostname in ('rfc-editor.org', 'www.rfc-editor.org') and re.search(r'/(?:rfc/rfc|info/rfc)\d+', parsed.path):
+            value = obsoleted_by(soup) if html else None
+            if '/rfc/' in parsed.path:
+                number = re.search(r'rfc(\d+)', parsed.path).group(1)
+                info_url = f'https://www.rfc-editor.org/info/rfc{number}'
+                result['rfc_status_url'] = info_url
+                try:
+                    _, status_type, status_body = fetch(info_url, timeout)
+                    if 'html' in status_type.lower():
+                        value = obsoleted_by(BeautifulSoup(status_body, 'html.parser'))
+                        result['rfc_status_note'] = 'Obsoleted by value found' if value else 'No Obsoleted by value found'
+                except Exception as exc:
+                    result['rfc_status_note'] = f'Unverified RFC status: {type(exc).__name__}: {exc}'
+            if value:
+                result['obsoleted_by'] = value
         result["status"] = "pass"
     except Exception as exc:
         result["error"] = f"{type(exc).__name__}: {exc}"
@@ -99,6 +155,14 @@ def main() -> int:
         result["label"] = link["label"]
         results.append(result)
         print(f'{result["status"].upper()}: {link["url"]}', flush=True)
+        if result.get('link_scope') == 'whole-document':
+            print('  whole-document', flush=True)
+        if 'excerpt' in result:
+            print(f"  Excerpt: {result['excerpt']}", flush=True)
+        if result.get('rfc_status_note'):
+            print(f"  RFC status: {result['rfc_status_note']}", flush=True)
+        if result.get('obsoleted_by'):
+            print(f"  Obsoleted by: {result['obsoleted_by']}", flush=True)
         if result.get("error"):
             print(f'  {result["error"]}', flush=True)
         elif result.get("redirected"):

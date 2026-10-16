@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Build script for scratch/day_data_007.py."""
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+
+# Topic 1 Technical Discussion
+TOPIC_01_TECH = '''<p><strong class="side-heading">Subtopics in this discussion:</strong></p>
+<ol>
+<li>Asymmetric key pairs, host keys, and cryptographic handshakes</li>
+<li>SSH client configuration (~/.ssh/config) and connection multiplexing</li>
+<li>Port forwarding: local (-L), remote (-R), and dynamic (-D SOCKS)</li>
+<li>Bastion jump hosts, ProxyJump, and agent forwarding risks</li>
+<li>Cloud identity integration: Compute Engine OS Login and IAP TCP forwarding</li>
+</ol>
+
+<h4>Asymmetric key pairs, host keys, and cryptographic handshakes</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Secure Shell</strong> (SSH) operates over TCP port 22 using public-key cryptography to authenticate servers and clients. During connection initiation, the client and server perform a Diffie-Hellman key exchange to derive a shared session encryption key, protecting all subsequent traffic against eavesdropping and tampering. Host authentication relies on the server's public host key (verified against the client's <code>~/.ssh/known_hosts</code> file), while client authentication uses asymmetric key pairs such as modern Ed25519 (Edwards-curve Digital Signature Algorithm) or RSA (minimum 3072-bit keys). Private keys reside exclusively on the client machine and are protected by local passphrases.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud architects mandate key-based authentication across all environments and strictly disable password-based SSH access (<kbd>PasswordAuthentication no</kbd>) and root login (<kbd>PermitRootLogin no</kbd>) in <code>/etc/ssh/sshd_config</code>. Architects must design automated key rotation policies and monitor for weak legacy ciphers (e.g. DSA, 1024-bit RSA, or SHA-1 hashes) that violate compliance standards like FedRAMP and PCI-DSS.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Compute Engine provides metadata-based SSH key management, automatically injecting authorized public keys into instance <code>~/.ssh/authorized_keys</code> files via the Google Cloud Guest Agent. For enterprise governance, Google Cloud OS Login supersedes instance metadata keys by linking SSH public keys directly to Cloud IAM identities. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) OpenSSH client configuration description (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) HostKeyAlgorithms and IdentityFile (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/ssh-keygen.1.html#DESCRIPTION">ssh-keygen(1) key generation and ed25519 algorithms (accessed 2026-10-04)</a>.</p>
+
+<h4>SSH client configuration (~/.ssh/config) and connection multiplexing</h4>
+<p><strong class="side-heading">What it is in general:</strong> The OpenSSH client reads user configuration parameters from <code>~/.ssh/config</code>, allowing operators to alias long IP addresses and complex connection flags into concise, human-readable host declarations. Configuration directives specify target usernames, custom ports, identity files, and connection behaviors per host pattern. Furthermore, <strong class="keyword">Connection Multiplexing</strong> (<kbd>ControlMaster</kbd> and <kbd>ControlPath</kbd>) allows multiple concurrent SSH sessions to reuse an existing established TCP socket, bypassing repeated cryptographic handshakes and reducing connection setup latency from hundreds of milliseconds to under 10 milliseconds.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Configuration files eliminate error-prone CLI arguments in automated deployment scripts, CI/CD runners, and developer workstations. Enabling connection multiplexing drastically accelerates automated configuration tools like Ansible, which frequently execute dozens of discrete SSH commands against remote target hosts.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> When managing multi-region Google Cloud deployments, architects configure <code>~/.ssh/config</code> stanzas to map Compute Engine internal IP ranges to dedicated bastion hops. The Google Cloud CLI (<kbd>gcloud compute ssh</kbd>) automatically creates and maintains managed SSH config stanzas and ephemeral client keys. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) Host, ControlMaster, and ControlPath (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) ControlPersist and ServerAliveInterval (accessed 2026-10-04)</a>.</p>
+
+<h4>Port forwarding: local (-L), remote (-R), and dynamic (-D SOCKS)</h4>
+<p><strong class="side-heading">What it is in general:</strong> SSH tunneling encapsulates arbitrary TCP traffic inside an encrypted SSH session. <strong class="keyword">Local Port Forwarding</strong> (<kbd>ssh -L [local_port]:[target_host]:[target_port]</kbd>) binds a socket on the client machine and routes traffic through the remote SSH server to an internal destination, enabling secure access to private database servers. <strong class="keyword">Remote Port Forwarding</strong> (<kbd>ssh -R [remote_port]:[target_host]:[target_port]</kbd>) exposes a local service running on the client to users on the remote server network. <strong class="keyword">Dynamic Port Forwarding</strong> (<kbd>ssh -D [local_port]</kbd>) instantiates a local SOCKS5 application-level proxy that routes browser and application traffic dynamically across the remote network.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> SSH port forwarding enables temporary, zero-cost operational access for database migrations, remote debugging, and internal admin dashboards without deploying complex Site-to-Site VPNs or opening cloud firewalls to public IP addresses. However, unchecked remote forwarding introduces shadow perimeter bypass risks.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Cloud architects utilize local port forwarding to connect workstation database client GUIs directly to private Cloud SQL or AlloyDB instances located in isolated VPCs without public IP addresses, routing through an intermediate bastion VM. Primary documentation: <a href="https://man7.org/linux/man-pages/man1/ssh.1.html#DESCRIPTION">ssh(1) OpenSSH client port forwarding options (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) LocalForward, RemoteForward, DynamicForward (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man1/ssh.1.html#DESCRIPTION">ssh(1) TCP tunnel semantics (accessed 2026-10-04)</a>.</p>
+
+<h4>Bastion jump hosts, ProxyJump, and agent forwarding risks</h4>
+<p><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">Bastion Host</strong> (or jump box) is a hardened gateway server positioned at the network perimeter to provide access to internal private subnets. Historically, engineers connected to bastions using SSH agent forwarding (<kbd>ssh -A</kbd>), which forwards the local authentication agent socket to the remote server. However, agent forwarding is dangerous: any user with root privileges on the bastion can hijack the forwarded UNIX domain socket to impersonate the client and authenticate to other private infrastructure. Modern OpenSSH solves this using <strong class="keyword">ProxyJump</strong> (<kbd>ssh -J bastion target</kbd>), which transparently forwards an encrypted TCP stream from the client through the bastion directly to the target VM via <kbd>ProxyCommand</kbd> and <kbd>nc</kbd>, terminating cryptographic authentication strictly between the client and target without exposing credentials on the jump host.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud security standards strictly prohibit SSH agent forwarding on multi-tenant or shared perimeter servers. Architects enforce <kbd>ProxyJump</kbd> configurations across all engineer profiles and disable <kbd>AllowAgentForwarding no</kbd> on bastion servers.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> In Google Cloud, Identity-Aware Proxy (IAP) TCP forwarding provides a serverless alternative to bastion VMs: engineers connect directly to private Compute Engine VMs using <kbd>gcloud compute ssh --tunnel-through-iap</kbd>, encapsulating SSH packets over HTTPS (port 443) governed by IAM roles (<kbd>roles/iap.tunnelResourceAccessor</kbd>) with zero public IP addresses required. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) ProxyJump and ProxyCommand (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/sshd_config.5.html#DESCRIPTION">sshd_config(5) AllowAgentForwarding and PermitOpen (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) ProxyJump syntax (accessed 2026-10-04)</a>.</p>
+
+<h4>Cloud identity integration: Compute Engine OS Login and IAP TCP forwarding</h4>
+<p><strong class="side-heading">What it is in general:</strong> Enterprise cloud environments replace distributed local SSH key files with centralized IAM identity lifecycle management. <strong class="keyword">OS Login</strong> binds Linux POSIX user accounts, UIDs, GIDs, and authorized SSH keys directly to corporate Google Cloud IAM identities. When an engineer authenticates, Pluggable Authentication Modules (PAM) and Name Service Switch (NSS) daemons on the Linux VM query Google Cloud directory APIs to verify authorization in real time, granting administrative sudo permissions based on IAM roles.</p>
+<p><strong class="side-heading">Relevance to a cloud architect:</strong> Managing public keys in instance metadata or local files creates significant operational debt and audit vulnerabilities: when an employee leaves the company, manually revoking keys across thousands of VMs is impossible. OS Login guarantees instantaneous access revocation across all virtual machines upon IAM role de-provisioning.</p>
+<p><strong class="side-heading">Relevance to GCP:</strong> Architects enforce OS Login organization-wide via the Organization Policy constraint <kbd>compute.requireOsLogin</kbd>. Users with <kbd>roles/compute.osLogin</kbd> receive standard unprivileged shells, while <kbd>roles/compute.osAdminLogin</kbd> grants passwordless sudo. Combining OS Login with IAP TCP forwarding provides a zero-trust administrative boundary with complete Cloud Audit Logging. Primary documentation: <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) OpenSSH client identity configuration (accessed 2026-10-04)</a>.</p>
+<p><strong class="side-heading">Further study:</strong> <a href="https://man7.org/linux/man-pages/man5/ssh_config.5.html#DESCRIPTION">ssh_config(5) UserKnownHostsFile and StrictHostKeyChecking (accessed 2026-10-04)</a>; <a href="https://man7.org/linux/man-pages/man8/sshd.8.html#DESCRIPTION">sshd(8) OpenSSH daemon PAM configuration (accessed 2026-10-04)</a>.</p>
+
+<table><caption>SSH authentication and boundary mechanisms</caption>
+<thead><tr><th>Mechanism</th><th>Credential Location</th><th>Perimeter Boundary</th><th>Failure Mode</th></tr></thead>
+<tbody>
+<tr><td>Metadata SSH Keys</td><td>Local authorized_keys file</td><td>Public IP or Bastion VM</td><td>Key sprawl; no centralized revocation.</td></tr>
+<tr><td>Agent Forwarding (-A)</td><td>Client memory; socket on bastion</td><td>Shared Bastion Host</td><td>Root on bastion can hijack agent socket.</td></tr>
+<tr><td>ProxyJump (-J)</td><td>Client workstation only</td><td>Transport stream via bastion</td><td>Bastion compromised cannot forge client auth.</td></tr>
+<tr><td>Cloud OS Login + IAP</td><td>Cloud IAM &amp; Workspace directory</td><td>Google Front End (HTTPS 443)</td><td>Token expiry or IAM revoke drops access instantly.</td></tr>
+</tbody></table>
+
+{FIG_7_1_HTML}
+
+<p><strong class="side-heading">Concrete example:</strong> An infrastructure engineer attempts to connect to a private database VM at internal IP <code>10.128.0.5</code>. The VPC has no external IP addresses or VPN. The engineer defines a configuration block in <code>~/.ssh/config</code>:
+<pre><code>Host db-internal
+  HostName 10.128.0.5
+  User devops
+  IdentityFile ~/.ssh/id_ed25519
+  ProxyJump bastion.example.com</code></pre>
+When executing <kbd>ssh db-internal</kbd>, OpenSSH connects to <code>bastion.example.com</code>, issues an internal TCP forward request for <code>10.128.0.5:22</code>, and immediately conducts the end-to-end cryptographic handshake directly with the target database VM. The bastion processes only opaque encrypted TCP packets, preserving client credential confidentiality.</p>
+<p><strong class="side-heading">Evidence limit:</strong> A successful SSH connection verifies cryptographic handshake completion, client key validity, and network reachability over port 22; it provides no evidence of application database health, data filesystem integrity, or authorized database-level query permissions.</p>'''
+
+print("Topic 1 tech defined.")

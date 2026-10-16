@@ -388,6 +388,123 @@ def authored_card(day: int, part: int, index: int, topic: dict) -> str:
     return f'<article id="{key}-{label}" class="topic-card"><h3>{esc(title)}</h3>{md(content)}</article>'
 
 
+BLOCK_LABELS = {
+    "Foundations": "FOUNDATION SPRINT",
+    "Cloud environment and identity": "ENVIRONMENT SPRINT",
+    "Core services and integrated practice": "CORE SERVICES SPRINT",
+    "Requirements, migration and architecture": "ARCHITECTURE SPRINT",
+    "Reliability and security": "RELIABILITY & SECURITY",
+    "Performance, delivery and operations": "OPERATIONS SPRINT",
+    "Data, AI and distributed correctness": "DATA & AI SPRINT",
+    "Discovery, cases and exam preparation": "EXAM & CASES SPRINT",
+    "Multi-team architecture and synthesis": "SYNTHESIS SPRINT",
+    "Final gate and capstone defenses": "CAPSTONE SPRINT",
+    "Final review and rest": "FINAL REVIEW",
+}
+
+SHORT_TITLES = {
+    # Block 1: Foundations (1-17)
+    1: "Local baseline", 2: "IP paths", 3: "DNS & transport", 4: "TLS & routing",
+    5: "VPN & firewalls", 6: "Linux runtime", 7: "Operate safely", 8: "Diagnose signals",
+    9: "Isolation", 10: "Containers", 11: "Service models", 12: "Regions & scaling",
+    13: "State & recovery", 14: "Git, APIs, JSON", 15: "Small app styles", 16: "SQL foundations",
+    17: "Gate 1 Recall",
+
+    # Block 2: Cloud environment and identity (18-35)
+    18: "Sandbox & costs", 19: "CLI & identity", 20: "APIs & emulators", 21: "Resource hierarchy",
+    22: "Labels & tags", 23: "Org policies", 24: "Workforce identity", 25: "Roles & IAM",
+    26: "Tokens & impersonation", 27: "Billing & budgets", 28: "Cost attribution", 29: "Exports & quota",
+    30: "Region decisions", 31: "Network tiers", 32: "Support & inventory", 33: "Lifecycle policies",
+    34: "Controlled op", 35: "Gate 2 Readiness",
+
+    # Block 3: Core services and integrated practice (36-67)
+    36: "VM sizing", 37: "Disks & metadata", 38: "MIGs & scaling", 39: "Autohealing",
+    40: "Spot & VM access", 41: "VM diagnosis", 42: "GKE architecture", 43: "GKE scheduling",
+    44: "GKE networking", 45: "GKE secrets & failure", 46: "GKE fleet & mesh", 47: "Cloud Run",
+    48: "Workflows & runtime", 49: "VPC design", 50: "Firewalls & private API", 51: "Peering, PSC, NAT",
+    52: "DNS & hybrid transit", 53: "Load balancing", 54: "Health & draining", 55: "CDN & WAF",
+    56: "Hybrid topology", 57: "BGP & MTU", 58: "Object storage", 59: "Transfers & restore",
+    60: "Filesystems & backup", 61: "Relational DBs", 62: "Distributed DBs", 63: "Caching & CDC",
+    64: "Messaging & outbox", 65: "Order service", 66: "Baseline recovery", 67: "Gate 3 Core App",
+
+    # Block 4: Requirements, migration and architecture (68-82)
+    68: "Observed requirements", 69: "Stakeholder trade-offs", 70: "Well-Architected", 71: "Performance & carbon",
+    72: "App patterns", 73: "Data & hybrid patterns", 74: "Regional & tenant", 75: "Migration assessment",
+    76: "Migration rehearsal", 77: "Migration waves", 78: "Decision matrices", 79: "ADRs & risks",
+    80: "Architecture diagrams", 81: "Architecture defense", 82: "Gate 4 Design",
+
+    # Block 5: Reliability and security (83-118)
+    83: "Availability math", 84: "Failure domains", 85: "Retries & timeouts", 86: "SLIs, SLOs & error budgets",
+    87: "Incidents & toil", 88: "Infra availability", 89: "Messaging & health", 90: "Recovery targets",
+    91: "Backups & replication", 92: "Failover planning", 93: "Metrics & burn rates", 94: "Logs & tracing",
+    95: "Observability & audit", 96: "Failure experiments", 97: "Overload drill", 98: "Failover acceptance",
+    99: "Advanced IAM", 100: "Workload federation", 101: "Workforce federation", 102: "Privileged access",
+    103: "Network defense", 104: "Data perimeters", 105: "Certificates & mTLS", 106: "Key lifecycle",
+    107: "Secrets & DLP", 108: "Residency & access", 109: "Compliance evidence", 110: "Policy as code",
+    111: "Regulated workloads", 112: "Threat detection", 113: "Incident response", 114: "Artifact integrity",
+    115: "Pipeline hardening", 116: "Private access & KMS", 117: "Security handover", 118: "Gate 5 Reliability",
+
+    # Block 6: Performance, delivery and operations (119-133)
+    119: "Cost baseline", 120: "Storage & network costs", 121: "Runtime cost drivers", 122: "Unit economics",
+    123: "Caching under load", 124: "DB & I/O bottlenecks", 125: "Profiling & capacity", 126: "Terraform baseline",
+    127: "Terraform testing", 128: "Build & deploy CI/CD", 129: "Rollback & delivery", 130: "Service catalog",
+    131: "Lifecycle governance", 132: "Platform outcomes", 133: "Ops remediation",
+
+    # Block 7: Data, AI and distributed correctness (134-145)
+    134: "Warehouse & query cost", 135: "Warehouse security", 136: "Batch vs streaming", 137: "Streaming & CDC",
+    138: "Lakehouse & tables", 139: "Lineage & contracts", 140: "ML lifecycle", 141: "Grounded QA flow",
+    142: "Enterprise agents", 143: "AI security & eval", 144: "AI serving infra", 145: "Distributed state",
+
+    # Block 8: Discovery, cases and exam preparation (146-164)
+    146: "Case discovery", 147: "Numeric requirements", 148: "Conflict mapping", 149: "Business & recovery",
+    150: "Data & regulation", 151: "Budget & risks", 152: "EHR constraints", 153: "EHR defense",
+    154: "Altostrat reqs", 155: "Altostrat defense", 156: "Cymbal Retail reqs", 157: "Cymbal defense",
+    158: "KnightMotives reqs", 159: "KnightMotives defense", 160: "Case synthesis", 161: "Constraint changes",
+    162: "Exam domain mapping", 163: "Timed reasoning", 164: "Readiness repairs",
+
+    # Block 9: Multi-team architecture and synthesis (165-173)
+    165: "Landing zones", 166: "Cross-team identity", 167: "API contracts", 168: "Sustainability ops",
+    169: "Capacity allocation", 170: "Compute & DB decisions", 171: "Network decisions", 172: "Storage & limits",
+    173: "Customer handover",
+
+    # Block 10: Final gate and capstone defenses (174-179)
+    174: "Gate 6 Readiness", 175: "Capstone 1 Landing Zone", 176: "Capstone 2 Regulated",
+    177: "Capstone 3 Global App", 178: "Capstone 4 Migration", 179: "Capstone 5 Cost Rescue",
+
+    # Block 11: Final review and rest (180)
+    180: "Final Review & Rest",
+}
+
+
+def render_sprint_rail(current_day: dict, days_list: list[dict]) -> str:
+    current_num = current_day["number"]
+    block_name = current_day["block"]
+    block_label = BLOCK_LABELS.get(block_name, "SPRINT")
+    block_days = [d for d in days_list if d["block"] == block_name]
+
+    aria_label = (
+        "Foundation sequence"
+        if block_name == "Foundations"
+        else f"{block_name} sequence"
+    )
+    rail_class = (
+        "sprint-rail foundation-rail"
+        if block_name == "Foundations"
+        else "sprint-rail"
+    )
+
+    steps = []
+    for d in block_days:
+        num = d["number"]
+        short = SHORT_TITLES.get(num, d["title"][:20])
+        is_curr = " is-current" if num == current_num else ""
+        step_html = f'<a class="rail-step{is_curr}" href="day-{num:03d}.html">{num:02d}<small>{esc(short)}</small></a>'
+        steps.append(step_html)
+
+    steps_str = "".join(steps)
+    return f'<nav aria-label="{esc(aria_label)}" class="{rail_class}"><span class="rail-label">{esc(block_label)}</span>{steps_str}</nav>'
+
+
 def render_day(day: dict, days: list[dict], refs: dict) -> str:
     n = day["number"]
     prev = days[n-2] if n > 1 else None
@@ -464,7 +581,8 @@ def render_day(day: dict, days: list[dict], refs: dict) -> str:
     if nxt:
         pager += f'<a href="day-{n+1:03d}.html">Day {n+1} →<small>{esc(nxt["title"])}</small></a>'
     pager += '</nav><p class="shortcut">Keyboard: P or [ previous · N or ] next · I index</p>'
-    body = f'<main id="main" class="container day" data-day="{n}" data-prev="{"day-%03d.html"%(n-1) if prev else ""}" data-next="{"day-%03d.html"%(n+1) if nxt else ""}" data-index="../index.html">{crumb}{intro}{toc}{part(1,"Topics of the day",p1)}{part(2,"Technical discussion of each topic",p2)}{part(3,"Real-world problem and solution for each topic",p3)}{part(4,"Step-by-step labs for each topic",p4)}{after}{pager}</main>'
+    rail = render_sprint_rail(day, days)
+    body = f'<main id="main" class="container day" data-day="{n}" data-prev="{"day-%03d.html"%(n-1) if prev else ""}" data-next="{"day-%03d.html"%(n+1) if nxt else ""}" data-index="../index.html">{crumb}{intro}{rail}{toc}{part(1,"Topics of the day",p1)}{part(2,"Technical discussion of each topic",p2)}{part(3,"Real-world problem and solution for each topic",p3)}{part(4,"Step-by-step labs for each topic",p4)}{after}{pager}</main>'
     return article_shell(f'Day {n}: {day["title"]}', body, day=day, days=days), manifest
 
 
