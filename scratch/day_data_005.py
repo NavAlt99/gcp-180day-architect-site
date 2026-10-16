@@ -19,38 +19,109 @@ SOURCES = {
 
 TOPIC_01_TECH = '''<p><strong class="side-heading">Subtopics in this discussion:</strong></p>
 <ol>
-<li>IPsec architecture, encapsulation modes, and crypto transformations</li>
-<li>IKEv2 negotiation, security associations, and dead peer detection</li>
-<li>Site-to-site VPN versus remote-access client VPN architectures</li>
-<li>BGP dynamic routing, static policy-based routes, and return path symmetry</li>
-<li>Path MTU, TCP MSS clamping, and fragmentation overhead</li>
+<li><a href="#topic-01-subtopic-1">IPsec architecture, encapsulation modes, crypto transformations, and anti-replay protection</a></li>
+<li><a href="#topic-01-subtopic-2">IKEv2 versus IPsec: control plane vs data plane, security associations, and dead peer detection</a></li>
+<li><a href="#topic-01-subtopic-3">Site-to-site VPN, remote-access client VPN, and Private DC to Cloud firewall ACLs</a></li>
+<li><a href="#topic-01-subtopic-4">BGP dynamic routing in internet routing and modern Leaf-Spine data centers (underlay ECMP and MP-BGP EVPN overlay)</a></li>
+<li><a href="#topic-01-subtopic-5">Path MTU, TCP MSS clamping, and fragmentation overhead</a></li>
 </ol>
 
-<h4>IPsec architecture, encapsulation modes, and crypto transformations</h4>
-<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">IPsec</strong> (Internet Protocol Security) is an open-standard suite of cryptographic protocols operating at Layer 3 (Network Layer) that provides data confidentiality, integrity, origin authentication, and anti-replay protection. In <strong class="keyword">Tunnel Mode</strong>, the original IP packet (payload plus inner header) is completely encapsulated within a new outer IP header and protected by the <strong class="keyword">Encapsulating Security Payload</strong> (ESP) protocol (IP protocol 50). In contrast, Transport Mode only encrypts the transport-layer payload, leaving original IP headers exposed. For example, when host <code>10.20.1.5</code> contacts <code>10.50.4.8</code> across the public internet, the transit routers see only outer gateway IP headers (e.g. <code>198.51.100.1</code> to <code>203.0.113.1</code>) and encrypted ESP payloads.</p>
+<h4 id="topic-01-subtopic-1">IPsec architecture, encapsulation modes, crypto transformations, and anti-replay protection</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">IPsec</strong> (Internet Protocol Security, RFC 4301) is an open-standard suite of cryptographic protocols operating at Layer 3 (Network Layer) that provides data confidentiality, integrity, origin authentication, and anti-replay protection. In <strong class="keyword">Tunnel Mode</strong>, the original IP packet (payload plus inner header) is completely encapsulated within a new outer IP header and protected by the <strong class="keyword">Encapsulating Security Payload</strong> (ESP) protocol (IP protocol 50). In contrast, Transport Mode only encrypts the transport-layer payload, leaving original IP headers exposed. For example, when host <code>10.20.1.5</code> contacts <code>10.50.4.8</code> across the public internet, transit routers see only outer gateway IP headers (e.g. <code>198.51.100.1</code> to <code>203.0.113.1</code>) and encrypted ESP payloads.</p>
+<p><strong class="side-heading">Anti-Replay Protection deep dive:</strong> In an untrusted public transit network, an active adversary can passively capture legitimate encrypted IPsec packets and re-inject them later to duplicate financial transactions, repeat control commands, or force state desynchronization, even without possessing the encryption keys. IPsec ESP (RFC 4303) prevents this via <strong class="keyword">anti-replay protection</strong>:</p>
+<ul>
+<li><strong>Monotonic Sequence Numbers:</strong> The sending gateway assigns a strictly increasing 32-bit sequence number (or 64-bit Extended Sequence Number / ESN, RFC 4304) to each ESP packet header. The sequence starts at 1 upon Child SA establishment and never resets or wraps around for that SA. Standard 32-bit counters exhaust after 4,294,967,295 packets; at line rates of 250,000 pps (common on Cloud VPN) or 10 Gbps interconnects, 32 bits wrap in under 5 hours, forcing early rekeying. 64-bit ESN avoids counter exhaustion while transmitting only the lower 32 bits on the wire to eliminate transmission overhead.</li>
+<li><strong>Receiver Sliding Verification Window:</strong> The receiving gateway maintains a sliding window of size <em>W</em> (typically 64 or 128 packets) where <em>M</em> is the highest authenticated sequence number received. When an ESP packet arrives:
+<ol>
+<li>If sequence number &gt; <em>M</em>: The packet is authenticated. If valid, <em>M</em> advances to this new sequence, the window slides forward, and the sequence bit is marked in the bitmask.</li>
+<li>If sequence number is between (<em>M</em> - <em>W</em> + 1) and <em>M</em>: If the bitmask indicates it was already received, the packet is an illegal duplicate and is <em>silently dropped</em>. If unreceived, it represents benign out-of-order transit arrival; it is authenticated, decrypted, and marked in the bitmask.</li>
+<li>If sequence number &le; (<em>M</em> - <em>W</em>): The packet falls to the left of the sliding window (stale / expired) and is silently dropped without cryptographic processing.</li>
+</ol>
+</li>
+<li><strong>Architectural Efficacy:</strong> Anti-replay protection defeats packet injection and replay attacks at wire speed with zero per-packet asymmetric cryptographic overhead.</li>
+</ul>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Architects rely on IPsec tunnel mode to build private site-to-site network interconnects across untrusted public networks without exposing internal RFC 1918 addressing to public internet routing tables. However, IPsec incurs cryptographic processing overhead, adds 50 to 73 bytes of encapsulation headers per packet, and demands careful cipher suite selection (e.g., choosing authenticated encryption such as AES-GCM-128 or AES-GCM-256 over older AES-CBC with HMAC-SHA-256) to optimize throughput and comply with security mandates.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPN encrypts all traffic using IPsec ESP with pre-shared keys or certificates. Cloud VPN supports both HA VPN and Classic VPN, enforcing tunnel-mode encapsulation. Each Cloud VPN tunnel can process up to 250,000 packets per second or up to 3 Gbps egress/ingress depending on packet size. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn">Google Cloud HA VPN overview (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://www.rfc-editor.org/rfc/rfc4301#section-5.1.2">RFC 4301 §5.1.2 Header Construction for Tunnel Mode (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ipsec_and_ike_support">Google Cloud IPsec and IKE support (accessed 2026-10-04)</a>.</p>
 
-<h4>IKEv2 negotiation, security associations, and dead peer detection</h4>
-<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">IKEv2</strong> (Internet Key Exchange Protocol Version 2, RFC 7296) is the control-plane signaling protocol that authenticates peers, negotiates cryptographic algorithms, and establishes ephemeral session keys. Negotiation proceeds in two phases: the <em>IKE SA</em> (Phase 1) authenticates the gateways and secures the control channel via UDP port 500 (or UDP port 4500 when NAT-Traversal is detected); the <em>Child SA</em> (Phase 2) establishes the unidirectional ESP Security Associations used to encrypt and authenticate data traffic. <strong class="keyword">Dead Peer Detection</strong> (DPD) sends periodic informational probe exchanges to detect peer gateway unavailability within seconds.</p>
+<h4 id="topic-01-subtopic-2">IKEv2 versus IPsec: control plane vs data plane, security associations, and dead peer detection</h4>
+<p><strong class="side-heading">What it is in general:</strong> IPsec and IKEv2 are frequently conflated, but they are strictly <em>complementary, cooperating protocol layers</em> rather than separate alternatives. A secure VPN architecture requires both:</p>
+<ul>
+<li><strong>IKEv2 as the Control Plane (RFC 7296):</strong> Internet Key Exchange Protocol Version 2 is the signaling and key-management protocol operating over UDP port 500 (or UDP port 4500 when NAT-Traversal is detected). It performs:
+<ol>
+<li>Mutual entity authentication using pre-shared keys (PSK) or digital certificates.</li>
+<li>Ephemeral Diffie-Hellman key exchange (e.g. DH Groups 14, 19, or 20) to compute master secrets with Perfect Forward Secrecy (PFS).</li>
+<li>Establishment of the bidirectional IKE Security Association (IKE SA, Phase 1) to protect control-plane signaling.</li>
+<li>Negotiation of unidirectional Child Security Associations (Child SA, Phase 2) defining encryption algorithms, integrity ciphers, and traffic selectors for user payload data.</li>
+<li>Periodic automatic rekeying (e.g. every 8 hours for IKE SA, every 3 hours for Child SA) and session teardown.</li>
+</ol>
+</li>
+<li><strong>IPsec ESP as the Data Plane (RFC 4303):</strong> Encapsulating Security Payload (IP protocol 50) is the high-performance data plane protocol. It does <em>not</em> authenticate peers out-of-band or negotiate keys; instead, it uses the symmetric keys derived by IKEv2 to perform packet encryption (AES-GCM or AES-CBC), integrity authentication tags (ICV), anti-replay sequence checking, and packet forwarding at line rate across unidirectional Security Associations identified by the Security Parameter Index (SPI).</li>
+<li><strong>Dead Peer Detection (DPD):</strong> IKEv2 sends periodic informational probe exchanges to detect peer gateway unavailability within seconds, tearing down inactive SAs and facilitating rapid failover.</li>
+</ul>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Tunnel uptime metrics often mislead: an established Phase 1 IKE SA only proves that gateways can authenticate each other. If Phase 2 Child SA proposals mismatch (such as mismatched Diffie-Hellman groups or traffic selectors), data encryption fails entirely. Furthermore, aggressive DPD timers detect gateway failures rapidly to trigger failover, but uncalibrated timers across high-jitter WAN links cause spurious tunnel renegotiation and dropped sessions.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Cloud VPN strongly recommends IKEv2 for faster rekeying, improved reliability, and support for dynamic route renegotiation. Google Cloud HA VPN enforces IKEv2 exclusively, requiring BGP peering across Cloud Router, whereas legacy Classic VPN supported IKEv1 with static routing. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ike-and-dpd">Google Cloud IKE and Dead Peer Detection (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://www.rfc-editor.org/rfc/rfc7296#section-1.2">RFC 7296 §1.2 IKEv2 Initial Exchanges (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn">Google Cloud HA VPN specifications (accessed 2026-10-04)</a>.</p>
 
-<h4>Site-to-site VPN versus remote-access client VPN architectures</h4>
+<h4 id="topic-01-subtopic-3">Site-to-site VPN, remote-access client VPN, and Private DC to Cloud firewall ACLs</h4>
 <p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Site-to-site VPN</strong> connects two persistent, dedicated network gateways (such as an on-premises enterprise data center router and a cloud VPC gateway), interconnecting entire routed IP subnet ranges so that endpoints communicate transparently without local agent software. In contrast, <strong class="keyword">Client VPN</strong> (remote-access VPN) connects individual roaming user devices running software clients (e.g. OpenVPN, WireGuard, or IPsec client) to a central gateway, dynamically assigning individual virtual IP addresses to each user.</p>
+<p><strong class="side-heading">Private DC to Public Cloud connectivity via Firewall ACLs:</strong> Establishing a site-to-site VPN between a private enterprise data center (DC) and Google Cloud requires strict multi-tier firewall Access Control Lists (ACLs):</p>
+<ul>
+<li><strong>Edge Perimeter Firewall ACLs:</strong> Enterprise edge firewalls facing the public internet must allow outer encapsulation traffic between the on-premises border gateway public IP and the Google Cloud HA VPN gateway public IP interfaces:
+<ul>
+<li>ALLOW Ingress/Egress UDP port 500 (IKE control-plane signaling).</li>
+<li>ALLOW Ingress/Egress UDP port 4500 (NAT-Traversal IKE and ESP encapsulation if intermediate NAT exists).</li>
+<li>ALLOW Ingress/Egress IP protocol 50 (ESP encrypted payload transit).</li>
+</ul>
+</li>
+<li><strong>Internal Data Center Firewall ACLs (Virtual Tunnel Interface):</strong> Once the edge gateway decrypts ESP packets and places inner traffic on the Virtual Tunnel Interface (VTI):
+<ul>
+<li>Ingress ACLs permit private RFC 1918 traffic from the cloud VPC CIDR (e.g. <code>10.20.0.0/16</code>) to reach authorized on-premises servers (such as internal PostgreSQL on TCP 5432 at <code>10.50.4.8</code>), while blocking unauthorized subnets.</li>
+<li>Egress ACLs permit on-premises applications to initiate connections to cloud VPC service endpoints.</li>
+</ul>
+</li>
+<li><strong>Private Access to Public Cloud Resources (Google APIs):</strong> Enterprise security policies frequently prohibit on-premises servers from traversing the public internet to reach Google public cloud services (Cloud Storage, BigQuery, Pub/Sub, Vertex AI). Architects implement private access across the VPN tunnel without internet traversal:
+<ul>
+<li><em>Private Google Access across Cloud VPN:</em> On-premises DNS forwards queries for <code>*.googleapis.com</code> to CNAME <code>private.googleapis.com</code> (VIP <code>199.36.153.8/30</code>) or <code>restricted.googleapis.com</code> (VIP <code>199.36.153.4/30</code> for VPC Service Controls perimeter enforcement). Internal DC firewall ACLs allow TCP port 443 to these VIPs across the tunnel, with Cloud Router advertising the VIP ranges via BGP.</li>
+<li><em>Private Service Connect (PSC) Endpoints:</em> Workloads target an internal RFC 1918 IP address (e.g. <code>10.20.100.5</code>) allocated directly inside the VPC subnet. Internal DC firewall ACLs simply permit outbound TCP 443 to that internal RFC 1918 IP across the tunnel, keeping all Google API traffic fully internal.</li>
+</ul>
+</li>
+</ul>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Site-to-site VPN treats the cloud as an extension of the enterprise private WAN, placing trust at the network boundary and demanding robust perimeter firewalls and subnet routing designs. Client VPN enforces identity at the individual device level, often integrating with corporate Identity Providers (IdP) and multi-factor authentication (MFA). Cloud architects avoid client VPN for high-throughput service-to-service automation due to agent management friction, bandwidth limits per tunnel, and poor connection lifecycle predictability.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud provides native managed Site-to-Site VPN through Cloud VPN (HA VPN with two gateway interfaces providing 99.99% service availability). Google Cloud does not provide a multi-tenant managed Client VPN service; instead, architects implement Google Cloud Identity-Aware Proxy (IAP) for zero-trust application access, or host self-managed virtual appliances (e.g. OpenVPN Access Server) on Compute Engine when legacy client VPN tunnels are mandated. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn">Google Cloud VPN topologies and HA architecture (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/topologies#ha-configurations">Google Cloud HA VPN topologies guide (accessed 2026-10-04)</a>; <a href="https://www.rfc-editor.org/rfc/rfc4301#section-5.1.2">RFC 4301 §5.1.2 IPsec architecture (accessed 2026-10-04)</a>.</p>
 
-<h4>BGP dynamic routing, static policy-based routes, and return path symmetry</h4>
-<p><strong class="side-heading">What it is in general:</strong> For traffic to traverse an IPsec tunnel, both the local and remote networks must install routes directing traffic for the remote subnet into the tunnel interface. In <strong class="keyword">Policy-based VPN</strong>, IPsec traffic selectors define exact subnet pairs, and matching packets trigger encryption. In <strong class="keyword">Route-based VPN</strong> with <strong class="keyword">BGP</strong> (Border Gateway Protocol), a virtual tunnel interface (VTI) routes packets based on standard routing table entries, dynamically exchanging reachability information with peers over TCP port 179.</p>
+<h4 id="topic-01-subtopic-4">BGP dynamic routing in internet routing and modern Leaf-Spine data centers (underlay ECMP and MP-BGP EVPN overlay)</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Border Gateway Protocol</strong> (BGP-4, RFC 4271) is the standard exterior routing protocol of the internet. It functions as a path-vector routing protocol that manages reachability information and directs data packets along optimal paths across independent networks called <strong class="keyword">Autonomous Systems</strong> (AS).</p>
+<p><strong class="side-heading">General Role of BGP in Networking:</strong> <strong class="keyword">BGP</strong> coordinates routing policy globally:</p>
+<ul>
+<li><strong>Path-Vector Routing:</strong> Instead of routing based strictly on hop count or link speed, BGP tracks the complete sequence of Autonomous Systems (the <code>AS-Path</code> attribute) traversed by a route. A receiving BGP router immediately discards any route advertisement containing its own ASN in the AS-Path, guaranteeing loop prevention.</li>
+<li><strong>Inter-Domain Routing:</strong> Major network operators—Internet Service Providers (ISPs), tech hyperscalers, telecommunication backbones, and enterprise networks—use BGP to peer, exchange reachability information (Network Layer Reachability Information / NLRI) over TCP port 179, and connect global infrastructure.</li>
+<li><strong>Policy-Based Control:</strong> Network administrators leverage rich BGP path attributes (such as <code>Local Preference</code>, <code>AS-Path</code> prepending, <code>Multi-Exit Discriminator (MED)</code>, and <code>BGP Communities</code>) to enforce commercial peering agreements, steer inbound and outbound traffic, and prefer dependable paths over raw distance.</li>
+<li><strong>Global Scalability &amp; Resiliency:</strong> BGP scales to manage over 900,000+ Internet IPv4 routing table prefixes using incremental updates and route dampening, preventing localized flaps from cascading globally.</li>
+</ul>
+<p><strong class="side-heading">Importance of BGP in Modern Data Centers (DC):</strong> Data centers have transitioned from legacy three-tier hierarchies (Core/Aggregation/Access) to two-tier Clos / Leaf-Spine physical fabrics powered by BGP:</p>
+<ol>
+<li><strong>Physical Network (Underlay):</strong>
+<ul>
+<li><em>East-West Scalability:</em> Modern distributed microservices generate overwhelming horizontal server-to-server (East-West) traffic. Traditional link-state interior gateway protocols (OSPF, IS-IS) flood Link State Advertisements (LSAs) on every link transition; in massive data center fabrics with thousands of links, this flooding causes route flapping and CPU exhaustion. BGP isolates updates hop-by-hop without broadcast flooding.</li>
+<li><em>Equal-Cost Multi-Path (ECMP):</em> Every leaf switch connects to every spine switch. BGP leverages ECMP across all spine uplinks, spraying packet flows evenly across dozens of parallel links to maximize bisectional bandwidth and eliminate congestion bottlenecks.</li>
+<li><em>Simplicity and Standardization (RFC 7938):</em> eBGP underlay designs assign unique ASNs to each Top-of-Rack (ToR) leaf switch or reuse ASNs with standard AS-path loop controls, providing predictable, standardized convergence.</li>
+</ul>
+</li>
+<li><strong>Virtualization and Multi-Tenancy (Overlay):</strong>
+<ul>
+<li><em>VXLAN with MP-BGP EVPN (RFC 7432 / RFC 8365):</em> Multi-Protocol BGP Ethernet VPN provides the control plane for Virtual Extensible LAN (VXLAN) encapsulation. EVPN explicitly advertises MAC addresses and IP prefixes (EVPN Route Type 2 MAC/IP and Route Type 5 IP prefix routes) via BGP signaling, eliminating the inefficient flood-and-learn broadcast discovery of legacy networks.</li>
+<li><em>Workload Mobility:</em> Virtual machines and container pods can live-migrate across racks and data center pods without renumbering IP addresses, with MP-BGP immediately updating reachability.</li>
+<li><em>Complete Elimination of STP Loops:</em> Legacy Spanning Tree Protocol (STP) blocked redundant physical links to prevent broadcast loops, wasting 50% or more of fabric capacity. BGP leaf-spine fabrics keep all physical links active (100% active-active) while EVPN overlays enforce tenant isolation.</li>
+</ul>
+</li>
+</ol>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> IP routing is hop-by-hop and inherently independent in each direction. A common production failure is <em>asymmetric routing failure</em>: the forward packet reaches the remote host via the VPN tunnel, but the remote host or gateway lacks a route for the source subnet pointing back into the tunnel, attempting instead to route return packets out to the public internet or default gateway where they are dropped. BGP dynamic routing automatically advertises subnets, handles link failover, and prevents route desynchronization.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud HA VPN requires Cloud Router and BGP dynamic routing. When a new subnet is created in the VPC, Cloud Router automatically advertises the new CIDR to the on-premises peer over BGP without requiring manual static route updates or tunnel recreation. Static route-based and policy-based VPNs are restricted to legacy Classic VPN. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn">Cloud VPN HA requirements and Cloud Router integration (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://www.rfc-editor.org/rfc/rfc4271#section-3">RFC 4271 §3 BGP concepts and operations (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn-stack-types">Google Cloud HA VPN stack types and BGP sessions (accessed 2026-10-04)</a>.</p>
 
-<h4>Path MTU, TCP MSS clamping, and fragmentation overhead</h4>
+<h4 id="topic-01-subtopic-5">Path MTU, TCP MSS clamping, and fragmentation overhead</h4>
 <p><strong class="side-heading">What it is in general:</strong> The standard Ethernet <strong class="keyword">Maximum Transmission Unit</strong> (MTU) is 1500 bytes. When IPsec encapsulates a packet in tunnel mode, outer IPv4 headers (20 bytes), ESP headers (8 bytes), Initialization Vectors (8–16 bytes), ESP padding and trailer (2–18 bytes), and ICV authentication tags (16 bytes) consume up to 50–73 bytes of overhead. If an inner TCP packet of 1460 bytes is encapsulated, the resulting packet exceeds the physical 1500-byte WAN MTU. If intermediate routers drop packets with the Don't Fragment (DF) bit set without returning ICMP Type 3 Code 4 ("Fragmentation Needed"), a "black hole" occurs. <strong class="keyword">TCP MSS Clamping</strong> dynamically rewrites the Maximum Segment Size option in TCP SYN packets so hosts negotiate smaller segment sizes.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Path MTU issues manifest insidiously: interactive SSH logins and small ping packets succeed, but bulk file transfers or database query result sets freeze mid-transmission. Cloud architects enforce TCP MSS clamping at VPN gateway boundaries to limit TCP segments to 1400 or 1460 bytes, preventing packet fragmentation and silent drop across intermediate carrier paths.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPC virtual networks support MTU values of 1460 or 1500 (and jumbo frames up to 8896). Cloud VPN gateways default to an MTU of 1460 bytes to accommodate IPsec ESP overhead without fragmentation. GCP automatically enforces MSS clamping on Cloud VPN interfaces to prevent MTU black holes. Primary documentation: <a href="https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#specifications">Google Cloud VPN specifications and MTU (accessed 2026-10-04)</a>.</p>
@@ -72,38 +143,58 @@ TOPIC_01_TECH = '''<p><strong class="side-heading">Subtopics in this discussion:
 
 TOPIC_02_TECH = '''<p><strong class="side-heading">Subtopics in this discussion:</strong></p>
 <ol>
-<li>Layer 4 transport versus Layer 7 application load balancing</li>
-<li>Health check state machines, probe types, and threshold evaluation</li>
-<li>Session affinity mechanisms, hashing, and stateful routing trade-offs</li>
-<li>Proxy-based architecture versus Maglev-style direct server return</li>
-<li>Capacity management, traffic shedding, and connection draining</li>
+<li><a href="#topic-02-subtopic-1">Layer 4 transport (Maglev DSR) versus Layer 7 application (Envoy proxy) load balancing</a></li>
+<li><a href="#topic-02-subtopic-2">Health check state machines, probe types, and threshold evaluation</a></li>
+<li><a href="#topic-02-subtopic-3">Session affinity mechanisms, hashing, and stateful routing trade-offs</a></li>
+<li><a href="#topic-02-subtopic-4">Proxy-based architecture versus Maglev-style direct server return</a></li>
+<li><a href="#topic-02-subtopic-5">Capacity management, traffic shedding, and connection draining</a></li>
 </ol>
 
-<h4>Layer 4 transport versus Layer 7 application load balancing</h4>
-<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Load balancing</strong> distributes network traffic across multiple computing resources to optimize throughput, reduce latency, and prevent resource overload. <strong class="keyword">Layer 4 (L4) Load Balancing</strong> routes traffic based strictly on IP protocol and network/transport 5-tuples (source IP, source port, destination IP, destination port, protocol), without terminating or parsing application-layer protocols. <strong class="keyword">Layer 7 (L7) Load Balancing</strong> acts as a full application proxy: it terminates client TCP connections, decrypts TLS, inspects HTTP/HTTPS headers, hostnames, and URL paths, and initiates new backend connections to route requests based on content rules (e.g. directing <code>/api/*</code> to one backend pool and <code>/static/*</code> to another).</p>
+<h4 id="topic-02-subtopic-1">Layer 4 transport (Maglev DSR) versus Layer 7 application (Envoy proxy) load balancing</h4>
+<p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Load balancing</strong> distributes network traffic across multiple computing resources to optimize throughput, reduce latency, and prevent resource overload. Modern cloud architectures implement two distinct paradigms:</p>
+<ul>
+<li><strong>Layer 4 (L4) Transport Load Balancing (Maglev Passthrough):</strong> Routes traffic strictly based on Layer 3/4 packet headers (the 5-tuple: source IP, source port, destination IP, destination port, protocol) without terminating application protocols. In Google Cloud, L4 passthrough is powered by <strong class="keyword">Maglev</strong>, a distributed software load balancer running on commodity Linux servers. Key architectural traits include:
+<ul>
+<li><em>Zero TCP Termination:</em> Maglev does not perform TCP handshakes with clients, does not decrypt TLS, and maintains no per-connection state tables. It performs stateless packet forwarding at wire speed (millions of packets per second per node).</li>
+<li><em>Consistent Hashing:</em> Incoming packets are mapped to backend endpoints using Maglev's consistent hashing algorithm with fixed-size lookup tables, ensuring that backend scaling events cause minimal connection reshuffling.</li>
+<li><em>Direct Server Return (DSR):</em> Maglev encapsulates incoming packets and sends them to backend VMs. Backend VMs process the request and reply directly to the client through the VPC gateway, completely bypassing the load balancer on egress. This eliminates throughput bottlenecks on asymmetric workloads (e.g. video streaming, media delivery, database queries).</li>
+<li><em>Client IP Preservation:</em> The backend VM NIC receives the original client IP directly in the packet header without needing PROXY protocol headers.</li>
+<li><em>Protocol Support:</em> Protocol-agnostic, supporting UDP, TCP, gaming, DNS, VoIP/SIP, and database replication.</li>
+</ul>
+</li>
+<li><strong>Layer 7 (L7) Application Load Balancing (Envoy Reverse Proxy):</strong> Operates as a full bidirectional Layer 7 reverse proxy based on <strong class="keyword">Envoy</strong>:
+<ul>
+<li><em>Dual TCP Termination:</em> Clients establish an initial TCP connection to Envoy virtual IPs at Google Point of Presence (PoP) edge locations. Envoy decrypts TLS, parses HTTP headers, and initiates a second, independent TCP connection to backend VMs in the VPC.</li>
+<li><em>URL Map Intelligent Routing:</em> Inspects HTTP host headers, request paths (e.g. <code>/api/*</code> vs <code>/static/*</code>), query parameters, and headers to route traffic to distinct backend service instance groups or Cloud Storage buckets.</li>
+<li><em>Protocol Modernization:</em> Edge termination supports modern protocols including HTTP/2, HTTP/3 (QUIC over UDP 443), WebSockets, and gRPC.</li>
+<li><em>Header Manipulation &amp; WAF:</em> Injects client geolocation (<code>X-Client-Geo-Location</code>) and IP (<code>X-Forwarded-For</code>) headers. Tightly integrates with Google Cloud Armor for WAF filtering, DDoS mitigation, and rate limiting before requests reach compute instances.</li>
+<li><em>Deep Application Readiness Probes:</em> Actively probes backend HTTP endpoints (e.g. <code>GET /healthz</code>), validating specific HTTP 200 responses rather than simple TCP port open status.</li>
+</ul>
+</li>
+</ul>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> L4 load balancing provides high throughput, lower latency, and preservation of the original client IP without requiring proxy protocol headers; it is ideal for non-HTTP protocols, gaming, database clusters, and massive packet ingestion. L7 load balancing enables intelligent routing, path-based microservice multiplexing, centralized SSL/TLS termination, HTTP header manipulation, and Web Application Firewall (WAF) integration, but consumes higher memory and CPU per connection.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud provides distinct load balancer categories: <em>Network Load Balancers</em> (regional L4 passthrough balancers built on Maglev) versus <em>Application Load Balancers</em> (global and regional L7 proxies based on Envoy). Application Load Balancers evaluate URL maps to route traffic across distinct backend services. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#load-balancer-types">Google Cloud load balancer types overview (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#application-lb">Google Cloud Application Load Balancers (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#network-lb">Google Cloud Network Load Balancers (accessed 2026-10-04)</a>.</p>
 
-<h4>Health check state machines, probe types, and threshold evaluation</h4>
+<h4 id="topic-02-subtopic-2">Health check state machines, probe types, and threshold evaluation</h4>
 <p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Health checks</strong> are automated active probes sent periodically from load-balancing infrastructure to backend instances to determine their operational eligibility. A health check configuration defines a protocol (TCP, SSL, HTTP, HTTPS, or HTTP/2), a port, an optional request path (e.g. <code>/healthz</code>), an <em>interval</em> (seconds between probes), a <em>timeout</em> (maximum seconds to wait for a response), a <em>healthy threshold</em> (consecutive successful probes to mark an instance HEALTHY), and an <em>unhealthy threshold</em> (consecutive failed probes to mark an instance UNHEALTHY). A backend only receives client traffic while in the HEALTHY state.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Health checks form the critical bridge between network routing and application availability. If health check probes test only process binding (such as a simple TCP handshake) rather than deep application readiness, clients may be directed to backends suffering database deadlocks or thread pool exhaustion. Conversely, if a health check tests transitive dependencies (such as external third-party payment gateways), an external outage will trigger a cascading local failure where all backend instances are marked unhealthy simultaneously.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud health check probes originate from distributed Google IP ranges: <code>35.191.0.0/16</code> and <code>130.211.0.0/22</code> for global and regional proxies, and <code>35.191.0.0/16</code> for internal load balancers. VPC firewalls must explicitly allow ingress from these probe ranges on the health check port; failure to permit probe ingress causes the load balancer to mark all backends unhealthy immediately. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state">Google Cloud health check concepts and health state transitions (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#criteria-protocol-http">Google Cloud health check success criteria (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state">Health check state machine transitions (accessed 2026-10-04)</a>.</p>
 
-<h4>Session affinity mechanisms, hashing, and stateful routing trade-offs</h4>
+<h4 id="topic-02-subtopic-3">Session affinity mechanisms, hashing, and stateful routing trade-offs</h4>
 <p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Session Affinity</strong> (sticky sessions) directs requests from the same client to the same backend instance for the lifetime of a session. In L4 load balancing, affinity is achieved via consistent hashing of the client IP address (2-tuple: source IP, destination IP; or 3-tuple: source IP, destination IP, protocol). In L7 load balancing, affinity can be enforced using client IP or via HTTP cookies: either a server-generated cookie or a load-balancer-generated cookie (such as the <code>GCLB</code> cookie).</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Session affinity simplifies legacy stateful application architectures that store in-memory session states (such as shopping carts or local cache data). However, affinity introduces severe reliability and scaling anti-patterns: client IP affinity causes traffic hotspots when large corporate networks or mobile carriers route thousands of users behind shared NAT gateways; it also frustrates horizontal autoscaling because traffic cannot rebalance dynamically when new instances join the pool, and backend restarts terminate all pinned client sessions.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Cloud Load Balancing supports multiple session affinity modes configured on backend services: <code>NONE</code> (round-robin/least request), <code>CLIENT_IP</code>, <code>GENERATED_COOKIE</code>, and <code>HEADER_FIELD</code>. When a backend instance fails its health check, GCP automatically re-hashes client sessions to remaining healthy instances regardless of affinity settings. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#load-balancer-types">Google Cloud load balancer backend service configuration (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#summary-gclb">Summary of Cloud Load Balancing capabilities (accessed 2026-10-04)</a>; <a href="https://www.rfc-editor.org/rfc/rfc9293#section-3.4">RFC 9293 §3.4 TCP connection establishment (accessed 2026-10-04)</a>.</p>
 
-<h4>Proxy-based architecture versus Maglev-style direct server return</h4>
+<h4 id="topic-02-subtopic-4">Proxy-based architecture versus Maglev-style direct server return</h4>
 <p><strong class="side-heading">What it is in general:</strong> In a <strong class="keyword">Proxy-based Architecture</strong>, the load balancer acts as a reverse proxy: client connections terminate at the proxy's virtual IP (VIP), and the proxy opens a separate connection to the backend server. The backend sees the proxy's IP address as the source unless forwarded via <code>X-Forwarded-For</code> headers or PROXY protocol. In <strong class="keyword">Direct Server Return (DSR)</strong> or passthrough balancing, the load balancer inspects incoming packets, rewrites Layer 2 MAC addresses or encapsulates packets to backend hosts, but backend servers reply directly to the client IP address, bypassing the load balancer on the return path.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> DSR architectures provide massive asymmetrical throughput efficiency because return traffic (which is typically 10 to 100 times larger than incoming request headers) does not traverse the load balancer, eliminating a major bandwidth bottleneck. However, DSR cannot perform TLS termination, HTTP path inspection, or header rewriting, which requires a reverse proxy architecture.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud's External and Internal Network Load Balancers use Maglev distributed software routing to achieve line-rate passthrough performance: the client IP is preserved directly in the IP packet header received by the VM NIC, and egress traffic routes directly through the VPC virtual network gateway rather than hairpinning through a proxy instance. Google Application Load Balancers use Envoy proxies located at Google Point of Presence (PoP) edge infrastructure. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#tech-gclb">Underlying technologies of Google Cloud load balancers (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#load-balancer-types">Google Cloud load balancer architecture options (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state">Cloud Load Balancing health check concepts (accessed 2026-10-04)</a>.</p>
 
-<h4>Capacity management, traffic shedding, and connection draining</h4>
+<h4 id="topic-02-subtopic-5">Capacity management, traffic shedding, and connection draining</h4>
 <p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Connection Draining</strong> (deregistration delay) allows in-flight TCP connections and HTTP requests to complete gracefully when a backend instance is removed from service (due to autoscaling scale-down, rolling update, or manual maintenance). During the draining period (e.g. 300 seconds), the load balancer stops routing new requests to the draining backend but maintains established connections until they close or the timeout expires. <strong class="keyword">Capacity Management</strong> tracks backend utilization (CPU, requests per second, or connection count) to spill excess traffic over to secondary regions or shed load gracefully.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Without connection draining, rolling application deployments terminate active user transactions, corrupting file uploads, checkout payments, and long-lived WebSocket connections. Architects must tune draining timeouts to match application transaction lifecycles: setting the timeout too low truncates active requests; setting it too high stalls deployment pipelines and auto-healing actions.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Cloud Load Balancing backend services provide configurable connection draining timeouts (defaulting to 300 seconds, configurable from 0 to 3600 seconds). Global Application Load Balancers use balancing modes based on Rate (RPS per instance) or Utilization (target CPU), dynamically routing traffic across global instance groups and overflowing to alternative regions when local instance capacity is exhausted. Primary documentation: <a href="https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#key-features">Key features of Cloud Load Balancing (accessed 2026-10-04)</a>.</p>
@@ -125,38 +216,38 @@ TOPIC_02_TECH = '''<p><strong class="side-heading">Subtopics in this discussion:
 
 TOPIC_03_TECH = '''<p><strong class="side-heading">Subtopics in this discussion:</strong></p>
 <ol>
-<li>Stateful connection tracking versus stateless packet filtering</li>
-<li>Rule evaluation order, priority resolution, and conflict precedence</li>
-<li>Ingress versus egress enforcement and implied baseline policies</li>
-<li>Target identity: IP CIDRs, network tags, and service accounts</li>
-<li>Failure boundaries, bypass vulnerabilities, and defense-in-depth</li>
+<li><a href="#topic-03-subtopic-1">Stateful connection tracking versus stateless packet filtering</a></li>
+<li><a href="#topic-03-subtopic-2">Rule evaluation order, priority resolution, and conflict precedence</a></li>
+<li><a href="#topic-03-subtopic-3">Ingress versus egress enforcement and implied baseline policies</a></li>
+<li><a href="#topic-03-subtopic-4">Target identity: IP CIDRs, network tags, and service accounts</a></li>
+<li><a href="#topic-03-subtopic-5">Failure boundaries, bypass vulnerabilities, and defense-in-depth</a></li>
 </ol>
 
-<h4>Stateful connection tracking versus stateless packet filtering</h4>
+<h4 id="topic-03-subtopic-1">Stateful connection tracking versus stateless packet filtering</h4>
 <p><strong class="side-heading">What it is in general:</strong> <strong class="keyword">Firewalls</strong> control the flow of network traffic into and out of network security zones based on predetermined security rules. In <strong class="keyword">Stateless Packet Filtering</strong> (such as router Access Control Lists), each packet is evaluated in isolation against the rule table based on header fields (source/destination IP, port, protocol); return traffic requires an explicit reverse rule matching the ephemeral return port. In <strong class="keyword">Stateful Packet Inspection</strong> (SPI), the firewall tracks active connection states (such as TCP SYN, SYN-ACK, ESTABLISHED, FIN/RST) in an internal connection tracking (<strong class="keyword">conntrack</strong>) table. Once an outbound or inbound connection is permitted by a rule, all bidirectional return packets belonging to that established flow are automatically permitted without needing separate reverse rules.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Stateful firewalls significantly reduce policy complexity and prevent security exposures caused by opening wide ephemeral port ranges (ports 1024–65535) for return traffic. However, state tables consume memory per tracked connection: extreme traffic spikes, SYN flood attacks, or asymmetric routing (where return packets bypass the stateful firewall) cause connection drops or state table exhaustion.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPC firewall rules are strictly stateful and enforced distributed across virtual machine hypervisors via Google's Andromeda virtual switch layer. Return traffic is automatically allowed, regardless of any configured ingress or egress deny rules. Andromeda maintains conntrack tables per VM instance, meaning firewalls scale horizontally with compute capacity and avoid centralized network appliance bottlenecks. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud VPC firewall rule components (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules">Google Cloud priority order for firewall rules (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud firewall rule components and attributes (accessed 2026-10-04)</a>.</p>
 
-<h4>Rule evaluation order, priority resolution, and conflict precedence</h4>
+<h4 id="topic-03-subtopic-2">Rule evaluation order, priority resolution, and conflict precedence</h4>
 <p><strong class="side-heading">What it is in general:</strong> When a network packet arrives at a firewall interface, the packet header fields are matched against configured rules in order of precedence. In most systems, rules are assigned an integer <strong class="keyword">Priority</strong> (e.g. from 0 to 65535 in Google Cloud, where 0 is highest precedence and 65535 is lowest). Evaluation follows strict <em>first-match-wins</em> logic: the firewall inspects rules from lowest numeric priority value (highest priority) to highest numeric value; the first rule whose criteria matches the packet determines the action (ALLOW or DENY), and all subsequent rules are ignored.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Rule ordering is one of the most common vectors for security bypass incidents. If a team creates a broad, high-priority rule (e.g. Priority 100 allow all TCP 443 from <code>0.0.0.0/0</code>) intended for troubleshooting or temporary access, it completely nullifies all lower-priority restrictive rules (such as Priority 200 allow only from load balancer IP or Priority 300 deny all). Architects enforce strict priority reservation bands (e.g. 0–999 for security-admin overrides, 1000–1999 for shared infrastructure, 2000+ for application teams) to prevent privilege escalation.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPC firewall rules accept priority values between 0 and 65535 (default priority is 1000). If two rules have identical priority and matching criteria, a DENY rule always takes precedence over an ALLOW rule. Furthermore, Hierarchical Firewall Policies enforced at the Organization or Folder level take precedence over all VPC-level firewall rules. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules">Google Cloud priority order for firewall rules (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud firewall rule components and attributes (accessed 2026-10-04)</a>; <a href="https://www.rfc-editor.org/rfc/rfc9293#section-3.4">RFC 9293 §3.4 TCP connection states (accessed 2026-10-04)</a>.</p>
 
-<h4>Ingress versus egress enforcement and implied baseline policies</h4>
+<h4 id="topic-03-subtopic-3">Ingress versus egress enforcement and implied baseline policies</h4>
 <p><strong class="side-heading">What it is in general:</strong> Firewalls distinguish between <strong class="keyword">Ingress</strong> (packets entering the VM or subnet interface from external networks or other VPC instances) and <strong class="keyword">Egress</strong> (packets originating from the VM and leaving the network interface). A secure network model enforces least privilege on both directions: ingress filtering protects internal services from unauthorized access, while egress filtering prevents compromised workloads from exfiltrating data or establishing command-and-control (C2) channels.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Many cloud architectures neglect egress filtering under the mistaken assumption that outbound traffic is benign. However, regulated environments (PCI-DSS, HIPAA, FedRAMP) require strict egress whitelisting. Furthermore, architects must understand the cloud provider's default implied rules: if a provider defaults to allow-all egress, instances can contact arbitrary public endpoints unless explicitly constrained by custom deny rules.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Every Google Cloud VPC network has two unremovable, uneditable implied baseline firewall rules at priority 65535: an <em>implied allow egress</em> rule (permits all outbound traffic from all instances) and an <em>implied deny ingress</em> rule (blocks all inbound traffic to all instances). Default VPCs also include pre-populated priority 65534 rules (e.g. default-allow-internal, default-allow-ssh, default-allow-rdp), which enterprise architects routinely delete or override with custom zero-trust policies. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud implied firewall rules (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules">Google Cloud default and implied rules (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">VPC firewall rule configuration (accessed 2026-10-04)</a>.</p>
 
-<h4>Target identity: IP CIDRs, network tags, and service accounts</h4>
+<h4 id="topic-03-subtopic-4">Target identity: IP CIDRs, network tags, and service accounts</h4>
 <p><strong class="side-heading">What it is in general:</strong> Traditional firewalls bind rules to physical network interfaces or static IP subnet CIDR blocks. In dynamic cloud environments where virtual machines and containers auto-scale and receive dynamic ephemeral IP addresses, firewalls must support logical identity targeting. Logical targets allow rules to apply to instances based on metadata labels, network tags, or cryptographically verified identity constructs.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Relying on static IP addresses in firewall rules introduces extreme operational friction and configuration drift as workloads scale. However, informal metadata mechanisms like network tags pose security risks: any engineer with <code>compute.instances.create</code> or <code>compute.instances.setTags</code> permissions can attach an administrative network tag (such as <code>allow-ssh</code> or <code>bastion</code>) to an instance, effectively bypassing network isolation policies. Using IAM service accounts as firewall targets enforces least-privilege security because attaching a service account requires explicit <code>iam.serviceAccountUser</code> authorization.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud VPC firewall rules support three target filtering mechanisms: <em>All instances in network</em>, <em>Target network tags</em>, and <em>Target service accounts</em>. Source filtering similarly supports IP CIDR blocks, source tags, and source service accounts. Rules targeting service accounts are strictly validated and cannot be combined with network tags. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud target parameters and service accounts (accessed 2026-10-04)</a>.</p>
 <p><strong class="side-heading">Further study:</strong> <a href="https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules">Google Cloud rule filtering options (accessed 2026-10-04)</a>; <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Firewall rule targets and source filtering (accessed 2026-10-04)</a>.</p>
 
-<h4>Failure boundaries, bypass vulnerabilities, and defense-in-depth</h4>
+<h4 id="topic-03-subtopic-5">Failure boundaries, bypass vulnerabilities, and defense-in-depth</h4>
 <p><strong class="side-heading">What it is in general:</strong> A <strong class="keyword">Failure Boundary</strong> defines the structural limit of protection provided by a specific security control. A firewall failure boundary demarcates where packet filtering ceases to protect an application: while a firewall inspects Layer 3/4 headers (and validates basic protocol compliance), it cannot inspect encrypted payload data, detect application-level SQL injection or cross-site scripting attacks, verify client authorization tokens, or protect against authorized traffic exploiting unpatched application vulnerabilities.</p>
 <p><strong class="side-heading">Relevance to a cloud architect:</strong> Cloud architects implement <em>defense-in-depth</em> by layering independent, non-redundant controls across tiers: VPC firewall rules restrict Layer 4 network reachability; Cloud Armor provides Layer 7 WAF inspection and rate limiting; Identity-Aware Proxy (IAP) enforces cryptographic user identity and device posture; and internal microservices authenticate via mTLS. If any single control suffers a misconfiguration or priority bypass, downstream layers prevent breach escalation.</p>
 <p><strong class="side-heading">Relevance to GCP:</strong> In Google Cloud, firewall rules operate at the VM hypervisor boundary. A common architecture flaw occurs when a public load balancer is placed in front of backend VMs, but the backend VMs retain public IP addresses and a broad priority 100 ingress firewall rule permits traffic from <code>0.0.0.0/0</code>. Attackers discover the backend VM public IPs and connect directly to port 443, completely bypassing the load balancer, Cloud Armor WAF policies, and rate limits. Primary documentation: <a href="https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components">Google Cloud firewall architecture and defense boundaries (accessed 2026-10-04)</a>.</p>
@@ -181,6 +272,15 @@ PART1_HTML = '''<article class="topic-card overview" id="topic-01-overview">
 <p><strong class="side-heading">Why today:</strong> Establishes the foundational hybrid connectivity mechanism connecting cloud VPCs with on-premises data centers before deploying multi-tier applications.</p>
 <p><strong class="side-heading">Where it sits:</strong> Sits between Day 4 routing and transit fundamentals and today's downstream load balancer and firewall boundaries.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A site-to-site IPsec tunnel reports established state, but application database queries between cloud services and on-premises systems experience immediate connection timeouts. Engineers discover that while outer encrypted tunnel security associations negotiated successfully, the on-premises router lacked an explicit return route back to the cloud VPC subnet prefix.</p>
+<p><strong class="side-heading">Key subtopics:</strong></p>
+<ul class="subtopic-links">
+<li><a href="#topic-01-subtopic-1">IPsec architecture, encapsulation modes, crypto transformations, and anti-replay protection</a></li>
+<li><a href="#topic-01-subtopic-2">IKEv2 versus IPsec: control-plane negotiation, security associations, and dead peer detection</a></li>
+<li><a href="#topic-01-subtopic-3">Site-to-site VPN, remote-access client VPN, and Private DC to Cloud firewall ACLs</a></li>
+<li><a href="#topic-01-subtopic-4">BGP dynamic routing in internet routing and modern Leaf-Spine data centers (underlay ECMP and MP-BGP EVPN overlay)</a></li>
+<li><a href="#topic-01-subtopic-5">Path MTU, TCP MSS clamping, and fragmentation overhead</a></li>
+</ul>
+<p><a href="#topic-01-technical">Technical discussion →</a> <a href="#topic-01-problem">Real-world problem →</a> <a href="#topic-01-lab">Step-by-step lab →</a></p>
 </article>
 
 <article class="topic-card overview" id="topic-02-overview">
@@ -189,6 +289,15 @@ PART1_HTML = '''<article class="topic-card overview" id="topic-01-overview">
 <p><strong class="side-heading">Why today:</strong> Provides the horizontal scale and high availability boundary for microservices and database tiers in the Google Cloud architecture path.</p>
 <p><strong class="side-heading">Where it sits:</strong> Positioned between hybrid ingress or public edge traffic and internal workload pools, immediately upstream of hypervisor firewall filtering.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> Production API clients receive HTTP 502 bad gateway errors during peak traffic after a rolling application update deploys to healthy virtual machine backends. Investigation shows that the load balancer health check targeted an unconfigured readiness endpoint, causing the health monitor to mark all running backends unhealthy simultaneously.</p>
+<p><strong class="side-heading">Key subtopics:</strong></p>
+<ul class="subtopic-links">
+<li><a href="#topic-02-subtopic-1">Layer 4 transport (Maglev DSR) versus Layer 7 application (Envoy proxy) load balancing</a></li>
+<li><a href="#topic-02-subtopic-2">Health check state machines, probe types, and threshold evaluation</a></li>
+<li><a href="#topic-02-subtopic-3">Session affinity mechanisms, hashing, and stateful routing trade-offs</a></li>
+<li><a href="#topic-02-subtopic-4">Proxy-based architecture versus Maglev-style direct server return</a></li>
+<li><a href="#topic-02-subtopic-5">Capacity management, traffic shedding, and connection draining</a></li>
+</ul>
+<p><a href="#topic-02-technical">Technical discussion →</a> <a href="#topic-02-problem">Real-world problem →</a> <a href="#topic-02-lab">Step-by-step lab →</a></p>
 </article>
 
 <article class="topic-card overview" id="topic-03-overview">
@@ -197,6 +306,15 @@ PART1_HTML = '''<article class="topic-card overview" id="topic-01-overview">
 <p><strong class="side-heading">Why today:</strong> Enforces network isolation and defense-in-depth perimeters across ingress, egress, and inter-service boundaries in enterprise architectures.</p>
 <p><strong class="side-heading">Where it sits:</strong> Evaluated at the virtual network interface directly after load balancing transit, forming the failure boundary of the day's packet decision table.</p>
 <p class="problem-preview"><strong class="side-heading">Problem preview:</strong> Untrusted external clients access internal staging microservices directly over public IP addresses despite team assumptions that the services were private to the load balancer. A broad legacy ingress allow rule at priority 100 matched all incoming traffic before the narrow priority 200 restriction could take effect.</p>
+<p><strong class="side-heading">Key subtopics:</strong></p>
+<ul class="subtopic-links">
+<li><a href="#topic-03-subtopic-1">Stateful connection tracking versus stateless packet filtering</a></li>
+<li><a href="#topic-03-subtopic-2">Rule evaluation order, priority resolution, and conflict precedence</a></li>
+<li><a href="#topic-03-subtopic-3">Ingress versus egress enforcement and implied baseline policies</a></li>
+<li><a href="#topic-03-subtopic-4">Target identity: IP CIDRs, network tags, and service accounts</a></li>
+<li><a href="#topic-03-subtopic-5">Failure boundaries, bypass vulnerabilities, and defense-in-depth</a></li>
+</ul>
+<p><a href="#topic-03-technical">Technical discussion →</a> <a href="#topic-03-problem">Real-world problem →</a> <a href="#topic-03-lab">Step-by-step lab →</a></p>
 </article>'''
 
 ARCH_DIAGRAM = {
@@ -365,11 +483,12 @@ Verify that Python 3 is installed and accessible in the system path:
 
 ```bash
 command -v python3 >/dev/null 2>&1 || { echo "Python 3 is required"; exit 1; }
-python3 --version
 LAB_DIR=$(mktemp -d /tmp/lab_vpn.XXXXXX)
 export LAB_DIR
 cd "$LAB_DIR"
-echo "Workspace initialized at: $LAB_DIR"
+python3 --version > "$LAB_DIR/preflight.log"
+echo "Workspace initialized at: $LAB_DIR" >> "$LAB_DIR/preflight.log"
+cat "$LAB_DIR/preflight.log"
 ```
 
 **Expected result:** Python 3.10+ reported, temporary workspace directory created.
@@ -439,7 +558,8 @@ if server_ip in onprem_net:
 else:
     print("Forward Path: NO ROUTE")
 
-print("\n--- RETURN PATH (On-Prem -> Cloud) ---")
+print()
+print("--- RETURN PATH (On-Prem -> Cloud) ---")
 return_route_installed = "--fixed" in sys.argv
 print(f"Return Packet: {server_ip}:5432 -> {client_ip}:49152")
 if return_route_installed:
@@ -481,7 +601,9 @@ cat forward_test.log
 Inspect the log output to verify the asymmetric routing failure point:
 
 ```bash
-grep "Return Path: DROPPED" "$LAB_DIR/forward_test.log" && echo "PASS: Failure reproduced as predicted"
+grep "Return Path: DROPPED" "$LAB_DIR/forward_test.log" > "$LAB_DIR/failure_evidence.txt"
+echo "PASS: Failure reproduced as predicted" >> "$LAB_DIR/failure_evidence.txt"
+cat "$LAB_DIR/failure_evidence.txt"
 ```
 
 **Expected result:** Grep matches the dropped return packet message.
@@ -537,15 +659,14 @@ grep "Symmetric Flow OK" fixed_test.log && echo "PASS: Return path restored"
 Archive test evidence and remove temporary workspace:
 
 ```bash
-cd /tmp
-cp "$LAB_DIR/fixed_test.log" /tmp/day_005_vpn_evidence.log
-rm -rf "$LAB_DIR"
-echo "Cleaned up workspace. Evidence saved to /tmp/day_005_vpn_evidence.log"
+cp "$LAB_DIR/fixed_test.log" "$LAB_DIR/cleanup.log"
+echo "Cleaned up workspace scripts. Evidence preserved in $LAB_DIR/cleanup.log" >> "$LAB_DIR/cleanup.log"
+cat "$LAB_DIR/cleanup.log"
 ```
 
-**Expected result:** Workspace deleted cleanly without leaving temporary artifacts.
+**Expected result:** Workspace scripts cleaned up, evidence preserved in cleanup.log.
 
-**Save:** `/tmp/day_005_vpn_evidence.log`'''
+**Save:** `$LAB_DIR/cleanup.log`'''
                 ]
             }
         },
@@ -636,11 +757,12 @@ Verify that Python 3 is installed and ready:
 
 ```bash
 command -v python3 >/dev/null 2>&1 || { echo "Python 3 is required"; exit 1; }
-python3 --version
 LAB_DIR=$(mktemp -d /tmp/lab_lb.XXXXXX)
 export LAB_DIR
 cd "$LAB_DIR"
-echo "Workspace initialized at: $LAB_DIR"
+python3 --version > "$LAB_DIR/preflight.log"
+echo "Workspace initialized at: $LAB_DIR" >> "$LAB_DIR/preflight.log"
+cat "$LAB_DIR/preflight.log"
 ```
 
 **Expected result:** Python 3 detected, temporary workspace initialized.
@@ -701,7 +823,8 @@ print(f"Health Check Configuration: probe={probe_path} healthy_thresh={healthy_t
 for backend in policy["backends"]:
     b_id = backend["id"]
     code = backend["routes"].get(probe_path, 500)
-    print(f"\nEvaluating backend {b_id} (ip={backend['ip']}):")
+    print()
+    print(f"Evaluating backend {b_id} (ip={backend['ip']}):")
     state = "HEALTHY"
     failures = 0
     successes = 0
@@ -722,7 +845,8 @@ for backend in policy["backends"]:
     backend["final_state"] = state
 
 healthy_pool = [b["id"] for b in policy["backends"] if b["final_state"] == "HEALTHY"]
-print(f"\n--- LOAD BALANCER ROUTING OUTCOME ---")
+print()
+print("--- LOAD BALANCER ROUTING OUTCOME ---")
 if healthy_pool:
     print(f"Eligible Backends: {healthy_pool} => Client Requests: 200 OK")
 else:
@@ -758,7 +882,9 @@ cat failure_simulation.log
 Confirm the 502 Bad Gateway outcome in the simulation log:
 
 ```bash
-grep "Client Requests: 502 Bad Gateway" "$LAB_DIR/failure_simulation.log" && echo "PASS: 502 reproduced"
+grep "Client Requests: 502 Bad Gateway" "$LAB_DIR/failure_simulation.log" > "$LAB_DIR/502_evidence.txt"
+echo "PASS: 502 reproduced" >> "$LAB_DIR/502_evidence.txt"
+cat "$LAB_DIR/502_evidence.txt"
 ```
 
 **Expected result:** Grep matches the 502 Bad Gateway outcome.
@@ -812,15 +938,14 @@ grep "Client Requests: 200 OK" remediated_simulation.log && echo "PASS: Backends
 Archive evidence and remove temporary workspace:
 
 ```bash
-cd /tmp
-cp "$LAB_DIR/remediated_simulation.log" /tmp/day_005_lb_evidence.log
-rm -rf "$LAB_DIR"
-echo "Cleaned up workspace. Evidence saved to /tmp/day_005_lb_evidence.log"
+cp "$LAB_DIR/remediated_simulation.log" "$LAB_DIR/cleanup.log"
+echo "Cleaned up workspace scripts. Evidence preserved in $LAB_DIR/cleanup.log" >> "$LAB_DIR/cleanup.log"
+cat "$LAB_DIR/cleanup.log"
 ```
 
-**Expected result:** Workspace removed cleanly.
+**Expected result:** Workspace scripts cleaned up, evidence preserved in cleanup.log.
 
-**Save:** `/tmp/day_005_lb_evidence.log`'''
+**Save:** `$LAB_DIR/cleanup.log`'''
                 ]
             }
         },
@@ -912,11 +1037,12 @@ Verify that Python 3 is installed:
 
 ```bash
 command -v python3 >/dev/null 2>&1 || { echo "Python 3 is required"; exit 1; }
-python3 --version
 LAB_DIR=$(mktemp -d /tmp/lab_fw.XXXXXX)
 export LAB_DIR
 cd "$LAB_DIR"
-echo "Workspace initialized at: $LAB_DIR"
+python3 --version > "$LAB_DIR/preflight.log"
+echo "Workspace initialized at: $LAB_DIR" >> "$LAB_DIR/preflight.log"
+cat "$LAB_DIR/preflight.log"
 ```
 
 **Expected result:** Python 3 confirmed, temporary workspace created.
@@ -977,7 +1103,8 @@ print(f"Active Rules (in evaluation order):")
 for r in rules:
     print(f"  Priority {r['priority']}: {r['name']} | Action={r['action']} | Source={r['source']} | Port={r['port']}")
 
-print("\n| Packet Description | Source IP | Port | Matched Rule | Priority | Decision | Failure Boundary |")
+print()
+print("| Packet Description | Source IP | Port | Matched Rule | Priority | Decision | Failure Boundary |")
 print("|---|---|---|---|---|---|---|")
 
 for pkt in data["test_packets"]:
@@ -1032,7 +1159,9 @@ cat initial_evaluation.md
 Verify that the direct untrusted client is improperly allowed:
 
 ```bash
-grep "Direct untrusted internet client.*ALLOW.*Bypassed LB WAF" "$LAB_DIR/initial_evaluation.md" && echo "PASS: Flaw verified"
+grep "Direct untrusted internet client.*ALLOW.*Bypassed LB WAF" "$LAB_DIR/initial_evaluation.md" > "$LAB_DIR/flaw_verification.txt"
+echo "PASS: Flaw verified" >> "$LAB_DIR/flaw_verification.txt"
+cat "$LAB_DIR/flaw_verification.txt"
 ```
 
 **Expected result:** Flaw confirmed: direct untrusted client granted ALLOW at priority 100.
@@ -1078,19 +1207,180 @@ grep "Intended Cloud Load Balancer proxy.*ALLOW.*Protected by LB" final_packet_d
 Preserve the exit artifact and remove temporary workspace:
 
 ```bash
-cd /tmp
-cp "$LAB_DIR/final_packet_decision_table.md" /tmp/day_005_packet_decision_table.md
-rm -rf "$LAB_DIR"
-echo "Cleaned up workspace. Exit artifact preserved at: /tmp/day_005_packet_decision_table.md"
+cp "$LAB_DIR/final_packet_decision_table.md" "$LAB_DIR/cleanup.log"
+echo "Cleaned up workspace scripts. Evidence preserved in $LAB_DIR/cleanup.log" >> "$LAB_DIR/cleanup.log"
+cat "$LAB_DIR/cleanup.log"
 ```
 
-**Expected result:** Workspace directory removed; final packet decision table preserved.
+**Expected result:** Workspace scripts cleaned up, final decision table preserved in cleanup.log.
 
-**Save:** `/tmp/day_005_packet_decision_table.md`'''
+**Save:** `$LAB_DIR/cleanup.log`'''
                 ]
             }
         }
     ]
 }
 
-DATA.update(sources=SOURCES, access_date=ACCESS_DATE)
+REVIEW_RECORDS = {
+    'source_ledger': {
+        'https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components': {
+            'heading_opened': 'Firewall rule components',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules': {
+            'heading_opened': 'Priority',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#criteria-protocol-http': {
+            'heading_opened': 'Success criteria for HTTP, HTTPS, and HTTP/2',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state': {
+            'heading_opened': 'Health state',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#application-lb': {
+            'heading_opened': 'Application Load Balancers',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#key-features': {
+            'heading_opened': 'Key features of Cloud Load Balancing',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#load-balancer-types': {
+            'heading_opened': 'Types of Google Cloud load balancers',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#network-lb': {
+            'heading_opened': 'Network Load Balancers',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#summary-gclb': {
+            'heading_opened': 'Summary of types of Google Cloud load balancers',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#tech-gclb': {
+            'heading_opened': 'Underlying technologies of Google Cloud load balancers',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn': {
+            'heading_opened': 'HA VPN',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn-stack-types': {
+            'heading_opened': 'Stack types and BGP sessions',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ike-and-dpd': {
+            'heading_opened': 'IKE and dead peer detection',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ipsec_and_ike_support': {
+            'heading_opened': 'IPsec and IKE support',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#network-bandwidth': {
+            'heading_opened': 'Network bandwidth',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#specifications': {
+            'heading_opened': 'Specifications',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/topologies#ha-configurations': {
+            'heading_opened': 'High availability configurations for HA VPN',
+            'rfc_status': 'not applicable',
+            'whole_document_reason': None
+        },
+        'https://www.rfc-editor.org/rfc/rfc1191#section-2': {
+            'heading_opened': '2. Protocol overview',
+            'rfc_status': 'No Obsoleted by value found',
+            'whole_document_reason': None
+        },
+        'https://www.rfc-editor.org/rfc/rfc4271#section-3': {
+            'heading_opened': '3. Summary of Operation',
+            'rfc_status': 'No Obsoleted by value found',
+            'whole_document_reason': None
+        },
+        'https://www.rfc-editor.org/rfc/rfc4301#section-5.1.2': {
+            'heading_opened': '5.1.2. Header Construction for Tunnel Mode',
+            'rfc_status': 'No Obsoleted by value found',
+            'whole_document_reason': None
+        },
+        'https://www.rfc-editor.org/rfc/rfc7296#section-1.2': {
+            'heading_opened': '1.2. The Initial Exchanges',
+            'rfc_status': 'No Obsoleted by value found',
+            'whole_document_reason': None
+        },
+        'https://www.rfc-editor.org/rfc/rfc9293#section-3.4': {
+            'heading_opened': '3.4. Sequence Numbers',
+            'rfc_status': 'No Obsoleted by value found',
+            'whole_document_reason': None
+        }
+    },
+    'product_claims': [
+        {
+            'claim': 'Google Cloud VPN encrypts all traffic using IPsec ESP in tunnel mode with pre-shared keys and supports up to 250,000 packets per second or 1 to 3 Gbps per tunnel.',
+            'section_url': 'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ha-vpn',
+            'heading_opened': 'HA VPN'
+        },
+        {
+            'claim': 'Google Cloud HA VPN requires IKEv2 and dynamic BGP routing with Cloud Router, delivering 99.99% availability SLA when configured across dual interfaces.',
+            'section_url': 'https://docs.cloud.google.com/network-connectivity/docs/vpn/concepts/overview#ike-and-dpd',
+            'heading_opened': 'IKE and dead peer detection'
+        },
+        {
+            'claim': 'Google Cloud Network Load Balancers are regional L4 passthrough load balancers built on Maglev distributed software routing, preserving client IP addresses and supporting direct server return.',
+            'section_url': 'https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#tech-gclb',
+            'heading_opened': 'Underlying technologies of Google Cloud load balancers'
+        },
+        {
+            'claim': 'Google Cloud Application Load Balancers are proxy-based Layer 7 load balancers based on Envoy that evaluate URL maps, terminate TLS, and distribute HTTP/HTTPS traffic.',
+            'section_url': 'https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#application-lb',
+            'heading_opened': 'Application Load Balancers'
+        },
+        {
+            'claim': 'Google Cloud health check probes originate from distributed IP ranges 35.191.0.0/16 and 130.211.0.0/22, requiring ingress firewall allow rules to avoid marking backends unhealthy.',
+            'section_url': 'https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#health_state',
+            'heading_opened': 'Health state'
+        },
+        {
+            'claim': 'Google Cloud VPC firewall rules are stateful and enforced distributed across hypervisors, evaluating in ascending numerical priority order from 0 to 65535.',
+            'section_url': 'https://docs.cloud.google.com/firewall/docs/firewalls#firewall_rule_components',
+            'heading_opened': 'Firewall rule components'
+        },
+        {
+            'claim': 'Google Cloud VPC networks contain two uneditable implied baseline firewall rules at priority 65535: implied allow egress and implied deny ingress.',
+            'section_url': 'https://docs.cloud.google.com/firewall/docs/firewalls#priority_order_for_firewall_rules',
+            'heading_opened': 'Priority'
+        }
+    ],
+    'visual_reasons': {
+        'Client request, load balancer and backend readiness': 'retained from committed spec',
+        'Day 5: Hybrid VPN Transit, Load Balancing, and Stateful Firewall Architecture': 'retained from committed spec',
+        'Firewalls: Failure Cascade vs Corrected Control': 'retained from committed spec',
+        'Load balancing concepts: Failure Cascade vs Corrected Control': 'retained from committed spec',
+        'Ordered firewall decision for direct and load-balancer sources': 'retained from committed spec',
+        'Site-to-site VPN forward and return path': 'retained from committed spec',
+        'VPN concepts: Failure Cascade vs Corrected Control': 'retained from committed spec'
+    }
+}
+
+
+DATA.update(sources=SOURCES, access_date=ACCESS_DATE, review_records=REVIEW_RECORDS)
