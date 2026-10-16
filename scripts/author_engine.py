@@ -167,28 +167,28 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#94a3b8" font-weight="bold">1. INITIATING EVENT</text>
     {render_card_text(e_lines, -6, "#cbd5e1")}
     <rect x="-70" y="24" width="140" height="16" rx="2" fill="#1e293b"/>
-    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="8" fill="#94a3b8">[UNCHECKED TRIGGER]</text>
+    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">[UNCHECKED TRIGGER]</text>
   </g>
 
   <!-- Arrow 1 -> 2 -->
   <line x1="270" y1="140" x2="350" y2="140" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#{uid}-arr-fail)"/>
-  <text x="310" y="132" text-anchor="middle" font-family="monospace" font-size="8" fill="#f43f5e">TRIGGERS</text>
+  <text x="310" y="132" text-anchor="middle" font-family="monospace" font-size="9" fill="#f43f5e">TRIGGERS</text>
 
   <!-- Card 2: Root Cause -->
   <g transform="translate(480, 140)">
     <rect x="-120" y="-50" width="240" height="100" rx="4" fill="#2a0a10" stroke="#f43f5e" stroke-width="2"/>
     <circle cx="-100" cy="-34" r="8" fill="#f43f5e"/>
-    <text x="-100" y="-31" text-anchor="middle" font-family="monospace" font-size="8" fill="white" font-weight="bold">FI</text>
+    <text x="-100" y="-31" text-anchor="middle" font-family="monospace" font-size="9" fill="white" font-weight="bold">FI</text>
     {img_c}
     <text x="10" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#f43f5e" font-weight="bold">2. ROOT CAUSE DEFECT</text>
     {render_card_text(c_lines, -6, "#fda4af")}
     <rect x="-70" y="24" width="140" height="16" rx="2" fill="#3b0d18"/>
-    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="8" fill="#fda4af">[MISSING CONTROL]</text>
+    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="9" fill="#fda4af">[MISSING CONTROL]</text>
   </g>
 
   <!-- Arrow 2 -> 3 -->
   <line x1="605" y1="140" x2="685" y2="140" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#{uid}-arr-fail)"/>
-  <text x="645" y="132" text-anchor="middle" font-family="monospace" font-size="8" fill="#f43f5e">CASCADES</text>
+  <text x="645" y="132" text-anchor="middle" font-family="monospace" font-size="9" fill="#f43f5e">CASCADES</text>
 
   <!-- Card 3: Impact -->
   <g transform="translate(820, 140)">
@@ -197,7 +197,7 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#f43f5e" font-weight="bold">3. IMPACT &amp; DEGRADATION</text>
     {render_card_text(i_lines, -6, "#fda4af")}
     <rect x="-75" y="24" width="150" height="16" rx="2" fill="#4c0519"/>
-    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="8" fill="#fda4af">[INVARIANT VIOLATION]</text>
+    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="9" fill="#fda4af">[INVARIANT VIOLATION]</text>
   </g>
 '''
 
@@ -214,12 +214,12 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#94a3b8" font-weight="bold">1. SAME TRIGGER EVENT</text>
     {render_card_text(e_lines, -6, "#cbd5e1")}
     <rect x="-70" y="24" width="140" height="16" rx="2" fill="#1e293b"/>
-    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="8" fill="#94a3b8">[IDENTICAL INPUT]</text>
+    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">[IDENTICAL INPUT]</text>
   </g>
 
   <!-- Arrow 1 -> 2 -->
   <line x1="270" y1="326" x2="350" y2="326" stroke="#22c55e" stroke-width="2.5" marker-end="url(#{uid}-arr-ok)"/>
-  <text x="310" y="318" text-anchor="middle" font-family="monospace" font-size="8" fill="#22c55e">INTERCEPT</text>
+  <text x="310" y="318" text-anchor="middle" font-family="monospace" font-size="9" fill="#22c55e">INTERCEPT</text>
 
   <!-- Invariant boundary enclosing Card 2 and 3 -->
   <rect x="345" y="244" width="645" height="150" rx="6" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3"/>
@@ -232,12 +232,12 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#22c55e" font-weight="bold">2. DEFENSIVE CONTROL</text>
     {render_card_text(ctrl_lines, -6, "#6ee7b7")}
     <rect x="-75" y="24" width="150" height="16" rx="2" fill="#022c22"/>
-    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="8" fill="#6ee7b7">[ACTIVE GUARDRAIL]</text>
+    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="9" fill="#6ee7b7">[ACTIVE GUARDRAIL]</text>
   </g>
 
   <!-- Arrow 2 -> 3 -->
   <line x1="605" y1="326" x2="685" y2="326" stroke="#22c55e" stroke-width="2.5" marker-end="url(#{uid}-arr-ok)"/>
-  <text x="645" y="318" text-anchor="middle" font-family="monospace" font-size="8" fill="#22c55e">PRESERVES</text>
+  <text x="645" y="318" text-anchor="middle" font-family="monospace" font-size="9" fill="#22c55e">PRESERVES</text>
 
   <!-- Card 3: Outcome -->
   <g transform="translate(820, 326)">
@@ -246,7 +246,7 @@ def render_incident_svg(day: int, index: int, topic: dict) -> str:
     <text x="0" y="-30" text-anchor="middle" font-family="monospace" font-size="10" fill="#22c55e" font-weight="bold">3. VERIFIED OUTCOME</text>
     {render_card_text(out_lines, -6, "#6ee7b7")}
     <rect x="-75" y="24" width="150" height="16" rx="2" fill="#064e3b"/>
-    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="8" fill="#6ee7b7">[INVARIANT DEFENDED]</text>
+    <text x="0" y="36" text-anchor="middle" font-family="monospace" font-size="9" fill="#6ee7b7">[INVARIANT DEFENDED]</text>
   </g>
 '''
 
@@ -322,7 +322,7 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
         layers_html.append(f'<rect x="{lx}" y="{ly}" width="{lw}" height="18" rx="4" fill="#090d16" stroke="{title_color}" stroke-opacity="0.3" stroke-width="1"/>')
         layers_html.append(f'<text x="{lx + 12}" y="{ly + 13}" font-family="monospace" font-size="9.5" fill="{title_color}" font-weight="bold">{escape(l.get("name", ""))}</text>')
         if l.get("desc"):
-            layers_html.append(f'<text x="{lx + lw - 14}" y="{ly + 13}" text-anchor="end" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(l["desc"])}</text>')
+            layers_html.append(f'<text x="{lx + lw - 14}" y="{ly + 13}" text-anchor="end" font-family="monospace" font-size="9" fill="#94a3b8">{escape(l["desc"])}</text>')
 
     comps_html = []
     for c in arch_diagram.get("components", []):
@@ -359,8 +359,8 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
             # 2 name lines, 2 detail lines
             comps_html.append(f'<text x="{text_cx}" y="{cy + 14}" text-anchor="middle" font-family="monospace" font-size="10" fill="{text_color}" font-weight="bold">{escape(name_lines[0])}</text>')
             comps_html.append(f'<text x="{text_cx}" y="{cy + 26}" text-anchor="middle" font-family="monospace" font-size="10" fill="{text_color}" font-weight="bold">{escape(name_lines[1])}</text>')
-            comps_html.append(f'<text x="{text_cx}" y="{cy + 39}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(detail_lines[0])}</text>')
-            comps_html.append(f'<text x="{text_cx}" y="{cy + 50}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#94a3b8">{escape(detail_lines[1])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 39}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[0])}</text>')
+            comps_html.append(f'<text x="{text_cx}" y="{cy + 50}" text-anchor="middle" font-family="monospace" font-size="9" fill="#94a3b8">{escape(detail_lines[1])}</text>')
 
     bounds_html = []
     for b in arch_diagram.get("boundaries", []):
@@ -372,7 +372,7 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
         tag_y = by + bh - 9
         bounds_html.append(f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="4" fill="none" stroke="{b_color}" stroke-width="2" stroke-dasharray="5,3"/>')
         bounds_html.append(f'<rect x="{tag_x}" y="{tag_y}" width="{tag_w}" height="17" rx="3" fill="#0f172a" stroke="{b_color}" stroke-width="1.5"/>')
-        bounds_html.append(f'<text x="{tag_x + tag_w / 2}" y="{tag_y + 12}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="{b_color}" font-weight="bold">{escape(lbl)}</text>')
+        bounds_html.append(f'<text x="{tag_x + tag_w / 2}" y="{tag_y + 12}" text-anchor="middle" font-family="monospace" font-size="9" fill="{b_color}" font-weight="bold">{escape(lbl)}</text>')
 
     flows_html = []
     for f in arch_diagram.get("flows", []):
@@ -409,16 +409,16 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
                     tw = max(len(w1), len(w2)) * 5.2 + 10
                     tw = min(tw, max(50, dx - 12))
                     flows_html.append(f'<rect x="{mid_x - tw / 2}" y="{mid_y - 22}" width="{tw}" height="20" rx="3" fill="#090d16" stroke="{color}" stroke-width="1" stroke-opacity="0.8"/>')
-                    flows_html.append(f'<text x="{mid_x}" y="{mid_y - 12}" text-anchor="middle" font-family="monospace" font-size="7.5" fill="{color}" font-weight="bold">{escape(w1)}</text>')
-                    flows_html.append(f'<text x="{mid_x}" y="{mid_y - 3}" text-anchor="middle" font-family="monospace" font-size="7.5" fill="{color}" font-weight="bold">{escape(w2)}</text>')
+                    flows_html.append(f'<text x="{mid_x}" y="{mid_y - 12}" text-anchor="middle" font-family="monospace" font-size="9" fill="{color}" font-weight="bold">{escape(w1)}</text>')
+                    flows_html.append(f'<text x="{mid_x}" y="{mid_y - 3}" text-anchor="middle" font-family="monospace" font-size="9" fill="{color}" font-weight="bold">{escape(w2)}</text>')
                 else:
                     tw = min(len(lbl) * 5.2 + 10, max(50, dx - 10))
                     flows_html.append(f'<rect x="{mid_x - tw / 2}" y="{mid_y - 18}" width="{tw}" height="15" rx="3" fill="#090d16" stroke="{color}" stroke-width="1" stroke-opacity="0.8"/>')
-                    flows_html.append(f'<text x="{mid_x}" y="{mid_y - 7}" text-anchor="middle" font-family="monospace" font-size="7.5" fill="{color}" font-weight="bold">{escape(lbl)}</text>')
+                    flows_html.append(f'<text x="{mid_x}" y="{mid_y - 7}" text-anchor="middle" font-family="monospace" font-size="9" fill="{color}" font-weight="bold">{escape(lbl)}</text>')
             else:
                 tw = len(lbl) * 5.6 + 12
                 flows_html.append(f'<rect x="{mid_x - tw / 2}" y="{mid_y - 9}" width="{tw}" height="17" rx="3" fill="#090d16" stroke="{color}" stroke-width="1" stroke-opacity="0.8"/>')
-                flows_html.append(f'<text x="{mid_x}" y="{mid_y + 3}" text-anchor="middle" font-family="monospace" font-size="8.5" fill="{color}" font-weight="bold">{escape(lbl)}</text>')
+                flows_html.append(f'<text x="{mid_x}" y="{mid_y + 3}" text-anchor="middle" font-family="monospace" font-size="9" fill="{color}" font-weight="bold">{escape(lbl)}</text>')
 
     probes_html = []
     probe_cards_html = []
@@ -447,13 +447,13 @@ def render_topology_svg(day: int, arch_diagram: dict) -> str:
             
             # Clean on-canvas circle pin (badge on component corner or line)
             probes_html.append(f'<circle cx="{px}" cy="{py}" r="10" fill="{p_color}" stroke="#ffffff" stroke-width="1.5" opacity="0.95"/>')
-            probes_html.append(f'<text x="{px}" y="{py + 3}" text-anchor="middle" font-family="monospace" font-size="8" fill="white" font-weight="bold">{escape(raw_badge)}</text>')
+            probes_html.append(f'<text x="{px}" y="{py + 3}" text-anchor="middle" font-family="monospace" font-size="9" fill="white" font-weight="bold">{escape(raw_badge)}</text>')
             
             # Dedicated probe footer entry
             bx = 24 + idx * col_w
             by = p_panel_y + 36
             probe_cards_html.append(f'<circle cx="{bx + 8}" cy="{by - 3}" r="7" fill="{p_color}"/>')
-            probe_cards_html.append(f'<text x="{bx + 8}" y="{by}" text-anchor="middle" font-family="monospace" font-size="7.5" fill="white" font-weight="bold">{escape(raw_badge)}</text>')
+            probe_cards_html.append(f'<text x="{bx + 8}" y="{by}" text-anchor="middle" font-family="monospace" font-size="9" fill="white" font-weight="bold">{escape(raw_badge)}</text>')
             p_lbl = p.get("label", f"Probe {idx+1}")
             probe_cards_html.append(f'<text x="{bx + 20}" y="{by}" font-family="monospace" font-size="9" fill="{p_color}">{escape(p_lbl)}</text>')
 
@@ -539,7 +539,7 @@ def render_sophisticated_flow_svg(day: int, arch_diagram: dict) -> str:
   <text x="{x + w // 2}" y="{y + 48}" text-anchor="middle" font-family="monospace" font-size="12" fill="#f8fafc" font-weight="bold">{escape(node_title)}</text>
   {sub_svg}
   <rect x="{x + 10}" y="{spec_box_y}" width="{w - 20}" height="76" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
-  <text x="{x + 14}" y="{spec_box_y + 12}" font-family="monospace" font-size="8" fill="{meta["stroke"]}">RUNTIME SPECIFICATIONS:</text>
+  <text x="{x + 14}" y="{spec_box_y + 12}" font-family="monospace" font-size="9" fill="{meta["stroke"]}">RUNTIME SPECIFICATIONS:</text>
   {spec_lines_svg}
   <rect x="{x + 14}" y="{y + h - 34}" width="{w - 28}" height="22" rx="3" fill="#121526" stroke="{meta["stroke"]}" stroke-width="1"/>
   <text x="{x + w // 2}" y="{y + h - 20}" text-anchor="middle" font-family="monospace" font-size="10" fill="{meta["stroke"]}" font-weight="bold">{meta["badge"]}</text>
@@ -550,7 +550,7 @@ def render_sophisticated_flow_svg(day: int, arch_diagram: dict) -> str:
             labels = ["ASSERTION", "EXCHANGE", "AUTHORIZE"]
             arrows_html.append(f'''
   <line x1="{ax1}" y1="{y + 130}" x2="{ax2}" y2="{y + 130}" stroke="#22c55e" stroke-width="2.5" marker-end="url(#{uid}-arr-ok)"/>
-  <text x="{(ax1 + ax2) // 2}" y="{y + 122}" text-anchor="middle" font-family="monospace" font-size="8" fill="#22c55e">{labels[i]}</text>
+  <text x="{(ax1 + ax2) // 2}" y="{y + 122}" text-anchor="middle" font-family="monospace" font-size="9" fill="#22c55e">{labels[i]}</text>
 ''')
 
     denial_html = f'''
