@@ -44,7 +44,7 @@ DATA = { 'access_date': '2026-10-04',
           {'label': 'VERIFY', 'type': 'ok', 'x1': 350, 'x2': 465, 'y1': 498, 'y2': 498}
       ],
       'probes': [
-          {'color': '#38bdf8', 'cx': 250, 'cy': 118, 'label': 'P1: Isolation Contract Criteria'},
+          {'color': '#38bdf8', 'cx': 300, 'cy': 118, 'label': 'P1: Isolation Contract Criteria'},
           {'color': '#f59e0b', 'cx': 570, 'cy': 252, 'label': 'P2: Kernel vs User Space Boundary'},
           {'color': '#34d399', 'cx': 620, 'cy': 472, 'label': 'P3: Resource Throttling vs Security Trap'}
       ]
@@ -530,7 +530,7 @@ DATA = { 'access_date': '2026-10-04',
                                           'width="22" height="22" preserveAspectRatio="xMidYMid meet"/>\n'
                                           '<rect height="85" rx="8" stroke="#38bdf8" width="150" x="770" '
                                           'y="105"></rect>\n'
-                                          '<image href="../assets/icons/generic/outcome.svg" x="778" y="113" '
+                                          '<image href="../assets/icons/generic/outcome.svg" x="763" y="113" '
                                           'width="22" height="22" preserveAspectRatio="xMidYMid meet"/>\n'
                                           '</g>\n'
                                           '<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">\n'
@@ -542,15 +542,15 @@ DATA = { 'access_date': '2026-10-04',
                                           '<text x="348" y="208">[CORRECTED: Dedicated VM]</text>\n'
                                           '<text fill="#34d399" x="348" y="228">Independent guest kernel</text>\n'
                                           '<text fill="#a9b7cb" x="348" y="248">Vendor-supported image</text>\n'
-                                          '<text x="622" y="58">EXACT FAILURE POINT</text>\n'
-                                          '<text fill="#f43f5e" x="622" y="78">insmod: Operation not permitted</text>\n'
+                                          '<text x="625" y="58">EXACT FAILURE POINT</text>\n'
+                                          '<text fill="#f43f5e" x="625" y="78">insmod: EPERM (Denied)</text>\n'
                                           '<text fill="#a9b7cb" x="622" y="98">CAP_SYS_MODULE dropped</text>\n'
-                                          '<text x="622" y="208">CORRECTED CONTROL</text>\n'
-                                          '<text fill="#34d399" x="622" y="228">Module loads in guest kernel</text>\n'
-                                          '<text fill="#a9b7cb" x="622" y="248">Tax calculation succeeds</text>\n'
-                                          '<text x="852" y="135">VERIFICATION</text>\n'
-                                          '<text fill="#34d399" x="852" y="155">HTTP 200 Tax Response</text>\n'
-                                          '<text fill="#a9b7cb" x="852" y="175">Host nodes unchanged</text>\n'
+                                          '<text x="625" y="208">CORRECTED CONTROL</text>\n'
+                                          '<text fill="#34d399" x="625" y="228">Module loads in guest kernel</text>\n'
+                                          '<text fill="#a9b7cb" x="625" y="248">Tax calculation succeeds</text>\n'
+                                          '<text x="845" y="135">VERIFICATION</text>\n'
+                                          '<text fill="#34d399" font-size="11" x="845" y="155">HTTP 200 Tax Response</text>\n'
+                                          '<text fill="#a9b7cb" font-size="11" x="845" y="175">Host nodes unchanged</text>\n'
                                           '</g>\n'
                                           '<g fill="none" stroke-width="2">\n'
                                           '<path d="M170 130 L220 85" marker-end="url(#day9-vm-fail-arrow)" '
@@ -561,7 +561,7 @@ DATA = { 'access_date': '2026-10-04',
                                           'stroke="#38bdf8"></path>\n'
                                           '<path d="M455 222 L506 222" marker-end="url(#day9-vm-arrow)" '
                                           'stroke="#38bdf8"></path>\n'
-                                          '<path d="M720 222 L766 165" marker-end="url(#day9-vm-arrow)" '
+                                          '<path d="M740 222 L751 165" marker-end="url(#day9-vm-arrow)" '
                                           'stroke="#38bdf8"></path>\n'
                                           '</g>\n'
                                           '<text fill="#a9b7cb" font-size="11" text-anchor="middle" x="470" '
@@ -1379,7 +1379,7 @@ DATA = { 'access_date': '2026-10-04',
                                           'width="22" height="22" preserveAspectRatio="xMidYMid meet"/>\n'
                                           '<rect height="85" rx="8" stroke="#38bdf8" width="155" x="765" '
                                           'y="110"></rect>\n'
-                                          '<image href="../assets/icons/generic/outcome.svg" x="773" y="118" '
+                                          '<image href="../assets/icons/generic/outcome.svg" x="768" y="118" '
                                           'width="22" height="22" preserveAspectRatio="xMidYMid meet"/>\n'
                                           '</g>\n'
                                           '<g fill="#fce7f3" font-size="12" font-weight="600" text-anchor="middle">\n'
@@ -1388,7 +1388,7 @@ DATA = { 'access_date': '2026-10-04',
                                           '<text x="342" y="58">[FAILED: In-Memory Heap]</text>\n'
                                           '<text fill="#f43f5e" x="342" y="78">Buffers 640M in RAM heap</text>\n'
                                           '<text fill="#a9b7cb" x="342" y="98">Host shows 12G available</text>\n'
-                                          '<text x="342" y="213">[CORRECTED: Stream + Limit]</text>\n'
+                                          '<text x="342" y="213">[CORRECTED: Streamed]</text>\n'
                                           '<text fill="#34d399" x="342" y="233">Stream I/O + 1024M max</text>\n'
                                           '<text fill="#a9b7cb" x="342" y="253">Working set capped at 280M</text>\n'
                                           '<text x="612" y="58">EXACT FAILURE POINT</text>\n'
@@ -1397,9 +1397,9 @@ DATA = { 'access_date': '2026-10-04',
                                           '<text x="612" y="213">CORRECTED CONTROL</text>\n'
                                           '<text fill="#34d399" x="612" y="233">Heap &lt; 50% of cgroup limit</text>\n'
                                           '<text fill="#a9b7cb" x="612" y="253">Zero kernel OOM kills</text>\n'
-                                          '<text x="849" y="138">VERIFICATION</text>\n'
-                                          '<text fill="#34d399" x="849" y="158">oom_kill == 0</text>\n'
-                                          '<text fill="#a9b7cb" x="849" y="178">≤1 fulfillment per order</text>\n'
+                                          '<text x="842" y="138">VERIFICATION</text>\n'
+                                          '<text fill="#34d399" x="842" y="158">oom_kill == 0</text>\n'
+                                          '<text fill="#a9b7cb" x="842" y="178">≤1 per order</text>\n'
                                           '</g>\n'
                                           '<g fill="none" stroke-width="2">\n'
                                           '<path d="M170 135 L220 85" marker-end="url(#day9-memory-fail-arrow)" '
@@ -1410,7 +1410,7 @@ DATA = { 'access_date': '2026-10-04',
                                           'stroke="#38bdf8"></path>\n'
                                           '<path d="M445 227 L490 227" marker-end="url(#day9-memory-arrow)" '
                                           'stroke="#38bdf8"></path>\n'
-                                          '<path d="M715 227 L760 170" marker-end="url(#day9-memory-arrow)" '
+                                          '<path d="M715 227 L756 170" marker-end="url(#day9-memory-arrow)" '
                                           'stroke="#38bdf8"></path>\n'
                                           '</g>\n'
                                           '<text fill="#a9b7cb" font-size="11" text-anchor="middle" x="470" '
@@ -1683,42 +1683,42 @@ DATA = { 'access_date': '2026-10-04',
                              'preserveAspectRatio="xMidYMid meet"/>\n'
                              '</g>\n'
                              '<g fill="#fce7f3" font-size="13" font-weight="700" text-anchor="middle">\n'
-                             '<text x="110" y="60">Container Process</text>\n'
-                             '<text x="300" y="60">1. Namespaces</text>\n'
-                             '<text x="490" y="60">2. cgroups v2</text>\n'
-                             '<text x="680" y="60">3. Seccomp &amp; Caps</text>\n'
-                             '<text x="860" y="60">Host Kernel</text>\n'
+                             '<text x="100" y="76">Container Process</text>\n'
+                             '<text x="290" y="76">1. Namespaces</text>\n'
+                             '<text x="480" y="76">2. cgroups v2</text>\n'
+                             '<text x="670" y="76">3. Seccomp &amp; Caps</text>\n'
+                             '<text x="850" y="76">Host Kernel</text>\n'
                              '</g>\n'
                              '<g fill="#a9b7cb" font-size="11" text-anchor="middle">\n'
-                             '<text x="100" y="90">Order API / Worker</text>\n'
-                             '<text fill="#fce7f3" x="100" y="115">Userspace Process</text>\n'
-                             '<text x="100" y="140">UID 0 (Container Root)</text>\n'
-                             '<text x="100" y="165">or unprivileged UID</text>\n'
-                             '<text fill="#38bdf8" x="100" y="200">Issues System Call</text>\n'
-                             '<text x="100" y="225">(open, clone, socket)</text>\n'
-                             '<text fill="#fce7f3" x="290" y="90">Visibility Filter</text>\n'
-                             '<text x="290" y="115">PID: Virtual process tree</text>\n'
-                             '<text x="290" y="140">NET: veth &amp; private routes</text>\n'
-                             '<text x="290" y="165">MNT: pivot_root tree</text>\n'
-                             '<text x="290" y="190">IPC · UTS · USER</text>\n'
-                             '<text fill="#34d399" x="290" y="225">✓ Scoped View</text>\n'
-                             '<text fill="#fce7f3" x="480" y="90">Resource Limits</text>\n'
-                             '<text x="480" y="115">cpu.max (CFS quota)</text>\n'
-                             '<text x="480" y="140">memory.max (limit)</text>\n'
-                             '<text x="480" y="165">io.max · PSI accounting</text>\n'
-                             '<text fill="#f43f5e" x="480" y="200">Breach: OOM Kill</text>\n'
-                             '<text fill="#34d399" x="480" y="225">✓ Within Budget</text>\n'
-                             '<text fill="#fce7f3" x="670" y="90">Privilege Gating</text>\n'
-                             '<text x="670" y="115">Seccomp: BPF filter</text>\n'
-                             '<text x="670" y="140">Blocks dangerous calls</text>\n'
-                             '<text x="670" y="165">CapEff: Bound bits</text>\n'
-                             '<text fill="#f43f5e" x="670" y="200">Denied: EPERM / SIGSYS</text>\n'
-                             '<text fill="#34d399" x="670" y="225">✓ Authorized</text>\n'
-                             '<text fill="#fce7f3" x="850" y="90">Execution</text>\n'
-                             '<text x="850" y="120">Shared Kernel Space</text>\n'
-                             '<text x="850" y="150">Ring 0 Privilege</text>\n'
-                             '<text x="850" y="180">Hardware I/O</text>\n'
-                             '<text fill="#34d399" x="850" y="225">CPU / RAM / Disk</text>\n'
+                             '<text x="100" y="98">Order API / Worker</text>\n'
+                             '<text fill="#fce7f3" x="100" y="120">Userspace Process</text>\n'
+                             '<text x="100" y="142">UID 0 (Container Root)</text>\n'
+                             '<text x="100" y="164">or unprivileged UID</text>\n'
+                             '<text fill="#38bdf8" x="100" y="195">Issues System Call</text>\n'
+                             '<text x="100" y="218">(open, clone, socket)</text>\n'
+                             '<text fill="#fce7f3" x="290" y="98">Visibility Filter</text>\n'
+                             '<text x="290" y="120">PID: Virtual process tree</text>\n'
+                             '<text x="290" y="142">NET: veth &amp; private routes</text>\n'
+                             '<text x="290" y="164">MNT: pivot_root tree</text>\n'
+                             '<text x="290" y="186">IPC · UTS · USER</text>\n'
+                             '<text fill="#34d399" x="290" y="218">✓ Scoped View</text>\n'
+                             '<text fill="#fce7f3" x="480" y="98">Resource Limits</text>\n'
+                             '<text x="480" y="120">cpu.max (CFS quota)</text>\n'
+                             '<text x="480" y="142">memory.max (limit)</text>\n'
+                             '<text x="480" y="164">io.max · PSI accounting</text>\n'
+                             '<text fill="#f43f5e" x="480" y="195">Breach: OOM Kill</text>\n'
+                             '<text fill="#34d399" x="480" y="218">✓ Within Budget</text>\n'
+                             '<text fill="#fce7f3" x="670" y="98">Privilege Gating</text>\n'
+                             '<text x="670" y="120">Seccomp: BPF filter</text>\n'
+                             '<text x="670" y="142">Blocks dangerous calls</text>\n'
+                             '<text x="670" y="164">CapEff: Bound bits</text>\n'
+                             '<text fill="#f43f5e" x="670" y="195">Denied: EPERM / SIGSYS</text>\n'
+                             '<text fill="#34d399" x="670" y="218">✓ Authorized</text>\n'
+                             '<text fill="#fce7f3" x="850" y="98">Execution</text>\n'
+                             '<text x="850" y="125">Shared Kernel Space</text>\n'
+                             '<text x="850" y="155">Ring 0 Privilege</text>\n'
+                             '<text x="850" y="185">Hardware I/O</text>\n'
+                             '<text fill="#34d399" x="850" y="218">CPU / RAM / Disk</text>\n'
                              '</g>\n'
                              '<g fill="none" marker-end="url(#day9-layers-arrow)" stroke="#38bdf8" stroke-width="2">\n'
                              '<path d="M180 145 L206 145"></path>\n'
@@ -1804,25 +1804,128 @@ DATA = { 'access_date': '2026-10-04',
 
 
 # --- POST-PROCESSING ENHANCEMENTS FOR DAY 9 ---
-import re, urllib.parse
+import os, re, urllib.parse
+from bs4 import BeautifulSoup, NavigableString
 
+# Load terms from scratch/audits/day-009-terms.txt
+_terms_file = 'scratch/audits/day-009-terms.txt'
+if os.path.exists(_terms_file):
+    TERMS = [l.strip() for l in open(_terms_file, encoding='utf-8') if l.strip() and not l.startswith('#')]
+else:
+    TERMS = []
+TERMS = sorted(TERMS, key=len, reverse=True)
+
+# 1. Expand Topic 1 with worked mechanisms (R2 bullet form)
 _t0 = DATA['topics'][0]
 _t0['technical'] = _t0['technical'].replace(
     '<h4>The Linux KVM Subsystem and QEMU Userspace Model</h4>',
-    '<p><strong class="side-heading">Core hardware virtualization architectural mechanisms:</strong></p>\n<ul>\n<li><strong class="keyword">Intel VT-x / AMD-V (CPU Virtualization)</strong>: Adds specialized CPU modes—such as Intel VMX Root and Non-Root modes or AMD SVM (Secure Virtual Machine)—allowing guest operating systems to execute privileged instructions directly on the physical processor.</li>\n<li><strong class="keyword">EPT / RVI (Memory Virtualization)</strong>: Intel Extended Page Tables (EPT) and AMD Rapid Virtualization Indexing (RVI, or Nested Page Tables) handle two-stage memory address translation directly in hardware. This eliminates the heavy overhead of maintaining software shadow page tables.</li>\n<li><strong class="keyword">vCPUs (Virtual CPUs)</strong>: Logical processing units assigned by the hypervisor to a virtual machine, scheduled directly onto physical CPU cores via hardware virtualization extensions.</li>\n<li><strong class="keyword">IOMMU (Intel VT-d / AMD-Vi)</strong>: Hardware-level Input/Output Memory Management Units that allow virtual machines to directly access physical hardware like GPUs and network cards (device passthrough).</li>\n</ul>\n\n<p><strong class="side-heading">How hardware-assisted virtualization operates:</strong></p>\n<ul>\n<li><strong class="keyword">Privilege Separation</strong>: The hypervisor runs in a high-privilege root mode, while the guest operating system runs in non-root mode.</li>\n<li><strong class="keyword">VM Exits and Entries</strong>: When a guest OS attempts a sensitive hardware-level action, a VM exit safely transfers control to the hypervisor, which processes the request and hands control back via a VM entry.</li>\n<li><strong class="keyword">Performance Gain</strong>: Older methods relied on slow software instruction interception or kernel modification (paravirtualization). Hardware extensions execute code directly, making multi-tenant cloud servers and local hypervisors like VMware Workstation or KVM practical.</li>\n</ul>' + '\n\n<h4>The Linux KVM Subsystem and QEMU Userspace Model</h4>',
-    1
-)
-_t0['technical'] = _t0['technical'].replace(
-    '<h4>Compute Engine Hypervisor Architecture and Shielded VM Security</h4>',
-    '<p><strong class="side-heading">The Linux KVM Subsystem (Kernel Space):</strong></p>\n<ul>\n<li><strong class="keyword">Hypervisor Role</strong>: KVM converts the Linux kernel into a Type-1 (bare-metal) hypervisor by loading kernel modules (<kbd>kvm.ko</kbd>, plus hardware-specific modules like <kbd>kvm-intel.ko</kbd> or <kbd>kvm-amd.ko</kbd>).</li>\n<li><strong class="keyword">Hardware Acceleration</strong>: It leverages hardware virtualization extensions (such as Intel VT-x or AMD-V) to run guest CPU instructions directly on the physical processor at near-native speed.</li>\n<li><strong class="keyword">Process Representation</strong>: Each virtual machine runs as a standard Linux process managed by the kernel scheduler and memory manager.</li>\n<li><strong class="keyword">The /dev/kvm Interface</strong>: Userspace programs interact with KVM via the <kbd>/dev/kvm</kbd> character device node using ioctl system calls to create VMs, allocate guest memory, and inject interrupts.</li>\n</ul>\n\n<p><strong class="side-heading">The QEMU Userspace Model:</strong></p>\n<ul>\n<li><strong class="keyword">Device Emulation</strong>: KVM alone only handles CPU and memory virtualization; it relies on QEMU in userspace to emulate complete system hardware—including disk controllers, network cards, graphic adapters, and BIOS/UEFI firmware.</li>\n<li><strong class="keyword">VM Exits and Hand-offs</strong>: When a guest operating system tries to access a virtualized device or trigger a privileged event that KVM cannot handle directly, a VM exit occurs. Execution transfers from KVM to the QEMU userspace process to handle the device emulation in software before returning control back to the guest.</li>\n<li><strong class="keyword">Paravirtualization (Virtio)</strong>: To bypass slow device emulation overhead for high-throughput disk and network I/O, QEMU and KVM utilize virtio paravirtualized drivers, allowing the guest and host to communicate efficiently through shared memory rings.</li>\n<li><strong class="keyword">Management &amp; Control</strong>: QEMU acts as the Virtual Machine Monitor (VMM), often orchestrated via higher-level management APIs and tools like <kbd>libvirt</kbd> and <kbd>virt-manager</kbd>.</li>\n</ul>' + '\n\n<h4>Compute Engine Hypervisor Architecture and Shielded VM Security</h4>',
-    1
-)
-_t0['technical'] = _t0['technical'].replace(
-    '<h4>Guest Kernel Autonomy vs Hypervisor Management Overhead</h4>',
-    '<p><strong class="side-heading">Compute Engine Hypervisor Architecture:</strong></p>\n<ul>\n<li><strong class="keyword">Direct Hardware Access</strong>: The hypervisor operates as a bare-metal abstraction layer, scheduling vCPUs and managing physical memory without a general-purpose host operating system in the data path.</li>\n<li><strong class="keyword">Verified Boot Stack</strong>: Physical servers execute a cryptographically verified boot chain where every layer—from the physical host firmware up to the hypervisor—must pass digital signature validation before loading.</li>\n<li><strong class="keyword">Tenant Isolation</strong>: Hardware-assisted virtualization extensions (Intel VT-x / AMD-V) and memory management unit (IOMMU) controls isolate guest memory spaces and network traffic per project and instance.</li>\n</ul>\n\n<p><strong class="side-heading">Shielded VM Security Components:</strong></p>\n<p>Google Cloud Shielded VMs extend protection from the hypervisor layer into the guest operating system using three primary capabilities:</p>\n<ul>\n<li><strong class="keyword">Secure Boot</strong>: Uses Unified Extensible Firmware Interface (UEFI) firmware to verify the digital signatures of all early-boot components, kernels, and kernel modules before they execute, blocking unsigned bootloaders or rootkits. (Enabled via explicit opt-in due to compatibility requirements like ARM64 or out-of-tree drivers).</li>\n<li><strong class="keyword">Virtual Trusted Platform Module (vTPM)</strong>: Provides a hardware-grade, virtualized TPM 2.0 chip dedicated to the instance. It performs Measured Boot by recording cryptographic hashes of boot components into Platform Configuration Registers (PCRs) and securely stores encryption keys. (Enabled by default).</li>\n<li><strong class="keyword">Integrity Monitoring</strong>: Continuously tracks boot measurements against a baseline policy through Cloud Monitoring/Operations suites to flag unexpected kernel or boot modifications. (Enabled by default alongside the vTPM).</li>\n</ul>' + '\n\n<h4>Guest Kernel Autonomy vs Hypervisor Management Overhead</h4>',
+    '<ul>\n'
+    '<li><strong class="side-heading">Core hardware virtualization architectural mechanisms:</strong>\n'
+    '<ul>\n'
+    '<li><strong class="keyword">Intel VT-x / AMD-V (CPU Virtualization)</strong>: Adds specialized CPU modes—such as Intel VMX Root and Non-Root modes or AMD SVM (Secure Virtual Machine)—allowing guest operating systems to execute privileged instructions directly on the physical processor.</li>\n'
+    '<li><strong class="keyword">EPT / RVI (Memory Virtualization)</strong>: Intel Extended Page Tables (EPT) and AMD Rapid Virtualization Indexing (RVI, or Nested Page Tables) handle two-stage memory address translation directly in hardware. This eliminates the heavy overhead of maintaining software shadow page tables.</li>\n'
+    '<li><strong class="keyword">vCPUs (Virtual CPUs)</strong>: Logical processing units assigned by the hypervisor to a virtual machine, scheduled directly onto physical CPU cores via hardware virtualization extensions.</li>\n'
+    '<li><strong class="keyword">IOMMU (Intel VT-d / AMD-Vi)</strong>: Hardware-level Input/Output Memory Management Units that allow virtual machines to directly access physical hardware like GPUs and network cards (device passthrough).</li>\n'
+    '</ul>\n'
+    '</li>\n'
+    '<li><strong class="side-heading">How hardware-assisted virtualization operates:</strong>\n'
+    '<ul>\n'
+    '<li><strong class="keyword">Privilege Separation</strong>: The hypervisor runs in a high-privilege root mode, while the guest operating system runs in non-root mode.</li>\n'
+    '<li><strong class="keyword">VM Exits and Entries</strong>: When a guest OS attempts a sensitive hardware-level action, a VM exit safely transfers control to the hypervisor, which processes the request and hands control back via a VM entry.</li>\n'
+    '<li><strong class="keyword">Performance Gain</strong>: Older methods relied on slow software instruction interception or kernel modification (paravirtualization). Hardware extensions execute code directly, making multi-tenant cloud servers and local hypervisors like VMware Workstation or KVM practical.</li>\n'
+    '</ul>\n'
+    '</li>\n'
+    '</ul>\n\n'
+    '<h4>The Linux KVM Subsystem and QEMU Userspace Model</h4>',
     1
 )
 
+_t0['technical'] = _t0['technical'].replace(
+    '<h4>Compute Engine Hypervisor Architecture and Shielded VM Security</h4>',
+    '<ul>\n'
+    '<li><strong class="side-heading">The Linux KVM Subsystem (Kernel Space):</strong>\n'
+    '<ul>\n'
+    '<li><strong class="keyword">Hypervisor Role</strong>: KVM converts the Linux kernel into a Type-1 (bare-metal) hypervisor by loading kernel modules (<kbd>kvm.ko</kbd>, plus hardware-specific modules like <kbd>kvm-intel.ko</kbd> or <kbd>kvm-amd.ko</kbd>).</li>\n'
+    '<li><strong class="keyword">Hardware Acceleration</strong>: It leverages hardware virtualization extensions (such as Intel VT-x or AMD-V) to run guest CPU instructions directly on the physical processor at near-native speed.</li>\n'
+    '<li><strong class="keyword">Process Representation</strong>: Each virtual machine runs as a standard Linux process managed by the kernel scheduler and memory manager.</li>\n'
+    '<li><strong class="keyword">The /dev/kvm Interface</strong>: Userspace programs interact with KVM via the <kbd>/dev/kvm</kbd> character device node using ioctl system calls to create VMs, allocate guest memory, and inject interrupts.</li>\n'
+    '</ul>\n'
+    '</li>\n'
+    '<li><strong class="side-heading">The QEMU Userspace Model:</strong>\n'
+    '<ul>\n'
+    '<li><strong class="keyword">Device Emulation</strong>: KVM alone only handles CPU and memory virtualization; it relies on QEMU in userspace to emulate complete system hardware—including disk controllers, network cards, graphic adapters, and BIOS/UEFI firmware.</li>\n'
+    '<li><strong class="keyword">VM Exits and Hand-offs</strong>: When a guest operating system tries to access a virtualized device or trigger a privileged event that KVM cannot handle directly, a VM exit occurs. Execution transfers from KVM to the QEMU userspace process to handle the device emulation in software before returning control back to the guest.</li>\n'
+    '<li><strong class="keyword">Paravirtualization (Virtio)</strong>: To bypass slow device emulation overhead for high-throughput disk and network I/O, QEMU and KVM utilize virtio paravirtualized drivers, allowing the guest and host to communicate efficiently through shared memory rings.</li>\n'
+    '<li><strong class="keyword">Management &amp; Control</strong>: QEMU acts as the Virtual Machine Monitor (VMM), often orchestrated via higher-level management APIs and tools like <kbd>libvirt</kbd> and <kbd>virt-manager</kbd>.</li>\n'
+    '</ul>\n'
+    '</li>\n'
+    '</ul>\n\n'
+    '<h4>Compute Engine Hypervisor Architecture and Shielded VM Security</h4>',
+    1
+)
+
+_t0['technical'] = _t0['technical'].replace(
+    '<h4>Guest Kernel Autonomy vs Hypervisor Management Overhead</h4>',
+    '<ul>\n'
+    '<li><strong class="side-heading">Compute Engine Hypervisor Architecture:</strong>\n'
+    '<ul>\n'
+    '<li><strong class="keyword">Direct Hardware Access</strong>: The hypervisor operates as a bare-metal abstraction layer, scheduling vCPUs and managing physical memory without a general-purpose host operating system in the data path.</li>\n'
+    '<li><strong class="keyword">Verified Boot Stack</strong>: Physical servers execute a cryptographically verified boot chain where every layer—from the physical host firmware up to the hypervisor—must pass digital signature validation before loading.</li>\n'
+    '<li><strong class="keyword">Tenant Isolation</strong>: Hardware-assisted virtualization extensions (Intel VT-x / AMD-V) and memory management unit (IOMMU) controls isolate guest memory spaces and network traffic per project and instance.</li>\n'
+    '</ul>\n'
+    '</li>\n'
+    '<li><strong class="side-heading">Shielded VM Security Components:</strong> Google Cloud Shielded VMs extend protection from the hypervisor layer into the guest operating system using three primary capabilities:\n'
+    '<ul>\n'
+    '<li><strong class="keyword">Secure Boot</strong>: Uses Unified Extensible Firmware Interface (UEFI) firmware to verify the digital signatures of all early-boot components, kernels, and kernel modules before they execute, blocking unsigned bootloaders or rootkits. (Enabled via explicit opt-in due to compatibility requirements like ARM64 or out-of-tree drivers).</li>\n'
+    '<li><strong class="keyword">Virtual Trusted Platform Module (vTPM)</strong>: Provides a hardware-grade, virtualized TPM 2.0 chip dedicated to the instance. It performs Measured Boot by recording cryptographic hashes of boot components into Platform Configuration Registers (PCRs) and securely stores encryption keys. (Enabled by default).</li>\n'
+    '<li><strong class="keyword">Integrity Monitoring</strong>: Continuously tracks boot measurements against a baseline policy through Cloud Monitoring/Operations suites to flag unexpected kernel or boot modifications. (Enabled by default alongside the vTPM).</li>\n'
+    '</ul>\n'
+    '</li>\n'
+    '</ul>\n\n'
+    '<h4>Guest Kernel Autonomy vs Hypervisor Management Overhead</h4>',
+    1
+)
+
+# 2. Expand Topic 2 with worked mechanism (User Namespaces / Rootless Containers)
+_t1 = DATA['topics'][1]
+_t1['technical'] = _t1['technical'].replace(
+    '<h4>Control Groups v2 (cgroups v2) Resource Accounting and Quota Limits</h4>',
+    '<ul>\n'
+    '<li><strong class="side-heading">User namespace UID mapping and rootless container isolation:</strong> Rootless containers decouple container administration from physical host root by executing the container runtime entirely in an unprivileged user namespace. The Linux kernel remaps container UID 0 to an unallocated host UID (such as UID 100000 defined in <kbd>/etc/subuid</kbd>) using the <kbd>/proc/[pid]/uid_map</kbd> translation file. While an application inside the container possesses effective root privileges within its private namespace, any system call that escapes the container boundary arrives at the host kernel as an unprivileged process (UID 100000), blocking write operations to host filesystems and preventing host kernel compromise. In Google Cloud, Cloud Run and GKE utilize user namespace isolation to safely execute multi-tenant container workloads.</li>\n'
+    '</ul>\n\n'
+    '<h4>Control Groups v2 (cgroups v2) Resource Accounting and Quota Limits</h4>',
+    1
+)
+
+# 3. R2 Bullets Conversion Function (preserves structural headings like Evidence limit and Subtopics)
+def _convert_to_r2_bullets(tech_html):
+    def repl_p(m):
+        label = m.group(1)
+        rest = m.group(2)
+        if label.strip() in ('Evidence limit:', 'Subtopics in this discussion:', 'Linked subtopics:'):
+            return m.group(0)
+        return f'<li><strong class="side-heading">{label}</strong>{rest}</li>'
+    s = re.sub(r'<p><strong class="side-heading">(.*?)</strong>(.*?)</p>', repl_p, tech_html, flags=re.DOTALL)
+    
+    parts = re.split(r'(<h4[^>]*>.*?</h4>|<figure.*?</figure>|<div.*?</div>|<p.*?</p>|<ul>.*?</ul>)', s, flags=re.DOTALL)
+    out = []
+    for part in parts:
+        if not part:
+            continue
+        if part.startswith(('<h4', '<figure', '<div', '<p', '<ul')):
+            out.append(part)
+        else:
+            trimmed = part.strip()
+            if trimmed.startswith('<li>'):
+                out.append('<ul>\n' + trimmed + '\n</ul>')
+            else:
+                out.append(part)
+    return '\n\n'.join(out)
+
+for _topic in DATA['topics']:
+    _topic['technical'] = _convert_to_r2_bullets(_topic['technical'])
+
+# 4. Link all <strong class="keyword"> spans (put <a> inside <strong>)
 def _link_keywords(html_text):
     def _repl(m):
         inner = m.group(1)
@@ -1830,12 +1933,67 @@ def _link_keywords(html_text):
             return m.group(0)
         clean_text = re.sub(r'<[^>]+>', '', inner).strip()
         search_url = 'http://www.google.com/search?q=' + urllib.parse.quote_plus(clean_text)
-        return '<strong class="keyword"><a href="' + search_url + '" target="_blank" rel="noopener">' + inner + '</a></strong>'
+        return '<strong class="keyword"><a href="' + search_url + '" rel="noopener" target="_blank">' + inner + '</a></strong>'
     return re.sub(r'<strong class="keyword">(.*?)</strong>', _repl, html_text)
 
 for _topic in DATA['topics']:
     _topic['technical'] = _link_keywords(_topic['technical'])
+DATA['part1_html'] = _link_keywords(DATA['part1_html'])
 
+# 5. Link Listed Terms (first occurrence per subtopic/card)
+def _link_terms_in_section(text, terms_list=TERMS):
+    soup = BeautifulSoup(f'<root>{text}</root>', 'html.parser')
+    for term in terms_list:
+        pat = re.compile(r'(?<!\w)(' + re.escape(term) + r')(?!\w)', re.IGNORECASE)
+        url = f'http://www.google.com/search?q={urllib.parse.quote_plus(term)}'
+        matched = False
+        for text_node in list(soup.find_all(string=True)):
+            if matched:
+                break
+            parent = text_node.parent
+            in_forbidden = False
+            while parent and parent.name != '[document]':
+                if parent.name in ('a', 'code', 'kbd', 'samp', 'figcaption', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'title', 'script', 'style'):
+                    in_forbidden = True
+                    break
+                if parent.name == 'strong' and 'side-heading' in parent.get('class', []):
+                    in_forbidden = True
+                    break
+                if parent.name == 'strong' and 'keyword' in parent.get('class', []):
+                    if parent.find('a'):
+                        in_forbidden = True
+                        break
+                parent = parent.parent
+            if in_forbidden:
+                continue
+            m = pat.search(text_node)
+            if m:
+                before = text_node[:m.start()]
+                matched_text = m.group(1)
+                after = text_node[m.end():]
+                a_tag = soup.new_tag('a', href=url, rel='noopener', target='_blank')
+                a_tag.string = matched_text
+                new_nodes = []
+                if before:
+                    new_nodes.append(NavigableString(before))
+                new_nodes.append(a_tag)
+                if after:
+                    new_nodes.append(NavigableString(after))
+                text_node.replace_with(*new_nodes)
+                matched = True
+    return soup.root.decode_contents()
+
+# Link terms in part1_html overview cards
+_cards = re.split(r'(</article>)', DATA['part1_html'])
+_new_part1 = []
+for _part in _cards:
+    if '<article' in _part:
+        _new_part1.append(_link_terms_in_section(_part))
+    else:
+        _new_part1.append(_part)
+DATA['part1_html'] = ''.join(_new_part1)
+
+# 6. Assign Subtopic IDs and Link Subtopics
 for _topic in DATA['topics']:
     _technical = _topic['technical']
     _headings = re.findall(r'<h4>(.*?)</h4>', _technical, re.S)
@@ -1853,7 +2011,24 @@ for _topic in DATA['topics']:
         lambda match: match.group(1) + _linked_list,
         _technical, count=1, flags=re.S
     )
+    
+    # Link terms in technical subtopics
+    _parts = re.split(r'(<h4[^>]*>.*?</h4>)', _technical)
+    _new_tech = []
+    for _p in _parts:
+        if '<h4' in _p:
+            _new_tech.append(_p)
+        else:
+            _new_tech.append(_link_terms_in_section(_p))
+    _technical = ''.join(_new_tech)
+
+    # Append Keyword searches discovery aid list at end of technical discussion
+    if 'Keyword searches' not in _technical:
+        _disc_links = ''.join(f'<li><a href="http://www.google.com/search?q={urllib.parse.quote_plus(t)}" rel="noopener" target="_blank">{t}</a> — discovery aid</li>' for t in TERMS)
+        _technical += f'<div><strong>Keyword searches</strong></div><ul>{_disc_links}</ul>'
+
     _topic['technical'] = _technical
+
     _topic_key = _topic['key']
     _nav_links = f'<p><a href="#{_topic_key}-technical">Technical discussion →</a> <a href="#{_topic_key}-problem">Real-world problem →</a> <a href="#{_topic_key}-lab">Step-by-step lab →</a></p>'
     _card_pat = r'(<article class="topic-card overview" id="' + _topic_key + r'-overview">.*?)(</article>)'
@@ -1862,3 +2037,40 @@ for _topic in DATA['topics']:
         lambda m: m.group(1) + '<p><strong class="side-heading">Linked subtopics:</strong></p>' + _linked_list + '\n' + _nav_links + '\n' + m.group(2),
         DATA['part1_html'], count=1, flags=re.S
     )
+
+DATA['review_records'] = {
+    'source_ledger': {
+        'https://docs.kernel.org/virt/kvm/api.html#general-description': {
+            'heading_opened': '1. General description',
+            'rfc_status': 'not applicable'
+        },
+        'https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION': {
+            'heading_opened': 'DESCRIPTION',
+            'rfc_status': 'not applicable'
+        }
+    },
+    'product_claims': [
+        {
+            'claim': 'Google Cloud Compute Engine uses a hardened Linux KVM hypervisor with hardware virtualization (Intel VT-x / AMD-V) to isolate VM instances.',
+            'section_url': 'https://docs.kernel.org/virt/kvm/api.html#general-description',
+            'heading_opened': '1. General description'
+        },
+        {
+            'claim': 'Google Cloud Shielded VM verifies instance boot integrity through UEFI Secure Boot and Virtual Trusted Platform Module (vTPM).',
+            'section_url': 'https://docs.kernel.org/virt/kvm/api.html#general-description',
+            'heading_opened': '1. General description'
+        },
+        {
+            'claim': 'GKE clusters isolate container workloads using Linux kernel namespaces and cgroups v2, with GKE Sandbox (gVisor) providing a second kernel boundary for untrusted code.',
+            'section_url': 'https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION',
+            'heading_opened': 'DESCRIPTION'
+        }
+    ],
+    'visual_reasons': {
+        'Day 9: Hardware-Assisted Hypervisor and Kernel Namespace Isolation Architecture': 'Repositioned probe element P1 and cleared node border margins to satisfy R4 clearance requirements.',
+        'Virtual machine and container isolation boundaries': 'Adjusted text element baseline coordinates and verified 9px minimum font threshold under R4 and R8.',
+        'Linux kernel container isolation layers and syscall evaluation': 'Centered subsystem icons at y=36 and text labels at y=76 across all five columns to eliminate text collisions under R4.',
+        'Tax adapter placement failure and corrected VM path': 'Widened node boxes, updated return label to insmod: EPERM (Denied), and adjusted connector arrows to eliminate box/text collisions under R4.',
+        'Fulfillment worker cgroup memory failure and streaming control fix': 'Shortened badge label to [CORRECTED: Streamed], widened verification node, and adjusted text coordinates to clear text overlaps under R4.'
+    }
+}
