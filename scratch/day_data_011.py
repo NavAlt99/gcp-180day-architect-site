@@ -677,13 +677,13 @@ DATA = {'contract_version': 2,
                                       '<!-- Initiating Event -->\n'
                                       '<rect x="20" y="110" width="160" height="95" rx="8" fill="#161b22" '
                                       'stroke="#38bdf8" stroke-width="2"/>\n'
-                                      '<image href="../assets/icons/generic/client.svg" x="35" y="125" width="22" '
+                                      '<image href="../assets/icons/generic/client.svg" x="28" y="118" width="22" '
                                       'height="22"/>\n'
-                                      '<text x="95" y="140" fill="#fce7f3" font-size="12" font-weight="700" '
+                                      '<text x="104" y="140" fill="#fce7f3" font-size="11.5" font-weight="700" '
                                       'text-anchor="middle">Carrier Webhook</text>\n'
-                                      '<text x="95" y="160" fill="#94a3b8" font-size="10" text-anchor="middle">Status '
+                                      '<text x="104" y="160" fill="#94a3b8" font-size="10" text-anchor="middle">Status '
                                       'Ingestion</text>\n'
-                                      '<text x="95" y="176" fill="#38bdf8" font-size="10" text-anchor="middle">HTTP '
+                                      '<text x="104" y="176" fill="#38bdf8" font-size="10" text-anchor="middle">HTTP '
                                       'POST /webhook</text>\n'
                                       '\n'
                                       '<!-- Failed Lane: Node 2 -->\n'
@@ -693,13 +693,13 @@ DATA = {'contract_version': 2,
                                       'width="22" height="22"/>\n'
                                       '<image href="../assets/icons/generic/failure.svg" x="272" y="38" width="20" '
                                       'height="20"/>\n'
-                                      '<text x="360" y="52" fill="#f43f5e" font-size="11" font-weight="700" '
-                                      'text-anchor="middle">[FAILED: IaaS Compute Engine]</text>\n'
-                                      '<text x="345" y="70" fill="#fce7f3" font-size="10" '
+                                      '<text x="350" y="52" fill="#f43f5e" font-size="11" font-weight="700" '
+                                      'text-anchor="middle">[FAILED: IaaS VM]</text>\n'
+                                      '<text x="350" y="70" fill="#fce7f3" font-size="10" '
                                       'text-anchor="middle">Customer manages guest OS</text>\n'
-                                      '<text x="345" y="86" fill="#94a3b8" font-size="9.5" text-anchor="middle">Manual '
+                                      '<text x="350" y="86" fill="#94a3b8" font-size="9.5" text-anchor="middle">Manual '
                                       'apt-get maintenance</text>\n'
-                                      '<text x="345" y="102" fill="#f43f5e" font-size="9.5" text-anchor="middle">Fault '
+                                      '<text x="350" y="102" fill="#f43f5e" font-size="9.5" text-anchor="middle">Fault '
                                       'injection: broken glibc</text>\n'
                                       '\n'
                                       '<!-- Failed Lane: Node 3 -->\n'
@@ -723,13 +723,13 @@ DATA = {'contract_version': 2,
                                       'height="22"/>\n'
                                       '<image href="../assets/icons/generic/decision.svg" x="272" y="208" width="20" '
                                       'height="20"/>\n'
-                                      '<text x="360" y="222" fill="#34d399" font-size="11" font-weight="700" '
-                                      'text-anchor="middle">[CORRECTED: PaaS Cloud Run]</text>\n'
-                                      '<text x="345" y="240" fill="#fce7f3" font-size="10" text-anchor="middle">Google '
+                                      '<text x="350" y="222" fill="#34d399" font-size="10" font-weight="700" '
+                                      'text-anchor="middle">[CORRECTED: PaaS]</text>\n'
+                                      '<text x="350" y="240" fill="#fce7f3" font-size="10" text-anchor="middle">Google '
                                       'manages runtime &amp; host</text>\n'
-                                      '<text x="345" y="256" fill="#94a3b8" font-size="9.5" '
+                                      '<text x="350" y="256" fill="#94a3b8" font-size="9.5" '
                                       'text-anchor="middle">Stateless container contract</text>\n'
-                                      '<text x="345" y="272" fill="#34d399" font-size="9.5" text-anchor="middle">Zero '
+                                      '<text x="350" y="272" fill="#34d399" font-size="9.5" text-anchor="middle">Zero '
                                       'host patching toil</text>\n'
                                       '\n'
                                       '<!-- Corrected Lane: Node 5 -->\n'
@@ -749,15 +749,15 @@ DATA = {'contract_version': 2,
                                       '<!-- Outcome Verification Node -->\n'
                                       '<rect x="770" y="110" width="150" height="95" rx="8" fill="#161b22" '
                                       'stroke="#38bdf8" stroke-width="2"/>\n'
-                                      '<image href="../assets/icons/generic/outcome.svg" x="785" y="125" width="22" '
+                                      '<image href="../assets/icons/generic/outcome.svg" x="778" y="118" width="22" '
                                       'height="22"/>\n'
-                                      '<text x="845" y="140" fill="#38bdf8" font-size="11" font-weight="700" '
+                                      '<text x="852" y="140" fill="#38bdf8" font-size="10.5" font-weight="700" '
                                       'text-anchor="middle">VERIFICATION</text>\n'
-                                      '<text x="845" y="158" fill="#34d399" font-size="10" font-weight="600" '
+                                      '<text x="852" y="158" fill="#34d399" font-size="10" font-weight="600" '
                                       'text-anchor="middle">HTTP 200 OK</text>\n'
-                                      '<text x="845" y="174" fill="#94a3b8" font-size="9.5" '
+                                      '<text x="852" y="174" fill="#94a3b8" font-size="9.5" '
                                       'text-anchor="middle">Webhook Saved</text>\n'
-                                      '<text x="845" y="190" fill="#94a3b8" font-size="9" text-anchor="middle">Zero '
+                                      '<text x="852" y="190" fill="#94a3b8" font-size="9" text-anchor="middle">Zero '
                                       'drop rate</text>\n'
                                       '\n'
                                       '<!-- Flow Paths -->\n'
@@ -1580,13 +1580,13 @@ DATA = {'contract_version': 2,
                                       '<!-- Initiating Event -->\n'
                                       '<rect x="20" y="110" width="160" height="95" rx="8" fill="#161b22" '
                                       'stroke="#38bdf8" stroke-width="2"/>\n'
-                                      '<image href="../assets/icons/generic/client.svg" x="35" y="125" width="22" '
+                                      '<image href="../assets/icons/generic/client.svg" x="28" y="118" width="22" '
                                       'height="22"/>\n'
-                                      '<text x="95" y="140" fill="#fce7f3" font-size="12" font-weight="700" '
+                                      '<text x="104" y="140" fill="#fce7f3" font-size="11.5" font-weight="700" '
                                       'text-anchor="middle">Order Query</text>\n'
-                                      '<text x="95" y="160" fill="#94a3b8" font-size="10" '
+                                      '<text x="104" y="160" fill="#94a3b8" font-size="10" '
                                       'text-anchor="middle">Untrusted Client</text>\n'
-                                      '<text x="95" y="176" fill="#38bdf8" font-size="10" text-anchor="middle">GET '
+                                      '<text x="104" y="176" fill="#38bdf8" font-size="10" text-anchor="middle">GET '
                                       '/orders/{id}</text>\n'
                                       '\n'
                                       '<!-- Failed Lane: Node 2 -->\n'
@@ -1596,13 +1596,13 @@ DATA = {'contract_version': 2,
                                       'x="245" y="38" width="22" height="22"/>\n'
                                       '<image href="../assets/icons/generic/failure.svg" x="272" y="38" width="20" '
                                       'height="20"/>\n'
-                                      '<text x="360" y="52" fill="#f43f5e" font-size="11" font-weight="700" '
-                                      'text-anchor="middle">[FAILED: Misconfigured IAM]</text>\n'
-                                      '<text x="345" y="70" fill="#fce7f3" font-size="10" '
+                                      '<text x="350" y="52" fill="#f43f5e" font-size="10" font-weight="700" '
+                                      'text-anchor="middle">[FAILED: Open IAM]</text>\n'
+                                      '<text x="350" y="70" fill="#fce7f3" font-size="10" '
                                       'text-anchor="middle">allUsers -&gt; roles/run.invoker</text>\n'
-                                      '<text x="345" y="86" fill="#94a3b8" font-size="9.5" '
+                                      '<text x="350" y="86" fill="#94a3b8" font-size="9.5" '
                                       'text-anchor="middle">Assumed Google blocks callers</text>\n'
-                                      '<text x="345" y="102" fill="#f43f5e" font-size="9.5" text-anchor="middle">Fault '
+                                      '<text x="350" y="102" fill="#f43f5e" font-size="9.5" text-anchor="middle">Fault '
                                       'injection: open invoker</text>\n'
                                       '\n'
                                       '<!-- Failed Lane: Node 3 -->\n'
@@ -1626,13 +1626,13 @@ DATA = {'contract_version': 2,
                                       'x="245" y="208" width="22" height="22"/>\n'
                                       '<image href="../assets/icons/generic/decision.svg" x="272" y="208" width="20" '
                                       'height="20"/>\n'
-                                      '<text x="360" y="222" fill="#34d399" font-size="11" font-weight="700" '
-                                      'text-anchor="middle">[CORRECTED: Least Privilege]</text>\n'
-                                      '<text x="345" y="240" fill="#fce7f3" font-size="10" '
+                                      '<text x="350" y="222" fill="#34d399" font-size="10" font-weight="700" '
+                                      'text-anchor="middle">[CORRECTED: Auth]</text>\n'
+                                      '<text x="350" y="240" fill="#fce7f3" font-size="10" '
                                       'text-anchor="middle">Dedicated Service Account</text>\n'
-                                      '<text x="345" y="256" fill="#94a3b8" font-size="9.5" text-anchor="middle">OIDC '
+                                      '<text x="350" y="256" fill="#94a3b8" font-size="9.5" text-anchor="middle">OIDC '
                                       'ID Token Validation</text>\n'
-                                      '<text x="345" y="272" fill="#34d399" font-size="9.5" '
+                                      '<text x="350" y="272" fill="#34d399" font-size="9.5" '
                                       'text-anchor="middle">Ingress: Internal + LB only</text>\n'
                                       '\n'
                                       '<!-- Corrected Lane: Node 5 -->\n'
@@ -1652,15 +1652,15 @@ DATA = {'contract_version': 2,
                                       '<!-- Outcome Verification Node -->\n'
                                       '<rect x="770" y="110" width="150" height="95" rx="8" fill="#161b22" '
                                       'stroke="#38bdf8" stroke-width="2"/>\n'
-                                      '<image href="../assets/icons/generic/outcome.svg" x="785" y="125" width="22" '
+                                      '<image href="../assets/icons/generic/outcome.svg" x="778" y="118" width="22" '
                                       'height="22"/>\n'
-                                      '<text x="845" y="140" fill="#38bdf8" font-size="11" font-weight="700" '
+                                      '<text x="852" y="140" fill="#38bdf8" font-size="10.5" font-weight="700" '
                                       'text-anchor="middle">VERIFICATION</text>\n'
-                                      '<text x="845" y="158" fill="#34d399" font-size="10" font-weight="600" '
+                                      '<text x="852" y="158" fill="#34d399" font-size="10" font-weight="600" '
                                       'text-anchor="middle">Secure Access</text>\n'
-                                      '<text x="845" y="174" fill="#94a3b8" font-size="9.5" text-anchor="middle">Zero '
+                                      '<text x="852" y="174" fill="#94a3b8" font-size="9.5" text-anchor="middle">Zero '
                                       'public leaks</text>\n'
-                                      '<text x="845" y="190" fill="#94a3b8" font-size="9" text-anchor="middle">Audit '
+                                      '<text x="852" y="190" fill="#94a3b8" font-size="9" text-anchor="middle">Audit '
                                       'logs recorded</text>\n'
                                       '\n'
                                       '<!-- Flow Paths -->\n'
@@ -2062,20 +2062,53 @@ DATA['review_records'] = {
 }
 
 
-# --- POST-PROCESSING ENHANCEMENTS FOR DAY 11 (S3 DISCOVERY LINKS) ---
+# --- POST-PROCESSING ENHANCEMENTS FOR DAY 11 (R3 DISCOVERY LINKS) ---
 import re as _re
+import html as _html
 import urllib.parse as _urlparse
 
-def _wrap_discovery_links(topic_tech):
-    def _kw_repl(m):
+_d11_terms = [line.strip() for line in open('scratch/audits/day-011-terms.txt').read().splitlines() if line.strip() and not line.startswith('#')]
+_d11_pat = _re.compile(r'(?<!\w)(' + '|'.join(_re.escape(t) for t in sorted(_d11_terms, key=len, reverse=True)) + r')(?!\w)', _re.I)
+
+def _d11_link_terms(value):
+    stack, seen, out = [], set(), []
+    for token in _re.split(r'(<[^>]+>)', value):
+        if token.startswith('<'):
+            tag = _re.match(r'<([/a-zA-Z0-9]+)', token)
+            name = tag.group(1).lower() if tag else ''
+            if name.startswith('/'):
+                if stack and stack[-1] == name[1:]: stack.pop()
+            elif not token.endswith('/>'):
+                stack.append(name)
+            out.append(token)
+            continue
+        if any(t in stack for t in ('a', 'code', 'kbd', 'samp', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'figcaption')):
+            out.append(token)
+            continue
+        def wrap(m):
+            term = m.group(0)
+            if term.casefold() in seen: return term
+            seen.add(term.casefold())
+            return '<a href="http://www.google.com/search?q=' + _urlparse.quote_plus(_html.unescape(term)) + '" rel="noopener" target="_blank">' + term + '</a>'
+        out.append(_d11_pat.sub(wrap, token))
+    return ''.join(out)
+
+def _d11_link_keywords(html_text):
+    def _repl(m):
         inner = m.group(1)
         if '<a ' in inner:
             return m.group(0)
-        clean = _re.sub(r'<[^>]+>', '', inner).strip()
-        link = f'<a href="http://www.google.com/search?q={_urlparse.quote_plus(clean)}" rel="noopener" target="_blank">{inner}</a>'
-        return f'<strong class="keyword">{link}</strong>'
-    return _re.sub(r'<strong class="keyword">(.*?)</strong>', _kw_repl, topic_tech)
+        clean_text = _re.sub(r'<[^>]+>', '', inner).strip()
+        search_url = 'http://www.google.com/search?q=' + _urlparse.quote_plus(clean_text)
+        return '<strong class="keyword"><a href="' + search_url + '" target="_blank" rel="noopener">' + inner + '</a></strong>'
+    return _re.sub(r'<strong class="keyword">(.*?)</strong>', _repl, html_text)
 
+# Link overview cards per-card so seen set resets per card
+_overview_cards = _re.split(r'(?=<article\b[^>]*\bid=["\']topic-\d+-overview["\'])', DATA['part1_html'])
+DATA['part1_html'] = ''.join(_d11_link_terms(_d11_link_keywords(c)) for c in _overview_cards)
+
+# Link technical subtopics per-subtopic so seen set resets per subtopic
 for _topic in DATA['topics']:
-    _topic['technical'] = _wrap_discovery_links(_topic['technical'])
+    _subtopics = _re.split(r'(?=<h[34]\b[^>]*\bid=["\']topic-\d+-subtopic-\d+["\'])', _topic['technical'])
+    _topic['technical'] = ''.join(_d11_link_terms(_d11_link_keywords(s)) for s in _subtopics)
 
