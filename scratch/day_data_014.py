@@ -57,7 +57,7 @@ DATA = { 'access_date': '2026-10-04',
                 '<p><strong class="side-heading">Where it sits:</strong> Sits at the inception of the cloud delivery '
                 'pipeline, anchoring GitOps automation, Terraform infrastructure management, and Cloud Build CI/CD '
                 'triggers.</p>\n'
-                '<p class="problem-preview">Problem preview: A developer pushes an unvalidated direct commit to the '
+                '<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A developer pushes an unvalidated direct commit to the '
                 'production main branch, inadvertently altering the JSON attribute naming convention in an API '
                 'contract. Because the commit bypassed pull request CI test gates, 1,200 downstream microservice '
                 'instances crash upon deployment, generating an emergency P1 outage.</p>\n'
@@ -78,7 +78,7 @@ DATA = { 'access_date': '2026-10-04',
                 '<p><strong class="side-heading">Where it sits:</strong> Directs service-to-service communication '
                 'across Cloud Run, GKE, API Gateway, and Cloud Functions, dictating payload contracts, error models, '
                 'and retry invariants.</p>\n'
-                '<p class="problem-preview">Problem preview: An upstream cloud load balancer encounters transient '
+                '<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> An upstream cloud load balancer encounters transient '
                 'backend exhaustion and returns a 502 Bad Gateway response with an HTML error body. An downstream '
                 'order-processing service assumes every response contains JSON and attempts to parse the HTML, '
                 'crashing with an unhandled parser exception and triggering an uncontrolled retry storm that '
@@ -551,16 +551,16 @@ DATA = { 'access_date': '2026-10-04',
                 'technical': '\n'
                              '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n'
                              '<ul>\n'
-                             '<li><strong>Git Object Model and DAG Architecture: Blobs, Trees, Commits, and '
-                             'Cryptographic Hashes</strong></li>\n'
-                             '<li><strong>Branching Mechanics: Lightweight Movable Pointers, Head Reference, and Zonal '
-                             'Isolation</strong></li>\n'
-                             '<li><strong>Merging Strategies: Fast-Forward Advancements, Recursive Three-Way Merges, '
-                             'and Merge Commit Provenance</strong></li>\n'
-                             '<li><strong>Pull Requests, Code Review Gates, and Automated CI/CD Triggers (Cloud '
-                             'Build)</strong></li>\n'
-                             '<li><strong>GitOps Invariants: Declarative Infrastructure as Code, Trunk Protection, and '
-                             'Blast Radius Mitigation</strong></li>\n'
+                             '<li><a href="#topic-01-subtopic-1">Git Object Model and DAG Architecture: Blobs, Trees, Commits, and '
+                             'Cryptographic Hashes</a></li>\n'
+                             '<li><a href="#topic-01-subtopic-2">Branching Mechanics: Lightweight Movable Pointers, Head Reference, and Zonal '
+                             'Isolation</a></li>\n'
+                             '<li><a href="#topic-01-subtopic-3">Merging Strategies: Fast-Forward Advancements, Recursive Three-Way Merges, '
+                             'and Merge Commit Provenance</a></li>\n'
+                             '<li><a href="#topic-01-subtopic-4">Pull Requests, Code Review Gates, and Automated CI/CD Triggers (Cloud '
+                             'Build)</a></li>\n'
+                             '<li><a href="#topic-01-subtopic-5">GitOps Invariants: Declarative Infrastructure as Code, Trunk Protection, and '
+                             'Blast Radius Mitigation</a></li>\n'
                              '</ul>\n'
                              '\n'
                              '<p>Modern enterprise cloud engineering depends fundamentally upon distributed version '
@@ -668,7 +668,7 @@ DATA = { 'access_date': '2026-10-04',
                              'merge commit object with two parent commit pointers (Parent 1: target branch HEAD; '
                              'Parent 2: feature branch HEAD), preserving the complete historical record of branch '
                              'divergence and reunification;\n'
-                             '(3) <em>Three-Way Merge (Recursive / Ort):</em> When both the target branch and feature '
+                             '(3) <em>Three-Way Merge (Recursive / Ort):</em> In distributed environments, Git calculates the merge base using a Lowest Common Ancestor (LCA) search across the Directed Acyclic Graph. When multiple common ancestors exist (criss-cross merge topologies), the default ort (Ostensibly Recursive\'s Twin) strategy constructs a virtual merge base by recursively merging the ambiguous ancestors before diffing against branch tips. Git evaluates chunk-level differences line-by-line; if branch A modifies lines 10–20 while branch B modifies lines 40–50 relative to the merge base, both hunks integrate cleanly without conflict markers. If both branches touch overlapping line ranges with conflicting edits, Git halts automatic integration, marks the index stage registers (stage 1: merge base, stage 2: target branch, stage 3: incoming branch), and inserts conflict demarcation markers (<<<<<<<, =======, >>>>>>>) for manual architectural resolution. When both the target branch and feature '
                              'branch have received divergent commits, Git locates the <em>merge base</em> (the most '
                              'recent common ancestor commit) and executes a three-way diff between the merge base, '
                              'target HEAD, and feature HEAD. If changes do not conflict, Git automatically records a '
@@ -1699,7 +1699,7 @@ DATA = { 'access_date': '2026-10-04',
                                'automated retry logic in API clients?',
                                'Why must defensive API clients validate the Content-Type header before attempting to '
                                'parse response bodies with JSON deserializers?'],
-                'reference': 'https://www.rfc-editor.org/rfc/rfc9110#section-9.3',
+                'reference': 'https://www.rfc-editor.org/rfc/rfc9110.html#section-9.3',
                 'reference_label': 'RFC 9110: HTTP Semantics — Section 9.3: Method Definitions (accessed 2026-10-04)',
                 'scenario': { 'constraints': 'Client must handle all HTTP status codes gracefully; non-JSON proxy '
                                              'errors must not crash client execution; mutating requests must enforce '
@@ -1854,16 +1854,16 @@ DATA = { 'access_date': '2026-10-04',
                 'technical': '\n'
                              '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n'
                              '<ul>\n'
-                             '<li><strong>REST Architectural Constraints: Client-Server Decoupling, Statelessness, '
-                             'Uniform Interface, and Cacheability</strong></li>\n'
-                             '<li><strong>HTTP Request/Response Semantics: RFC 9110 Methods (GET, POST, PUT, PATCH, '
-                             'DELETE) and Safe vs Idempotent Operations</strong></li>\n'
-                             '<li><strong>JSON Data Interchange Standard: RFC 8259 Syntax, Serialization Types, and '
-                             'Schema Normalization</strong></li>\n'
-                             '<li><strong>Error Handling Architecture: HTTP Status Code Semantics (2xx, 4xx, 5xx) and '
-                             'Google API Design Error Models</strong></li>\n'
-                             '<li><strong>Defensive API Client Engineering: Content-Type Validation, Upstream HTML '
-                             '502/503 Interception, and Idempotency Keys</strong></li>\n'
+                             '<li><a href="#topic-02-subtopic-1">REST Architectural Constraints: Client-Server Decoupling, Statelessness, '
+                             'Uniform Interface, and Cacheability</a></li>\n'
+                             '<li><a href="#topic-02-subtopic-2">HTTP Request/Response Semantics: RFC 9110 Methods (GET, POST, PUT, PATCH, '
+                             'DELETE) and Safe vs Idempotent Operations</a></li>\n'
+                             '<li><a href="#topic-02-subtopic-3">JSON Data Interchange Standard: RFC 8259 Syntax, Serialization Types, and '
+                             'Schema Normalization</a></li>\n'
+                             '<li><a href="#topic-02-subtopic-4">Error Handling Architecture: HTTP Status Code Semantics (2xx, 4xx, 5xx) and '
+                             'Google API Design Error Models</a></li>\n'
+                             '<li><a href="#topic-02-subtopic-5">Defensive API Client Engineering: Content-Type Validation, Upstream HTML '
+                             '502/503 Interception, and Idempotency Keys</a></li>\n'
                              '</ul>\n'
                              '\n'
                              '<p>In distributed cloud architectures, applications do not communicate through shared '
@@ -2024,7 +2024,7 @@ DATA = { 'access_date': '2026-10-04',
                              '(4) <em>4xx (Client Error):</em> Request contains bad syntax or cannot be fulfilled '
                              '(<kbd>400 Bad Request</kbd>, <kbd>401 Unauthorized</kbd>, <kbd>403 Forbidden</kbd>, '
                              '<kbd>404 Not Found</kbd>, <kbd>409 Conflict</kbd>, <kbd>429 Too Many Requests</kbd>);\n'
-                             '(5) <em>5xx (Server Error):</em> Server failed to fulfill an apparently valid request '
+                             '(5) <em>5xx (Server Error):</em> To prevent ambiguous error recovery, modern enterprise cloud architectures standardize on RFC 9457 (Problem Details for HTTP APIs) and Google API Design error schemas. An RFC 9457 payload returns Content-Type: application/problem+json with standardized keys: type (a URI reference identifying the problem category), title (a short human-readable summary), status (the HTTP status code), detail (an explanation specific to this occurrence), and instance (a URI reference identifying the specific transaction resource). When paired with Google-style error details (e.g. ErrorInfo domain and metadata maps, QuotaFailure violation lists, and RetryInfo backoff delays), downstream automated clients distinguish transient infrastructure capacity exhaustion from unrecoverable validation rejections without fragile regex parsing of unstructured strings. Server failed to fulfill an apparently valid request '
                              '(<kbd>500 Internal Server Error</kbd>, <kbd>502 Bad Gateway</kbd>, <kbd>503 Service '
                              'Unavailable</kbd>, <kbd>504 Gateway Timeout</kbd>).</p>\n'
                              '\n'
@@ -2412,3 +2412,117 @@ DATA = { 'access_date': '2026-10-04',
                              'infrastructure.</p>\n',
                 'title': 'REST APIs and JSON'}],
   'work_block': 'Days 1–17 — Foundations'}
+
+# -----------------------------------------------------------------------------
+# Post-processing transformations for R1, R2, R3, R8, and Scenario Boundaries
+# -----------------------------------------------------------------------------
+import re as _d14_re
+import html as _d14_html
+from urllib.parse import quote_plus as _d14_quote
+
+_d14_terms_file = 'scratch/audits/day-014-terms.txt'
+try:
+    _d14_terms = [l.strip() for l in open(_d14_terms_file) if l.strip() and not l.startswith('#')]
+except Exception:
+    _d14_terms = ['JSON', 'API', 'HTTP', 'REST', 'SHA', 'DAG', 'GKE', 'HTML', 'GCP', 'HEAD', 'git', 'curl']
+
+_d14_pat = _d14_re.compile(r'(?<!\w)(' + '|'.join(_d14_re.escape(t) for t in sorted(_d14_terms, key=len, reverse=True)) + r')(?!\w)', _d14_re.I)
+
+def _d14_link_text(val):
+    stack, seen, out = [], set(), []
+    for token in _d14_re.split(r'(<[^>]+>)', val):
+        if token.startswith('<'):
+            m = _d14_re.match(r'</?\s*([\w:-]+)', token)
+            if m:
+                tag = m.group(1).lower()
+                is_side_heading = 'side-heading' in token
+                if tag in ('article', 'h3', 'h4') and not token.startswith('</'):
+                    seen = set()
+                if token.startswith('</'):
+                    if 'side-heading' in stack and tag in ('strong', 'span'):
+                        stack.remove('side-heading')
+                    elif tag in stack:
+                        idx = len(stack) - 1 - stack[::-1].index(tag)
+                        stack = stack[:idx]
+                elif tag not in ('br','hr','img','input','meta','link','image','path','rect') and not token.endswith('/>'):
+                    stack.append('side-heading' if is_side_heading else tag)
+            out.append(token)
+            continue
+        if set(stack) & {'h1','h2','h3','h4','h5','h6','kbd','code','samp','pre','figcaption','a','svg','title','desc','script','style','side-heading'}:
+            out.append(token)
+            continue
+        def wrap(m):
+            term = m.group(0)
+            if term.casefold() in seen:
+                return term
+            seen.add(term.casefold())
+            return f'<a href="http://www.google.com/search?q={_d14_quote(_d14_html.unescape(term))}" rel="noopener" target="_blank">{term}</a>'
+        out.append(_d14_pat.sub(wrap, token))
+    return ''.join(out)
+
+def _d14_link_keyword_spans(val):
+    def repl(m):
+        inner = m.group(1)
+        if '<a ' in inner: return m.group(0)
+        clean = _d14_re.sub('<[^>]+>', '', inner).strip()
+        q = _d14_quote(_d14_html.unescape(clean))
+        return f'<strong class="keyword"><a href="http://www.google.com/search?q={q}" rel="noopener" target="_blank">{inner}</a></strong>'
+    return _d14_re.sub(r'<strong class="keyword">(.*?)</strong>', repl, val)
+
+def _d14_fix_fs(m):
+    val = float(m.group(1).replace('px', ''))
+    if val < 9.0:
+        return 'font-size: 9.0px' if ':' in m.group(0) else 'font-size="9.0"'
+    return m.group(0)
+
+# Apply to overview cards in part1_html
+DATA['part1_html'] = _d14_link_text(_d14_link_keyword_spans(DATA['part1_html']))
+
+for _t in DATA['topics']:
+    _tech = _t['technical']
+    
+    # R1: subtopic heading IDs
+    _h3s = _d14_re.findall(r'<h3>(.*?)</h3>', _tech, _d14_re.S)
+    _links = []
+    for _num, _head in enumerate(_h3s, 1):
+        _anc = f"{_t['key']}-subtopic-{_num}"
+        _tech = _tech.replace(f'<h3>{_head}</h3>', f'<h3 id="{_anc}">{_head}</h3>', 1)
+        _links.append(f'<li><a href="#{_anc}">{_head}</a></li>')
+    _linked_list = '<p><strong class="side-heading">Linked subtopics:</strong></p>\n<ul>\n' + '\n'.join(_links) + '\n</ul>'
+    _disc_list = '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n<ul>\n' + '\n'.join(_links) + '\n</ul>'
+    _tech = _d14_re.sub(r'<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\s*<ul>.*?</ul>', _disc_list, _tech, flags=_d14_re.S)
+    
+    # R2: bullets
+    def _bullet(m):
+        body = m.group(1)
+        if _d14_re.match(r'<strong class="side-heading">(?:What it is in general|Relevance to a cloud architect|Relevance to GCP|Concrete example):</strong>', body):
+            return '<ul><li>' + body + '</li></ul>'
+        return m.group(0)
+    _tech = _d14_re.sub(r'<p>(.*?)</p>', _bullet, _tech, flags=_d14_re.S)
+    
+    # R8: diagram text size
+    _tech = _d14_re.sub(r'font-size[:=]["\']?\s*([0-9.]+(?:px)?)["\']?', _d14_fix_fs, _tech)
+    
+    # R3: keyword search links
+    _tech = _d14_link_text(_d14_link_keyword_spans(_tech))
+    
+    if 'Keyword searches:' not in _tech:
+        _plain = _d14_re.sub('<[^>]+>', ' ', _tech)
+        _found = [t for t in _d14_terms if _d14_re.search(r'(?<!\w)' + _d14_re.escape(t) + r'(?!\w)', _plain, _d14_re.I)]
+        _tech += '\n<div><strong class="side-heading">Keyword searches:</strong></div><ul>' + ''.join(f'<li><a href="http://www.google.com/search?q={_d14_quote(t)}" rel="noopener" target="_blank">{t}</a> — discovery aid</li>' for t in _found) + '</ul>'
+    
+    _t['technical'] = _tech
+    
+    # Scenarios: SVG font size and evidence limit
+    _scen = _t['scenario']
+    for _k, _v in _scen.items():
+        if isinstance(_v, str) and '<svg' in _v:
+            _scen[_k] = _d14_re.sub(r'font-size[:=]["\']?\s*([0-9.]+(?:px)?)["\']?', _d14_fix_fs, _v)
+    if 'Evidence limit:' not in str(_scen.get('evidence', '')):
+        _scen['evidence'] = _scen.get('evidence', '') + f'\n<p><strong class="side-heading">Evidence limit:</strong> Illustrative incident trace constructed for {_t["title"]} educational drill; not captured from live production customer outages.</p>'
+
+    # Inject Linked subtopics into each overview card if not already in that card
+    _card_pat = r'(<article class="topic-card overview" id="' + _t['key'] + r'-overview">.*?)(</article>)'
+    _card_m = _d14_re.search(_card_pat, DATA['part1_html'], flags=_d14_re.S)
+    if _card_m and 'Linked subtopics:' not in _card_m.group(0):
+        DATA['part1_html'] = _d14_re.sub(_card_pat, lambda m: m.group(1) + '\n' + _linked_list + '\n' + m.group(2), DATA['part1_html'], count=1, flags=_d14_re.S)
