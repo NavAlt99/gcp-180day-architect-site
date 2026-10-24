@@ -156,12 +156,12 @@ DATA = { 'access_date': '2026-10-04',
                                     '**Actions:**\n'
                                     'Verify required core utilities and establish dedicated lab workspace.\n'
                                     '```bash\n'
+                                    'mkdir -p scratch/day12_lab\n'
                                     'command -v bash\n'
                                     'command -v python3\n'
                                     'command -v cat\n'
                                     'command -v mkdir\n'
-                                    'mkdir -p scratch/day12_lab\n'
-                                    'python3 -c "import sys; print(f\'Python runtime verified: {sys.version}\')"\n'
+                                    'python3 -c "import sys; print(f\'Python runtime verified: {sys.version}\')" | tee scratch/day12_lab/stage1_preflight.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -292,7 +292,7 @@ DATA = { 'access_date': '2026-10-04',
                                     '**Actions:**\n'
                                     'Run the regional simulation script and verify console output.\n'
                                     '```bash\n'
-                                    'python3 scratch/day12_lab/model_regions.py\n'
+                                    'python3 scratch/day12_lab/model_regions.py | tee scratch/day12_lab/stage4_simulation_output.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -385,12 +385,14 @@ DATA = { 'access_date': '2026-10-04',
                                     'Verify that all generated JSON and Markdown artifacts exist and contain valid '
                                     'data.\n'
                                     '```bash\n'
-                                    'test -f scratch/day12_lab/regional_location_comparison.json && echo "Comparison '
+                                    '{\n'
+                                    '  test -f scratch/day12_lab/regional_location_comparison.json && echo "Comparison '
                                     'JSON: VERIFIED"\n'
-                                    'test -f scratch/day12_lab/resiliency_matrix.md && echo "Resiliency Matrix: '
+                                    '  test -f scratch/day12_lab/resiliency_matrix.md && echo "Resiliency Matrix: '
                                     'VERIFIED"\n'
-                                    'test -f scratch/day12_lab/regional_assessment_summary.txt && echo "Assessment '
+                                    '  test -f scratch/day12_lab/regional_assessment_summary.txt && echo "Assessment '
                                     'Summary: VERIFIED"\n'
+                                    '} | tee scratch/day12_lab/stage8_verification.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -412,7 +414,7 @@ DATA = { 'access_date': '2026-10-04',
                            'blackout when a local utility substation trips. Migrating to a Regional Managed Instance '
                            'Group distributed across three zones guarantees automatic, sub-minute failover with zero '
                            'customer transaction loss.',
-                'questions': [ 'How do Edge PoPs and Anycast BGP routing reduce end-user latency compared to standard '
+                'questions': [ 'How do Edge PoPs and Anycast routing reduce end-user latency compared to standard '
                                'public internet routing?',
                                'Under what architectural conditions is a dual-region deployment preferred over a '
                                'single regional multi-zone architecture?',
@@ -432,7 +434,7 @@ DATA = { 'access_date': '2026-10-04',
                                                     'Audit Cloud Monitoring zonal availability metrics across '
                                                     'us-central1-a, us-central1-b, and us-central1-c.'],
                               'diagram_enabled': False,
-                              'evidence': '<p>Illustrative system log captured during the us-central1-a zonal failure '
+                              'evidence': '<p>Illustrative system log modeling the us-central1-a zonal failure '
                                           'and load balancer health check failure:</p>\n'
                                           '<pre><code>2026-10-04T14:22:04.112Z glb-frontend-edge [info]: Health check '
                                           'probe failed for backend target 10.128.1.14:8080 (us-central1-a): '
@@ -482,12 +484,8 @@ DATA = { 'access_date': '2026-10-04',
                                           '<!-- Failed Lane: Node 2 -->\n'
                                           '<rect x="230" y="25" width="225" height="95" rx="8" fill="#161b22" '
                                           'stroke="#f43f5e" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/generic/server.svg" x="245" y="38" width="22" '
-                                          'height="22"/>\n'
-                                          '<image href="../assets/icons/generic/failure.svg" x="272" y="38" width="20" '
-                                          'height="20"/>\n'
-                                          '<text x="345" y="52" fill="#f43f5e" font-size="11" font-weight="700" '
-                                          'text-anchor="middle">[FAILED: Single Zone MIG]</text>\n'
+                                          '<image href="../assets/icons/generic/failure.svg" x="248" y="38" width="20" height="20"/>\n'
+                                          '<text x="350" y="52" fill="#f43f5e" font-size="10.5" font-weight="700" text-anchor="middle">[FAIL: Zonal MIG]</text>\n'
                                           '<text x="345" y="70" fill="#fce7f3" font-size="10" '
                                           'text-anchor="middle">100% compute in us-central1-a</text>\n'
                                           '<text x="345" y="86" fill="#94a3b8" font-size="9.5" '
@@ -512,12 +510,8 @@ DATA = { 'access_date': '2026-10-04',
                                           '<!-- Corrected Lane: Node 4 -->\n'
                                           '<rect x="230" y="195" width="225" height="95" rx="8" fill="#161b22" '
                                           'stroke="#34d399" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/gcp/core/compute-engine.svg" x="245" y="208" '
-                                          'width="22" height="22"/>\n'
-                                          '<image href="../assets/icons/generic/decision.svg" x="272" y="208" '
-                                          'width="20" height="20"/>\n'
-                                          '<text x="345" y="222" fill="#34d399" font-size="11" font-weight="700" '
-                                          'text-anchor="middle">[CORRECTED: Regional MIG]</text>\n'
+                                          '<image href="../assets/icons/gcp/core/compute-engine.svg" x="248" y="208" width="20" height="20"/>\n'
+                                          '<text x="350" y="222" fill="#34d399" font-size="10.5" font-weight="700" text-anchor="middle">[FIX: Regional MIG]</text>\n'
                                           '<text x="345" y="240" fill="#fce7f3" font-size="10" '
                                           'text-anchor="middle">Even split across zones a, b, f</text>\n'
                                           '<text x="345" y="256" fill="#94a3b8" font-size="9.5" '
@@ -904,7 +898,7 @@ DATA = { 'access_date': '2026-10-04',
                              '<image href="../assets/icons/generic/database.svg" x="275" y="160" width="20" '
                              'height="20"/>\n'
                              '<text x="365" y="172" fill="#fce7f3" font-size="11" font-weight="600" '
-                             'text-anchor="middle">Cloud SQL High Availability</text>\n'
+                             'text-anchor="middle">Cloud SQL HA (Regional)</text>\n'
                              '<text x="365" y="192" fill="#94a3b8" font-size="9.5" text-anchor="middle">Sync Standby '
                              'in Zone B</text>\n'
                              '\n'
@@ -930,7 +924,7 @@ DATA = { 'access_date': '2026-10-04',
                              '<image href="../assets/icons/generic/server.svg" x="520" y="90" width="20" '
                              'height="20"/>\n'
                              '<text x="600" y="102" fill="#fce7f3" font-size="11" font-weight="600" '
-                             'text-anchor="middle">Single Compute Instance</text>\n'
+                             'text-anchor="middle">Zonal Compute VM</text>\n'
                              '<text x="600" y="122" fill="#f43f5e" font-size="9.5" text-anchor="middle">Single Point '
                              'of Failure</text>\n'
                              '\n'
@@ -973,8 +967,8 @@ DATA = { 'access_date': '2026-10-04',
                              'stroke-width="1.2"/>\n'
                              '<image href="../assets/icons/generic/database.svg" x="745" y="160" width="20" '
                              'height="20"/>\n'
-                             '<text x="825" y="172" fill="#fce7f3" font-size="11" font-weight="600" '
-                             'text-anchor="middle">Cloud Spanner (nam3)</text>\n'
+                             '<text x="830" y="172" fill="#fce7f3" font-size="10.5" font-weight="600" '
+                             'text-anchor="middle">Spanner (nam3)</text>\n'
                              '<text x="825" y="192" fill="#94a3b8" font-size="9.5" text-anchor="middle">Witness + Read '
                              'Replicas</text>\n'
                              '\n'
@@ -1107,7 +1101,7 @@ DATA = { 'access_date': '2026-10-04',
                                     'command -v cat\n'
                                     'command -v mkdir\n'
                                     'mkdir -p scratch/day12_lab\n'
-                                    'python3 -c "print(\'Scaling simulator environment ready.\')"\n'
+                                    'python3 -c "print(\'Scaling simulator environment ready.\')" | tee scratch/day12_lab/stage1_scaling_preflight.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -1241,7 +1235,7 @@ DATA = { 'access_date': '2026-10-04',
                                     'Execute the scaling simulation script and observe the simulated failure dynamics '
                                     'of vertical scaling.\n'
                                     '```bash\n'
-                                    'python3 scratch/day12_lab/simulate_scaling.py\n'
+                                    'python3 scratch/day12_lab/simulate_scaling.py | tee scratch/day12_lab/stage4_scaling_run.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -1326,12 +1320,14 @@ DATA = { 'access_date': '2026-10-04',
                                     '**Actions:**\n'
                                     'Verify that simulation outputs and trade-off matrices exist and are non-empty.\n'
                                     '```bash\n'
-                                    'test -s scratch/day12_lab/scaling_comparison.json && echo "Scaling JSON: '
+                                    '{\n'
+                                    '  test -s scratch/day12_lab/scaling_comparison.json && echo "Scaling JSON: '
                                     'VALIDATED"\n'
-                                    'test -s scratch/day12_lab/scaling_tradeoffs.md && echo "Tradeoffs Doc: '
+                                    '  test -s scratch/day12_lab/scaling_tradeoffs.md && echo "Tradeoffs Doc: '
                                     'VALIDATED"\n'
-                                    'test -s scratch/day12_lab/scaling_recommendation.txt && echo "Recommendation: '
+                                    '  test -s scratch/day12_lab/scaling_recommendation.txt && echo "Recommendation: '
                                     'VALIDATED"\n'
+                                    '} | tee scratch/day12_lab/stage8_scaling_validation.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -1370,7 +1366,7 @@ DATA = { 'access_date': '2026-10-04',
                                                     'Review Cloud Monitoring thread pool and database active '
                                                     'connection count metrics during the incident window.'],
                               'diagram_enabled': False,
-                              'evidence': '<p>Illustrative system log captured during the autoscaling connection storm '
+                              'evidence': '<p>Illustrative system log modeling the autoscaling connection storm '
                                           'and database collapse:</p>\n'
                                           '<pre><code>2026-10-04T10:01:14.204Z compute-autoscaler [info]: Scaling MIG '
                                           'mig-checkout-na out from 6 to 120 instances (CPU target 65% exceeded, '
@@ -1413,7 +1409,7 @@ DATA = { 'access_date': '2026-10-04',
                                           '<image href="../assets/icons/generic/client.svg" x="35" y="125" width="22" '
                                           'height="22"/>\n'
                                           '<text x="95" y="140" fill="#fce7f3" font-size="12" font-weight="700" '
-                                          'text-anchor="middle">Flash Sale Spike</text>\n'
+                                          '<text x="105" y="140" fill="#fce7f3" font-size="10" font-weight="700" text-anchor="middle">Flash-Sale Surge</text>\n'
                                           '<text x="95" y="160" fill="#94a3b8" font-size="10" text-anchor="middle">10x '
                                           'Traffic in 60s</text>\n'
                                           '<text x="95" y="176" fill="#38bdf8" font-size="10" '
@@ -1422,12 +1418,8 @@ DATA = { 'access_date': '2026-10-04',
                                           '<!-- Failed Lane: Node 2 -->\n'
                                           '<rect x="230" y="25" width="225" height="95" rx="8" fill="#161b22" '
                                           'stroke="#f43f5e" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/generic/monitoring.svg" x="245" y="38" '
-                                          'width="22" height="22"/>\n'
-                                          '<image href="../assets/icons/generic/failure.svg" x="272" y="38" width="20" '
-                                          'height="20"/>\n'
-                                          '<text x="345" y="52" fill="#f43f5e" font-size="11" font-weight="700" '
-                                          'text-anchor="middle">[FAILED: Pure Reactive Scale]</text>\n'
+                                          '<image href="../assets/icons/generic/failure.svg" x="248" y="38" width="20" height="20"/>\n'
+                                          '<text x="350" y="52" fill="#f43f5e" font-size="10" font-weight="700" text-anchor="middle">[FAIL: Reactive Scale]</text>\n'
                                           '<text x="345" y="70" fill="#fce7f3" font-size="10" text-anchor="middle">VM '
                                           'spin-up takes 180s</text>\n'
                                           '<text x="345" y="86" fill="#94a3b8" font-size="9.5" '
@@ -1452,12 +1444,8 @@ DATA = { 'access_date': '2026-10-04',
                                           '<!-- Corrected Lane: Node 4 -->\n'
                                           '<rect x="230" y="195" width="225" height="95" rx="8" fill="#161b22" '
                                           'stroke="#34d399" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/gcp/core/compute-engine.svg" x="245" y="208" '
-                                          'width="22" height="22"/>\n'
-                                          '<image href="../assets/icons/generic/decision.svg" x="272" y="208" '
-                                          'width="20" height="20"/>\n'
-                                          '<text x="345" y="222" fill="#34d399" font-size="11" font-weight="700" '
-                                          'text-anchor="middle">[CORRECTED: Scheduled Scale]</text>\n'
+                                          '<image href="../assets/icons/gcp/core/compute-engine.svg" x="248" y="208" width="20" height="20"/>\n'
+                                          '<text x="350" y="222" fill="#34d399" font-size="10" font-weight="700" text-anchor="middle">[FIX: Scheduled Scale]</text>\n'
                                           '<text x="345" y="240" fill="#fce7f3" font-size="10" '
                                           'text-anchor="middle">Pre-warmed minimum instances</text>\n'
                                           '<text x="345" y="256" fill="#94a3b8" font-size="9.5" '
@@ -1872,7 +1860,7 @@ DATA = { 'access_date': '2026-10-04',
                              '<image href="../assets/icons/generic/database.svg" x="470" y="220" width="20" '
                              'height="20"/>\n'
                              '<text x="575" y="235" fill="#fce7f3" font-size="11" font-weight="600" '
-                             'text-anchor="middle">Cloud SQL Primary + PgBouncer</text>\n'
+                             'text-anchor="middle">Cloud SQL + PgBouncer</text>\n'
                              '<text x="575" y="255" fill="#94a3b8" font-size="9.5" text-anchor="middle">Connection '
                              'Pool Limit: 500 max conns</text>\n'
                              '\n'
@@ -2014,9 +2002,9 @@ DATA = { 'access_date': '2026-10-04',
                                     'command -v python3\n'
                                     'command -v cat\n'
                                     'command -v mkdir\n'
-                                    'test -f scratch/day12_lab/regional_location_comparison.json && echo "Exercise A '
-                                    'artifacts: PRESENT"\n'
-                                    'test -f scratch/day12_lab/scaling_comparison.json && echo "Exercise B artifacts: '
+                                    'mkdir -p scratch/day12_lab\n'
+                                    'python3 -c "print(\'BOM and location decision environment preflight verified.\')" | tee scratch/day12_lab/stage1_bom_preflight.txt\n'
+                                    '```\n'
                                     'PRESENT"\n'
                                     '```\n'
                                     '\n'
@@ -2150,7 +2138,7 @@ DATA = { 'access_date': '2026-10-04',
                                     '**Actions:**\n'
                                     'Run the BOM calculation script and inspect output.\n'
                                     '```bash\n'
-                                    'python3 scratch/day12_lab/generate_bom.py\n'
+                                    'python3 scratch/day12_lab/generate_bom.py | tee scratch/day12_lab/stage4_bom_run.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -2287,7 +2275,7 @@ DATA = { 'access_date': '2026-10-04',
                                     'required sections.\n'
                                     '```bash\n'
                                     'test -s scratch/day-012-location-decision.md && wc -l '
-                                    'scratch/day-012-location-decision.md\n'
+                                    'scratch/day-012-location-decision.md | tee scratch/day12_lab/stage6_exec.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -2302,7 +2290,7 @@ DATA = { 'access_date': '2026-10-04',
                                     'Inspect the generated decision document to verify that all roadmap requirements '
                                     '(latency, residency, cost, failure domains) are thoroughly addressed.\n'
                                     '```bash\n'
-                                    'cat scratch/day-012-location-decision.md | head -n 45\n'
+                                    'cat scratch/day-012-location-decision.md | head -n 45 | tee scratch/day12_lab/stage7_inspect.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -2319,7 +2307,7 @@ DATA = { 'access_date': '2026-10-04',
                                     'the roadmap exit requirements.\n'
                                     '```bash\n'
                                     'test -s scratch/day-012-location-decision.md && echo "ROADMAP EXIT ARTIFACT: '
-                                    'VERIFIED AND COMPLETE"\n'
+                                    'VERIFIED AND COMPLETE" | tee scratch/day12_lab/stage8_final_audit.txt\n'
                                     '```\n'
                                     '\n'
                                     '**Expected result:**\n'
@@ -2361,7 +2349,7 @@ DATA = { 'access_date': '2026-10-04',
                                                     'Inspect Cloud Storage monitoring dashboards to evaluate Class A '
                                                     'versus Class B API operation ratios across storage buckets.'],
                               'diagram_enabled': False,
-                              'evidence': '<p>Illustrative Cloud Billing BigQuery export query output captured during '
+                              'evidence': '<p>Illustrative Cloud Billing BigQuery export query output modeling '
                                           'the financial cost audit:</p>\n'
                                           '<pre><code>+-----------------------------------------------------+-----------------------+----------------+\n'
                                           '| SKU Description                                     | Usage '
@@ -2410,7 +2398,7 @@ DATA = { 'access_date': '2026-10-04',
                                           '<image href="../assets/icons/generic/artifact.svg" x="35" y="125" '
                                           'width="22" height="22"/>\n'
                                           '<text x="95" y="140" fill="#fce7f3" font-size="12" font-weight="700" '
-                                          'text-anchor="middle">Annual IT Budget</text>\n'
+                                          '<text x="105" y="140" fill="#fce7f3" font-size="10" font-weight="700" text-anchor="middle">Annual IT Budget</text>\n'
                                           '<text x="95" y="160" fill="#94a3b8" font-size="10" '
                                           'text-anchor="middle">Cloud Migration</text>\n'
                                           '<text x="95" y="176" fill="#38bdf8" font-size="10" '
@@ -2419,12 +2407,8 @@ DATA = { 'access_date': '2026-10-04',
                                           '<!-- Failed Lane: Node 2 -->\n'
                                           '<rect x="230" y="25" width="225" height="95" rx="8" fill="#161b22" '
                                           'stroke="#f43f5e" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/generic/decision.svg" x="245" y="38" '
-                                          'width="22" height="22"/>\n'
-                                          '<image href="../assets/icons/generic/failure.svg" x="272" y="38" width="20" '
-                                          'height="20"/>\n'
-                                          '<text x="345" y="52" fill="#f43f5e" font-size="11" font-weight="700" '
-                                          'text-anchor="middle">[FAILED: Incomplete BOM]</text>\n'
+                                          '<image href="../assets/icons/generic/failure.svg" x="248" y="38" width="20" height="20"/>\n'
+                                          '<text x="350" y="52" fill="#f43f5e" font-size="10" font-weight="700" text-anchor="middle">[FAIL: Incomplete BOM]</text>\n'
                                           '<text x="345" y="70" fill="#fce7f3" font-size="10" '
                                           'text-anchor="middle">Modeled only vCPU + RAM</text>\n'
                                           '<text x="345" y="86" fill="#94a3b8" font-size="9.5" '
@@ -2449,12 +2433,8 @@ DATA = { 'access_date': '2026-10-04',
                                           '<!-- Corrected Lane: Node 4 -->\n'
                                           '<rect x="230" y="195" width="225" height="95" rx="8" fill="#161b22" '
                                           'stroke="#34d399" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/generic/policy.svg" x="245" y="208" width="22" '
-                                          'height="22"/>\n'
-                                          '<image href="../assets/icons/generic/decision.svg" x="272" y="208" '
-                                          'width="20" height="20"/>\n'
-                                          '<text x="345" y="222" fill="#34d399" font-size="11" font-weight="700" '
-                                          'text-anchor="middle">[CORRECTED: Comprehensive BOM]</text>\n'
+                                          '<image href="../assets/icons/generic/policy.svg" x="248" y="208" width="20" height="20"/>\n'
+                                          '<text x="350" y="222" fill="#34d399" font-size="10" font-weight="700" text-anchor="middle">[FIX: Complete BOM]</text>\n'
                                           '<text x="345" y="240" fill="#fce7f3" font-size="10" '
                                           'text-anchor="middle">Models compute, egress, NAT, disk</text>\n'
                                           '<text x="345" y="256" fill="#94a3b8" font-size="9.5" '
@@ -2764,9 +2744,9 @@ DATA = { 'access_date': '2026-10-04',
                              'Google Cloud provides robust governance tooling: (1) <strong class="keyword">Cloud '
                              'Billing Budgets:</strong> Defining monthly or quarterly budget targets with '
                              'multi-threshold email notifications (e.g., 50%, 80%, 100% of actual or forecasted '
-                             'spend); (2) <strong class="keyword">Programmatic Notifications:</strong> Exporting '
+                             'spend); (2) <strong class="keyword">Programmatic Notifications</strong>: Exporting '
                              'budget threshold breaches to a Cloud Pub/Sub topic to trigger automated Cloud Functions '
-                             'or Cloud Run handlers; (3) <strong class="keyword">Compute Engine Quotas:</strong> '
+                             'or Cloud Run handlers; (3) <strong class="keyword">Compute Engine Quotas</strong>: '
                              'Setting regional CPU quotas (e.g., limiting a development project to a maximum of 32 '
                              'vCPUs) to prevent runaway instance creation; and (4) <strong class="keyword">Resource '
                              'Cleanup Automation:</strong> Deploying automated scripts to identify and terminate '
@@ -2844,7 +2824,7 @@ DATA = { 'access_date': '2026-10-04',
                              'height="20"/>\n'
                              '<text x="595" y="98" fill="#fce7f3" font-size="10" font-weight="600" '
                              'text-anchor="middle">1. Compute (vCPU/RAM)</text>\n'
-                             '<text x="595" y="112" fill="#94a3b8" font-size="8.5" text-anchor="middle">On-demand vs '
+                             '<text x="595" y="112" fill="#94a3b8" font-size="9" text-anchor="middle">On-demand vs '
                              'CUD (1/3 yr)</text>\n'
                              '\n'
                              '<rect x="705" y="80" width="195" height="42" rx="4" fill="#21262d" stroke="#34d399" '
@@ -2853,26 +2833,25 @@ DATA = { 'access_date': '2026-10-04',
                              'height="20"/>\n'
                              '<text x="802" y="98" fill="#fce7f3" font-size="10" font-weight="600" '
                              'text-anchor="middle">2. Persistent Storage</text>\n'
-                             '<text x="802" y="112" fill="#94a3b8" font-size="8.5" text-anchor="middle">Balanced SSD + '
+                             '<text x="802" y="112" fill="#94a3b8" font-size="9" text-anchor="middle">Balanced SSD + '
                              'Snapshots</text>\n'
                              '\n'
                              '<rect x="500" y="132" width="195" height="42" rx="4" fill="#21262d" stroke="#34d399" '
                              'stroke-width="1.2"/>\n'
                              '<image href="../assets/icons/generic/router.svg" x="510" y="142" width="20" '
                              'height="20"/>\n'
-                             '<text x="595" y="150" fill="#fce7f3" font-size="10" font-weight="600" '
+                             '<text x="605" y="148" fill="#fce7f3" font-size="10" font-weight="600" '
                              'text-anchor="middle">3. Network Egress</text>\n'
-                             '<text x="595" y="164" fill="#94a3b8" font-size="8.5" text-anchor="middle">Inter-zone '
-                             '($0.01) · Internet ($0.08)</text>\n'
+                             '<text x="605" y="164" fill="#94a3b8" font-size="9" text-anchor="middle">Inter-zone / Internet Egress</text>\n'
                              '\n'
                              '<rect x="705" y="132" width="195" height="42" rx="4" fill="#21262d" stroke="#34d399" '
                              'stroke-width="1.2"/>\n'
                              '<image href="../assets/icons/generic/load-balancer.svg" x="715" y="142" width="20" '
                              'height="20"/>\n'
-                             '<text x="802" y="150" fill="#fce7f3" font-size="10" font-weight="600" '
+                             '<text x="812" y="148" fill="#fce7f3" font-size="10" font-weight="600" '
                              'text-anchor="middle">4. Load Balancer &amp; NAT</text>\n'
-                             '<text x="802" y="164" fill="#94a3b8" font-size="8.5" text-anchor="middle">Forwarding '
-                             'rules + processed GB</text>\n'
+                             '<text x="812" y="164" fill="#94a3b8" font-size="9" text-anchor="middle">Forwarding '
+                             'rules + NAT GB</text>\n'
                              '\n'
                              '<rect x="500" y="184" width="195" height="42" rx="4" fill="#21262d" stroke="#34d399" '
                              'stroke-width="1.2"/>\n'
@@ -2880,8 +2859,7 @@ DATA = { 'access_date': '2026-10-04',
                              'height="20"/>\n'
                              '<text x="595" y="202" fill="#fce7f3" font-size="10" font-weight="600" '
                              'text-anchor="middle">5. Object Storage (GCS)</text>\n'
-                             '<text x="595" y="216" fill="#94a3b8" font-size="8.5" '
-                             'text-anchor="middle">Standard/Nearline + Class A/B Ops</text>\n'
+                             '<text x="595" y="216" fill="#94a3b8" font-size="9" text-anchor="middle">GCS Standard / Nearline Ops</text>\n'
                              '\n'
                              '<rect x="705" y="184" width="195" height="42" rx="4" fill="#21262d" stroke="#34d399" '
                              'stroke-width="1.2"/>\n'
@@ -2889,8 +2867,7 @@ DATA = { 'access_date': '2026-10-04',
                              'height="20"/>\n'
                              '<text x="802" y="202" fill="#fce7f3" font-size="10" font-weight="600" '
                              'text-anchor="middle">6. Managed Database</text>\n'
-                             '<text x="802" y="216" fill="#94a3b8" font-size="8.5" text-anchor="middle">Cloud SQL HA '
-                             'vCPU + Storage + PITR</text>\n'
+                             '<text x="815" y="216" fill="#94a3b8" font-size="9" text-anchor="middle">Cloud SQL HA + PITR</text>\n'
                              '\n'
                              '<rect x="500" y="238" width="400" height="75" rx="4" fill="#1e293b" stroke="#38bdf8" '
                              'stroke-width="1"/>\n'
@@ -2990,3 +2967,114 @@ DATA = { 'access_date': '2026-10-04',
                              'loops or compromised service accounts.</p>\n',
                 'title': 'CapEx vs OpEx, pay-as-you-go economics'}],
   'work_block': 'Days 1–17 — Foundations'}
+
+# --- POST-PROCESSING ENHANCEMENTS FOR DAY 12 (R1, R2, R3 STANDING REQUIREMENTS) ---
+import re as _re
+import html as _html
+import urllib.parse as _urlparse
+from bs4 import BeautifulSoup as _BS
+
+_d12_terms = [line.strip() for line in open("scratch/audits/day-012-terms.txt").read().splitlines() if line.strip() and not line.startswith("#")]
+_d12_pat = _re.compile(r"(?<!\w)(" + "|".join(_re.escape(t) for t in sorted(_d12_terms, key=len, reverse=True)) + r")(?!\w)", _re.I)
+_D12_SKIP_TAGS = {"a", "code", "kbd", "samp", "h1", "h2", "h3", "h4", "h5", "h6", "figcaption", "svg", "title", "desc"}
+
+def _d12_link_terms(html_fragment):
+    tokens = _re.split(r"(<[^>]+>)", html_fragment)
+    stack = []
+    out = []
+    seen = set()
+    for token in tokens:
+        if not token:
+            continue
+        if token.startswith("</"):
+            close_tag = token[2:-1].split()[0].lower()
+            while stack and stack[-1] != close_tag:
+                stack.pop()
+            if stack and stack[-1] == close_tag:
+                stack.pop()
+            out.append(token)
+            continue
+        if token.startswith("<") and not token.endswith("/>"):
+            tag_name = token[1:-1].split()[0].lower()
+            stack.append(tag_name)
+            out.append(token)
+            continue
+        if token.startswith("<") and token.endswith("/>"):
+            out.append(token)
+            continue
+        if any(t in stack for t in _D12_SKIP_TAGS):
+            out.append(token)
+            continue
+        def wrap(m):
+            term = m.group(0)
+            if term.casefold() in seen:
+                return term
+            seen.add(term.casefold())
+            return '<a href="http://www.google.com/search?q=' + _urlparse.quote_plus(_html.unescape(term)) + '" rel="noopener" target="_blank">' + term + '</a>'
+        out.append(_d12_pat.sub(wrap, token))
+    return "".join(out)
+
+def _d12_link_keywords(html_text):
+    def _repl(m):
+        inner = m.group(1)
+        if "<a " in inner:
+            return m.group(0)
+        clean_text = _re.sub(r"<[^>]+>", "", inner).strip()
+        search_url = "http://www.google.com/search?q=" + _urlparse.quote_plus(clean_text)
+        return '<strong class="keyword"><a href="' + search_url + '" target="_blank" rel="noopener">' + inner + '</a></strong>'
+    return _re.sub(r'<strong class="keyword">(.*?)</strong>', _repl, html_text)
+
+# 1. R1: Add Linked subtopics to Overview Cards
+_p1 = DATA["part1_html"]
+for _i in range(1, 4):
+    _sub_links = []
+    _t = DATA["topics"][_i - 1]
+    _doc = _BS(_t["technical"], "html.parser")
+    for _idx, _h in enumerate(_doc.find_all("h3"), 1):
+        _sub_links.append(f'<li><a href="#topic-0{_i}-subtopic-{_idx}">' + _h.get_text().strip() + "</a></li>")
+    _linked_html = '<p><strong class="side-heading">Linked subtopics:</strong></p>\n<ul>\n' + "\n".join(_sub_links) + "\n</ul>\n"
+    _card_pat = _re.compile(r'(<article\b[^>]*\bid=["\']topic-0' + str(_i) + r'-overview["\'].*?class=["\']problem-preview["\']>.*?</p>\n)', _re.DOTALL)
+    _p1 = _card_pat.sub(r'\g<1>' + _linked_html, _p1)
+
+_overview_cards = _re.split(r'(?=<article\b[^>]*\bid=["\']topic-\d+-overview["\'])', _p1)
+DATA["part1_html"] = "".join(_d12_link_terms(_d12_link_keywords(c)) for c in _overview_cards)
+
+# 2. R1, R2, R3: Process Technical Discussions
+_discovery_aids = {
+    1: ["Google Cloud Regions and Zones (accessed 2026-10-24)", "Edge Points of Presence Anycast Routing (accessed 2026-10-24)"],
+    2: ["Managed Instance Groups Autoscaling Policies (accessed 2026-10-24)", "Vertical vs Horizontal Scaling Architecture (accessed 2026-10-24)"],
+    3: ["Google Cloud Pricing Calculator FinOps BOM (accessed 2026-10-24)", "Committed Use Discounts vs Spot Pricing (accessed 2026-10-24)"]
+}
+
+for _i, _topic in enumerate(DATA["topics"], 1):
+    _tech = _topic["technical"]
+    
+    # R1: Heading IDs
+    _h3_counter = [1]
+    def _repl_h3(m):
+        res = f'<h3 id="topic-0{_i}-subtopic-{_h3_counter[0]}">' + m.group(1) + "</h3>"
+        _h3_counter[0] += 1
+        return res
+    _tech = _re.sub(r"<h3>(.*?)</h3>", _repl_h3, _tech)
+    
+    # R1: Subtopics in this discussion list links
+    _sub_links = []
+    _doc = _BS(_topic["technical"], "html.parser")
+    for _idx, _h in enumerate(_doc.find_all("h3"), 1):
+        _sub_links.append(f'<li><a href="#topic-0{_i}-subtopic-{_idx}">' + _h.get_text().strip() + "</a></li>")
+    _sub_ul = "<ul>\n" + "\n".join(_sub_links) + "\n</ul>"
+    _tech = _re.sub(r'(<strong class=["\']side-heading["\']>Subtopics in this discussion:</strong></p>\n)<ul>.*?</ul>', r'\g<1>' + _sub_ul, _tech, flags=_re.DOTALL)
+    
+    # R2: Bullets conversion
+    _tech = _re.sub(r'<p>(<strong class=["\']side-heading["\']>(?:What it is in general|Relevance to a cloud architect|Relevance to GCP|Concrete example|Evidence limit):</strong>.*?)</p>', r"<li>\1</li>", _tech, flags=_re.DOTALL)
+    _tech = _re.sub(r'((?:<li><strong class=["\']side-heading["\']>.*?</li>\s*)+)', r"<ul>\n\1</ul>\n", _tech)
+    
+    # Keyword searches discovery aids list
+    _da_links = "".join('<li><a href="http://www.google.com/search?q=' + _urlparse.quote_plus(da) + '" target="_blank" rel="noopener">' + da + "</a> â discovery aid; verify behavior against official section citations.</li>\n" for da in _discovery_aids.get(_i, []))
+    _da_html = "<div><strong>Keyword searches</strong></div>\n<ul>\n" + _da_links + "</ul>\n"
+    _tech = _tech + "\n" + _da_html
+    
+    # R3: Link terms and keywords per subtopic
+    _subtopics = _re.split(r'(?=<h[34]\b[^>]*\bid=["\']topic-\d+-subtopic-\d+["\'])', _tech)
+    _topic["technical"] = "".join(_d12_link_terms(_d12_link_keywords(s)) for s in _subtopics)
+
