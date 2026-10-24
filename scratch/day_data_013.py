@@ -54,7 +54,7 @@ DATA = { 'access_date': '2026-10-04',
                 '<p><strong class="side-heading">Where it sits:</strong> Sits at the core of infrastructure '
                 'reliability engineering, establishing the recovery boundaries between Compute Engine regional MIGs, '
                 'Cloud SQL HA pairs, and cross-region backups.</p>\n'
-                '<p class="problem-preview">Problem preview: A rogue migration script drops an enterprise production '
+                '<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A rogue migration script drops an enterprise production '
                 'table across a high-availability database cluster, propagating the drop command to active read '
                 'replicas within 200 milliseconds. The engineering team must execute a point-in-time recovery from an '
                 'immutable backup archive to recover $850,000 in lost transaction records within a 2-hour RTO '
@@ -75,7 +75,7 @@ DATA = { 'access_date': '2026-10-04',
                 '<p><strong class="side-heading">Where it sits:</strong> Directs compute selection across Google '
                 'Cloud, determining whether services run on stateless Cloud Run containers and regional MIGs or '
                 'require Stateful Managed Instance Groups and Kubernetes StatefulSets.</p>\n'
-                '<p class="problem-preview">Problem preview: An order-processing service caches pending fulfillment '
+                '<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> An order-processing service caches pending fulfillment '
                 'tokens in local worker process memory to avoid remote database latency, but crashes under an '
                 'unhandled exception. Because pending transaction tokens were not externalized to Memorystore Redis or '
                 'Cloud SQL, 1,420 uncommitted customer orders vanish permanently upon VM restart.</p>\n'
@@ -406,7 +406,7 @@ DATA = { 'access_date': '2026-10-04',
                             'catastrophic regional disruptions. Understanding how Recovery Time Objectives (RTO) and '
                             'Recovery Point Objectives (RPO) dictate product selection separates professional cloud '
                             'architects from naive builders.',
-                'preview': 'Problem preview: A rogue migration script drops an enterprise production table across a '
+                'preview': '<strong class="side-heading">Problem preview:</strong> A rogue migration script drops an enterprise production table across a '
                            'high-availability database cluster, propagating the drop command to active read replicas '
                            'within 200 milliseconds. The engineering team must execute a point-in-time recovery from '
                            'an immutable backup archive to recover $850,000 in lost transaction records within a '
@@ -435,7 +435,7 @@ DATA = { 'access_date': '2026-10-04',
                                                     'extents.'],
                               'diagram_enabled': False,
                               'evidence': '<p>Illustrative PostgreSQL database audit log and Compute Engine error '
-                                          'trace captured during the table drop incident:</p>\n'
+                                          'trace modeling the table drop incident:</p>\n'
                                           '<pre><code>2026-10-04T02:14:11.104Z cloud-sql-primary postgres[1402]: [3-1] '
                                           'user=dbadmin,db=storefront,app=psql STATEMENT: DROP TABLE orders CASCADE;\n'
                                           '2026-10-04T02:14:11.144Z cloud-sql-standby postgres[911]: [2-1] LOG: '
@@ -474,13 +474,13 @@ DATA = { 'access_date': '2026-10-04',
                                           '<!-- Initiating Event -->\n'
                                           '<rect x="20" y="110" width="160" height="95" rx="8" fill="#161b22" '
                                           'stroke="#38bdf8" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/generic/client.svg" x="35" y="125" width="22" '
+                                          '<image href="../assets/icons/generic/client.svg" x="89" y="118" width="22" '
                                           'height="22"/>\n'
-                                          '<text x="95" y="140" fill="#fce7f3" font-size="12" font-weight="700" '
+                                          '<text x="100" y="154" fill="#fce7f3" font-size="11.5" font-weight="700" '
                                           'text-anchor="middle">Rogue Migration</text>\n'
-                                          '<text x="95" y="160" fill="#94a3b8" font-size="10" '
+                                          '<text x="100" y="170" fill="#94a3b8" font-size="9.5" '
                                           'text-anchor="middle">Accidental Script</text>\n'
-                                          '<text x="95" y="176" fill="#f43f5e" font-size="9.5" '
+                                          '<text x="100" y="186" fill="#f43f5e" font-size="9" '
                                           'text-anchor="middle">DROP TABLE orders;</text>\n'
                                           '\n'
                                           '<!-- Failed Path (Upper) -->\n'
@@ -489,12 +489,10 @@ DATA = { 'access_date': '2026-10-04',
                                           '\n'
                                           '<rect x="240" y="25" width="225" height="95" rx="8" fill="#161b22" '
                                           'stroke="#f43f5e" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/gcp/core/cloud-sql.svg" x="255" y="38" '
-                                          'width="22" height="22"/>\n'
-                                          '<image href="../assets/icons/generic/failure.svg" x="282" y="38" width="20" '
+                                          '<image href="../assets/icons/generic/failure.svg" x="248" y="38" width="20" '
                                           'height="20"/>\n'
-                                          '<text x="355" y="52" fill="#f43f5e" font-size="11" font-weight="700" '
-                                          'text-anchor="middle">[FAILED: HA Replica Trap]</text>\n'
+                                          '<text x="355" y="52" fill="#f43f5e" font-size="10" font-weight="700" '
+                                          'text-anchor="middle">[FAIL: HA Replica Trap]</text>\n'
                                           '<text x="355" y="70" fill="#fce7f3" font-size="10" '
                                           'text-anchor="middle">Synchronous Replication</text>\n'
                                           '<text x="355" y="86" fill="#94a3b8" font-size="9.5" '
@@ -523,12 +521,10 @@ DATA = { 'access_date': '2026-10-04',
                                           'marker-end="url(#day13-f3-pass)"/>\n'
                                           '\n'
                                           '<rect x="240" y="195" width="225" height="95" rx="8" fill="#161b22" '
-                                          'stroke="#34d399" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/gcp/core/cloud-storage.svg" x="255" y="208" '
-                                          'width="22" height="22"/>\n'
-                                          '<image href="../assets/icons/generic/decision.svg" x="282" y="208" '
-                                          'width="20" height="20"/>\n'
-                                          '<text x="355" y="222" fill="#34d399" font-size="11" font-weight="700" '
+                                          '<image href="../assets/icons/gcp/core/cloud-storage.svg" x="248" y="208" width="20" '
+                                          'height="20"/>\n'
+                                          '<text x="355" y="222" fill="#34d399" font-size="10" font-weight="700" '
+                                          'text-anchor="middle">[FIX: PITR Vault]</text>\n'
                                           'text-anchor="middle">[CORRECTED: PITR Vault]</text>\n'
                                           '<text x="355" y="240" fill="#fce7f3" font-size="10" '
                                           'text-anchor="middle">Continuous WAL Archiving</text>\n'
@@ -1626,7 +1622,7 @@ DATA = { 'access_date': '2026-10-04',
                             'applications maintain authoritative client state, local disk bindings, or ordered '
                             'lifecycle identities on specific instances, requiring specialized storage attachment and '
                             'persistent IP reservation.',
-                'preview': 'Problem preview: An order-processing service caches pending fulfillment tokens in local '
+                'preview': '<strong class="side-heading">Problem preview:</strong> An order-processing service caches pending fulfillment tokens in local '
                            'worker process memory to avoid remote database latency, but crashes under an unhandled '
                            'exception. Because pending transaction tokens were not externalized to Memorystore Redis '
                            'or Cloud SQL, 1,420 uncommitted customer orders vanish permanently upon VM restart.',
@@ -1652,7 +1648,7 @@ DATA = { 'access_date': '2026-10-04',
                                                     'structures storing uncommitted transaction state.'],
                               'diagram_enabled': False,
                               'evidence': '<p>Illustrative system journal log and payment processor webhook '
-                                          'retransmission trace captured during the worker crash:</p>\n'
+                                          'retransmission trace modeling the worker crash:</p>\n'
                                           '<pre><code>2026-10-04T10:18:02.102Z checkout-worker-08 kernel: Out of '
                                           'memory: Kill process 1420 (python3) score 892 or sacrifice child\n'
                                           '2026-10-04T10:18:02.450Z systemd[1]: order-processor.service: Main process '
@@ -1692,13 +1688,13 @@ DATA = { 'access_date': '2026-10-04',
                                           '<!-- Initiating Event -->\n'
                                           '<rect x="20" y="110" width="160" height="95" rx="8" fill="#161b22" '
                                           'stroke="#38bdf8" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/generic/client.svg" x="35" y="125" width="22" '
+                                          '<image href="../assets/icons/generic/client.svg" x="89" y="118" width="22" '
                                           'height="22"/>\n'
-                                          '<text x="95" y="140" fill="#fce7f3" font-size="12" font-weight="700" '
+                                          '<text x="100" y="154" fill="#fce7f3" font-size="11.5" font-weight="700" '
                                           'text-anchor="middle">Payment Retry</text>\n'
-                                          '<text x="95" y="160" fill="#94a3b8" font-size="10" '
+                                          '<text x="100" y="170" fill="#94a3b8" font-size="9.5" '
                                           'text-anchor="middle">Network Hiccup</text>\n'
-                                          '<text x="95" y="176" fill="#38bdf8" font-size="9.5" '
+                                          '<text x="100" y="186" fill="#38bdf8" font-size="9" '
                                           'text-anchor="middle">HTTP POST /checkout</text>\n'
                                           '\n'
                                           '<!-- Failed Path (Upper) -->\n'
@@ -1708,12 +1704,10 @@ DATA = { 'access_date': '2026-10-04',
                                           '<rect x="240" y="25" width="225" height="95" rx="8" fill="#161b22" '
                                           'stroke="#f43f5e" stroke-width="2"/>\n'
                                           '<image href="../assets/icons/gcp/core/compute-engine.svg" x="255" y="38" '
-                                          'width="22" height="22"/>\n'
-                                          '<image href="../assets/icons/generic/failure.svg" x="282" y="38" width="20" '
+                                          '<image href="../assets/icons/generic/failure.svg" x="248" y="38" width="20" '
                                           'height="20"/>\n'
-                                          '<text x="355" y="52" fill="#f43f5e" font-size="11" font-weight="700" '
-                                          'text-anchor="middle">[FAILED: In-Memory State]</text>\n'
-                                          '<text x="355" y="70" fill="#fce7f3" font-size="10" '
+                                          '<text x="355" y="52" fill="#f43f5e" font-size="10" font-weight="700" '
+                                          'text-anchor="middle">[FAIL: In-Memory State]</text>\n'
                                           'text-anchor="middle">Worker keeps local set()</text>\n'
                                           '<text x="355" y="86" fill="#94a3b8" font-size="9.5" '
                                           'text-anchor="middle">Out-of-memory OOM crash</text>\n'
@@ -1742,12 +1736,10 @@ DATA = { 'access_date': '2026-10-04',
                                           '\n'
                                           '<rect x="240" y="195" width="225" height="95" rx="8" fill="#161b22" '
                                           'stroke="#34d399" stroke-width="2"/>\n'
-                                          '<image href="../assets/icons/gcp/core/cloud-sql.svg" x="255" y="208" '
-                                          'width="22" height="22"/>\n'
-                                          '<image href="../assets/icons/generic/decision.svg" x="282" y="208" '
-                                          'width="20" height="20"/>\n'
-                                          '<text x="355" y="222" fill="#34d399" font-size="11" font-weight="700" '
-                                          'text-anchor="middle">[CORRECTED: External State]</text>\n'
+                                          '<image href="../assets/icons/gcp/core/cloud-sql.svg" x="248" y="208" width="20" '
+                                          'height="20"/>\n'
+                                          '<text x="355" y="222" fill="#34d399" font-size="10" font-weight="700" '
+                                          'text-anchor="middle">[FIX: External State]</text>\n'
                                           '<text x="355" y="240" fill="#fce7f3" font-size="10" '
                                           'text-anchor="middle">Stateless Worker Pattern</text>\n'
                                           '<text x="355" y="256" fill="#94a3b8" font-size="9.5" '
@@ -2078,7 +2070,7 @@ DATA = { 'access_date': '2026-10-04',
                              'A</text>\n'
                              '<text x="75" y="124" fill="#94a3b8" font-size="9.5">Instance in Zone 1</text>\n'
                              '<text x="75" y="138" fill="#38bdf8" font-size="9.5">Zero local disk state</text>\n'
-                             '<text x="75" y="150" fill="#ef4444" font-size="8.5">Crashable anytime</text>\n'
+                             '<text x="75" y="150" fill="#ef4444" font-size="9">Crashable anytime</text>\n'
                              '\n'
                              '<!-- Worker 2 -->\n'
                              '<rect x="235" y="85" width="180" height="75" rx="6" fill="#21262d" stroke="#38bdf8" '
@@ -2089,7 +2081,7 @@ DATA = { 'access_date': '2026-10-04',
                              'B</text>\n'
                              '<text x="275" y="124" fill="#94a3b8" font-size="9.5">Instance in Zone 2</text>\n'
                              '<text x="275" y="138" fill="#38bdf8" font-size="9.5">Zero local disk state</text>\n'
-                             '<text x="275" y="150" fill="#ef4444" font-size="8.5">Crashable anytime</text>\n'
+                             '<text x="275" y="150" fill="#ef4444" font-size="9">Crashable anytime</text>\n'
                              '\n'
                              '<!-- Invariant box -->\n'
                              '<rect x="35" y="175" width="380" height="120" rx="6" fill="#1c2128" stroke="#475569" '
@@ -2137,7 +2129,7 @@ DATA = { 'access_date': '2026-10-04',
                              '(Redis)</text>\n'
                              '<text x="555" y="122" fill="#94a3b8" font-size="9">Session cache &amp; rate '
                              'limit</text>\n'
-                             '<text x="555" y="136" fill="#ef4444" font-size="8.5">Volatile (Rebuildable)</text>\n'
+                             '<text x="555" y="136" fill="#ef4444" font-size="9">Volatile (Rebuildable)</text>\n'
                              '\n'
                              '<!-- Database Node -->\n'
                              '<rect x="715" y="85" width="190" height="65" rx="6" fill="#21262d" stroke="#34d399" '
@@ -2147,7 +2139,7 @@ DATA = { 'access_date': '2026-10-04',
                              '<text x="755" y="108" fill="#fce7f3" font-size="10.5" font-weight="600">Cloud SQL '
                              '(PostgreSQL)</text>\n'
                              '<text x="755" y="122" fill="#94a3b8" font-size="9">Authoritative state ledger</text>\n'
-                             '<text x="755" y="136" fill="#34d399" font-size="8.5">ACID Durable commits</text>\n'
+                             '<text x="755" y="136" fill="#34d399" font-size="9">ACID Durable commits</text>\n'
                              '\n'
                              '<!-- Independent Backup Node -->\n'
                              '<rect x="515" y="165" width="390" height="65" rx="6" fill="#21262d" stroke="#fbbf24" '
@@ -2158,8 +2150,8 @@ DATA = { 'access_date': '2026-10-04',
                              'Backup Vault (Dual-Region nam4)</text>\n'
                              '<text x="555" y="204" fill="#94a3b8" font-size="9.5">Automated Point-in-Time Recovery '
                              '(PITR) + Immutable WAL logs</text>\n'
-                             '<text x="555" y="218" fill="#fbbf24" font-size="9">Physically independent from active '
-                             'database instances (RTO &lt; 2h, RPO &lt; 5m)</text>\n'
+                             '<text x="555" y="218" fill="#fbbf24" font-size="9">Isolated '
+                             'backup vault (RTO &lt; 2h, RPO &lt; 5m)</text>\n'
                              '\n'
                              '<!-- Deduplication Boundary -->\n'
                              '<rect x="515" y="240" width="390" height="55" rx="6" fill="#1c2128" stroke="#475569" '
@@ -2246,3 +2238,115 @@ DATA = { 'access_date': '2026-10-04',
                 'title': 'Stateless vs stateful applications (this decides almost every HA design)'}],
   'work_block': 'Days 1–17 — Foundations'}
 
+
+# --- POST-PROCESSING ENHANCEMENTS FOR DAY 13 (R1, R2, R3 STANDING REQUIREMENTS) ---
+import re as _re
+import html as _html
+import urllib.parse as _urlparse
+from bs4 import BeautifulSoup as _BS
+
+_d13_terms = [line.strip() for line in open("scratch/audits/day-013-terms.txt").read().splitlines() if line.strip() and not line.startswith("#")]
+_d13_pat = _re.compile(r"(?<!\w)(" + "|".join(_re.escape(t) for t in sorted(_d13_terms, key=len, reverse=True)) + r")(?!\w)", _re.I)
+_D13_SKIP_TAGS = {"a", "code", "kbd", "samp", "h1", "h2", "h3", "h4", "h5", "h6", "figcaption", "svg", "title", "desc"}
+
+def _d13_link_terms(html_fragment):
+    tokens = _re.split(r"(<[^>]+>)", html_fragment)
+    stack = []
+    out = []
+    seen = set()
+    for token in tokens:
+        if not token:
+            continue
+        if token.startswith("</"):
+            close_tag = token[2:-1].split()[0].lower()
+            while stack and stack[-1] != close_tag:
+                stack.pop()
+            if stack and stack[-1] == close_tag:
+                stack.pop()
+            out.append(token)
+            continue
+        if token.startswith("<") and not token.endswith("/>"):
+            tag_name = token[1:-1].split()[0].lower()
+            if "side-heading" in token:
+                stack.append("side-heading")
+            else:
+                stack.append(tag_name)
+            out.append(token)
+            continue
+        if token.startswith("<") and token.endswith("/>"):
+            out.append(token)
+            continue
+        if any(t in stack for t in _D13_SKIP_TAGS) or "side-heading" in stack:
+            out.append(token)
+            continue
+        def wrap(m):
+            term = m.group(0)
+            if term.casefold() in seen:
+                return term
+            seen.add(term.casefold())
+            return '<a href="http://www.google.com/search?q=' + _urlparse.quote_plus(_html.unescape(term)) + '" rel="noopener" target="_blank">' + term + '</a>'
+        out.append(_d13_pat.sub(wrap, token))
+    return "".join(out)
+
+def _d13_link_keywords(html_text):
+    def _repl(m):
+        inner = m.group(1)
+        if "<a " in inner:
+            return m.group(0)
+        clean_text = _re.sub(r"<[^>]+>", "", inner).strip()
+        search_url = "http://www.google.com/search?q=" + _urlparse.quote_plus(clean_text)
+        return '<strong class="keyword"><a href="' + search_url + '" target="_blank" rel="noopener">' + inner + '</a></strong>'
+    return _re.sub(r'<strong class="keyword">(.*?)</strong>', _repl, html_text)
+
+# 1. R1: Add Linked subtopics to Overview Cards
+_p1 = DATA["part1_html"]
+for _i in range(1, 3):
+    _sub_links = []
+    _t = DATA["topics"][_i - 1]
+    _doc = _BS(_t["technical"], "html.parser")
+    for _idx, _h in enumerate(_doc.find_all("h3"), 1):
+        _sub_links.append(f'<li><a href="#topic-0{_i}-subtopic-{_idx}">' + _h.get_text().strip() + "</a></li>")
+    _linked_html = '<p><strong class="side-heading">Linked subtopics:</strong></p>\n<ul>\n' + "\n".join(_sub_links) + "\n</ul>\n"
+    _card_pat = _re.compile(r'(<article\b[^>]*\bid=["\']topic-0' + str(_i) + r'-overview["\'].*?class=["\']problem-preview["\']>.*?</p>\n)', _re.DOTALL)
+    _p1 = _card_pat.sub(r'\g<1>' + _linked_html, _p1)
+
+_overview_cards = _re.split(r'(?=<article\b[^>]*\bid=["\']topic-\d+-overview["\'])', _p1)
+DATA["part1_html"] = "".join(_d13_link_terms(_d13_link_keywords(c)) for c in _overview_cards)
+
+# 2. R1, R2, R3: Process Technical Discussions
+_discovery_aids = {
+    1: ["Google Cloud Disaster Recovery Planning Guide (accessed 2026-10-24)", "Cloud SQL High Availability Failover (accessed 2026-10-24)", "Recovery Point Objective RTO RPO (accessed 2026-10-24)", "Cold Standby vs Warm Standby Architectures (accessed 2026-10-24)"],
+    2: ["Compute Engine Stateful Managed Instance Groups (accessed 2026-10-24)", "Stateless vs Stateful Cloud Architecture (accessed 2026-10-24)", "Durable State Store and Replication (accessed 2026-10-24)"]
+}
+
+for _i, _topic in enumerate(DATA["topics"], 1):
+    _tech = _topic["technical"]
+    
+    # R1: Heading IDs
+    _h3_counter = [1]
+    def _repl_h3(m):
+        res = f'<h3 id="topic-0{_i}-subtopic-{_h3_counter[0]}">' + m.group(1) + "</h3>"
+        _h3_counter[0] += 1
+        return res
+    _tech = _re.sub(r"<h3>(.*?)</h3>", _repl_h3, _tech)
+    
+    # R1: Subtopics in this discussion list links
+    _sub_links = []
+    _doc = _BS(_topic["technical"], "html.parser")
+    for _idx, _h in enumerate(_doc.find_all("h3"), 1):
+        _sub_links.append(f'<li><a href="#topic-0{_i}-subtopic-{_idx}">' + _h.get_text().strip() + "</a></li>")
+    _sub_ul = "<ul>\n" + "\n".join(_sub_links) + "\n</ul>"
+    _tech = _re.sub(r'(<strong class=["\']side-heading["\']>Subtopics in this discussion:</strong></p>\n)<ul>.*?</ul>', r'\g<1>' + _sub_ul, _tech, flags=_re.DOTALL)
+    
+    # R2: Bullets conversion
+    _tech = _re.sub(r'<p>(<strong class=["\']side-heading["\']>(?:What it is in general|Relevance to a cloud architect|Relevance to GCP|Concrete example|Evidence limit):</strong>.*?)</p>', r"<li>\1</li>", _tech, flags=_re.DOTALL)
+    _tech = _re.sub(r'((?:<li><strong class=["\']side-heading["\']>.*?</li>\s*)+)', r"<ul>\n\1</ul>\n", _tech)
+    
+    # Keyword searches discovery aids list
+    _da_links = "".join('<li><a href="http://www.google.com/search?q=' + _urlparse.quote_plus(da) + '" target="_blank" rel="noopener">' + da + "</a> — discovery aid; verify behavior against official section citations.</li>\n" for da in _discovery_aids.get(_i, []))
+    _da_html = "<div><strong>Keyword searches</strong></div>\n<ul>\n" + _da_links + "</ul>\n"
+    _tech = _tech + "\n" + _da_html
+    
+    # R3: Link terms and keywords per subtopic
+    _subtopics = _re.split(r'(?=<h[34]\b[^>]*\bid=["\']topic-\d+-subtopic-\d+["\'])', _tech)
+    _topic["technical"] = "".join(_d13_link_terms(_d13_link_keywords(s)) for s in _subtopics)
