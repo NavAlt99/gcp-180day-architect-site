@@ -58,7 +58,7 @@ DATA = { 'access_date': '2026-10-04',
                 '<p><strong class="side-heading">Where it sits:</strong> Sits between infrastructure scripting and '
                 'distributed application design, bridging local runtime mechanics with Google Cloud deployment targets '
                 'like Cloud Run and GKE.</p>\n'
-                '<p class="problem-preview">Problem preview: An e-commerce platform bundles order checkout and PDF '
+                '<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> An e-commerce platform bundles order checkout and PDF '
                 'invoice rendering into a single monolithic Python process. When a surge of complex invoice requests '
                 'leaks memory and triggers an operating system Out-Of-Memory (OOM) kill, the entire order checkout '
                 'pipeline crashes for 35 minutes, blocking $240,000 in customer transactions.</p>\n'
@@ -79,7 +79,7 @@ DATA = { 'access_date': '2026-10-04',
                 '<p><strong class="side-heading">Where it sits:</strong> Integrates API edge routing with Google Cloud '
                 'Logging and Cloud Trace, anchoring runtime validation, error modeling, and distributed '
                 'observability.</p>\n'
-                '<p class="problem-preview">Problem preview: A high-concurrency checkout failure inundates backend '
+                '<p class="problem-preview"><strong class="side-heading">Problem preview:</strong> A high-concurrency checkout failure inundates backend '
                 'services with database lock timeouts, but applications emit unformatted free-form text strings '
                 'without correlation IDs. On-call engineers spend 75 minutes manually grepping disjointed server logs '
                 'across 40 container instances before isolating a downstream connection pool exhaustion bug.</p>\n'
@@ -606,16 +606,16 @@ DATA = { 'access_date': '2026-10-04',
                 'technical': '\n'
                              '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n'
                              '<ul>\n'
-                             '<li><strong>Scripting Fundamentals: Interpreted Execution, Shebang Semantics, and '
-                             'Standard Streams (stdin, stdout, stderr)</strong></li>\n'
-                             '<li><strong>Exit Codes, Flow Control, and Defensive Scripting (set -euo pipefail vs '
-                             'Python Exception Trees)</strong></li>\n'
-                             '<li><strong>Command Composition and Data Manipulation: Pipelines, Process Substitution, '
-                             'and POSIX Utilities</strong></li>\n'
-                             '<li><strong>Architectural Paradigms: Monolith, Microservices, and Serverless Execution '
-                             'Models</strong></li>\n'
-                             '<li><strong>Blast Radius Isolation, Fault Domains, and Independent Deployability in '
-                             'Google Cloud</strong></li>\n'
+                             '<li><a href="#topic-01-subtopic-1">Scripting Fundamentals: Interpreted Execution, Shebang Semantics, and '
+                             'Standard Streams (stdin, stdout, stderr)</a></li>\n'
+                             '<li><a href="#topic-01-subtopic-2">Exit Codes, Flow Control, and Defensive Scripting (set -euo pipefail vs '
+                             'Python Exception Trees)</a></li>\n'
+                             '<li><a href="#topic-01-subtopic-3">Command Composition and Data Manipulation: Pipelines, Process Substitution, '
+                             'and POSIX Utilities</a></li>\n'
+                             '<li><a href="#topic-01-subtopic-4">Architectural Paradigms: Monolith, Microservices, and Serverless Execution '
+                             'Models</a></li>\n'
+                             '<li><a href="#topic-01-subtopic-5">Blast Radius Isolation, Fault Domains, and Independent Deployability in '
+                             'Google Cloud</a></li>\n'
                              '</ul>\n'
                              '\n'
                              '<p>Modern cloud systems engineering requires a seamless fluency between low-level '
@@ -687,7 +687,7 @@ DATA = { 'access_date': '2026-10-04',
                              'In Python, defensive flow control is enforced through structured exception hierarchies '
                              '(<kbd>try-except-finally</kbd>) and context managers (<kbd>with</kbd>), allowing errors '
                              'to be trapped, sanitized, and re-emitted with explicit exit status '
-                             '(<kbd>sys.exit(1)</kbd>).</p>\n'
+                             '(<kbd>sys.exit(1)</kbd>). Beyond synchronous exceptions, production cloud workloads handle asynchronous operating system signals. Container platforms such as Cloud Run and Google Kubernetes Engine broadcast a SIGTERM signal when scaling down or deploying new revisions, granting the container process a grace period (defaulting to 10 seconds in Cloud Run and 30 seconds in GKE) to finish in-flight transactions before issuing an uncatchable SIGKILL. In Bash scripts, registering signal handlers via <kbd>trap \'cleanup; exit 143\' SIGTERM SIGINT</kbd> intercepts termination, releases lockfiles, flushes buffered standard I/O streams, and exits with status 143 (128 + signal 15). In Python, registering handlers with <kbd>signal.signal(signal.SIGTERM, handler)</kbd> ensures worker loops cease accepting new HTTP connections, drain active thread pools, and serialize critical state to persistent storage before shutdown.</p>\n'
                              '\n'
                              '<p><strong class="side-heading">Relevance to a cloud architect:</strong>\n'
                              'Automation scripts and CI/CD pipelines rely entirely on exit code propagation. If an '
@@ -1855,16 +1855,16 @@ DATA = { 'access_date': '2026-10-04',
                 'technical': '\n'
                              '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n'
                              '<ul>\n'
-                             '<li><strong>Request Validation and Defensive Perimeter Architecture: Schema Enforcement '
-                             'and Fast-Fail Rejections</strong></li>\n'
-                             '<li><strong>Twelve-Factor Methodology Applied: Config, Stateless Processes, and Logs as '
-                             'Event Streams</strong></li>\n'
-                             '<li><strong>Distributed Tracing and Correlation Mechanics: Request IDs, W3C Trace '
-                             'Context, and Propagation</strong></li>\n'
-                             '<li><strong>Structured JSON Logging Standards: RFC 8259 Payloads, Standard Fields, and '
-                             'Cloud Logging Ingestion</strong></li>\n'
-                             '<li><strong>Observability Anti-Patterns: Unstructured Log Blindspots, High-Cardinality '
-                             'Poisoning, and Log Masking</strong></li>\n'
+                             '<li><a href="#topic-02-subtopic-1">Request Validation and Defensive Perimeter Architecture: Schema Enforcement '
+                             'and Fast-Fail Rejections</a></li>\n'
+                             '<li><a href="#topic-02-subtopic-2">Twelve-Factor Methodology Applied: Config, Stateless Processes, and Logs as '
+                             'Event Streams</a></li>\n'
+                             '<li><a href="#topic-02-subtopic-3">Distributed Tracing and Correlation Mechanics: Request IDs, W3C Trace '
+                             'Context, and Propagation</a></li>\n'
+                             '<li><a href="#topic-02-subtopic-4">Structured JSON Logging Standards: RFC 8259 Payloads, Standard Fields, and '
+                             'Cloud Logging Ingestion</a></li>\n'
+                             '<li><a href="#topic-02-subtopic-5">Observability Anti-Patterns: Unstructured Log Blindspots, High-Cardinality '
+                             'Poisoning, and Log Masking</a></li>\n'
                              '</ul>\n'
                              '\n'
                              '<p>In distributed microservice architectures, defensive engineering and comprehensive '
@@ -1979,7 +1979,7 @@ DATA = { 'access_date': '2026-10-04',
                              '16-byte Trace ID, an 8-byte Parent Span ID, and 8-bit Trace Flags;\n'
                              '(3) <em>Context Propagation:</em> When a microservice makes an outbound HTTP or gRPC '
                              'call to a downstream dependency, it must extract the incoming trace context and inject '
-                             'it into the outbound request headers.</p>\n'
+                             'it into the outbound request headers. In modern enterprise cloud architectures, distributed context propagation adheres strictly to the W3C Trace Context recommendation. The <kbd>traceparent</kbd> header consists of four hyphen-separated fields: version (<kbd>00</kbd>), 32-hex-character trace ID (<kbd>4bf92f3577b34da6a3ce929d0e0e4736</kbd>), 16-hex-character parent span ID (<kbd>00f067aa0ba902b7</kbd>), and 2-hex-character trace flags (<kbd>01</kbd> indicates recorded). When Google Cloud Load Balancing or Cloud Run ingress receives an incoming HTTP request, it validates these boundaries or generates a new root trace ID. Microservice runtimes extract this header using OpenTelemetry or native framework middleware, binding the trace identifier to thread-local or async task context. When emitting structured JSON logs to standard output, the service maps this context to <kbd>logging.googleapis.com/trace</kbd> (formatted as <kbd>projects//traces/</kbd>) and <kbd>logging.googleapis.com/spanId</kbd>. Cloud Logging automatically indexes these fields, enabling engineers to jump directly from a log record into Cloud Trace waterfall timelines to analyze cross-service latency breakdowns.</p>\n'
                              '\n'
                              '<p><strong class="side-heading">Relevance to a cloud architect:</strong>\n'
                              'Without distributed correlation, Mean Time To Resolution (MTTR) during high-severity '
@@ -2325,3 +2325,116 @@ DATA = { 'access_date': '2026-10-04',
                              'automated redaction latency on multi-megabyte payload streams.</p>\n',
                 'title': 'Request validation, REST/JSON, request IDs and structured logs'}],
   'work_block': 'Days 1–17 — Foundations'}
+
+# Post-processing transformations for R1, R2, R3, R8, and Scenario Boundaries
+# -----------------------------------------------------------------------------
+import re as _d15_re
+import html as _d15_html
+from urllib.parse import quote_plus as _d15_quote
+
+_d15_terms_file = 'scratch/audits/day-015-terms.txt'
+try:
+    _d15_terms = [l.strip() for l in open(_d15_terms_file) if l.strip() and not l.startswith('#')]
+except Exception:
+    _d15_terms = ['JSON', 'API', 'HTTP', 'REST', 'SHA', 'DAG', 'GKE', 'HTML', 'GCP', 'HEAD', 'git', 'curl']
+
+_d15_pat = _d15_re.compile(r'(?<!\w)(' + '|'.join(_d15_re.escape(t) for t in sorted(_d15_terms, key=len, reverse=True)) + r')(?!\w)', _d15_re.I)
+
+def _d15_link_text(val):
+    stack, seen, out = [], set(), []
+    for token in _d15_re.split(r'(<[^>]+>)', val):
+        if token.startswith('<'):
+            m = _d15_re.match(r'</?\s*([\w:-]+)', token)
+            if m:
+                tag = m.group(1).lower()
+                is_side_heading = 'side-heading' in token
+                if tag in ('article', 'h3', 'h4') and not token.startswith('</'):
+                    seen = set()
+                if token.startswith('</'):
+                    if 'side-heading' in stack and tag in ('strong', 'span'):
+                        stack.remove('side-heading')
+                    elif tag in stack:
+                        idx = len(stack) - 1 - stack[::-1].index(tag)
+                        stack = stack[:idx]
+                elif tag not in ('br','hr','img','input','meta','link','image','path','rect') and not token.endswith('/>'):
+                    stack.append('side-heading' if is_side_heading else tag)
+            out.append(token)
+            continue
+        if set(stack) & {'h1','h2','h3','h4','h5','h6','kbd','code','samp','pre','figcaption','a','svg','title','desc','script','style','side-heading'}:
+            out.append(token)
+            continue
+        def wrap(m):
+            term = m.group(0)
+            if term.casefold() in seen:
+                return term
+            seen.add(term.casefold())
+            return f'<a href="http://www.google.com/search?q={_d15_quote(_d15_html.unescape(term))}" rel="noopener" target="_blank">{term}</a>'
+        out.append(_d15_pat.sub(wrap, token))
+    return ''.join(out)
+
+def _d15_link_keyword_spans(val):
+    def repl(m):
+        inner = m.group(1)
+        if '<a ' in inner: return m.group(0)
+        clean = _d15_re.sub('<[^>]+>', '', inner).strip()
+        q = _d15_quote(_d15_html.unescape(clean))
+        return f'<strong class="keyword"><a href="http://www.google.com/search?q={q}" rel="noopener" target="_blank">{inner}</a></strong>'
+    return _d15_re.sub(r'<strong class="keyword">(.*?)</strong>', repl, val)
+
+def _d15_fix_fs(m):
+    val = float(m.group(1).replace('px', ''))
+    if val < 9.0:
+        return 'font-size: 9.0px' if ':' in m.group(0) else 'font-size="9.0"'
+    return m.group(0)
+
+# Apply to overview cards in part1_html
+DATA['part1_html'] = _d15_link_text(_d15_link_keyword_spans(DATA['part1_html']))
+
+for _t in DATA['topics']:
+    _tech = _t['technical']
+    
+    # R1: subtopic heading IDs
+    _h3s = _d15_re.findall(r'<h3>(.*?)</h3>', _tech, _d15_re.S)
+    _links = []
+    for _num, _head in enumerate(_h3s, 1):
+        _anc = f"{_t['key']}-subtopic-{_num}"
+        _tech = _tech.replace(f'<h3>{_head}</h3>', f'<h3 id="{_anc}">{_head}</h3>', 1)
+        _links.append(f'<li><a href="#{_anc}">{_head}</a></li>')
+    _linked_list = '<p><strong class="side-heading">Linked subtopics:</strong></p>\n<ul>\n' + '\n'.join(_links) + '\n</ul>'
+    _disc_list = '<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\n<ul>\n' + '\n'.join(_links) + '\n</ul>'
+    _tech = _d15_re.sub(r'<p><strong class="side-heading">Subtopics in this discussion:</strong></p>\s*<ul>.*?</ul>', _disc_list, _tech, flags=_d15_re.S)
+    
+    # R2: bullets
+    def _bullet(m):
+        body = m.group(1)
+        if _d15_re.match(r'<strong class="side-heading">(?:What it is in general|Relevance to a cloud architect|Relevance to GCP|Concrete example):</strong>', body):
+            return '<ul><li>' + body + '</li></ul>'
+        return m.group(0)
+    _tech = _d15_re.sub(r'<p>(.*?)</p>', _bullet, _tech, flags=_d15_re.S)
+    
+    # R8: diagram text size
+    _tech = _d15_re.sub(r'font-size[:=]["\']?\s*([0-9.]+(?:px)?)["\']?', _d15_fix_fs, _tech)
+    
+    # R3: keyword search links
+    _tech = _d15_link_text(_d15_link_keyword_spans(_tech))
+    
+    if 'Keyword searches:' not in _tech:
+        _plain = _d15_re.sub('<[^>]+>', ' ', _tech)
+        _found = [t for t in _d15_terms if _d15_re.search(r'(?<!\w)' + _d15_re.escape(t) + r'(?!\w)', _plain, _d15_re.I)]
+        _tech += '\n<div><strong class="side-heading">Keyword searches:</strong></div><ul>' + ''.join(f'<li><a href="http://www.google.com/search?q={_d15_quote(t)}" rel="noopener" target="_blank">{t}</a> — discovery aid</li>' for t in _found) + '</ul>'
+    
+    _t['technical'] = _tech
+    
+    # Scenarios: SVG font size and evidence limit
+    _scen = _t['scenario']
+    for _k, _v in _scen.items():
+        if isinstance(_v, str) and '<svg' in _v:
+            _scen[_k] = _d15_re.sub(r'font-size[:=]["\']?\s*([0-9.]+(?:px)?)["\']?', _d15_fix_fs, _v)
+    if 'Evidence limit:' not in str(_scen.get('evidence', '')):
+        _scen['evidence'] = _scen.get('evidence', '') + f'\n<p><strong class="side-heading">Evidence limit:</strong> Illustrative incident trace constructed for {_t["title"]} educational drill; not captured from live production customer outages.</p>'
+
+    # Inject Linked subtopics into each overview card if not already in that card
+    _card_pat = r'(<article class="topic-card overview" id="' + _t['key'] + r'-overview">.*?)(</article>)'
+    _card_m = _d15_re.search(_card_pat, DATA['part1_html'], flags=_d15_re.S)
+    if _card_m and 'Linked subtopics:' not in _card_m.group(0):
+        DATA['part1_html'] = _d15_re.sub(_card_pat, lambda m: m.group(1) + '\n' + _linked_list + '\n' + m.group(2), DATA['part1_html'], count=1, flags=_d15_re.S)
