@@ -1,0 +1,47 @@
+name: curriculum-site-ci
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validation dependencies
+        run: python -m pip install beautifulsoup4 markdown pillow
+      - name: Unit tests
+        run: PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests
+      - name: Site validation
+        run: PYTHONDONTWRITEBYTECODE=1 python scripts/validate.py
+      - name: Built-page rules for changed days
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          days="$({ git diff --name-only "$BASE_SHA" "$HEAD_SHA" || exit 1; } |
+            sed -nE 's#^(content/day-|days/day-|scratch/day_data_|scratch/day-)([0-9]{3}).*#\2#p' |
+            sort -u)"
+          if [[ -z "$days" ]]; then
+            echo "No changed day files"
+            exit 0
+          fi
+          while IFS= read -r nnn; do
+            day="$((10#$nnn))"
+            args=(--day "$day" --diagrams allow)
+            terms="scratch/audits/day-${nnn}-terms.txt"
+            if [[ -f "$terms" ]]; then
+              args+=(--terms-file "$terms")
+            fi
+            PYTHONDONTWRITEBYTECODE=1 python scripts/check_page_rules.py "${args[@]}"
+          done <<< "$days"
