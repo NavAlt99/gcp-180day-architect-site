@@ -11,12 +11,13 @@ from collections import Counter
 from functools import lru_cache
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlparse
 
 import markdown
+from bs4 import BeautifulSoup, NavigableString, Tag
 
-ROOT = Path(__file__).resolve().parents[2]
-SITE = ROOT / "gcp-180day-architect-site"
+SITE = Path(__file__).resolve().parents[1]
+ROOT = SITE.parent
 ROADMAP = ROOT / "roadmap-180-days.md"
 REFERENCES = ROOT / "gcp-architect-roadmap-100-days.md"
 VERIFIED = "2026-09-26"
@@ -28,6 +29,365 @@ def esc(value: object) -> str:
 
 def md(value: str) -> str:
     return markdown.markdown(value, extensions=["tables", "fenced_code"])
+
+
+RULE_STRUCT_LABELS = {
+    "Why today:", "Where it sits:", "Problem preview:",
+    "Subtopics in this discussion:", "Evidence limit:", "Linked subtopics:",
+}
+RULE_GENERIC_HEADINGS = {
+    "architectural evaluation questions", "exact execution", "further study",
+}
+RULE_TEXT_SKIP = {"a", "code", "samp", "kbd", "pre", "figcaption", "script", "style", "svg", "title"}
+GOOGLE_SEARCH = "http://www.google.com/search?q="
+
+
+def _topic_index(card: Tag) -> int:
+    match = re.fullmatch(r"topic-(\d+)-(?:overview|technical)", card.get("id", ""))
+    if not match:
+        raise ValueError(f"Unexpected topic card id: {card.get('id')}")
+    return int(match.group(1))
+
+
+def _direct_heading(card: Tag) -> Tag | None:
+    return next((child for child in card.children if isinstance(child, Tag) and child.name in ("h3", "h4")), None)
+
+
+def _subtopic_headings(soup: BeautifulSoup, card: Tag, topic: int) -> list[Tag]:
+    expected = re.compile(rf"topic-{topic:02d}-subtopic-\d+")
+    existing = [heading for heading in card.select("h3[id],h4[id]") if expected.fullmatch(heading.get("id", ""))]
+    if existing:
+        return existing
+    direct = _direct_heading(card)
+    candidates = [
+        heading for heading in card.select("h3,h4")
+        if heading is not direct
+        and heading.get_text(" ", strip=True).casefold().rstrip(":") not in RULE_GENERIC_HEADINGS
+    ]
+    if not candidates and direct is not None:
+        candidates = [direct]
+    for index, heading in enumerate(candidates, 1):
+        new_id = f"topic-{topic:02d}-subtopic-{index}"
+        old_id = heading.get("id")
+        if old_id and old_id != new_id:
+            preserved = soup.new_tag("span", id=old_id)
+            preserved["data-generated-rule"] = "R1-preserved-anchor"
+            heading.insert_before(preserved)
+        heading["id"] = new_id
+    return candidates
+
+
+def _linked_list(soup: BeautifulSoup, headings: list[Tag], *, generated: bool) -> Tag:
+    listing = soup.new_tag("ul")
+    if generated:
+        listing["data-generated-rule"] = "R1"
+    for heading in headings:
+        item = soup.new_tag("li")
+        link = soup.new_tag("a", href=f"#{heading['id']}")
+        link.string = heading.get_text(" ", strip=True)
+        item.append(link)
+        listing.append(item)
+    return listing
+
+
+def _label(card: Tag, text: str) -> Tag | None:
+    return next((strong for strong in card.select("strong.side-heading") if strong.get_text(" ", strip=True) == text), None)
+
+
+def _following_list(label: Tag) -> Tag | None:
+    parent = label.parent
+    if not isinstance(parent, Tag) or not isinstance(parent.parent, Tag):
+        return None
+    siblings = list(parent.parent.children)
+    try:
+        start = siblings.index(parent) + 1
+    except ValueError:
+        return None
+    return next((node for node in siblings[start:] if isinstance(node, Tag) and node.name in ("ul", "ol")), None)
+
+
+def _link_existing_items(soup: BeautifulSoup, listing: Tag, headings: list[Tag]) -> None:
+    items = listing.find_all("li", recursive=False)
+    for index, item in enumerate(items):
+        target = headings[min(index, len(headings) - 1)]
+        local = item.find("a", href=re.compile(r"^#topic-\d+-subtopic-\d+$"))
+        if local:
+            local["href"] = f"#{target['id']}"
+            continue
+        link = soup.new_tag("a", href=f"#{target['id']}")
+        for child in list(item.contents):
+            link.append(child.extract())
+        item.append(link)
+    for heading in headings[len(items):]:
+        item = soup.new_tag("li")
+        item["data-generated-rule"] = "R1"
+        link = soup.new_tag("a", href=f"#{heading['id']}")
+        link.string = heading.get_text(" ", strip=True)
+        item.append(link)
+        listing.append(item)
+
+
+def _ensure_technical_links(soup: BeautifulSoup, card: Tag, headings: list[Tag]) -> None:
+    label = _label(card, "Subtopics in this discussion:")
+    listing = _following_list(label) if label else None
+    if listing:
+        _link_existing_items(soup, listing, headings)
+        return
+    listing = _linked_list(soup, headings, generated=True)
+    if label:
+        label.parent.insert_after(listing)
+        return
+    wrapper = soup.new_tag("div")
+    wrapper["data-generated-rule"] = "R1"
+    paragraph = soup.new_tag("p")
+    strong = soup.new_tag("strong")
+    strong["class"] = ["side-heading"]
+    strong.string = "Subtopics in this discussion:"
+    paragraph.append(strong)
+    wrapper.extend((paragraph, listing))
+    direct = _direct_heading(card)
+    if direct:
+        direct.insert_after(wrapper)
+    else:
+        card.insert(0, wrapper)
+
+
+def _ensure_overview_links(soup: BeautifulSoup, card: Tag, headings: list[Tag]) -> None:
+    label = _label(card, "Linked subtopics:")
+    listing = _following_list(label) if label else None
+    if listing:
+        _link_existing_items(soup, listing, headings)
+        return
+    wrapper = soup.new_tag("div")
+    wrapper["data-generated-rule"] = "R1"
+    paragraph = soup.new_tag("p")
+    strong = soup.new_tag("strong")
+    strong["class"] = ["side-heading"]
+    strong.string = "Linked subtopics:"
+    paragraph.append(strong)
+    wrapper.extend((paragraph, _linked_list(soup, headings, generated=True)))
+    nav = next((p for p in reversed(card.find_all("p", recursive=False)) if p.select_one('a[href$="-technical"]')), None)
+    if nav:
+        nav.insert_before(wrapper)
+    else:
+        card.append(wrapper)
+
+
+def _convert_side_heading_paragraphs(soup: BeautifulSoup, card: Tag) -> None:
+    for paragraph in list(card.find_all("p")):
+        first = next((node for node in paragraph.contents if not isinstance(node, NavigableString) or node.strip()), None)
+        if not isinstance(first, Tag) or first.name != "strong" or "side-heading" not in first.get("class", []):
+            continue
+        if first.get_text(" ", strip=True) in RULE_STRUCT_LABELS:
+            continue
+        item = soup.new_tag("li")
+        for child in list(paragraph.contents):
+            item.append(child.extract())
+        previous = paragraph.find_previous_sibling()
+        if isinstance(previous, Tag) and previous.name == "ul" and previous.get("data-generated-rule") == "R2":
+            previous.append(item)
+            paragraph.decompose()
+        else:
+            listing = soup.new_tag("ul")
+            listing["data-generated-rule"] = "R2"
+            listing.append(item)
+            paragraph.replace_with(listing)
+
+
+def _google_link(soup: BeautifulSoup, query: str, text: str) -> Tag:
+    link = soup.new_tag("a", href=GOOGLE_SEARCH + quote_plus(query))
+    link["rel"] = "noopener"
+    link["target"] = "_blank"
+    link.string = text
+    return link
+
+
+def _link_keyword_spans(soup: BeautifulSoup) -> None:
+    for strong in soup.select("strong.keyword"):
+        text = strong.get_text(" ", strip=True)
+        google = next((a for a in strong.select("a[href]") if "google.com/search" in a.get("href", "")), None)
+        if google:
+            google["href"] = GOOGLE_SEARCH + quote_plus(text)
+            google["rel"] = "noopener"
+            google["target"] = "_blank"
+            continue
+        link = _google_link(soup, text, text)
+        link.clear()
+        for child in list(strong.contents):
+            link.append(child.extract())
+        strong.append(link)
+
+
+def _eligible_text(node: NavigableString) -> bool:
+    parent = node.parent
+    while isinstance(parent, Tag):
+        if parent.name in RULE_TEXT_SKIP or (parent.name == "strong" and "side-heading" in parent.get("class", [])):
+            return False
+        parent = parent.parent
+    return True
+
+
+def _r7_eligible_text(node: NavigableString) -> bool:
+    parent = node.parent
+    while isinstance(parent, Tag):
+        if parent.name in {"code", "samp", "kbd", "pre", "script", "style"}:
+            return False
+        parent = parent.parent
+    return True
+
+
+def _append_fragment(parent: Tag, markup: str) -> None:
+    wrapper = BeautifulSoup(f"<div>{markup}</div>", "html.parser").div
+    for child in list(wrapper.contents):
+        parent.append(child.extract())
+
+
+def _link_terms_in_card(soup: BeautifulSoup, card: Tag, terms: list[str]) -> None:
+    if not terms:
+        return
+    terms = sorted(dict.fromkeys(terms), key=lambda value: (-len(value), value.casefold()))
+    section = "(intro)"
+    seen: dict[str, set[str]] = {}
+    for node in list(card.descendants):
+        if isinstance(node, Tag):
+            if node.name in ("h3", "h4") and re.fullmatch(r"topic-\d+-subtopic-\d+", node.get("id", "")):
+                section = node["id"]
+            if node.name == "a" and "google.com/search" in node.get("href", ""):
+                linked = node.get_text(" ", strip=True).casefold()
+                for term in terms:
+                    if term.casefold() in linked:
+                        seen.setdefault(section, set()).add(term)
+            continue
+        if not isinstance(node, NavigableString) or not _eligible_text(node):
+            continue
+        remaining = str(node)
+        additions = []
+        changed = False
+        while remaining:
+            candidates = []
+            for term in terms:
+                if term in seen.setdefault(section, set()):
+                    continue
+                match = re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", remaining, re.I)
+                if match:
+                    candidates.append((match.start(), -len(match.group()), term, match))
+            if not candidates:
+                additions.append(remaining)
+                break
+            _, _, term, match = min(candidates)
+            additions.append(remaining[:match.start()])
+            additions.append(_google_link(soup, term, match.group()))
+            seen[section].add(term)
+            remaining = remaining[match.end():]
+            changed = True
+        if changed:
+            for addition in reversed(additions):
+                node.insert_after(addition)
+            node.extract()
+
+
+def _convert_paragraph_lists(soup: BeautifulSoup) -> None:
+    split = re.compile(r"(?:\r?\n\s*|(?<=[.:;)\]])\s+)[-*]\s+")
+    for container in list(soup.find_all(("p", "li"))):
+        if container.parent is None:
+            continue
+        if container.find_parent(["code", "samp", "kbd", "pre", "script", "style", "svg"]):
+            continue
+        inner = container.decode_contents()
+        parts = split.split(inner)
+        if len(parts) < 2:
+            continue
+        prefix = parts[0]
+        listing = soup.new_tag("ul")
+        listing["data-generated-rule"] = "R7"
+        for value in parts[1:]:
+            item = soup.new_tag("li")
+            _append_fragment(item, value.strip())
+            listing.append(item)
+        if container.name == "li":
+            container.clear()
+            _append_fragment(container, prefix)
+            container.append(listing)
+            continue
+        if BeautifulSoup(f"<div>{prefix}</div>", "html.parser").get_text(" ", strip=True):
+            lead = soup.new_tag("p", attrs=dict(container.attrs))
+            _append_fragment(lead, prefix)
+            container.insert_before(lead)
+        container.insert_before(listing)
+        container.decompose()
+
+
+def _convert_inline_markers(soup: BeautifulSoup) -> None:
+    marker = re.compile(r"\*\*([^*\n]{2,})\*\*|`([^`\n]+)`")
+    while True:
+        candidates = [node for node in soup.find_all(string=marker)
+                      if isinstance(node, NavigableString) and _r7_eligible_text(node)]
+        if not candidates:
+            break
+        for node in candidates:
+            value = str(node)
+            if node.find_parent("svg"):
+                node.replace_with(marker.sub(lambda match: match.group(1) or match.group(2), value))
+                continue
+            additions = []
+            cursor = 0
+            for match in marker.finditer(value):
+                additions.append(value[cursor:match.start()])
+                tag = soup.new_tag("strong" if match.group(1) is not None else "code")
+                tag.string = match.group(1) if match.group(1) is not None else match.group(2)
+                tag["data-generated-rule"] = "R7"
+                additions.append(tag)
+                cursor = match.end()
+            additions.append(value[cursor:])
+            for addition in reversed(additions):
+                node.insert_after(addition)
+            node.extract()
+
+
+def _convert_remaining_list_markers(soup: BeautifulSoup) -> None:
+    inline = re.compile(r"(?<=[.:;)\]])\s+[-*]\s+")
+    line = re.compile(r"(?m)^(\s*)[-*]\s+")
+    heading = re.compile(r"(?m)^(\s*)#{1,6}\s+")
+    for node in list(soup.find_all(string=lambda value: value and (inline.search(value) or line.search(value) or heading.search(value)))):
+        if not isinstance(node, NavigableString) or not _r7_eligible_text(node):
+            continue
+        value = inline.sub(" – ", str(node))
+        value = line.sub(r"\1• ", value)
+        value = heading.sub(r"\1", value)
+        node.replace_with(value)
+
+
+def apply_page_rules(source: str, day: int) -> str:
+    """Generate R1/R2/R3/R7 structure from this page's own rendered markup."""
+    soup = BeautifulSoup(source, "html.parser")
+    terms_path = SITE / "scratch" / "audits" / f"day-{day:03d}-terms.txt"
+    terms = [line.strip() for line in terms_path.read_text(encoding="utf-8").splitlines()
+             if line.strip() and not line.lstrip().startswith("#")] if terms_path.exists() else []
+    technical = {
+        _topic_index(card): card
+        for card in soup.select('article[id^="topic-"][id$="-technical"]')
+    }
+    overview = {
+        _topic_index(card): card
+        for card in soup.select('article[id^="topic-"][id$="-overview"]')
+    }
+    for topic, card in technical.items():
+        headings = _subtopic_headings(soup, card, topic)
+        if not headings:
+            raise ValueError(f"Day {day} topic {topic:02d}: no technical heading available for R1")
+        _ensure_technical_links(soup, card, headings)
+        if topic not in overview:
+            raise ValueError(f"Day {day} topic {topic:02d}: overview card missing for R1")
+        _ensure_overview_links(soup, overview[topic], headings)
+        _convert_side_heading_paragraphs(soup, card)
+    _link_keyword_spans(soup)
+    for card in [*overview.values(), *technical.values()]:
+        _link_terms_in_card(soup, card, terms)
+    _convert_paragraph_lists(soup)
+    _convert_inline_markers(soup)
+    _convert_remaining_list_markers(soup)
+    output = str(BeautifulSoup(str(soup), "html.parser"))
+    return re.sub(r"(?i)^(<!DOCTYPE html>)\s*", r"\1\n", output, count=1)
 
 
 def split_semicolons(value: str) -> list[str]:
@@ -724,10 +1084,19 @@ def main() -> None:
             parser.error(f"Authored page missing: {override}. Run --init-day {args.day}, edit it, then build.")
         output = override.read_text(encoding="utf-8")
         validate_day_override(output, day)
+        output = apply_page_rules(output, args.day)
         write(SITE / "days" / f"day-{args.day:03d}.html", output)
         print(f"Built Day {args.day}: {SITE / 'days' / f'day-{args.day:03d}.html'}")
         return
     refs = parse_references()
+    coverage_path = SITE / "data" / "coverage.csv"
+    verified_sections: dict[tuple[str, str], str] = {}
+    if coverage_path.exists():
+        with coverage_path.open(newline="", encoding="utf-8") as stream:
+            for row in csv.DictReader(stream):
+                verified_sections[(row["day"], row["topic_key"])] = row[
+                    "publisher_section_verified"
+                ]
     rows = []
     for day in days:
         output, topics = render_day(day, days, refs)
@@ -735,14 +1104,20 @@ def main() -> None:
         if override.exists():
             output = override.read_text(encoding="utf-8")
             validate_day_override(output, day)
+        output = apply_page_rules(output, day["number"])
         write(SITE / "days" / f'day-{day["number"]:03d}.html', output)
         rows.extend(topics)
+    for row in rows:
+        row["publisher_section_verified"] = verified_sections.get(
+            (str(row["day"]), row["topic_key"]),
+            row["publisher_section_verified"],
+        )
     write(SITE / "index.html", render_index(days))
     write(SITE / "sources.html", render_sources(refs))
     write(SITE / "artifacts.html", render_artifacts(days))
     write(SITE / "glossary.html", render_glossary())
     write(SITE / "data" / "days.json", json.dumps([{k:v for k,v in d.items() if k != "topics"} for d in days], indent=2))
-    with (SITE / "data" / "coverage.csv").open("w", newline="", encoding="utf-8") as stream:
+    with coverage_path.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
