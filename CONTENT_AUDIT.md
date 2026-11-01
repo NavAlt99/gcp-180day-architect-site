@@ -1,12 +1,12 @@
 # Content audit — 180-day site
 
-This audit reads all 180 rendered day pages and all 504 topic sections. It checks template provenance and obvious mismatches, not the technical accuracy of a matched template. The site passes structural navigation checks but **does not pass a topic-level teaching review**.
+This audit reads all 180 rendered day pages and all 508 topic sections. It checks template provenance and obvious mismatches, not the technical accuracy of a matched template. The site passes structural navigation checks but **does not pass a topic-level teaching review**.
 
-- 469 / 504 technical discussions outside the authored lessons come from shared domain templates; 14 contain the generic 'input, actor, control boundary' fallback.
-- 469 / 504 scenarios outside the authored lessons come from shared templates; 36 use the same inserted-title Brightloaf problem.
-- 43 / 504 labs use the same three-column worksheet; 194 topic labs include shell command blocks and 353 include any copyable code or fixture block.
-- 43 labs say no cloud resources or credentials are needed, including cloud-setup and managed-service days.
-- 0 / 504 publisher links have a verified topic-level section or video timestamp in the coverage manifest.
+- 473 / 508 technical discussions outside the authored lessons come from shared domain templates; 14 contain the generic 'input, actor, control boundary' fallback.
+- 473 / 508 scenarios outside the authored lessons come from shared templates; 36 use the same inserted-title Brightloaf problem.
+- 41 / 508 labs use the same three-column worksheet; 171 topic labs include shell command blocks and 354 include any copyable code or fixture block.
+- 41 labs say no cloud resources or credentials are needed, including cloud-setup and managed-service days.
+- 0 / 508 publisher links have a verified topic-level section or video timestamp in the coverage manifest.
 - 1 headings look like roadmap instructions or caveats rather than a subject to teach. This is a heuristic lower bound.
 
 The common cause is the generator: it splits each Study line at semicolons, treats every resulting clause as a topic, matches keywords to broad explanation templates, and falls back to architecture boilerplate when there is no match. Its ordinary-day case and worksheet are then reused with the title inserted. Matching a keyword does **not** establish that the discussion fits the exact topic or stage.
@@ -24,16 +24,16 @@ Examples observed in rendered pages:
 | Day | Topics | Fallback discussions | Reused scenarios | Worksheet labs | Command labs | Directive-like headings |
 |---:|---:|---:|---:|---:|---:|---:|
 | 1 | 3 | 0 | 0 | 0 | 0 | 0 |
-| 2 | 3 | 0 | 0 | 0 | 3 | 0 |
-| 3 | 3 | 0 | 0 | 0 | 3 | 0 |
-| 4 | 5 | 0 | 0 | 0 | 2 | 0 |
+| 2 | 4 | 0 | 1 | 0 | 0 | 0 |
+| 3 | 3 | 0 | 0 | 0 | 0 | 0 |
+| 4 | 5 | 0 | 0 | 0 | 0 | 0 |
 | 5 | 3 | 0 | 0 | 0 | 0 | 0 |
-| 6 | 2 | 0 | 0 | 0 | 2 | 0 |
-| 7 | 4 | 0 | 0 | 0 | 4 | 0 |
-| 8 | 2 | 0 | 0 | 0 | 2 | 0 |
-| 9 | 2 | 0 | 0 | 0 | 1 | 0 |
-| 10 | 3 | 0 | 0 | 0 | 3 | 0 |
-| 11 | 2 | 0 | 0 | 0 | 2 | 0 |
+| 6 | 2 | 0 | 0 | 0 | 0 | 0 |
+| 7 | 4 | 0 | 0 | 0 | 0 | 0 |
+| 8 | 2 | 0 | 0 | 0 | 0 | 0 |
+| 9 | 2 | 0 | 0 | 0 | 0 | 0 |
+| 10 | 3 | 0 | 0 | 0 | 0 | 0 |
+| 11 | 2 | 0 | 0 | 0 | 0 | 0 |
 | 12 | 3 | 0 | 3 | 0 | 0 | 0 |
 | 13 | 2 | 0 | 2 | 0 | 0 | 0 |
 | 14 | 2 | 0 | 2 | 0 | 0 | 0 |
@@ -47,6 +47,12 @@ Examples observed in rendered pages:
 | 22 | 2 | 0 | 2 | 0 | 0 | 0 |
 | 23 | 3 | 0 | 3 | 0 | 0 | 0 |
 | 24 | 3 | 0 | 3 | 0 | 0 | 0 |
+| 25 | 3 | 0 | 3 | 0 | 0 | 0 |
+| 26 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 27 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 28 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 29 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 30 | 0 | 0 | 0 | 0 | 0 | 0 |
 | 31 | 3 | 0 | 3 | 0 | 0 | 0 |
 | 32 | 1 | 0 | 1 | 0 | 0 | 0 |
 | 33 | 2 | 0 | 2 | 0 | 0 | 0 |
@@ -135,7 +141,7 @@ Examples observed in rendered pages:
 | 116 | 1 | 0 | 1 | 0 | 1 | 0 |
 | 117 | 1 | 0 | 1 | 0 | 1 | 0 |
 | 118 | 2 | 0 | 2 | 0 | 2 | 0 |
-| 119 | 4 | 0 | 4 | 0 | 4 | 0 |
+| 119 | 4 | 0 | 4 | 0 | 0 | 0 |
 | 120 | 3 | 0 | 3 | 0 | 3 | 0 |
 | 121 | 2 | 0 | 2 | 0 | 0 | 0 |
 | 122 | 3 | 0 | 3 | 0 | 0 | 0 |
@@ -166,7 +172,7 @@ Examples observed in rendered pages:
 | 147 | 3 | 0 | 3 | 0 | 0 | 0 |
 | 148 | 3 | 0 | 3 | 0 | 0 | 0 |
 | 149 | 3 | 0 | 3 | 0 | 0 | 0 |
-| 150 | 4 | 0 | 4 | 0 | 0 | 0 |
+| 150 | 4 | 0 | 4 | 0 | 1 | 0 |
 | 151 | 3 | 0 | 3 | 0 | 0 | 0 |
 | 152 | 2 | 0 | 2 | 0 | 0 | 0 |
 | 153 | 1 | 0 | 1 | 0 | 0 | 0 |
@@ -194,8 +200,8 @@ Examples observed in rendered pages:
 | 175 | 1 | 0 | 1 | 1 | 0 | 0 |
 | 176 | 1 | 0 | 1 | 1 | 0 | 0 |
 | 177 | 1 | 0 | 1 | 1 | 0 | 0 |
-| 178 | 1 | 0 | 1 | 1 | 0 | 0 |
-| 179 | 1 | 0 | 1 | 1 | 0 | 0 |
+| 178 | 1 | 0 | 1 | 0 | 1 | 0 |
+| 179 | 1 | 0 | 1 | 0 | 1 | 0 |
 | 180 | 1 | 1 | 1 | 1 | 0 | 0 |
 
 The detailed topic-level flags are in [data/content-audit.csv](data/content-audit.csv). Days 1–12 and 18 are hand-written and materially better aligned, though publisher-section links still need verification across the site. The remaining topics need editorial review against their roadmap Study, Practice and Exit evidence before they can be treated as completed lessons. Rewriting requires topic-specific mechanisms, worked examples, realistic problems, exercises with observable acceptance checks and exact further-study links; adding more generic paragraphs will not repair the mismatch.

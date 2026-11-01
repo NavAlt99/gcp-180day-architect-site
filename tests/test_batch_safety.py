@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts import batch_gate as gate, run_labs as labs, validate_spec as validator, write_handoff as handoff
+from tests.fixtures.spec_factory import spec
 
 FIXTURE = Path(__file__).parent / 'fixtures/lab_spec.py'
 
@@ -135,7 +136,11 @@ class GateTests(unittest.TestCase):
 
 class BaselineAndHandoffTests(unittest.TestCase):
     def test_day4_ranges(self):
-        self.assertEqual(validator.depth_ranges(), ((11219, 13061), (4, 4), (8, 8), (7711, 13420)))
+        fixture = spec(4, contract_version=2)
+        expected = tuple((min(values), max(values)) for values in
+                         zip(*(validator.metrics(topic) for topic in fixture['topics'])))
+        with patch.object(validator, 'load_spec', return_value=(fixture, False, {})):
+            self.assertEqual(validator.depth_ranges(), expected)
 
     def test_handoff_generated_records_and_git_stat(self):
         data = {'topics': [{'key': 'topic-01', 'title': 'Fixture', 'technical': '<p>Relevance to GCP: A documented claim. <a href="https://example.test/docs#section">Section</a></p>',

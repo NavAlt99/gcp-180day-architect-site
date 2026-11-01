@@ -59,6 +59,14 @@ class StrictChecks(unittest.TestCase):
             self.assertTrue(any(literal in w and 'spec.text' in w for w in check(data)[1]))
             self.assertFalse(check(data, allowlist=[literal])[1])
 
+    def test_address_allows_netmasks_and_rfc6598(self):
+        data=fixture(); data['text']='255.255.255.0 255.255.252.0 100.64.0.1 100.127.255.254'
+        self.assertFalse(check(data)[1])
+        data['text']='255.0.255.0 100.128.0.1'
+        warnings=check(data)[1]
+        self.assertTrue(any('255.0.255.0' in warning for warning in warnings))
+        self.assertTrue(any('100.128.0.1' in warning for warning in warnings))
+
     def test_sources_pass_fail(self):
         self.assertEqual(check(fixture()), ([], []))
         data=fixture(); data['sources']['rfc']=('Status accessed 2026-10-04','https://example.test/doc')

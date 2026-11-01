@@ -10,6 +10,7 @@ MODES = ('Observed locally:', 'Simulated or predicted:', 'Untested on GCP:')
 ALLOWED = tuple(ipaddress.ip_network(n) for n in (
     '192.0.2.0/24', '198.51.100.0/24', '203.0.113.0/24', '10.0.0.0/8',
     '172.16.0.0/12', '192.168.0.0/16', '127.0.0.0/8', '169.254.0.0/16',
+    '100.64.0.0/10',
     '2001:db8::/32', '::1/128', 'fe80::/10'))
 
 
@@ -28,6 +29,15 @@ def code(text):
     html = BeautifulSoup(text, 'html.parser')
     return '\n'.join(re.findall(r'```[^\n]*\n(.*?)```', text, re.S) +
                      [p.get_text() for p in html.select('pre')])
+
+
+def dotted_quad_netmask(literal):
+    """Return whether a dotted quad is a valid contiguous IPv4 netmask."""
+    try:
+        ipaddress.IPv4Network(f'0.0.0.0/{literal}')
+    except (ipaddress.AddressValueError, ipaddress.NetmaskValueError):
+        return False
+    return True
 
 
 TEMPLATE_PATTERNS = (
@@ -90,6 +100,8 @@ def check(data, rows=(), allowlist=()):
             try:
                 address = ipaddress.ip_address(literal)
             except ValueError:
+                continue
+            if address.version == 4 and dotted_quad_netmask(literal):
                 continue
             if str(address) not in allowlist and not any(address.version == n.version and address in n for n in ALLOWED):
                 warnings.append(f'WARN {field}: address literal {literal} outside allowed example ranges')
