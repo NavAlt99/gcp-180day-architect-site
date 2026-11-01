@@ -933,7 +933,7 @@ def compile_day_page(day_num: int, data: dict) -> None:
         if hero:
             hero.insert_after(BeautifulSoup(rail_html, "html.parser"))
 
-    override_file.write_text(str(soup), encoding="utf-8")
+    override_file.write_text(build.apply_page_rules(str(soup), day_num), encoding="utf-8")
     print(f"Updated override: {override_file}")
 
 
