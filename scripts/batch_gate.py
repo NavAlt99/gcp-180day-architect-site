@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-CHECKS = ('extract_day_inputs', 'validate_spec', 'validate', 'check_study_links', 'run_labs')
+CHECKS = ('extract_day_inputs', 'validate_spec', 'validate', 'check_study_links', 'run_labs', 'check_depth')
 
 
 def contract_check(root):
@@ -60,6 +60,8 @@ def main(argv=None, *, root=ROOT, runner=subprocess.run):
                 command += ['--report', str(report_path)]
             elif check == 'run_labs':
                 report_path = root / 'scratch' / f'day-{args.day:03d}-lab-rerun.json'
+            elif check == 'check_depth':
+                command.append('--strict')
             # Reject stale evidence if a check exits without writing a fresh report.
             if check in ('check_study_links', 'run_labs') and report_path.exists(): report_path.unlink()
             result = runner(command, cwd=root, env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'},
