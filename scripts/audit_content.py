@@ -38,10 +38,14 @@ def authored_day_topics(day: int) -> set[int]:
 
 
 rows = []
+by_day = {}
 for page in sorted((SITE / "days").glob("day-*.html")):
     soup = BeautifulSoup(page.read_text(), "html.parser")
     day = int(page.stem.split("-")[1])
-    sections = [soup.select(f"#part-{part} .topic-card") for part in range(1, 5)]
+    by_day.setdefault(day, [])
+    # Only the four-part cards themselves participate in the parallel topic
+    # count. Authored technical cards may contain nested explanatory cards.
+    sections = [soup.select(f"#part-{part} > .topic-card") for part in range(1, 5)]
     if len({len(section) for section in sections}) != 1:
         raise RuntimeError(f"Four-part mismatch on {page.name}")
     for index, cards in enumerate(zip(*sections), 1):
@@ -75,17 +79,16 @@ for page in sorted((SITE / "days").glob("day-*.html")):
         rows.append(row)
 
 with OUTPUT.open("w", newline="", encoding="utf-8") as stream:
-    writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+    writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator="\n")
     writer.writeheader()
     writer.writerows(rows)
 
 counts = Counter()
-by_day = {}
 for row in rows:
     counts["topics"] += 1
     for field in ("heading_looks_like_instruction", "overview_fallback", "technical_fallback", "technical_shared_template", "scenario_shared_template", "scenario_brightloaf_placeholder", "lab_shared_worksheet", "lab_says_no_cloud_needed", "lab_has_commands", "lab_has_copyable_blocks"):
         counts[field] += bool(row[field])
-    by_day.setdefault(row["day"], []).append(row)
+    by_day[row["day"]].append(row)
 
 lines = [
     "# Content audit — 180-day site",

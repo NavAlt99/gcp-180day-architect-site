@@ -10,14 +10,19 @@ from unittest.mock import patch
 
 from scripts import validate_spec as validator
 from scripts.new_day_skeleton import write_skeleton
+from tests.fixtures.spec_factory import coverage as fixture_coverage
 
 ROOT = Path(__file__).resolve().parents[1]
+FIXTURES = Path(__file__).parent / 'fixtures'
 
 
 class ValidateSpecTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.data, cls.legacy, cls.metadata = validator.load_spec(ROOT / 'scratch/day_data_002.py')
+        cls.coverage_patch = patch.object(validator, 'coverage', side_effect=fixture_coverage)
+        cls.coverage_patch.start()
+        cls.addClassCleanup(cls.coverage_patch.stop)
+        cls.data, cls.legacy, cls.metadata = validator.load_spec(FIXTURES / 'validate_spec_v1.py')
         cls.reference = tuple(min(values) for values in zip(*(validator.metrics(t) for t in cls.data['topics'])))
 
     def check(self, mutate=None, needle=None, **options):
@@ -32,7 +37,8 @@ class ValidateSpecTests(unittest.TestCase):
         with patch.object(Path, 'write_text', side_effect=AssertionError('validator wrote a file')):
             self.check(reference=self.reference)
             with contextlib.redirect_stdout(io.StringIO()) as stream:
-                self.assertEqual(validator.main(['--day', '2']), 0)
+                with patch.object(validator, 'depth_ranges', return_value=tuple((value, value) for value in self.reference)):
+                    self.assertEqual(validator.main(['--day', '2', '--spec', str(FIXTURES / 'validate_spec_v1.py')]), 0)
             self.assertIn('manual review', stream.getvalue())
 
     def test_error_1_todo_anywhere_and_keys(self):
@@ -92,7 +98,7 @@ class ValidateSpecTests(unittest.TestCase):
         self.assertEqual(validator.sentence_count('Address 10.240.0.1 is local. Now inspect it.'), 2)
 
     def test_part1_label_consistency(self):
-        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+        v2_data, _, v2_meta = validator.load_spec(FIXTURES / 'validate_spec_v2.py')
 
         # 1. pass: v2 spec with all three labels in order passes
         errors, _ = validator.validate_data(4, copy.deepcopy(v2_data), metadata=v2_meta)
@@ -121,7 +127,7 @@ class ValidateSpecTests(unittest.TestCase):
         self.assertTrue(any('combined' in e for e in errors))
 
     def test_incident_caption_labels(self):
-        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+        v2_data, _, v2_meta = validator.load_spec(FIXTURES / 'validate_spec_v2.py')
 
         # 1. engine-compiled passes
         errors, _ = validator.validate_data(4, copy.deepcopy(v2_data), metadata=v2_meta)
@@ -160,7 +166,7 @@ class ValidateSpecTests(unittest.TestCase):
             self.assertEqual(errors, [])
 
     def test_part3_scope_caption(self):
-        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+        v2_data, _, v2_meta = validator.load_spec(FIXTURES / 'validate_spec_v2.py')
 
         # Part 3 figure with scope keyword passes
         for kw in ('does not prove', 'not a measurement', 'hypothetical', 'illustrative', 'scope'):
@@ -190,7 +196,7 @@ class ValidateSpecTests(unittest.TestCase):
         self.assertTrue(any('scenario.caption' in w and 'scope or limit statement' in w for w in warnings), warnings)
 
     def test_nested_figure_rejected(self):
-        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+        v2_data, _, v2_meta = validator.load_spec(FIXTURES / 'validate_spec_v2.py')
 
         nested_svg = (
             '<figure class="outer">'
@@ -204,7 +210,7 @@ class ValidateSpecTests(unittest.TestCase):
         self.assertTrue(any('nested figure' in e for e in errors), errors)
 
     def test_generic_template_topology_rejected(self):
-        v2_data, _, v2_meta = validator.load_spec(ROOT / 'scratch/day_data_004.py')
+        v2_data, _, v2_meta = validator.load_spec(FIXTURES / 'validate_spec_v2.py')
         template_patterns = [
             'CEL Attribute Rule',
             'Cryptographic Check',
@@ -281,7 +287,7 @@ class ValidateSpecTests(unittest.TestCase):
         self.check(lambda d: d.update(arch_diagram={'title': 'Diagram', 'desc': 'Description', 'caption': 'Limit', 'nodes': []}), 'empty diagram data')
 
     def test_legacy_skips_only_fallback_presence(self):
-        data, legacy, metadata = validator.load_spec(ROOT / 'scratch/day_data_003.py')
+        data, legacy, metadata = validator.load_spec(FIXTURES / 'validate_spec_legacy.py')
         self.assertTrue(legacy)
         errors, _ = validator.validate_data(3, data, legacy=legacy, metadata=metadata)
         self.assertFalse(any('fallback' in e for e in errors))
