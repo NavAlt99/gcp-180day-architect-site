@@ -55,6 +55,11 @@ def scrub(text):
     return text
 
 
+def mask_credentials(value):
+    """Backward-compatible public name for credential masking."""
+    return scrub(value)
+
+
 def say(message=''):
     print(scrub(message), flush=True)
 
@@ -111,6 +116,65 @@ class Day:
         if single.exists():
             return [single]
         return sorted(folder.rglob('*.py')) if folder.is_dir() else []
+
+
+def permitted_day_path(path, day):
+    """Return whether a path belongs to one day's scoped commit."""
+    return Day(day).owns(path)
+
+
+def _workflow_command(script, day, *extra):
+    return [sys.executable, '-B', str(ROOT / 'scripts' / script), '--day', str(day), *extra]
+
+
+def _run_workflow_command(command, runner):
+    result = runner(
+        command,
+        cwd=ROOT,
+        env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'},
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    say(result.stdout or '')
+    return result.returncode
+
+
+def check(day, *, diagrams='allow', skip_labs=False, runner=subprocess.run):
+    """Run the legacy complete check sequence, stopping at the first failure.
+
+    The stage-oriented CLI intentionally keeps ``check`` limited to page rules,
+    but callers of the original Python API still depend on this complete,
+    injectable sequence.
+    """
+    target = Day(day)
+    steps = [_workflow_command('extract_day_inputs.py', day)]
+    if not target.spec_files():
+        steps.append(_workflow_command('new_day_skeleton.py', day))
+    steps.extend((
+        _workflow_command('validate_spec.py', day),
+        _workflow_command('author_engine.py', day),
+        _workflow_command('build.py', day),
+        _workflow_command('validate.py', day),
+        _workflow_command('check_study_links.py', day, '--report',
+                          str(ROOT / 'scratch' / f'day-{day:03d}-study-links.json')),
+    ))
+    if not skip_labs:
+        steps.append(_workflow_command('run_labs.py', day))
+    page_rules = _workflow_command('check_page_rules.py', day, '--diagrams', diagrams)
+    terms = ROOT / 'scratch' / 'audits' / f'day-{day:03d}-terms.txt'
+    if terms.is_file():
+        page_rules.extend(('--terms-file', str(terms)))
+    steps.extend((page_rules, _workflow_command('write_handoff.py', day)))
+
+    for command in steps:
+        if _run_workflow_command(command, runner):
+            say(f'FAIL: stopped at {Path(command[2]).name}')
+            return 1
+    say(f'PASS: Day {day:03d} checks')
+    if skip_labs:
+        say('NOT CHECKED: labs were explicitly skipped; record the cloud/tool reason in the handoff.')
+    return 0
 
 
 # ------------------------------------------------------------------ Step 0
