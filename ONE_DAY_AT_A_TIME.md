@@ -1,21 +1,42 @@
 # One day at a time
 
 Apply `PAGE_AUTHORING_CONTRACT.md` once as the static rule prefix, then select
-the compact day inputs using its Read budget. Use `PAGE_UPDATE_PROMPT.md` for
-the command sequence and handoff; do not duplicate the contract into each task.
+the compact day inputs using its Read budget. Use `DAY_WORKFLOW_PROMPT.md` for
+the complete worker workflow and `PAGE_UPDATE_PROMPT.md` for its command sequence
+and handoff; do not duplicate the contract into each task.
 
 ## Serial run selection
 
 - Set CURRENT_DAY to the requested numeric day; for a single page,
   TARGET_DAY = CURRENT_DAY. An explicit day starts there; a later `next`
   advances one. Stop after Day 180.
-- An explicitly authorized multi-day run has a start/end. Use one fresh,
-  isolated page agent/context per day, strictly serially: finish the commands,
-  acceptance checks and handoff for N before N+1. Never generate pages in a
-  batch or edit two concurrently; do not pause between authorized days.
+- An explicitly authorized multi-day run has a start/end and uses
+  `BATCH_UPDATE_PROMPT.md`. One user invocation is enough for the authorized
+  range. The coordinator divides it into windows of 10 days by default; this is
+  a checkpoint/recovery boundary, not a shared authoring context.
+- Use one fresh, isolated page agent/context per day, strictly serially: finish
+  the commands, acceptance checks and handoff for N before N+1. Never generate
+  several pages in one context or edit two concurrently. Continue across window
+  boundaries without asking the user to repeat the prompt unless a stop
+  condition is reached.
 - Give each page agent only its compact brief and the canonical static rules.
-  For ten days use ten isolated contexts; the coordinator retains only current
-  day, agent result, build/validation status, not ten catalogs or long contexts.
+  For ten days use ten isolated contexts; the coordinator retains only the
+  authorized range, current window/day, gate result and commit ID, not catalogs,
+  durable specs, page prose or long worker summaries.
+
+## Batch window policy
+
+- Default `BATCH_SIZE=10`. A larger authorized range is processed as consecutive
+  10-day windows under the same invocation. A smaller final window is normal.
+- Batch size controls checkpoint frequency only. It never permits more than one
+  active day, reuse of a page context, cross-day copy/paste, deferred gates, or a
+  combined commit.
+- At each window boundary, record a compact manifest of day, PASS/FAIL, handoff
+  path and commit ID when applicable. Continue automatically after a fully
+  passing window. Stop on the first failed gate, changed contract hash, unresolved
+  source/lab/diagram issue, user stop boundary, or end of the authorized range.
+- Resume from the first incomplete day with a fresh context; never rerun a
+  completed PASS day unless the user requests it or its inputs changed.
 
 ## Per-day preparation
 

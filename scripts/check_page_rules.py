@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic page-rule checks R1-R4, R7, R8 on a built day page.
+"""Deterministic page-rule checks R1-R5, R7, R8 on a built day page.
 
 Usage:
   python3 scripts/check_page_rules.py --day 3
@@ -8,8 +8,8 @@ Usage:
 
 Reads days/day-NNN.html (or --page). Standard library only; Pillow with DejaVu fonts is used for
 text widths when available (otherwise an average-character-width estimate, and the method is printed).
-Exit status 1 when a gated rule fails. R4/R8 are gated only with --diagrams allow (default).
-R5 is reported, never gated.
+Exit status 1 when a gated rule fails. R4/R8 are gated only with --diagrams allow
+(default); R1/R2/R3/R5/R7 are always gated.
 """
 import argparse, collections, glob, json, os, re, sys
 from html.parser import HTMLParser
@@ -348,10 +348,29 @@ def check_diagrams(root, gate):
 
 # ---------------------------------------------------------------- R5 / R7
 def check_r5(root):
-    css = ' '.join(n.text() for n in nodes(root) if n.tag == 'style')
-    hit = re.search(r'[^{}]*technical[^{}]*\{[^}]*(max-width\s*:\s*(none|100%)|(?<![-\w])width\s*:\s*100%)', css)
-    return result('R5 full width', 'FOUND' if hit else 'NOT FOUND', False,
-                  'page-level width rule for the technical discussion ' + ('present' if hit else 'not in the page styles (shared stylesheet not inspected)'))
+    links = [n.attrs.get('href', '') for n in nodes(root)
+             if n.tag == 'link' and 'stylesheet' in n.attrs.get('rel', '').split()]
+    shared = any(re.search(r'(?:^|/)assets/site\.css(?:[?#].*)?$', href) for href in links)
+    items = []
+    for style in (n for n in nodes(root) if n.tag == 'style'):
+        for match in re.finditer(r'([^{}]+)\{([^}]*)\}', style.text()):
+            selector, declarations = match.group(1).strip(), match.group(2)
+            targets_day_content = re.search(r'(?:\.container\b|\.topic-card\b|technical|\.day\b)', selector, re.I)
+            sets_width = re.search(r'(?<![-\w])(?:min-|max-)?width\s*:', declarations, re.I)
+            if targets_day_content and sets_width:
+                items.append(f'inline style width rule: {selector[:100]}')
+    for n in nodes(root):
+        if 'style' not in n.attrs:
+            continue
+        target = (n.attrs.get('id', '') + ' ' + n.attrs.get('class', '')).lower()
+        if (re.search(r'(container|topic-card|technical)', target)
+                and re.search(r'(?<![-\w])(?:min-|max-)?width\s*:', n.attrs['style'], re.I)):
+            items.append(f'inline style attribute width rule on {n.tag}#{n.attrs.get("id", "")}')
+    overrides = len(items)
+    if not shared:
+        items.insert(0, 'missing linked assets/site.css')
+    return result('R5 shared width', 'FAIL' if items else 'PASS', True,
+                  f'assets/site.css linked={shared}; {overrides} inline/per-day width override(s)', items)
 
 
 def check_r7(html):

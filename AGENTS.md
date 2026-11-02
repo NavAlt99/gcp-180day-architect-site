@@ -4,14 +4,17 @@
 rules once before day-specific inputs. Its Source precedence and Read budget
 apply to every curriculum task; do not infer requirements from existing HTML.
 
-Use `ONE_DAY_AT_A_TIME.md` to select/run one day serially and
-`PAGE_UPDATE_PROMPT.md` for commands and concise handoff without reducing depth. Apply the contract to
-every future update; all teaching, evidence, structure, typography, SVG/icon,
-exercise, source and rendering requirements remain mandatory.
+Use `ONE_DAY_AT_A_TIME.md` for isolated serial execution,
+`DAY_WORKFLOW_PROMPT.md` for the complete per-day scope/switch workflow,
+`PAGE_UPDATE_PROMPT.md` for its command sequence and concise handoff, and
+`BATCH_UPDATE_PROMPT.md` as the single entry point for a multi-day range. Apply
+the contract to every future update; all teaching, evidence, structure,
+typography, SVG/icon, exercise, source and rendering requirements remain mandatory.
 
 Author only the durable specification. Preserve the shared site shell and mapped
-curriculum scope. Repair target-introduced errors before proceeding. Never edit
-multiple day pages concurrently or use batch page generation.
+curriculum scope. Repair target-introduced errors before proceeding. A batch is
+one user invocation coordinated as isolated per-day jobs; never edit multiple
+day pages concurrently or generate several pages in one authoring context.
 
 For workflow maintenance, follow the user's named phases and stop boundary.
 Do not reauthor day content while reducing instruction overhead. Any ambiguity
@@ -38,9 +41,7 @@ deterministic built-page verifier; do not weaken or bypass it.
 - **R4 — diagram geometry:** no SVG label may collide with a node, icon, badge,
   arrow, or viewBox boundary. This is gated when `DIAGRAMS=allow`.
 - **R5 — full width:** the technical discussion must use the shared wide page
-  container without a per-day width override. The per-day rule treats this as
-  required, while the current checker reports it but never gates it; preserve
-  that unresolved conflict in handoffs rather than claiming a pass.
+  container without a per-day width override. The checker gates this rule.
 - **R6 — evidence limits:** every scenario distinguishes supplied facts,
   inference, expected behavior, and an explicit `Evidence limit:`; never turn a
   tabletop or expected result into observed evidence.
@@ -52,17 +53,18 @@ deterministic built-page verifier; do not weaken or bypass it.
   rendered day with the selected diagram mode and day terms file. A passing
   source spec is not a substitute for this result.
 
-R1, R2, R3, and R7 are always gated. R4 and R8 are gated only when diagrams may
-change. R5 remains the documented checker/prompt decision conflict.
+R1, R2, R3, R5, and R7 are always gated. R4 and R8 are gated only when diagrams
+may change.
 
 ## Day prompt switches
 
 `PROMPT_DAY.md` contains only these inputs; resolve them before authoring:
 
 - `DAY`: required integer 1–180; work on this day only.
-- `SCOPE`: `plan`, `update`, or `fix`; `update` permits additive authoring and
-  the contract-approved R2/R7 conversions, while `fix` is limited to named
-  defects and `plan` makes no day-content changes.
+- `SCOPE`: `plan`, `update`, `audit-only`, or `fix`; `update` permits additive
+  authoring and the contract-approved R2/R7 conversions, `audit-only` writes
+  only the named audit evidence, `fix` is limited to confirmed ledger findings,
+  and `plan` makes no day-content changes.
 - `DIAGRAMS`: `keep` preserves eligible diagrams; `allow` permits contract-
   compliant additions or repairs and gates R4/R8.
 - `TOPICS`: `keep` preserves mapped topic/subtopic scope; `expand` may add only
