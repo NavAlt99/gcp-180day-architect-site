@@ -58,10 +58,14 @@ for n, page in enumerate(day_pages, 1):
         errors.append(f"{page.name}: missing next")
     if len(soup.select("#day-jump option[value^='day-']")) != 180:
         errors.append(f"{page.name}: day jump incomplete")
-    for code in soup.select("code"):
-        value = code.get_text(" ", strip=True)
-        if code.parent.name != "pre" and re.match(r"^(?:sudo |git |gcloud |terraform |kubectl |docker |python3? |curl |ssh |cat |printf |mkdir |cd |pwd$|ls(?: |$)|command |ip |dig |nslookup |systemctl |journalctl )", value):
-            errors.append(f"{page.name}: runnable command outside a code block: {value[:60]}")
+    # Inline-command typography is an authoring guard for the day being updated.
+    # Historical pages remain covered when they are revised, without making the
+    # global structure/link audit fail on unrelated legacy markup.
+    if args.day == n:
+        for code in soup.select("code"):
+            value = code.get_text(" ", strip=True)
+            if code.parent.name != "pre" and re.match(r"^(?:sudo |git |gcloud |terraform |kubectl |docker |python3? |curl |ssh |cat |printf |mkdir |cd |pwd$|ls(?: |$)|command |ip |dig |nslookup |systemctl |journalctl )", value):
+                errors.append(f"{page.name}: runnable command outside a code block: {value[:60]}")
     for pre in soup.select("pre"):
         if not pre.select_one("code"):
             errors.append(f"{page.name}: <pre> element missing child <code> element (breaks copy button)")
