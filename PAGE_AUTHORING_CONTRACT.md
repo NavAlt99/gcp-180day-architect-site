@@ -11,8 +11,10 @@ structure, technical depth, or acceptance evidence.
 3. `data/coverage.csv`: topic/anchor/source-ID/publisher/exit mappings.
 4. `../gcp-architect-roadmap-100-days.md`: source-topic references/official docs.
 5. This contract: teaching/evidence/SVG/lab/source/rendering rules.
-6. `ONE_DAY_AT_A_TIME.md`: serial run; `PAGE_UPDATE_PROMPT.md`: commands/handoff;
-   `AGENTS.md`: entry point.
+6. `ONE_DAY_AT_A_TIME.md`: isolated serial execution; `DAY_WORKFLOW_PROMPT.md`:
+   complete per-day scope/switch workflow; `PAGE_UPDATE_PROMPT.md`: command
+   sequence/handoff; `BATCH_UPDATE_PROMPT.md`: range coordinator; `AGENTS.md`:
+   entry point.
 
 HTML is output, not curriculum truth. Current roadmap overrides older prompts;
 alternate Day 13 is noncanonical. Stay within Study/Practice/Exit evidence;
@@ -47,6 +49,10 @@ Each mapped topic overview must use these three labelled paragraphs in order:
 and `<strong class="side-heading">Problem preview:</strong>`. The Problem preview
 paragraph keeps `class="problem-preview"` and exactly two sentences (symptom/decision,
 then user/business effect); links may follow. Combined labels are not permitted for new work.
+After the preview, add one `Linked subtopics:` side-heading and a bulleted list
+linking every `#topic-XX-subtopic-Y` anchor. The technical discussion's opening
+`Subtopics in this discussion:` list links the same anchors; do not duplicate an
+existing list or create dangling targets.
 
 ### Part 2: Subtopic-first technical discussion
 
@@ -62,6 +68,10 @@ Explain each in order under a descriptive heading with these explicit labels:
 - **Relevance to GCP:** documented service/feature/configuration/architecture use
   and primary source; if no direct equivalent, say so and explain applicability.
   Never invent mappings or deployments.
+
+Render each subtopic's labelled explanations as list items whose first child is
+`<strong class="side-heading">Label:</strong>`. A paragraph-to-list conversion
+must preserve normalized wording, inline links and order exactly.
 
 Cover control/data flow, ownership, boundaries, limits, failure signals,
 trade-offs and prerequisites; add an accessible architecture-path table where
@@ -158,15 +168,26 @@ use `part1_html` for rich overview. Copyable commands/multiline contents use
 `<pre><code>` and working copy controls. Inline commands use `<kbd>`; non-command
 filenames/short terms use `<code>`. Expected environment-dependent cloud output
 is illustrative.
+For each keyword span and every approved audit/IMPROVEMENTS term, link the first
+occurrence per overview card or technical subtopic to the exact Google discovery
+URL form required by `DAY_WORKFLOW_PROMPT.md`. Discovery links are learner aids,
+not sources or product-claim evidence, and are excluded from source verification.
+Rendered prose must contain no leaked Markdown list markers, `**`, backticks or
+hash headings; convert them to semantic HTML without changing the wording.
 
 ## Diagram eligibility and standards
 
 Diagram quality floor (user decision): compact diagram data may replace hand-written SVG markup only when the rendered result is at least as clear as before: every node has its correct icon, labels are complete (wrapped or enlarged, never truncated), arrows and numbered transitions are unambiguous, nothing clips or overlaps, and accessibility and caption requirements still hold. When the renderer cannot meet this, author raw SVG instead. Token savings must never reduce diagram clarity, icon coverage, or label completeness.
 
-ONLY diagram actual multi-step sequences, packet traversal or request/response
-lifecycles. No conceptual/static/configuration diagrams, invented qualifying flows,
-or empty headings/wrappers/captions/placeholders. Applies to Part 2 topology and
-Part 3 incidents, overriding blanket requirements. Explicit boolean
+ONLY diagram actual multi-step sequences, packet traversal, request/response
+lifecycles, or true hierarchies. A hierarchy requires at least two parent-child,
+containment, inheritance or scope levels, a labelled relationship per level, and
+adjacent prose explaining direction and the decision it informs. Flat lists,
+option matrices, definitions and classifications remain in tables. If
+`scripts/compact_hierarchy.py` is unavailable, do not author a hierarchy; record
+the recommendation instead. No invented qualifying flows or empty headings,
+wrappers, captions or placeholders. Applies to Part 2 topology and Part 3
+incidents, overriding blanket requirements. Explicit boolean
 `scenario["diagram_enabled"]`: False when nonqualifying, True for eligible incidents;
 legacy missing-key behavior remains. Empty `ARCH_DIAGRAM`/`ARCH_SVG_HTML` if no
 Part 2 flow qualifies. Place subtopic SVGs beside their explanation, not unrelated
@@ -191,6 +212,9 @@ labels, icon/node, horizontal scroll wrapper, scope/evidence-limit caption.
 Check text/icons/badges/arrows for clipping/overlap; labels/path explain without
 color/icon recognition. Wrap/reflow labels or enlarge nodes without reducing depth or removing meaning;
 never shrink illegibly or mask body overflow with overflow-x:hidden.
+SVG text is at least 9 viewBox units. Text keeps a 4px node-border margin and
+does not overlap icons, other text or the viewBox edge; measurements within 6px
+are reported as borderline.
 
 ## Diagram icons
 
@@ -222,6 +246,8 @@ relevance. Manually verify every Further study subject/label. Fix broken,
 irrelevant or misleading targets; missing fragments/non-success/access restrictions
 remain unresolved, not passes. Record dates/report/limits. Checker changes require
 its documented unit tests.
+Google discovery links required by the typography rules are exempt from the
+study-link gate and never enter the Source ledger or Product-claim list.
 
 ## Permanent rendering rules
 
@@ -233,6 +259,10 @@ light and dark themes. Light cards/TOC/tables/rail retain active indicator;
 dark-canvas captions readable; scrolling contained, selector/progress keys/copies
 intact. Fix introduced errors. Audits cannot prove every text overlap/arrow/source/
 eligibility decision; rendered reads follow Read budget.
+Run `scripts/check_page_rules.py` on the built day page for R1-R5, R7 and R8.
+R1, R2, R3, R5 and R7 are always gated; R4 and R8 are gated when diagram edits
+are allowed. Record its rule counts, measurement method, per-diagram table,
+advisory terms and every not-measured item in the handoff.
 
 ## Read budget
 
@@ -256,6 +286,9 @@ This overrides unconditional rendered reading, not teaching or acceptance checks
 
 ## Day-specific execution and handoff
 
-After static rules select CURRENT_DAY N (NNN zero-padded); use serial workflow
-and update prompt commands/handoff. No cross-day assumptions. Wait for background
-completion, no status polling/loops. Handoff stays concise; report depth changes as a separate item, not as content recap.
+After static rules select CURRENT_DAY N (NNN zero-padded); use the isolated
+serial workflow and per-day worker commands/handoff. A range invocation may be
+split into coordinator windows, but each page still receives a fresh context and
+completes its gate before the next starts. No cross-day assumptions. Wait for
+background completion, no status polling/loops. Handoff stays concise; report
+depth changes as a separate item, not as content recap.

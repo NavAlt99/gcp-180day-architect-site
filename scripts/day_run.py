@@ -1,243 +1,471 @@
 #!/usr/bin/env python3
-"""Run one curriculum day through resolve, preflight, checks, gate, and commit."""
-from __future__ import annotations
+"""Driver for the mechanical steps of the per-day workflow.
 
+Runs Step 0, the branch preflight, the pre-commit gate, and the scoped commit
+and push, so the model only does judgment work (content, scenarios, labs,
+diagram accuracy). It never authors, builds or edits page content and it never
+pushes main.
+
+  python3 scripts/day_run.py --day 14 --stage resolve --scope fix --diagrams allow --topics expand
+  python3 scripts/day_run.py --day 14 --stage preflight          # creates branch day-014 from updated main
+  python3 scripts/day_run.py --day 14 --stage check              # page-rule checker only, any branch
+  python3 scripts/day_run.py --day 14 --stage gate               # checker + batch_gate + extra gate checks
+  python3 scripts/day_run.py --day 14 --stage commit             # needs a fresh gate pass
+  python3 scripts/day_run.py --day 14 --stage finish             # gate, then commit and push
+
+Exit status 0 means every requested check passed; 1 means a check failed or the
+run STOPPED (the reason is printed). Nothing is repaired by force.
+"""
 import argparse
+import csv
+import hashlib
+import html
+import io
+import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
-from typing import Iterable
-
+import time
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ROADMAP = ROOT.parent / "roadmap-180-days.md"
-PYTHON = sys.executable
-
-URL_CREDENTIAL = re.compile(r"(?P<scheme>https?://)[^/@\s]+@", re.I)
+MAIN = 'main'
+STAGES = ('resolve', 'preflight', 'check', 'gate', 'commit', 'finish')
+SCOPES = ('plan', 'update', 'audit-only', 'fix')
+SPECIAL_DAYS = {17, 35, 67, 82, 118, 174, 175, 176, 177, 178, 179}
+ANCHOR_COLUMNS = ('overview_anchor', 'technical_anchor', 'problem_anchor', 'lab_anchor')
+URL_CREDENTIAL = re.compile(r'(https?://)[^/@\s]+@', re.I)
 SECRET_PATTERNS = (
-    re.compile(r"\b(?:gh[opusr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
-    re.compile(r"(?i)\b(Bearer\s+)[A-Za-z0-9._~+/=-]+"),
-    re.compile(r"(?i)\b((?:access_?token|api_?key|password|passwd|secret)\s*[=:]\s*)[^\s]+"),
+    re.compile(r'\b(?:gh[opusr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b'),
+    re.compile(r'(?i)\b(Bearer\s+)[A-Za-z0-9._~+/=-]+'),
+    re.compile(r'(?i)\b((?:access_?token|api_?key|password|passwd|secret)\s*[=:]\s*)[^\s]+'),
 )
 
 
-def mask_credentials(value: str) -> str:
-    """Mask URL userinfo and common token forms before any subprocess output is shown."""
-    value = URL_CREDENTIAL.sub(r"\g<scheme>***@", value)
+class Stop(Exception):
+    """A check failed; report and stop without repairing anything."""
+
+
+def scrub(text):
+    """Mask credentials embedded in remote URLs before anything is printed."""
+    text = URL_CREDENTIAL.sub(r'\1***@', text)
     for pattern in SECRET_PATTERNS:
-        value = pattern.sub(lambda match: (match.group(1) if match.lastindex else "") + "***", value)
-    return value
+        text = pattern.sub(lambda match: (match.group(1) if match.lastindex else '') + '***', text)
+    return text
 
 
-def emit(value: str) -> None:
-    if not value:
-        return
-    print(mask_credentials(value), end="" if value.endswith("\n") else "\n", flush=True)
+def say(message=''):
+    print(scrub(message), flush=True)
 
 
-def command(script: str, day: int, *extra: str) -> list[str]:
-    return [PYTHON, "-B", str(ROOT / "scripts" / script), "--day", str(day), *extra]
+def run(cmd, cwd=ROOT):
+    proc = subprocess.run(cmd, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
+    return proc.returncode, scrub(proc.stdout or '')
 
 
-def run(command_line: list[str], *, runner=subprocess.run) -> int:
-    result = runner(
-        command_line,
-        cwd=ROOT,
-        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    emit(result.stdout or "")
-    return result.returncode
+def git(*args, check=True):
+    rc, out = run(['git', *args])
+    if check and rc:
+        raise Stop(f'git {" ".join(args[:2])} failed (exit {rc}): {out.strip()[-500:]}')
+    return out.strip()
 
 
-def day_paths(day: int) -> dict[str, Path]:
-    nnn = f"{day:03d}"
-    return {
-        "inputs": ROOT / "scratch" / f"day-{nnn}-inputs.md",
-        "spec": ROOT / "scratch" / f"day_data_{nnn}.py",
-        "spec_directory": ROOT / "scratch" / f"day_data_{nnn}",
-        "override": ROOT / "content" / f"day-{nnn}-page.html",
-        "page": ROOT / "days" / f"day-{nnn}.html",
-        "terms": ROOT / "scratch" / "audits" / f"day-{nnn}-terms.txt",
-        "handoff": ROOT / "scratch" / "handoffs" / f"day-{nnn}.md",
-    }
+def git_ok(*args):
+    return run(['git', *args])[0] == 0
 
 
-def resolve(day: int) -> int:
-    emit(f"Day {day:03d} workflow paths:\n")
-    for label, path in day_paths(day).items():
-        state = "present" if path.exists() else "missing"
-        emit(f"  {label}: {path.relative_to(ROOT)} ({state})\n")
-    return 0
+def step(ok, label, detail=''):
+    say(f'{"PASS" if ok else "FAIL"}  {label}' + (f': {detail}' if detail else ''))
 
 
-def git(*args: str, runner=subprocess.run) -> subprocess.CompletedProcess[str]:
-    return runner(
-        ["git", *args], cwd=ROOT, text=True,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-    )
+class Day:
+    def __init__(self, number):
+        self.n = number
+        self.nnn = f'{number:03d}'
+        self.branch = f'day-{self.nnn}'
+        self.page = ROOT / 'days' / f'day-{self.nnn}.html'
+        self.override = ROOT / 'content' / f'day-{self.nnn}-page.html'
+        self.audit_files = [
+            f'scratch/audits/day-{self.nnn}-audit.json',
+            f'scratch/audits/day-{self.nnn}-terms.txt',
+            f'scratch/day-{self.nnn}-rules.json',
+            f'scratch/day-{self.nnn}-lab-rerun.json',
+        ]
+        self.owned = set(self.audit_files) | {
+            f'content/day-{self.nnn}-page.html',
+            f'days/day-{self.nnn}.html',
+            f'scratch/day_data_{self.nnn}.py',
+            f'scratch/day-{self.nnn}-study-links.json',
+            f'scratch/handoffs/day-{self.nnn}.md',
+            'data/coverage.csv',
+        }
+
+    def owns(self, path):
+        return path in self.owned or path.startswith(f'scratch/day_data_{self.nnn}/')
+
+    def spec_files(self):
+        single = ROOT / 'scratch' / f'day_data_{self.nnn}.py'
+        folder = ROOT / 'scratch' / f'day_data_{self.nnn}'
+        if single.exists():
+            return [single]
+        return sorted(folder.rglob('*.py')) if folder.is_dir() else []
 
 
-def preflight(day: int, *, allow_dirty: bool = False, runner=subprocess.run) -> int:
-    failures = []
-    if not ROADMAP.is_file():
-        failures.append(f"missing roadmap: {ROADMAP}")
-    required = (
-        "extract_day_inputs.py", "validate_spec.py", "author_engine.py", "build.py",
-        "validate.py", "check_study_links.py", "run_labs.py", "write_handoff.py",
-        "check_page_rules.py", "batch_gate.py",
-    )
-    for name in required:
-        if not (ROOT / "scripts" / name).is_file():
-            failures.append(f"missing workflow script: scripts/{name}")
-
-    branch_result = git("branch", "--show-current", runner=runner)
-    branch = branch_result.stdout.strip()
-    if branch_result.returncode:
-        failures.append("unable to resolve current Git branch")
-    elif not branch or branch in {"main", "master"}:
-        failures.append(f"unsafe branch: {branch or 'detached HEAD'}")
-
-    status_result = git("status", "--porcelain", runner=runner)
-    if status_result.returncode:
-        failures.append("unable to inspect working tree")
-    elif status_result.stdout.strip() and not allow_dirty:
-        failures.append("working tree is not clean (use --allow-dirty only for an intentional resumed day)")
-
-    remote_result = git("remote", "-v", runner=runner)
-    if remote_result.returncode == 0 and URL_CREDENTIAL.search(remote_result.stdout):
-        emit("WARNING: a Git remote contains an embedded credential; revoke it. The URL is masked and unchanged.\n")
-
-    if failures:
-        for failure in failures:
-            emit(f"FAIL: {failure}\n")
-        return 1
-    emit(f"PASS: Day {day:03d} preflight on {branch}\n")
-    return 0
+# ------------------------------------------------------------------ Step 0
+def stage_resolve(day, args):
+    if args.topics != 'add' and args.extra_topic:
+        raise Stop('EXTRA_TOPICS is set but TOPICS is not "add"')
+    if args.topics == 'add' and not args.extra_topic:
+        raise Stop('TOPICS=add needs at least one --extra-topic "title | reason"')
+    for item in args.extra_topic:
+        if '|' not in item:
+            raise Stop(f'extra topic must be "title | one-line reason": {item!r}')
+    say(f'Day {day.n} | {day.nnn} | branch {day.branch} | SCOPE={args.scope} '
+        f'DIAGRAMS={args.diagrams} TOPICS={args.topics}')
+    say('EXTRA_TOPICS: ' + ('; '.join(args.extra_topic) if args.extra_topic else 'none'))
+    say('IMPROVEMENTS: ' + ('; '.join(args.improvement) if args.improvement else 'none'))
+    if day.n in SPECIAL_DAYS:
+        say(f'NOTE: Day {day.n} is a gate or capstone day. Confirm its roadmap entry fits the '
+            'four-topic template before authoring; this script cannot read the roadmap.')
+    if args.diagrams == 'allow' and not (ROOT / 'scripts' / 'compact_hierarchy.py').exists():
+        say('NOTE: scripts/compact_hierarchy.py is missing: author flow diagrams only and list '
+            'each needed hierarchy diagram under "Diagram recommendations" in the handoff.')
+    say('NOTE: this script cannot detect a different day number in your files or messages; check that yourself.')
 
 
-def check(day: int, *, diagrams: str = "allow", skip_labs: bool = False,
-          runner=subprocess.run) -> int:
-    paths = day_paths(day)
-    steps: list[list[str]] = [command("extract_day_inputs.py", day)]
-    if not paths["spec"].exists() and not paths["spec_directory"].is_dir():
-        steps.append(command("new_day_skeleton.py", day))
-    steps.extend((
-        command("validate_spec.py", day),
-        command("author_engine.py", day),
-        command("build.py", day),
-        command("validate.py", day),
-        command("check_study_links.py", day, "--report", str(ROOT / "scratch" / f"day-{day:03d}-study-links.json")),
-    ))
-    if not skip_labs:
-        steps.append(command("run_labs.py", day))
-    page_rule = command("check_page_rules.py", day, "--diagrams", diagrams)
-    if paths["terms"].is_file():
-        page_rule.extend(("--terms-file", str(paths["terms"])))
-    steps.append(page_rule)
-    steps.append(command("write_handoff.py", day))
-
-    for step in steps:
-        if run(step, runner=runner):
-            emit(f"FAIL: stopped at {Path(step[2]).name}\n")
-            return 1
-    emit(f"PASS: Day {day:03d} checks\n")
-    if skip_labs:
-        emit("NOT CHECKED: labs were explicitly skipped; record the cloud/tool reason in the handoff.\n")
-    return 0
-
-
-def gate(day: int, *, skip_labs: bool = False, runner=subprocess.run) -> int:
-    step = command("batch_gate.py", day, "--contract-hash")
-    if skip_labs:
-        step.append("--skip-labs")
-    return run(step, runner=runner)
-
-
-def permitted_day_path(path: str, day: int) -> bool:
-    nnn = f"{day:03d}"
-    exact = {
-        f"scratch/day_data_{nnn}.py",
-        f"content/day-{nnn}-page.html",
-        f"days/day-{nnn}.html",
-        "data/coverage.csv",
-        f"scratch/handoffs/day-{nnn}.md",
-    }
-    prefixes = (
-        f"scratch/day_data_{nnn}/",
-        f"scratch/day-{nnn}-",
-        f"scratch/audits/day-{nnn}-",
-    )
-    return path in exact or path.startswith(prefixes)
-
-
-def changed_paths(*, runner=subprocess.run) -> list[str]:
-    result = git("status", "--porcelain", "-z", runner=runner)
-    if result.returncode:
-        raise RuntimeError("git status failed")
-    paths = []
-    entries = result.stdout.split("\0")
-    index = 0
-    while index < len(entries):
-        entry = entries[index]
-        index += 1
-        if not entry:
+# --------------------------------------------------------------- Preflight
+def check_status(day, args):
+    allowed = set(day.audit_files)
+    dirty = []
+    for line in git('status', '--porcelain', '--untracked-files=all').splitlines():
+        path = line[3:].split(' -> ')[-1].strip('"')
+        if path in allowed:
             continue
-        status, path = entry[:2], entry[3:]
-        if status[0] in "RC" or status[1] in "RC":
-            if index < len(entries):
-                index += 1
-        paths.append(path)
-    return paths
+        if args.ignore_pycache and '__pycache__/' in path:
+            continue
+        dirty.append(line)
+    if dirty:
+        raise Stop('working tree has uncommitted changes (commit or stash them; `git add .` would stage them):\n  '
+                   + '\n  '.join(dirty[:20]) + (f'\n  ... {len(dirty) - 20} more' if len(dirty) > 20 else ''))
+    step(True, 'working tree clean', 'apart from this day\'s own audit files')
 
 
-def commit(day: int, message: str | None, *, runner=subprocess.run) -> int:
-    paths = changed_paths(runner=runner)
-    unexpected = [path for path in paths if not permitted_day_path(path, day)]
-    if unexpected:
-        emit("FAIL: refusing to commit out-of-scope changes:\n")
-        for path in unexpected:
-            emit(f"  {path}\n")
+def check_pushed(exclude):
+    fmt = '%(refname:short)%09%(upstream:short)%09%(upstream:track)'
+    bad = []
+    for line in git('for-each-ref', 'refs/heads', f'--format={fmt}').splitlines():
+        parts = line.split('\t')
+        name, upstream = parts[0], parts[1] if len(parts) > 1 else ''
+        track = parts[2] if len(parts) > 2 else ''
+        if name in exclude:
+            continue
+        if not upstream:
+            bad.append(f'{name}: no upstream')
+        elif 'ahead' in track:
+            bad.append(f'{name}: {track}')
+    if bad:
+        raise Stop('branches not fully pushed:\n  ' + '\n  '.join(bad))
+    step(True, 'all branches pushed')
+
+
+def check_merged(exclude):
+    bad = []
+    for flags in (['--no-merged', 'origin/main'], ['-r', '--no-merged', 'origin/main']):
+        for line in git('branch', *flags).splitlines():
+            name = line.strip().lstrip('*').strip()
+            if not name or '->' in name or name in ('origin/main', MAIN) or name in exclude:
+                continue
+            last = git('log', '-1', '--format=%h %s', name, check=False)
+            bad.append(f'{name}  (last commit: {last})')
+    if bad:
+        raise Stop('branches not merged into origin/main (if the repo squash-merges, these may be false '
+                   'positives: confirm before continuing):\n  ' + '\n  '.join(bad))
+    step(True, 'all branches merged into origin/main')
+
+
+def stage_preflight(day, args):
+    if args.scope in ('plan', 'audit-only'):
+        raise Stop(f'SCOPE={args.scope} creates no branch; preflight applies to update and fix only')
+    if not git_ok('fetch', '--all', '--prune'):
+        raise Stop('git fetch --all --prune failed')
+    step(True, '1 fetch --all --prune')
+    check_status(day, args)
+    exclude = {day.branch, f'origin/{day.branch}'}
+    check_pushed(exclude)
+    check_merged(exclude)
+    if args.check_only:
+        step(True, '5 main up to date', 'skipped (--check-only)')
+    else:
+        git('switch', MAIN)
+        if not git_ok('pull', '--ff-only', 'origin', MAIN):
+            raise Stop('git pull --ff-only origin main failed; main has local commits or diverged. Never push main.')
+        local, remote = git('rev-parse', MAIN), git('rev-parse', f'origin/{MAIN}')
+        if local != remote:
+            raise Stop(f'main ({local[:9]}) differs from origin/main ({remote[:9]}); fix this by hand, never push main')
+        step(True, '5 main up to date', local[:9])
+    if git_ok('rev-parse', '--verify', '--quiet', f'refs/heads/{day.branch}'):
+        raise Stop(f'branch {day.branch} already exists locally')
+    if git_ok('rev-parse', '--verify', '--quiet', f'refs/remotes/origin/{day.branch}'):
+        raise Stop(f'branch {day.branch} already exists on origin')
+    step(True, f'6 branch {day.branch} does not exist yet')
+    if args.check_only:
+        say('7 branch not created (--check-only)')
+    else:
+        git('switch', '-c', day.branch)
+        step(True, f'7 created {day.branch} from main', git('rev-parse', '--short', MAIN))
+
+
+# -------------------------------------------------------------------- Gate
+def sha(*paths):
+    h = hashlib.sha256()
+    for p in paths:
+        h.update(str(p.relative_to(ROOT)).encode())
+        h.update(p.read_bytes() if p.exists() else b'<missing>')
+    return h.hexdigest()
+
+
+def coverage_rows(day):
+    path = ROOT / 'data' / 'coverage.csv'
+    return [r for r in csv.DictReader(path.open(encoding='utf-8')) if str(r.get('day', '')).strip() == str(day.n)]
+
+
+def check_anchors(day, page_html):
+    rows = coverage_rows(day)
+    if not rows:
+        return False, f'no rows for Day {day.n} in data/coverage.csv'
+    missing = []
+    for row in rows:
+        for col in ANCHOR_COLUMNS:
+            anchor = (row.get(col) or '').strip().lstrip('#')
+            if anchor and not re.search(r'id=["\']' + re.escape(anchor) + r'["\']', page_html):
+                missing.append(f'{row.get("topic_key", "?")}:{col}={anchor}')
+    return (not missing), (f'{len(rows)} rows, all anchors present' if not missing else 'missing ' + ', '.join(missing[:10]))
+
+
+def changed_paths(args):
+    changed = set(git('diff', '--name-only', MAIN).splitlines())
+    changed |= set(git('ls-files', '--others', '--exclude-standard').splitlines())
+    return {p for p in changed if p and not (args.ignore_pycache and '__pycache__/' in p)}
+
+
+def current_branch():
+    return git('branch', '--show-current')
+
+
+def run_rules(day, args):
+    cmd = [sys.executable, '-B', str(ROOT / 'scripts' / 'check_page_rules.py'), '--day', str(day.n),
+           '--diagrams', args.diagrams, '--json', f'scratch/day-{day.nnn}-rules.json']
+    terms = ROOT / 'scratch' / 'audits' / f'day-{day.nnn}-terms.txt'
+    if terms.exists():
+        cmd += ['--terms-file', str(terms)]
+    else:
+        say('NOTE: no scratch/audits/day-%s-terms.txt; R3 only checks strong.keyword spans.' % day.nnn)
+    rc, out = run(cmd)
+    say(out.rstrip())
+    return rc == 0
+
+
+def stage_check(day, args):
+    if not day.page.exists():
+        raise Stop(f'{day.page.relative_to(ROOT)} does not exist; build the day first')
+    ok = run_rules(day, args)
+    step(ok, 'page-rule checker (R1-R5, R7, R8)')
+    return ok
+
+
+def stage_gate(day, args):
+    if not day.page.exists():
+        raise Stop(f'{day.page.relative_to(ROOT)} does not exist; build the day first')
+    if current_branch() != day.branch:
+        raise Stop(f'current branch is {current_branch() or "(detached)"}, expected {day.branch}; run preflight first')
+    results = []
+
+    ok = run_rules(day, args)
+    results.append(ok)
+    step(ok, 'page-rule checker (R1-R5, R7, R8)')
+
+    cmd = [sys.executable, '-B', str(ROOT / 'scripts' / 'batch_gate.py'), '--day', str(day.n), '--contract-hash']
+    if args.skip_labs:
+        cmd.append('--skip-labs')
+    rc, out = run(cmd)
+    say(out.rstrip())
+    results.append(rc == 0)
+    step(rc == 0, 'batch_gate.py' + (' (labs skipped)' if args.skip_labs else ''))
+
+    todo = 0
+    for f in day.spec_files() + ([day.override] if day.override.exists() else []):
+        todo += len(re.findall(r'\bTODO\b', f.read_text(encoding='utf-8')))
+    results.append(todo == 0)
+    step(todo == 0, 'no TODO left in spec or page override', f'{todo} found' if todo else '')
+
+    page_html = day.page.read_text(encoding='utf-8')
+    ok, detail = check_anchors(day, page_html)
+    results.append(ok)
+    step(ok, 'coverage.csv anchors exist on built page', detail)
+
+    stray = sorted(p for p in changed_paths(args) if not day.owns(p))
+    results.append(not stray)
+    step(not stray, f'only Day {day.n} files changed (no shared script or template edited)',
+         ', '.join(stray[:10]) if stray else '')
+
+    code, svg = len(re.findall(r'<pre\b', page_html)), len(re.findall(r'<svg\b', page_html))
+    depth_ok = code >= args.min_code and svg >= args.min_svg
+    say(f'{"PASS" if depth_ok else ("FAIL" if args.strict_depth else "WARN")}  depth floor: '
+        f'{code} code blocks (min {args.min_code}), {svg} SVGs (min {args.min_svg})')
+    if args.strict_depth:
+        results.append(depth_ok)
+
+    passed = all(results)
+    if passed and not args.skip_labs:
+        stamp_dir = Path(ROOT / git('rev-parse', '--git-dir')) / 'day_run'
+        stamp_dir.mkdir(exist_ok=True)
+        (stamp_dir / f'day-{day.nnn}.pass').write_text(json.dumps({
+            'time': time.strftime('%Y-%m-%dT%H:%M:%S'),
+            'files': current_hashes(day),
+        }, indent=1))
+    say('GATE: ' + ('PASS' if passed else 'FAIL; do not commit or push'))
+    if passed and args.skip_labs:
+        say('NOTE: labs were skipped, so no commit stamp was written; rerun without --skip-labs before committing.')
+    return passed
+
+
+def current_hashes(day):
+    rows = json.dumps(coverage_rows(day), sort_keys=True)
+    return {
+        'page': sha(day.page),
+        'override': sha(day.override),
+        'spec': sha(*day.spec_files()) if day.spec_files() else '',
+        'coverage_rows': hashlib.sha256(rows.encode()).hexdigest(),
+    }
+
+
+# ------------------------------------------------------------ Commit, push
+def other_coverage_rows_unchanged():
+    def other(text, n_day):
+        reader = csv.DictReader(io.StringIO(text))
+        rows = [tuple((r.get(k) or '') for k in reader.fieldnames) for r in reader if str(r.get('day', '')).strip() != n_day]
+        return reader.fieldnames, sorted(rows)
+    return other
+
+
+def check_coverage_scope(day):
+    rc_old, old = run(['git', 'show', 'HEAD:data/coverage.csv'])
+    rc_new, new = run(['git', 'show', ':data/coverage.csv'])
+    if rc_old or rc_new:
+        raise Stop('cannot read data/coverage.csv from HEAD or the index')
+    other = other_coverage_rows_unchanged()
+    if other(old, str(day.n)) != other(new, str(day.n)):
+        raise Stop(f'data/coverage.csv changes rows outside Day {day.n} (or its header); git reset and fix')
+    step(True, f'data/coverage.csv changes only Day {day.n} rows')
+
+
+def page_title(day):
+    match = re.search(r'<title>\s*Day\s+\d+\s*:\s*(.*?)\s*(?:·|\||</title>)', day.page.read_text(encoding='utf-8'), re.S)
+    if not match:
+        raise Stop('cannot read the day title from the built page <title>')
+    return html.unescape(re.sub(r'\s+', ' ', match.group(1))).strip()
+
+
+def stage_commit(day, args):
+    if day.branch == MAIN or current_branch() == MAIN:
+        raise Stop('refusing to commit or push on main')
+    if current_branch() != day.branch:
+        raise Stop(f'current branch is {current_branch() or "(detached)"}, expected {day.branch}')
+    stamp = Path(ROOT / git('rev-parse', '--git-dir')) / 'day_run' / f'day-{day.nnn}.pass'
+    if not stamp.exists():
+        raise Stop('no gate pass on record: run --stage gate (without --skip-labs) first')
+    if json.loads(stamp.read_text())['files'] != current_hashes(day):
+        raise Stop('files changed since the gate passed: rerun --stage gate')
+    step(True, 'gate pass is current for the page, override, spec and coverage rows')
+
+    git('add', '.')
+    staged = [p for p in git('diff', '--cached', '--name-only').splitlines() if p]
+    stray = [p for p in staged if not day.owns(p)]
+    if stray:
+        git('reset', '-q')
+        raise Stop('paths outside Day %d were staged and have been unstaged:\n  %s' % (day.n, '\n  '.join(stray)))
+    if not staged:
+        raise Stop('nothing staged: there is nothing to commit')
+    check_coverage_scope(day)
+    say(git('diff', '--cached', '--stat'))
+    message = f'Day {day.n}: {page_title(day)}'
+    if args.dry_run:
+        git('reset', '-q')
+        say(f'DRY RUN: would commit "{message}" and push {day.branch}; index reset')
+        return
+    exclude = {day.branch, f'origin/{day.branch}'}
+    check_pushed(exclude)
+    check_merged(exclude)
+    git('commit', '-m', message)
+    commit = git('rev-parse', '--short', 'HEAD')
+    step(True, 'committed', f'{commit} "{message}"')
+    if args.no_push:
+        say(f'NOT PUSHED (--no-push). Branch {day.branch}, commit {commit}.')
+        return
+    rc, out = run(['git', 'push', '-u', 'origin', day.branch])
+    if rc:
+        raise Stop('git push failed:\n' + out.strip()[-500:])
+    step(True, f'pushed {day.branch}', commit)
+    say(f'Branch: {day.branch} | Commit: {commit}')
+    say('Browser audits were not run by this script.')
+
+
+# --------------------------------------------------------------------- CLI
+def parse_args(argv):
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--day', type=int, required=True, choices=range(1, 181), metavar='1-180')
+    ap.add_argument('action', nargs='?', choices=STAGES,
+                    help='workflow stage (positional compatibility form)')
+    ap.add_argument('--stage', choices=STAGES,
+                    help='workflow stage (equivalent to the positional action)')
+    ap.add_argument('--scope', choices=SCOPES, default='update')
+    ap.add_argument('--diagrams', choices=('keep', 'allow'), default='allow')
+    ap.add_argument('--topics', choices=('keep', 'expand', 'add'), default='keep')
+    ap.add_argument('--extra-topic', action='append', default=[], metavar='"title | reason"')
+    ap.add_argument('--improvement', action='append', default=[])
+    ap.add_argument('--skip-labs', action='store_true', help='gate: skip lab re-runs (no commit stamp is written)')
+    ap.add_argument('--ignore-pycache', action='store_true', help='ignore __pycache__ paths in the clean-tree and scope checks')
+    ap.add_argument('--check-only', action='store_true', help='preflight: checks 1-4 and 6 only; no switch, pull or branch')
+    ap.add_argument('--dry-run', action='store_true', help='commit: run every check, print the stat, then unstage')
+    ap.add_argument('--no-push', action='store_true')
+    ap.add_argument('--min-code', type=int, default=8, help='depth floor: minimum <pre> blocks')
+    ap.add_argument('--min-svg', type=int, default=3, help='depth floor: minimum <svg> diagrams')
+    ap.add_argument('--strict-depth', action='store_true', help='make the depth floor a gated failure (default: warning)')
+    args = ap.parse_args(argv)
+    if args.action and args.stage and args.action != args.stage:
+        ap.error('positional action and --stage select different stages')
+    args.stage = args.stage or args.action
+    if not args.stage:
+        ap.error('one workflow stage is required (positional action or --stage)')
+    return args
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    day = Day(args.day)
+    try:
+        if args.stage == 'resolve':
+            stage_resolve(day, args)
+        elif args.stage == 'preflight':
+            stage_resolve(day, args)
+            stage_preflight(day, args)
+        elif args.stage == 'check':
+            return 0 if stage_check(day, args) else 1
+        elif args.stage == 'gate':
+            return 0 if stage_gate(day, args) else 1
+        elif args.stage == 'commit':
+            stage_commit(day, args)
+        elif args.stage == 'finish':
+            if not stage_gate(day, args):
+                return 1
+            stage_commit(day, args)
+    except Stop as stop:
+        say(f'STOP: {stop}')
         return 1
-    if not paths:
-        emit("FAIL: no Day-specific changes to commit\n")
-        return 1
-    add_result = git("add", "--", *paths, runner=runner)
-    emit(add_result.stdout or "")
-    if add_result.returncode:
-        return add_result.returncode
-    commit_result = git("commit", "-m", message or f"Update Day {day:03d} curriculum page", runner=runner)
-    emit(commit_result.stdout or "")
-    return commit_result.returncode
+    return 0
 
 
-def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument("action", choices=("resolve", "preflight", "check", "gate", "commit"))
-    result.add_argument("--day", type=int, required=True, choices=range(1, 181))
-    result.add_argument("--diagrams", choices=("keep", "allow"), default="allow")
-    result.add_argument("--skip-labs", action="store_true")
-    result.add_argument("--allow-dirty", action="store_true")
-    result.add_argument("--message")
-    return result
-
-
-def main(argv: Iterable[str] | None = None) -> int:
-    args = parser().parse_args(argv)
-    if args.action == "resolve":
-        return resolve(args.day)
-    if args.action == "preflight":
-        return preflight(args.day, allow_dirty=args.allow_dirty)
-    if args.action == "check":
-        return check(args.day, diagrams=args.diagrams, skip_labs=args.skip_labs)
-    if args.action == "gate":
-        return gate(args.day, skip_labs=args.skip_labs)
-    return commit(args.day, args.message)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     raise SystemExit(main())
