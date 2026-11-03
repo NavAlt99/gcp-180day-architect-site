@@ -3,5 +3,4 @@ SCOPE=fix
 DIAGRAMS=allow
 TOPICS=keep
 EXTRA_TOPICS=
-IMPROVEMENTS:
-- keywords:
+IMPROVEMENTS=keywords:

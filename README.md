@@ -35,7 +35,7 @@ instructions or new keys to that file.
 | `DIAGRAMS` | `keep` or `allow` | `keep` preserves diagrams and reports unresolved visual issues; `allow` permits eligible diagram additions or repairs and gates diagram geometry/readability checks. |
 | `TOPICS` | `keep` or `expand` | `keep` preserves mapped topic and subtopic scope; `expand` permits only additions supported by the same day's Study clauses. It never permits later-day material. |
 | `EXTRA_TOPICS` | Empty, or user-named same-day roadmap topics | Leave empty normally. This field cannot invent, import, or reorder curriculum scope. |
-| `IMPROVEMENTS` | Empty, or a YAML-style bullet list of named fixes | Use for explicit requested improvements. `keywords:` may list discovery-link terms. Empty means apply only the standing rules and contract, without speculative extras. |
+| `IMPROVEMENTS` | Empty, or a single-line list of named fixes | Use for explicit requested improvements. `keywords:` may list comma-separated discovery-link terms; separate additional fixes with semicolons. Empty means apply only the standing rules and contract, without speculative extras. |
 
 Use this complete shape, including empty fields:
 
@@ -45,9 +45,7 @@ SCOPE=update
 DIAGRAMS=allow
 TOPICS=keep
 EXTRA_TOPICS=
-IMPROVEMENTS:
-- keywords: Cloud Logging, log-based metric
-- fix the named source-ledger gaps
+IMPROVEMENTS=keywords: Cloud Logging, log-based metric; fix the named source-ledger gaps
 ```
 
 Common combinations:
@@ -91,8 +89,7 @@ SCOPE=update
 DIAGRAMS=allow
 TOPICS=keep
 EXTRA_TOPICS=
-IMPROVEMENTS:
-- keywords:
+IMPROVEMENTS=
 
 Follow BATCH_UPDATE_PROMPT.md as the canonical batch workflow. Read
 PAGE_AUTHORING_CONTRACT.md once as the stable rules prefix, instantiate the full
