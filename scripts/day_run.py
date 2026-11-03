@@ -234,12 +234,30 @@ def check_pushed(exclude):
     step(True, 'all branches pushed')
 
 
+def _branch_name(line):
+    """Remove git branch's current-branch and linked-worktree markers."""
+    return line.strip().lstrip('*+').strip()
+
+
+def _patch_equivalent_to_main(name):
+    """Return whether a non-ancestor branch has no changes missing from main."""
+    cherry = git('cherry', 'origin/main', name, check=False).splitlines()
+    markers = [line[:1] for line in cherry if line[:1] in ('+', '-')]
+    if markers:
+        return all(marker == '-' for marker in markers)
+    # git cherry omits merge commits. An empty branch-side three-dot diff proves
+    # that a merge-only historical branch contributes no content missing from main.
+    return git_ok('diff', '--quiet', f'origin/main...{name}')
+
+
 def check_merged(exclude):
     bad = []
     for flags in (['--no-merged', 'origin/main'], ['-r', '--no-merged', 'origin/main']):
         for line in git('branch', *flags).splitlines():
-            name = line.strip().lstrip('*').strip()
+            name = _branch_name(line)
             if not name or '->' in name or name in ('origin/main', MAIN) or name in exclude:
+                continue
+            if _patch_equivalent_to_main(name):
                 continue
             last = git('log', '-1', '--format=%h %s', name, check=False)
             bad.append(f'{name}  (last commit: {last})')

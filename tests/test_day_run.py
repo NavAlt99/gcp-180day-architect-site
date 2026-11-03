@@ -9,6 +9,30 @@ from scripts import day_run
 
 
 class DayRunTests(unittest.TestCase):
+    def test_branch_name_removes_linked_worktree_marker(self):
+        self.assertEqual(day_run._branch_name("+ codex/phase-2"), "codex/phase-2")
+        self.assertEqual(day_run._branch_name("* main"), "main")
+
+    def test_patch_equivalent_branch_is_integrated(self):
+        with patch.object(day_run, "git", return_value="- deadbeef historical fix"), \
+             patch.object(day_run, "git_ok") as git_ok:
+            self.assertTrue(day_run._patch_equivalent_to_main("day-016"))
+        git_ok.assert_not_called()
+
+    def test_merge_only_branch_with_empty_diff_is_integrated(self):
+        with patch.object(day_run, "git", return_value=""), \
+             patch.object(day_run, "git_ok", return_value=True) as git_ok:
+            self.assertTrue(day_run._patch_equivalent_to_main("codex/phase-2"))
+        git_ok.assert_called_once_with(
+            "diff", "--quiet", "origin/main...codex/phase-2"
+        )
+
+    def test_branch_with_unique_patch_is_not_integrated(self):
+        with patch.object(day_run, "git", return_value="+ deadbeef new work"), \
+             patch.object(day_run, "git_ok") as git_ok:
+            self.assertFalse(day_run._patch_equivalent_to_main("feature"))
+        git_ok.assert_not_called()
+
     def test_masks_remote_userinfo_and_common_tokens(self):
         text = (
             "https://user:token@example.test/repo "
