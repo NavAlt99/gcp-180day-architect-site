@@ -1,6 +1,7 @@
-DAY=
-SCOPE=update
+DAY=17
+SCOPE=fix
 DIAGRAMS=allow
-TOPICS=expand
+TOPICS=keep
 EXTRA_TOPICS=
-IMPROVEMENTS=
+IMPROVEMENTS:
+- keywords:
