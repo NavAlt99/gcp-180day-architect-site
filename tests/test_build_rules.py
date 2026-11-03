@@ -17,6 +17,20 @@ HTML = '''<!doctype html><html><body>
 
 
 class BuildRuleGenerationTests(unittest.TestCase):
+    def test_inline_day_content_widths_are_removed(self):
+        source = HTML.replace(
+            "<body>",
+            "<head><style>.topic-card table{width:100%;display:block}"
+            ".topic-card th,.topic-card td{min-width:150px;padding:8px}"
+            ".topic-card p{max-width:82ch}"
+            ".diagram-figure svg{width:100%;min-width:760px}</style></head><body>",
+        )
+        output = build.apply_page_rules(source, 1)
+        self.assertIn(".topic-card table{display:block}", output)
+        self.assertIn(".topic-card th,.topic-card td{padding:8px}", output)
+        self.assertNotIn(".topic-card p{", output)
+        self.assertIn(".diagram-figure svg{width:100%;min-width:760px}", output)
+
     def test_rules_are_generated_from_page_markup_and_idempotent(self):
         output = build.apply_page_rules(HTML, 1)
         self.assertEqual(build.apply_page_rules(output, 1), output)

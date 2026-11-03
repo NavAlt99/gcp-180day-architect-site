@@ -357,6 +357,25 @@ def _convert_remaining_list_markers(soup: BeautifulSoup) -> None:
         node.replace_with(value)
 
 
+def _remove_inline_content_widths(soup: BeautifulSoup) -> None:
+    """Keep the shared stylesheet authoritative for day-content widths."""
+    rule = re.compile(r'([^{}]+)\{([^{}]*)\}')
+    width = re.compile(r'^\s*(?:min-|max-)?width\s*:', re.I)
+    target = re.compile(r'(?:\.container\b|\.topic-card\b|technical|\.day\b)', re.I)
+    for style in soup.find_all('style'):
+        css = style.get_text()
+
+        def clean(match):
+            selector, declarations = match.group(1), match.group(2)
+            if not target.search(selector):
+                return match.group(0)
+            kept = [item.strip() for item in declarations.split(';')
+                    if item.strip() and not width.match(item)]
+            return f'{selector}{{{";".join(kept)}}}' if kept else ''
+
+        style.string = rule.sub(clean, css)
+
+
 def apply_page_rules(source: str, day: int) -> str:
     """Generate R1/R2/R3/R7 structure from this page's own rendered markup."""
     soup = BeautifulSoup(source, "html.parser")
@@ -386,6 +405,7 @@ def apply_page_rules(source: str, day: int) -> str:
     _convert_paragraph_lists(soup)
     _convert_inline_markers(soup)
     _convert_remaining_list_markers(soup)
+    _remove_inline_content_widths(soup)
     output = str(BeautifulSoup(str(soup), "html.parser"))
     return re.sub(r"(?i)^(<!DOCTYPE html>)\s*", r"\1\n", output, count=1)
 
