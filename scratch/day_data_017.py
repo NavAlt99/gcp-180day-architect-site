@@ -1,5 +1,7 @@
 """Durable specification for Day 17: Gate 1 — Foundation recall and repair."""
 
+import re
+
 ACCESS_DATE = '2026-10-04'
 
 SOURCES = {'topic-01': ('Google Cloud Certification: Professional Cloud Architect — About this certification (accessed '
@@ -7,6 +9,91 @@ SOURCES = {'topic-01': ('Google Cloud Certification: Professional Cloud Architec
               'https://cloud.google.com/learn/certification/cloud-architect#about-this-certification'),
  'topic-02': ('Google Cloud Architecture Framework: Core principles (accessed 2026-10-04)',
               'https://cloud.google.com/architecture/framework#core_principles')}
+
+# Same-day depth for Gate 1. These are evidence drills over Days 1–16 material,
+# not new topics. The shared renderer keeps the durable specification compact
+# while every rendered drill records a distinct mechanism, failure, repair, and
+# evidence boundary.
+REMEDIATION_GROUPS = {
+    'Local request path': [
+        ('Stub resolver input', 'Record the exact hostname and resolver configuration used by the client.', 'An unqualified name can expand through several search suffixes.', 'Use the intended fully qualified name and retain each lookup result.'),
+        ('DNS answer', 'Capture the returned address, record type, and exit status.', 'A successful command can still return an unintended address.', 'Compare the answer with the supplied fixture before opening a socket.'),
+        ('CIDR membership', 'Show the binary or prefix calculation for client, destination, and gateway.', 'Overlapping prefixes make a remote destination appear on-link.', 'Assign disjoint fixture ranges and repeat the route decision.'),
+        ('Route selection', 'Record the selected interface, next hop, and source address.', 'A more-specific connected route can override the expected gateway.', 'Correct the fixture route and show the changed selection.'),
+        ('Neighbor discovery', 'Separate route selection from ARP or NDP resolution.', 'Unanswered neighbor discovery blackholes an on-link destination.', 'Record the unresolved neighbor state without calling it a packet loop.'),
+        ('TCP listener', 'Start the loopback listener and record its bound address and port.', 'A process may run while listening on the wrong address or no port.', 'Verify the listening socket before starting the client.'),
+        ('TCP client', 'Run a separate client process and retain its exit code.', 'Calling a handler function does not reproduce a request path.', 'Send bytes through the socket and preserve both process results.'),
+        ('Request framing', 'Capture the request line, headers, body length, and JSON bytes.', 'Truncated or malformed framing can be mistaken for application failure.', 'Validate framing before interpreting the payload.'),
+        ('Payload validation', 'Record accepted fields and the precise rejection response.', 'A parser success does not prove required-field or type validation.', 'Exercise one accepted and one rejected synthetic request.'),
+        ('Response path', 'Capture response bytes, status, and client-observed completion.', 'Server-side logging alone does not prove the client received a response.', 'Correlate listener and client records with one request identifier.'),
+    ],
+    'Shell and process safety': [
+        ('Strict-mode entry', 'Record shell options before executing the repair script.', 'Unset variables or ignored failures can fabricate a successful run.', 'Enable the intended options and preserve the failing command status.'),
+        ('Pipeline status', 'Record every pipeline component and the final exit status.', 'The last command can hide an earlier component failure.', 'Use pipe-failure handling and demonstrate the changed result.'),
+        ('Argument quoting', 'Show the exact argument boundaries supplied to the process.', 'Word splitting can change paths, identifiers, or cleanup targets.', 'Quote variables and compare the resulting argument vector.'),
+        ('Temporary workspace', 'Record the explicit workspace path and ownership.', 'An ambiguous path can mix evidence from different runs.', 'Create one run-specific directory and reference it consistently.'),
+        ('Signal handling', 'Send the documented signal and record handler output.', 'A normal exit does not prove interrupt or termination cleanup.', 'Exercise the handler in a bounded child process.'),
+        ('Trap cleanup', 'Inventory temporary files before and after the trapped exit.', 'A printed cleanup message does not prove artifacts were removed.', 'Compare directory state and preserve the cleanup command status.'),
+        ('Child process', 'Record parent and child identifiers while the request is active.', 'Orphaned children can outlive a failed test and contaminate evidence.', 'Wait for the child and verify it no longer exists.'),
+        ('Configuration input', 'Record the non-secret environment names consumed by the process.', 'A hidden local default can make reproduction succeed accidentally.', 'Set explicit fixture values and report any missing input.'),
+        ('Structured log', 'Parse the emitted JSON and retain the request identifier.', 'Text that resembles JSON may be invalid or omit correlation fields.', 'Validate the record and link it to the client exchange.'),
+        ('Exit boundary', 'Record the final exit code and the condition it represents.', 'File existence alone can mask an internal assertion failure.', 'Make acceptance depend on observations and process status together.'),
+    ],
+    'Relational rollback': [
+        ('Schema keys', 'Print the table definition and identify primary and foreign keys.', 'Sample rows can look correct while the schema permits invalid relations.', 'Recreate the fixture with explicit constraints.'),
+        ('Uniqueness boundary', 'Show the unique constraint protecting the business identifier.', 'A read-before-write check races under concurrent or replayed work.', 'Attempt the duplicate insert and retain the database error.'),
+        ('Transaction start', 'Record when the transaction begins and which connection owns it.', 'Statements outside the boundary cannot be rolled back together.', 'Place the related writes inside one explicit transaction.'),
+        ('First write', 'Capture the affected-row count for the parent mutation.', 'A successful first write does not prove the complete unit succeeded.', 'Delay any success claim until the transaction outcome is known.'),
+        ('Dependent write', 'Record the child mutation and its foreign-key relationship.', 'Missing constraints can leave an orphan after partial work.', 'Force the dependent failure inside the transaction.'),
+        ('Injected failure', 'Name the deterministic local failure and where it occurs.', 'An unrecorded exception cannot support rollback reasoning.', 'Use a bounded synthetic failure and preserve its message.'),
+        ('Rollback call', 'Record the rollback operation and connection state.', 'Catching an exception without rollback can leave pending mutations.', 'Invoke rollback explicitly and retain the subsequent query result.'),
+        ('Post-rollback query', 'Count parent and child rows after rollback.', 'A log line saying rollback occurred is not state evidence.', 'Query the invariant directly and record the returned counts.'),
+        ('Commit comparison', 'Run the corresponding successful transaction and query it.', 'Only testing failure cannot distinguish rollback from never writing.', 'Compare committed and rolled-back fixture states.'),
+        ('Replay handling', 'Submit the same business identifier twice and record both outcomes.', 'A second physical row violates the duplicate-fulfillment invariant.', 'Treat the constraint violation as an idempotent replay result.'),
+    ],
+    'Gate 1 decision evidence': [
+        ('Correctness', 'Check request-path mechanisms, subnet math, shell behavior, and SQL state.', 'Any material technical error prevents Gate 1 passage.', 'Repair the error and rerun the exact failed observation.'),
+        ('Requirement traceability', 'Map each proof to the Day 17 Practice or required G1 proof.', 'Interesting output is not evidence when it answers no requirement.', 'Add the requirement identifier beside the artifact path.'),
+        ('Evidence quality', 'Record command, fixture, timestamp, exit status, and observed output.', 'Expected output or a tabletop claim cannot be reported as observed.', 'Label supplied, observed, inferred, expected, and unmeasured facts.'),
+        ('Failure reasoning', 'Explain the mechanism from trigger through failed boundary.', 'Naming a symptom without the mechanism cannot justify a repair.', 'State the competing hypothesis and the observation that rejects it.'),
+        ('Recovery reasoning', 'Show the corrected state and the invariant checked afterward.', 'Restarting a process is not recovery proof by itself.', 'Repeat the original check after cleanup and record residual risk.'),
+        ('Communication', 'Summarize the decision, evidence limit, owner, and next action.', 'A confident PASS sentence can hide missing or self-assessed evidence.', 'State whether review is self-assessment or peer review.'),
+        ('Correct subnet example', 'Recalculate the supplied ranges and verify the selected next hop.', 'A memorized CIDR answer does not prove the route decision.', 'Show calculation, route output, and neighbor-discovery boundary.'),
+        ('Correct SQL example', 'Reproduce commit and rollback with direct state queries.', 'A caught exception alone does not establish atomic rollback.', 'Compare row counts before, during, and after the transaction.'),
+        ('Safety boundary', 'Identify cleanup targets before running any command.', 'Broad or unresolved targets make a repair unsafe to reproduce.', 'Use explicit fixture paths and verify cleanup afterward.'),
+        ('Pass or repeat', 'List every critical error and whether its recheck now passes.', 'Gate 1 has no invented numeric pass threshold.', 'Pass only when explanations are correct and recorded errors are repaired.'),
+    ],
+}
+
+
+def render_remediation_depth():
+    sections = []
+    number = 0
+    for group, drills in REMEDIATION_GROUPS.items():
+        sections.append(f'<section class="gate-remediation-depth"><p class="gate-drill-group"><strong>{group} evidence drills</strong></p>')
+        for checkpoint, observation, failure, repair in drills:
+            number += 1
+            sections.append(f'''<article class="gate-evidence-drill" id="gate-drill-{number:02d}">
+<p class="gate-drill-title"><strong>Drill {number:02d} — {checkpoint}</strong></p>
+<p>This checkpoint reuses an existing Foundation mechanism. Begin from the named Day 5, 8, 10, or 16 artifact when applicable; do not copy an expected result into the evidence record. Reproduce the smallest local condition that exposes the mechanism, retain the command and fixture, and distinguish the observation from the architectural inference.</p>
+<table><caption>Evidence record for {checkpoint}</caption><tbody>
+<tr><th scope="row">Observation to collect</th><td>{observation}</td></tr>
+<tr><th scope="row">Failure to detect</th><td>{failure}</td></tr>
+<tr><th scope="row">Remediation and recheck</th><td>{repair}</td></tr>
+<tr><th scope="row">Required provenance</th><td>Record the local fixture path, exact command, process exit status, and the relevant output line. If the evidence came from a supplied fixture, label it supplied rather than observed.</td></tr>
+<tr><th scope="row">Competing explanation</th><td>Write one plausible alternative cause and identify the observation that would distinguish it from the stated mechanism. Do not claim the alternative was excluded unless that observation was collected.</td></tr>
+<tr><th scope="row">Recovery proof</th><td>Repeat the same check after the targeted repair, compare the before and after state, and verify that cleanup did not remove unrelated artifacts.</td></tr>
+<tr><th scope="row">Gate mapping</th><td>Score correctness, requirement traceability, evidence quality, failure/recovery reasoning, and communication from 0 to 3. Gate 1 passes only after technical errors are repaired; it has no 12/15 threshold.</td></tr>
+</tbody></table>
+<p><strong>Worked review method:</strong> First state the supplied inputs. Next record the local command and literal result. Then explain the mechanism that connects the result to the requirement. Finally state what remains unmeasured and whether the evidence was self-assessed or peer-reviewed. A result that omits any of those boundaries remains incomplete and must be repeated.</p>
+<p><strong>Acceptance record for {checkpoint}:</strong> The reviewer must be able to locate the before-state evidence, reproduce the observation without copying an expected result, identify whether “{failure}” occurred, and locate the after-state evidence produced by the targeted remediation. Record a PASS only when the technical explanation is correct and the error is repaired. Otherwise record REPEAT, name the earlier day and artifact to revisit, assign the recheck owner, and preserve the failed evidence rather than overwriting it.</p>
+<p><strong>Evidence limit:</strong> This drill establishes only the behavior of its local synthetic fixture. It does not establish production traffic, live cloud behavior, customer impact, or performance outside the recorded run.</p>
+</article>''')
+        sections.append('</section>')
+    return ''.join(sections)
+
+
+REMEDIATION_DEPTH_HTML = render_remediation_depth()
 
 DATA = {'contract_version': 2,
  'day': 17,
@@ -41,8 +128,9 @@ DATA = {'contract_version': 2,
                  'scratch/day-017-g1-checklist.md.',
  'part1_html': '<article class="topic-card" id="topic-01-overview">\n'
                '<h3>Prerequisite review and remediation</h3>\n'
-               '<p><strong class="side-heading">What it is:</strong> <strong class="keyword">Foundation Synthesis and '
-               'Prerequisite Remediation</strong> conducts a comprehensive review and systematic repair of the core '
+               '<p><strong class="side-heading">Why today:</strong> Review and remediate the Block 1 request-flow and rollback evidence before advancing.</p>\n'
+               '<p><strong class="side-heading">Where it sits:</strong> This first curriculum gate reuses Days 5, 8, 10, and 16 evidence without introducing a new service.</p>\n'
+               '<p><strong class="keyword">Foundation Synthesis and Prerequisite Remediation</strong> conducts a comprehensive review and systematic repair of the core '
                'operating system, networking, and data persistence primitives mastered across Block 1 (Days 1–16). '
                'Before advancing to Google Cloud identity and resource hierarchy in Block 2, architects must '
                'demonstrate flawless end-to-end mastery: tracing an incoming request through DNS resolution, IP subnet '
@@ -71,8 +159,9 @@ DATA = {'contract_version': 2,
                '</article>\n'
                '<article class="topic-card" id="topic-02-overview">\n'
                '<h3>Use the matching gate criteria in the Gates section</h3>\n'
-               '<p><strong class="side-heading">What it is:</strong> <strong class="keyword">Gate 1 Evaluation '
-               'Criteria and Pass/Repeat Governance</strong> applies the formal five-dimension assessment rubric from '
+               '<p><strong class="side-heading">Why today:</strong> Apply the matching Gate 1 criteria to decide whether foundation evidence passes or must be repeated.</p>\n'
+               '<p><strong class="side-heading">Where it sits:</strong> This closes Block 1 and controls progression to Day 18 without expanding curriculum scope.</p>\n'
+               '<p><strong class="keyword">Gate 1 Evaluation Criteria and Pass/Repeat Governance</strong> applies the canonical gate criteria from '
                'the Gates section to evaluate readiness for Block 2 (Cloud environment and identity). Candidates '
                'evaluate their cumulative Block 1 portfolio across Correctness (technical and mathematical precision), '
                'Traceability (mapping implementations to architectural requirements), Evidence Quality (reproducible '
@@ -194,9 +283,8 @@ DATA = {'contract_version': 2,
                           'href="https://cloud.google.com/learn/certification/cloud-architect#about-this-certification">Google '
                           'Cloud Certification: Professional Cloud Architect — About this certification (accessed '
                           '2026-10-04)</a>, certified architects must design, develop, and manage robust, secure, and '
-                          'scalable cloud solutions adhering to business and technical requirements. Google Cloud '
-                          'infrastructure manages edge routing and packet transit through Google Front Ends (GFE), '
-                          'Andromeda virtual network switches, and Cloud Load Balancing. However, the underlying '
+                          'scalable cloud solutions adhering to business and technical requirements. The cited '
+                          'certification overview does not establish product networking internals; omit those claims here. The underlying '
                           'primitives remain identical: a Cloud Run container or GKE pod relies on Linux namespaces '
                           'and cgroups, private DNS queries traverse Cloud DNS VPC resolvers '
                           '(<code>169.254.169.254</code>), and inter-VPC traffic traverses software-defined routes '
@@ -234,17 +322,7 @@ DATA = {'contract_version': 2,
                           'rollback mechanics prevents catastrophic data corruption, such as billing an account '
                           'without creating the corresponding fulfillment order or leaving orphaned child records that '
                           'poison downstream analytical pipelines.</p>\n'
-                          '<p><strong class="side-heading">Relevance to GCP:</strong> Google Cloud provides both '
-                          'managed relational engines (Cloud SQL for PostgreSQL/MySQL, AlloyDB) and globally '
-                          'distributed transactional systems (Google Cloud Spanner). In Cloud SQL, transactional '
-                          'guarantees rely on underlying relational engines and Write-Ahead Logging stored on '
-                          'persistent disks. In Cloud Spanner, ACID transactions scale horizontally across global '
-                          'regions using TrueTime (synchronized atomic and GPS clocks) and two-phase commit (2PC) with '
-                          'Paxos consensus. Regardless of whether an architect deploys a single-instance Cloud SQL '
-                          'database or a multi-region Spanner cluster, understanding the fundamental semantics of '
-                          '<code>ROLLBACK</code>, lock contention, and foreign key cascades is essential for designing '
-                          'resilient database schemas that preserve enterprise invariants under extreme failure '
-                          'modes.</p>\n'
+                          '<p><strong class="side-heading">Relevance to GCP:</strong> This gate reuses the operating-system, network, request-flow, and relational mechanisms already studied in Block 1. It introduces no Google Cloud service or later-day deployment decision.</p>\n'
                           '\n'
                           '<h4>Failure mode taxonomy: network timeouts, process crashes, and isolation anomalies</h4>\n'
                           '<p><strong class="side-heading">What it is in general:</strong> <strong '
@@ -654,7 +732,7 @@ DATA = {'contract_version': 2,
                           'POSIX in-memory relational transaction semantics, atomic rollbacks, and schema-level '
                           'uniqueness constraints in Python 3. It simulates network request intake and payment gateway '
                           'timeouts within a single process and does not measure physical network packet propagation '
-                          'or distributed multi-node consensus latency across Google Cloud regions.</p>',
+                          'or distributed multi-node consensus latency across Google Cloud regions.</p>' + REMEDIATION_DEPTH_HTML,
              'questions': ['How do lower-level operating system and networking primitives (POSIX signals, cgroups, TCP '
                            'sockets, and DNS resolvers) dictate the reliability boundaries of higher-level cloud '
                            'managed services?',
@@ -684,10 +762,7 @@ DATA = {'contract_version': 2,
                                       'svc.cluster.local, cluster.local, brightloaf.internal), causing unqualified '
                                       'queries for db to cycle through multiple sequential NXDOMAIN responses before '
                                       'timing out.',
-                          'impact': 'Morning order ingestion across 42 commercial bakery distribution hubs failed for '
-                                    '85 minutes. Over 1,200 retail store bread deliveries were delayed, resulting in '
-                                    'estimated retail stockouts of $64,000 and triggering severe contractual SLA '
-                                    'penalties from major supermarket partners.',
+                          'impact': 'Illustrative tabletop impact: if an equivalent synthetic routing failure persisted, order ingestion could be delayed. This lesson supplies no observed production duration, customer count, or financial loss.',
                           'constraints': 'RFC 1918 private IPv4 allocations must be mathematically disjoint across all '
                                          'communicating VPCs and container subnets. DNS resolution in '
                                          'latency-sensitive microservice pipelines must use explicit Fully Qualified '
@@ -759,7 +834,7 @@ DATA = {'contract_version': 2,
                                       '<rect fill="#3b1d38" height="85" rx="4" stroke="#f43f5e" width="215" x="690" '
                                       'y="60"></rect>\n'
                                       '<text fill="#f43f5e" font-weight="700" x="700" y="78">CRITICAL OUTAGE</text>\n'
-                                      '<text fill="#fce7f3" x="700" y="92">• Packet loops locally to eth0</text>\n'
+                                      '<text fill="#fce7f3" x="700" y="92">• Neighbor discovery fails on-link</text>\n'
                                       '<text fill="#fce7f3" x="700" y="106">• Database host unreachable</text>\n'
                                       '<text fill="#fce7f3" x="700" y="120">• 10,000 ms connection timeout</text>\n'
                                       '<text fill="#fce7f3" x="700" y="134">• Checkout halts; cart drop-off</text>\n'
@@ -800,7 +875,7 @@ DATA = {'contract_version': 2,
                                       '<text fill="#22c55e" font-weight="700" x="700" y="228">STABLE '
                                       'COMMUNICATION</text>\n'
                                       '<text fill="#dcfce7" x="700" y="242">✓ Predictable L3 next-hop routing</text>\n'
-                                      '<text fill="#dcfce7" x="700" y="256">✓ TCP handshake in 1.4 ms</text>\n'
+                                      '<text fill="#dcfce7" x="700" y="256">✓ TCP path requires measurement</text>\n'
                                       '<text fill="#dcfce7" x="700" y="270">✓ Atomic SQL transaction commit</text>\n'
                                       '<text fill="#dcfce7" x="700" y="284">✓ Duplicate fulfillment suppressed</text>\n'
                                       '</g>\n'
@@ -808,24 +883,23 @@ DATA = {'contract_version': 2,
                                       '<path d="M180,120 L220,237" marker-end="url(#day17-corr-arrow)" '
                                       'stroke="#22c55e" stroke-width="2"></path>\n'
                                       '</svg>\n'
-                                      '<figcaption>Figure 17.3: Supplied facts: Microservice deployment encountered '
+                                      '<figcaption>Figure 17.3: Illustrative fixture: A synthetic microservice deployment encountered '
                                       'repeated 10,000 ms database connection timeouts during order intake despite '
                                       'application code compiling cleanly. Architectural inference: Overlapping RFC '
                                       '1918 CIDR allocations (10.0.1.0/24 in both pod network and database tier) '
                                       'combined with wildcard DNS search domains caused routing loops and packet '
                                       'dropping. Expected post-fix behavior: Re-architecting into disjoint subnets '
                                       '(10.10.1.0/24 and 10.20.1.0/24) paired with authoritative FQDN resolution '
-                                      'establishes deterministic next-hop routing and restores sub-2 ms database '
-                                      'connectivity.</figcaption>\n'
+                                      'should restore a routable TCP path; latency remains unmeasured until a controlled run records it.</figcaption>\n'
                                       '</figure>',
                           'diagram_enabled': False,
-                          'facts': 'Supplied incident facts and logs:\n'
+                          'facts': 'Illustrative fixture inputs, not observed production facts:\n'
                                    '1. Order ingestion container assigned IP 10.0.1.15 in local subnet 10.0.1.0/24.\n'
                                    '2. Backend PostgreSQL database assigned IP 10.0.1.50 in database subnet '
                                    '10.0.1.0/24.\n'
                                    '3. Container resolv.conf contained search order.svc.cluster.local '
                                    'svc.cluster.local cluster.local brightloaf.internal with ndots:5.\n'
-                                   '4. Supplied application logs recorded repeated error: connect ETIMEDOUT '
+                                   '4. Synthetic application logs contain repeated error: connect ETIMEDOUT '
                                    '10.0.1.50:5432 after 10000ms.\n'
                                    '5. Host routing table showed 10.0.1.0/24 dev br0 proto kernel scope link src '
                                    '10.0.1.1.',
@@ -837,14 +911,15 @@ DATA = {'contract_version': 2,
                                        'of cumulative DNS delay before failing.',
                           'expected': 'Re-addressing the order container network to disjoint subnet 10.10.1.0/24 and '
                                       'the database tier to 10.20.1.0/24, combined with authoritative private DNS '
-                                      'resolution using FQDN db.production.brightloaf.internal, establishes '
-                                      'deterministic Layer 3 next-hop routing and restores sub-2 ms TCP handshakes.',
+                                      'resolution using FQDN db.production.brightloaf.internal, should restore a '
+                                      'routable TCP path; latency remains unmeasured until a controlled run records it.',
                           'root': 'Overlapping RFC 1918 CIDR subnet allocation (10.0.1.0/24 in both container and '
                                   'database networks) causing local routing blackholes, compounded by excessive DNS '
                                   'search domain iteration.',
                           'verify': 'Execute ip route get 10.20.1.50 to verify next-hop routing via gateway 10.10.1.1, '
                                     'and verify that getent hosts db.production.brightloaf.internal resolves in under '
                                     '2 ms with zero NXDOMAIN search iterations.',
+                          'evidence_limit': 'Evidence limit: This is an illustrative local/tabletop fixture; it does not establish a production outage, measured latency, customer impact, or live GCP behavior.',
                           'residual': 'Future microservice subnet provisioning must be governed by an automated IP '
                                       'Address Management (IPAM) CIDR reservation registry in CI/CD to prevent '
                                       'overlapping allocations.',
@@ -986,9 +1061,30 @@ DATA = {'contract_version': 2,
                                '**Location:** local terminal\n'
                                '\n'
                                '**Actions:**\n'
-                               'Author a Twelve-Factor application request validation handler that enforces strict '
-                               'schema requirements and emits structured JSON logs.\n'
+                               'Start a loopback HTTP listener, send a request from a separate local client process, capture the request/response and exit codes, then validate the received JSON payload.\n'
                                '```bash\n'
+                               'python3 -m http.server 18017 --bind 127.0.0.1 > scratch/day17_lab/stage3_listener.log 2>&1 &\n'
+                               'listener_pid=$!\n'
+                               "python3 - <<'CLIENT'\n"
+                               'import json, time, urllib.request\n'
+                               'last = None\n'
+                               'for _ in range(20):\n'
+                               '    try:\n'
+                               '        with urllib.request.urlopen("http://127.0.0.1:18017/", timeout=1) as response:\n'
+                               '            evidence = {"status": response.status, "bytes": len(response.read()), "client_exit": 0}\n'
+                               '        break\n'
+                               '    except Exception as exc:\n'
+                               '        last = str(exc); time.sleep(0.05)\n'
+                               'else:\n'
+                               '    raise SystemExit(last or "loopback request failed")\n'
+                               'with open("scratch/day17_lab/stage3_loopback_exchange.json", "w") as handle:\n'
+                               '    json.dump(evidence, handle, indent=2)\n'
+                               'CLIENT\n'
+                               'client_rc=$?\n'
+                               'kill "$listener_pid"\n'
+                               'if wait "$listener_pid" 2>/dev/null; then listener_rc=0; else listener_rc=$?; fi\n'
+                               'test "$listener_rc" -eq 143 -o "$listener_rc" -eq 0\n'
+                               'test "$client_rc" -eq 0\n'
                                "cat <<'EOF' > scratch/day17_lab/stage3_request_handler.py\n"
                                'import json\n'
                                'import re\n'
@@ -1680,8 +1776,7 @@ DATA = {'contract_version': 2,
                           '<!-- Dim 1 -->\n'
                           '<rect fill="#1e293b" height="38" rx="4" stroke="#334155" width="430" x="35" y="78"></rect>\n'
                           '<text fill="#38bdf8" font-weight="700" x="45" y="93">1. Correctness:</text>\n'
-                          '<text fill="#e2e8f0" x="135" y="93">Subnet CIDRs, SQL foreign keys, and port bindings '
-                          'mathematically sound.</text>\n'
+                          '<text fill="#e2e8f0" x="135" y="93">CIDRs, foreign keys, and port bindings are sound.</text>\n'
                           '<text fill="#a9b7cb" x="45" y="106">Threshold: Zero unhandled syntax errors or overlapping '
                           'network ranges.</text>\n'
                           '<!-- Dim 2 -->\n'
@@ -1898,11 +1993,7 @@ DATA = {'contract_version': 2,
                                       'secondary worker inserted a second fulfillment record, generating a second '
                                       'physical shipping label and dispatching a duplicate bread delivery truck to '
                                       'franchise store 104.',
-                          'impact': '18 duplicate commercial bakery shipments were dispatched across the regional '
-                                    'territory before dispatchers noticed anomalous warehouse dock activity. Over '
-                                    '$28,000 in perishable inventory was double-delivered, resulting in total '
-                                    'inventory loss and waste, while tying up logistics fleets during morning rush '
-                                    'hours.',
+                          'impact': 'Illustrative tabletop impact: a duplicate fulfillment could waste inventory and occupy delivery capacity. This lesson supplies no observed shipment count, financial loss, or production event.',
                           'constraints': 'The system must guarantee the duplicate fulfillment invariant: <= 1 physical '
                                          'fulfillment per unique order ID. At-least-once message queues inherently '
                                          'deliver duplicate messages during network partitions; idempotency must be '
@@ -2023,7 +2114,7 @@ DATA = {'contract_version': 2,
                                       '<path d="M190,185 L230,240" marker-end="url(#day17-replay-corr)" '
                                       'stroke="#22c55e" stroke-width="2"></path>\n'
                                       '</svg>\n'
-                                      '<figcaption>Figure 17.4: Supplied facts: An asynchronous message queue '
+                                      '<figcaption>Figure 17.4: Illustrative fixture: A synthetic asynchronous message queue '
                                       'delivered an order fulfillment event twice due to an upstream network '
                                       'acknowledgement timeout, causing a naive consumer to generate two physical '
                                       'warehouse shipments. Architectural inference: Network delivery cannot guarantee '
@@ -2034,7 +2125,7 @@ DATA = {'contract_version': 2,
                                       'fulfillment invariant.</figcaption>\n'
                                       '</figure>',
                           'diagram_enabled': False,
-                          'facts': 'Supplied incident facts and logs:\n'
+                          'facts': 'Illustrative fixture inputs, not observed production facts:\n'
                                    '1. Message queue delivered order event BL-17-901 at 05:00:01 UTC.\n'
                                    '2. Worker 1 acknowledged the event late due to a 10,000 ms database write stall; '
                                    'queue redelivered at 05:00:16 UTC.\n'
@@ -2058,6 +2149,7 @@ DATA = {'contract_version': 2,
                                     'SQLite/PostgreSQL; assert that the second insert fails with '
                                     'sqlite3.IntegrityError or 23505 unique_violation, leaving exactly one fulfillment '
                                     'row in the table.',
+                          'evidence_limit': 'Evidence limit: This is an illustrative local/tabletop fixture; it does not establish a production duplicate shipment, financial loss, customer impact, or live GCP behavior.',
                           'residual': 'Application handlers must catch uniqueness violations and acknowledge the '
                                       'replayed message as an idempotent success rather than crashing and entering an '
                                       'infinite redelivery loop.',
@@ -2157,29 +2249,28 @@ DATA = {'contract_version': 2,
                                '    "day_05": {\n'
                                '        "domain": "Linux & POSIX Process Lifecycle",\n'
                                '        "required_artifact": "Shell pipeline, trap signal handler, exit codes",\n'
-                               '        "status": "VERIFIED",\n'
-                               '        "integrity_check": "Valid set -euo pipefail and trap cleanup present"\n'
+                               '        "status": "NOT_CHECKED",\n'
+                               '        "integrity_check": "Open and execute the named Day 5 artifact; record its path, command, exit code, and observed result before changing this status."\n'
                                '    },\n'
                                '    "day_08": {\n'
                                '        "domain": "TCP/IP, DNS, and TLS Networking",\n'
                                '        "required_artifact": "CIDR subnet calculation, DNS trace, TLS 1.3 handshake",\n'
-                               '        "status": "VERIFIED",\n'
-                               '        "integrity_check": "RFC 1918 non-overlapping subnets confirmed"\n'
+                               '        "status": "NOT_CHECKED",\n'
+                               '        "integrity_check": "Open and execute the named Day 8 artifact; record its path, command, exit code, and observed result before changing this status."\n'
                                '    },\n'
                                '    "day_10": {\n'
                                '        "domain": "State Persistence, Systemd, and Scheduling",\n'
                                '        "required_artifact": "Cron expression, systemd unit, distributed state '
                                'invariants",\n'
-                               '        "status": "VERIFIED",\n'
-                               '        "integrity_check": "Process supervision and restart boundaries confirmed"\n'
+                               '        "status": "NOT_CHECKED",\n'
+                               '        "integrity_check": "Open and execute the named Day 10 artifact; record its path, command, exit code, and observed result before changing this status."\n'
                                '    },\n'
                                '    "day_16": {\n'
                                '        "domain": "Relational Schema, ACID, and SQL Isolation",\n'
                                '        "required_artifact": "3NF schema, atomic rollback proof, isolation anomaly '
                                'demonstration",\n'
-                               '        "status": "VERIFIED",\n'
-                               '        "integrity_check": "Duplicate fulfillment invariant preserved via UNIQUE '
-                               'constraint"\n'
+                               '        "status": "NOT_CHECKED",\n'
+                               '        "integrity_check": "Open and execute the named Day 16 artifact; record its path, command, exit code, and observed result before changing this status."\n'
                                '    }\n'
                                '}\n'
                                '\n'
@@ -2561,18 +2652,11 @@ DATA = {'contract_version': 2,
                                                                                                                                                   'certification'},
                                       'https://cloud.google.com/architecture/framework#core_principles': {'heading_opened': 'Core '
                                                                                                                             'principles'}},
-                    'product_claims': [{'claim': 'Google Cloud infrastructure manages edge routing and packet transit '
-                                                 'through Google Front Ends (GFE), Andromeda virtual network switches, '
-                                                 'and Cloud Load Balancing, with private DNS queries traversing Cloud '
-                                                 'DNS VPC resolvers at 169.254.169.254.',
+                    'product_claims': [{'claim': 'The Professional Cloud Architect role includes designing, developing, '
+                                                 'and managing robust, secure, scalable, highly available, and dynamic '
+                                                 'solutions that drive business objectives.',
                                         'section_url': 'https://cloud.google.com/learn/certification/cloud-architect#about-this-certification',
-                                        'heading_opened': 'About this certification'},
-                                       {'claim': 'The Google Cloud Architecture Framework mandates operational '
-                                                 'excellence, system reliability, and disciplined change management '
-                                                 'through iterative review mechanisms before deploying production '
-                                                 'workloads.',
-                                        'section_url': 'https://cloud.google.com/architecture/framework#core_principles',
-                                        'heading_opened': 'Core principles'}],
+                                        'heading_opened': 'About this certification'}],
                     'visual_reasons': {'Gate 1 End-to-End Foundation Request and Execution Trace': 'Preserved '
                                                                                                    'comprehensive '
                                                                                                    'architectural '
@@ -2643,4 +2727,100 @@ DATA = {'contract_version': 2,
  'arch_diagram': {},
  'arch_svg_html': '',
  'arch_table_html': ''}
+
+
+# Gate 1 is a recall/remediation checkpoint. Normalize legacy prose that imported
+# later-day products or the numeric thresholds reserved for Gates 2–6.
+_SAFE_RELEVANCE = (
+    '<p><strong class="side-heading">Relevance to GCP:</strong> The '
+    '<a href="https://cloud.google.com/learn/certification/cloud-architect#about-this-certification">'
+    'Professional Cloud Architect — About this certification (accessed 2026-10-04)</a> '
+    'describes a role that designs, develops, and manages robust, secure, scalable, '
+    'highly available, and dynamic solutions that drive business objectives. Gate 1 '
+    'introduces no Google Cloud service; it checks whether the learner can reproduce '
+    'and explain the Block 1 process, request-path, subnet, shell, and relational '
+    'evidence that later architecture work depends on.</p>'
+)
+_LATER_DAY_TERMS = re.compile(
+    r'Cloud Run|GKE|Cloud DNS|Cloud SQL|AlloyDB|Spanner|Network Intelligence|'
+    r'Security Command|Policy Controller|Cloud Build|Organization Polic|'
+    r'VPC Service Controls|Workload Identity', re.I
+)
+_RELEVANCE = re.compile(
+    r'<p><strong class="side-heading">Relevance to GCP:</strong>.*?</p>', re.S
+)
+
+
+def _normalize_gate_string(text):
+    def relevance(match):
+        return _SAFE_RELEVANCE
+
+    text = _RELEVANCE.sub(relevance, text)
+    replacements = {
+        'every dimension must score at least 2 out of 3, with a composite score of at least 12 out of 15':
+            'each dimension must be scored from 0 to 3, and every technical error identified for Gate 1 must be repaired and rechecked',
+        'every score &ge; 2 and total &ge; 12/15':
+            'all identified technical errors repaired and rechecked',
+        'every dimension must score at least 2 out of 3, with a composite score of at least 12 out of 15':
+            'every technical error must be repaired and its failed condition rechecked',
+        'score at least 2 ("Adequate with documented limits") out of 3':
+            'receive an honest 0–3 score with its evidence limits recorded',
+        '12 out of 15 (80% minimum proficiency across foundations)':
+            'no numeric Gate 1 threshold; correct explanations and repaired errors determine the decision',
+        'dimensions &gt;= 2 AND Total &gt;= 12/15?':
+            'all technical errors repaired and rechecked?',
+        'dimension, ≥ 12/15 overall':
+            'dimension, with every identified technical error repaired',
+        'A record: 10.20.1.10 (&lt;2 ms)':
+            'A record resolved; latency unmeasured',
+        'NXDOMAIN delays + loop': 'Sequential NXDOMAIN lookup delay',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    text = text.replace('"score": 3', '"score": None')
+    text = text.replace('"cleared": True', '"cleared": False')
+    text = text.replace('["score"] >= 2', '["score"] is None')
+    text = text.replace('"gate_1_decision": "PASS"', '"gate_1_decision": "REPEAT"')
+    text = text.replace('"gate_decision": "PASS"', '"gate_decision": "REPEAT"')
+    text = text.replace('"15 / 15"', '"unscored"')
+    text = text.replace('"passing_score_floor": 2', '"gate_1_rule": "repair every identified technical error"')
+    text = text.replace('"passing_composite_threshold": 12', '"numeric_threshold": None')
+    text = text.replace('**3 / 3**', '**NOT SCORED**')
+    text = text.replace('**15 / 15**', '**UNSCORED**')
+    text = text.replace('**>= 12**', '**NOT APPLICABLE TO G1**')
+    text = text.replace('Min = 3', 'Scores require evidence review')
+    text = text.replace('Total = 15 / 15', 'No numeric Gate 1 threshold')
+    text = text.replace('Score >= 2 in every dimension', 'Record an honest 0–3 score in every dimension')
+    text = text.replace('Total >= 12 / 15', 'Not applicable to Gate 1')
+    text = text.replace('Final Determination: **PASS**', 'Final Determination: **REPEAT**')
+    text = text.replace('Permission is officially granted to advance', 'Advancement is not granted; repeat the named failed evidence before proceeding')
+    text = text.replace('Gate 1 PASS decision confirmed', 'Gate 1 REPEAT decision recorded')
+    text = text.replace('confirming Gate 1 PASS decision', 'recording the Gate 1 REPEAT decision')
+    icon_map = {
+        'day17-trace-title': 'client.svg',
+        'day17-rubric-title': 'decision.svg',
+        'day17-inc1-title': 'router.svg',
+        'day17-inc2-title': 'database.svg',
+    }
+    for title_id, icon in icon_map.items():
+        pattern = rf'(<svg aria-labelledby="{title_id} [^"]+" role="img"[^>]*>)'
+        image = (rf'\1<image href="../assets/icons/generic/{icon}" x="5" y="5" '
+                 rf'width="20" height="20"></image>')
+        text = re.sub(pattern, image, text, count=1)
+    return text
+
+
+def _normalize_gate_value(value):
+    if isinstance(value, str):
+        return _normalize_gate_string(value)
+    if isinstance(value, list):
+        return [_normalize_gate_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_normalize_gate_value(item) for item in value)
+    if isinstance(value, dict):
+        return {key: _normalize_gate_value(item) for key, item in value.items()}
+    return value
+
+
+DATA = _normalize_gate_value(DATA)
 
