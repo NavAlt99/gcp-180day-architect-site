@@ -10,16 +10,60 @@ python3 gcp-180day-architect-site/scripts/validate.py
 python3 -m http.server 8000 --directory gcp-180day-architect-site
 ```
 
-For a page-by-page editing session, use [ONE_DAY_AT_A_TIME.md](ONE_DAY_AT_A_TIME.md). Initialize a day once, edit its override, and then build only that day:
+## Curriculum page updates
 
-```sh
-python3 gcp-180day-architect-site/scripts/build.py --init-day 3
-# Edit gcp-180day-architect-site/content/day-003-page.html before building.
-python3 gcp-180day-architect-site/scripts/build.py --day 3
-python3 gcp-180day-architect-site/scripts/validate.py
+Do not edit `content/day-NNN-page.html` or `days/day-NNN.html` as source. Author
+the durable specification in `scratch/day_data_NNN.py`, then build and verify
+only the selected day.
+
+[PAGE_AUTHORING_CONTRACT.md](PAGE_AUTHORING_CONTRACT.md) is the canonical rule
+file. Use [ONE_DAY_AT_A_TIME.md](ONE_DAY_AT_A_TIME.md) for isolated serial
+execution, [DAY_WORKFLOW_PROMPT.md](DAY_WORKFLOW_PROMPT.md) for the complete
+per-day workflow, [PAGE_UPDATE_PROMPT.md](PAGE_UPDATE_PROMPT.md) for its command
+sequence and handoff, and [BATCH_UPDATE_PROMPT.md](BATCH_UPDATE_PROMPT.md) as the
+single entry point for a multi-day range.
+
+For one day, set the switches in `PROMPT_DAY.md` and ask the agent:
+
+```text
+Update Day N in gcp-180day-architect-site. Read PAGE_AUTHORING_CONTRACT.md once,
+then follow ONE_DAY_AT_A_TIME.md and instantiate DAY_WORKFLOW_PROMPT.md using
+PROMPT_DAY.md. Run scripts/extract_day_inputs.py --day N before day-specific
+reading. Execute scripts/day_run.py in the required resolve, preflight, check,
+gate, commit order and stop at the first failure.
 ```
 
-Complete HTML page overrides live in `content/day-NNN-page.html`. `--init-day` copies the existing page only when an override does not yet exist. Edit that override before running `--day`, which validates and writes only `days/day-NNN.html`. The explicit `--all` rebuild retains overrides but still generates draft fallback content for days without one. Days 1 and 2 already have overrides.
+For a range, replace `START` and `END` and use this prompt once:
+
+```text
+Update curriculum pages from Day START through Day END in
+gcp-180day-architect-site, with BATCH_SIZE=10 unless I specify another checkpoint
+size. Use these shared worker switches unless I provide per-day overrides:
+SCOPE=update
+DIAGRAMS=allow
+TOPICS=expand
+EXTRA_TOPICS=none
+IMPROVEMENTS=none
+
+Follow BATCH_UPDATE_PROMPT.md as the canonical batch workflow. Read
+PAGE_AUTHORING_CONTRACT.md once as the stable rules prefix, instantiate the full
+DAY_WORKFLOW_PROMPT.md separately for every day, and author days strictly
+serially in fresh isolated contexts. Advance only after the current day passes
+all required gates. Stop at the first failed gate, contract-hash change,
+unresolved source/lab/diagram issue, my stated stop boundary, or Day END. Do not
+parallelize page authoring, combine page generation, defer per-day gates, or
+silently skip a failed day.
+
+Commits are authorized. Commit each passing day separately.
+
+At each checkpoint, record the completed days, PASS/FAIL state, handoff paths,
+commit IDs when applicable, and exact resume day. Do not recap page content.
+```
+
+If commits are not authorized, replace the commit sentence explicitly. To resume
+a stopped batch, set `START` to the first incomplete day; leave completed PASS
+days untouched. The default batch window is ten days, but every page remains an
+isolated one-day job.
 
 Open `http://localhost:8000/`. The build needs the Python `markdown` package; validation needs `beautifulsoup4`. The generated site itself needs no runtime package, service, login or network access. External further-study links need internet access when opened.
 
