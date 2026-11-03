@@ -23,7 +23,45 @@ per-day workflow, [PAGE_UPDATE_PROMPT.md](PAGE_UPDATE_PROMPT.md) for its command
 sequence and handoff, and [BATCH_UPDATE_PROMPT.md](BATCH_UPDATE_PROMPT.md) as the
 single entry point for a multi-day range.
 
-For one day, set the switches in `PROMPT_DAY.md` and ask the agent:
+### Prompt parameters
+
+`PROMPT_DAY.md` accepts exactly these six per-day inputs. Do not add workflow
+instructions or new keys to that file.
+
+| Parameter | Allowed value | Meaning |
+| --- | --- | --- |
+| `DAY` | Integer `1`–`180` | Required. Selects the only day that may be read, audited, or changed. |
+| `SCOPE` | `plan`, `update`, `audit-only`, or `fix` | `plan` reports proposed work without changing files; `update` performs additive authoring; `audit-only` writes only the named audit evidence; `fix` applies only confirmed audit-ledger findings after the required `go` selection. |
+| `DIAGRAMS` | `keep` or `allow` | `keep` preserves diagrams and reports unresolved visual issues; `allow` permits eligible diagram additions or repairs and gates diagram geometry/readability checks. |
+| `TOPICS` | `keep` or `expand` | `keep` preserves mapped topic and subtopic scope; `expand` permits only additions supported by the same day's Study clauses. It never permits later-day material. |
+| `EXTRA_TOPICS` | Empty, or user-named same-day roadmap topics | Leave empty normally. This field cannot invent, import, or reorder curriculum scope. |
+| `IMPROVEMENTS` | Empty, or a YAML-style bullet list of named fixes | Use for explicit requested improvements. `keywords:` may list discovery-link terms. Empty means apply only the standing rules and contract, without speculative extras. |
+
+Use this complete shape, including empty fields:
+
+```text
+DAY=17
+SCOPE=update
+DIAGRAMS=allow
+TOPICS=keep
+EXTRA_TOPICS=
+IMPROVEMENTS:
+- keywords: Cloud Logging, log-based metric
+- fix the named source-ledger gaps
+```
+
+Common combinations:
+
+- Audit and create the Day N findings ledger: `SCOPE=audit-only`.
+- Apply selected confirmed findings: `SCOPE=fix`, then reply with `go`,
+  `go defects`, `go enhancements`, or specific IDs such as `go F1,F3` when the
+  workflow asks for the selection.
+- Perform full additive authoring: `SCOPE=update`.
+- Inspect and propose work without content changes: `SCOPE=plan`.
+- Preserve all existing diagrams: `DIAGRAMS=keep`; permit eligible repairs or
+  additions: `DIAGRAMS=allow`.
+
+For one day, save those switches in `PROMPT_DAY.md` and ask the agent:
 
 ```text
 Update Day N in gcp-180day-architect-site. Read PAGE_AUTHORING_CONTRACT.md once,
@@ -33,7 +71,17 @@ reading. Execute scripts/day_run.py in the required resolve, preflight, check,
 gate, commit order and stop at the first failure.
 ```
 
-For a range, replace `START` and `END` and use this prompt once:
+For a range, the coordinator prompt adds these parameters:
+
+| Parameter | Allowed value | Meaning |
+| --- | --- | --- |
+| `START` | Integer `1`–`180` | First day in the inclusive range, or the first incomplete day when resuming. |
+| `END` | Integer `START`–`180` | Final day in the inclusive range. |
+| `BATCH_SIZE` | Positive integer; default `10` | Checkpoint window size only. It never permits parallel or combined page authoring. |
+
+The six per-day parameters remain required as shared worker switches. A range
+may specify explicit per-day overrides; otherwise every day receives the shared
+values. Use this prompt once after replacing `START` and `END`:
 
 ```text
 Update curriculum pages from Day START through Day END in
@@ -41,9 +89,10 @@ gcp-180day-architect-site, with BATCH_SIZE=10 unless I specify another checkpoin
 size. Use these shared worker switches unless I provide per-day overrides:
 SCOPE=update
 DIAGRAMS=allow
-TOPICS=expand
-EXTRA_TOPICS=none
-IMPROVEMENTS=none
+TOPICS=keep
+EXTRA_TOPICS=
+IMPROVEMENTS:
+- keywords:
 
 Follow BATCH_UPDATE_PROMPT.md as the canonical batch workflow. Read
 PAGE_AUTHORING_CONTRACT.md once as the stable rules prefix, instantiate the full
