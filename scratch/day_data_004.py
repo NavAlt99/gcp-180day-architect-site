@@ -136,7 +136,6 @@ PART1_INTRO = (
 )
 
 PART1_HTML = """
-<style>.technical { max-width: 100%; }</style>
 <p class="intro">Day 4 establishes the fundamental vocabulary, framing mechanisms, and failure boundaries spanning application protocols (HTTP/1.1, HTTP/2, HTTP/3), cryptographic trust chains (TLS 1.3), network framing (MTU and MSS clamping), address translation (SNAT/DNAT), and dynamic routing (BGP).</p>
 <p class="callout"><strong>Exit evidence:</strong> A failure worksheet that separates TLS trust, packet size, routing and HTTP errors.</p>
 
