@@ -766,6 +766,7 @@ SUBTOPIC_EXPANSIONS = [
         ('exit statuses, logs (journalctl, /var/log)', 'wait.2', [
             'The wait status distinguishes normal exit from signal termination. Bash presents a signal-derived status as 128 plus the signal number, while systemd can report code=killed and status=9; these are different presentations of termination evidence.',
             'Exit 137 is consistent with SIGKILL but does not identify why it was sent, and an application can explicitly exit with that number. Confirm the manager status and relevant kernel or supervisor records before calling it an out-of-memory event.',
+            'Before correlating an incident, identify which component owns each log sink and record its timestamp format, time zone, rotation or retention boundary, and service identity. Compare a unit-scoped journal window with the specific /var/log file and its rotated siblings; absence from one store does not prove the process emitted nothing or that another collector retained it.',
             'Worked example: save journalctl output with precise timestamps and a specific user-unit filter, then compare ExecMainCode, ExecMainStatus and Result for the two stops. A missing journal entry requires checking the filter, access rights, retention and stdout destination; /var/log files are a separate source with their own rotation policy.',
             'Evidence limit: a process exit status and timestamped logs describe local execution. They cannot alone prove downstream completion, log retention across reboot or delivery to Cloud Logging.'
         ])
@@ -953,8 +954,136 @@ for _topic in DATA['topics']:
         _citation += '</p>'
         _topic['technical'] = re.sub(_pattern, lambda m: m.group(1) + _citation, _topic['technical'], count=1, flags=re.S)
 
+# Same-day Study expansion: make every operating-system mechanism usable as an
+# architecture diagnostic, without adding products or later-day curriculum.
+_diagnostic_profiles = {
+    'topic-01-subtopic-01': {
+        'focus': 'the user-to-kernel system-call boundary', 'subject': 'an open request for config.json',
+        'identity': 'the calling PID, architecture, effective credentials and pathname arguments',
+        'control': 'the library wrapper, syscall entry, VFS lookup and return convention',
+        'success': 'a nonnegative descriptor associated with the intended process and file',
+        'failure': 'a -1 return with a preserved errno such as EACCES, ENOENT or ENOTDIR',
+        'artifact': 'a timestamped worksheet linking caller, request, return value and errno',
+        'tradeoff': 'a syscall trace improves boundary evidence but adds collection overhead and can expose sensitive arguments'
+    },
+    'topic-01-subtopic-02': {
+        'focus': 'path resolution through the mounted namespace', 'subject': 'the path /srv/brightloaf/order-api/config.json',
+        'identity': 'the service working directory, mount namespace, root directory and effective credentials',
+        'control': 'component-by-component lookup, symlink handling, mount selection and directory search permission',
+        'success': 'every parent resolves in the intended mount and the terminal inode is the expected object',
+        'failure': 'a missing component, wrong working directory, unexpected symlink, mount mismatch or denied search',
+        'artifact': 'a path inventory recording each component, inode type, mount and access decision',
+        'tradeoff': 'canonicalizing a path simplifies comparison but must not erase the symlink or namespace behavior under investigation'
+    },
+    'topic-01-subtopic-03': {
+        'focus': 'POSIX mode selection and directory search rights', 'subject': 'a 0640 configuration file below 0750 directories',
+        'identity': 'the file owner, owning group, caller IDs and supplementary group set',
+        'control': 'owner-group-other class selection followed by the requested read, write or search bit',
+        'success': 'the intended service identity receives only the required read and traversal rights',
+        'failure': 'world access, a missing parent execute bit, or a mode that helps an administrator but not the daemon',
+        'artifact': 'an octal-and-symbolic permission matrix with a read performed as the service identity',
+        'tradeoff': 'broad modes are easy to operate but enlarge the disclosure or modification boundary'
+    },
+    'topic-01-subtopic-04': {
+        'focus': 'process credentials and supplementary groups', 'subject': 'the order-api service account at process start',
+        'identity': 'real, effective and filesystem IDs plus the inherited supplementary groups',
+        'control': 'account lookup, group initialization, service-manager credentials and exec inheritance',
+        'success': 'the running process credentials match the documented least-privilege service identity',
+        'failure': 'a stale group set, unexpected primary group, numeric-ID collision or test under the wrong login',
+        'artifact': 'a PID-scoped credential record correlated with account and group database entries',
+        'tradeoff': 'shared groups ease administration but couple unrelated services to one authorization boundary'
+    },
+    'topic-01-subtopic-05': {
+        'focus': 'ownership change and delegated administration', 'subject': 'deployment and maintenance of service configuration',
+        'identity': 'the deployer, privileged maintenance role, file owner and consuming daemon',
+        'control': 'chown or chgrp authority, sudo policy, deployment umask and post-deploy verification',
+        'success': 'repeatable deployment preserves the approved owner, group and mode without granting interactive application access',
+        'failure': 'recursive ownership drift, an overbroad sudo rule, or a redeploy that silently restores owner-only access',
+        'artifact': 'a before-and-after ownership manifest plus the exact authorized maintenance action',
+        'tradeoff': 'automation reduces manual drift but a privileged deployment identity increases the consequence of pipeline compromise'
+    },
+    'topic-02-subtopic-01': {
+        'focus': 'process creation, exec and wait-status ownership', 'subject': 'a disposable worker and its supervising parent',
+        'identity': 'parent PID, child PID, PID namespace, executable image and start timestamp',
+        'control': 'fork or clone creation, exec replacement, parent wait and supervisor reaping',
+        'success': 'the intended executable runs under the tracked PID and its parent collects an unambiguous final status',
+        'failure': 'a stale reused PID, zombie accumulation, wrong parent, unforwarded signal or uncollected status',
+        'artifact': 'a lifecycle timeline joining creation, exec, signal, exit and wait events',
+        'tradeoff': 'direct PID inspection is precise for one instant but a service-manager identity is safer across PID reuse'
+    },
+    'topic-02-subtopic-02': {
+        'focus': 'file-descriptor routing and pipeline status', 'subject': 'stdin, stdout and stderr for a worker command',
+        'identity': 'the process holding each descriptor, its open-file target and inherited pipe ends',
+        'control': 'left-to-right shell redirection, pipe creation, descriptor duplication and close-on-exec behavior',
+        'success': 'each byte stream reaches the intended sink and every pipeline component has an inspected status',
+        'failure': 'stderr routed to the wrong destination, a blocked writer, hidden upstream failure or pipe kept open by inheritance',
+        'artifact': 'a descriptor map, captured streams and PIPESTATUS or equivalent component results',
+        'tradeoff': 'merging streams simplifies collection but loses separation needed for diagnosis and severity mapping'
+    },
+    'topic-02-subtopic-03': {
+        'focus': 'systemd transaction ordering and unit state', 'subject': 'a transient user unit for the disposable worker',
+        'identity': 'the exact unit name, manager scope, MainPID, unit file or transient properties and boot context',
+        'control': 'requirement dependencies, ordering edges, service type, restart policy and stop transaction',
+        'success': 'the manager starts the intended executable, exposes its current PID and records a bounded terminal result',
+        'failure': 'an ordering-only edge mistaken for a requirement, readiness inferred from active state, or restart masking a crash loop',
+        'artifact': 'unit properties, dependency edges, state transitions and the unit-scoped journal window',
+        'tradeoff': 'automatic restart improves availability but can erase the first-failure context and amplify a persistent defect'
+    },
+    'topic-02-subtopic-04': {
+        'focus': 'signal delivery and shutdown ownership', 'subject': 'the same worker stopped once with SIGTERM and once with SIGKILL',
+        'identity': 'signal sender, target PID or unit, signal number, handler disposition and delivery timestamp',
+        'control': 'application SIGTERM handling, bounded drain, supervisor timeout and unavoidable SIGKILL semantics',
+        'success': 'SIGTERM records bounded cleanup and exit while the forced path records no invented cleanup completion',
+        'failure': 'new work accepted during drain, handler deadlock, timeout escalation or a signal sent to a stale PID',
+        'artifact': 'parallel graceful and forced timelines with manager status and last application record',
+        'tradeoff': 'a longer drain protects in-flight work but delays replacement and still cannot guarantee an external commit'
+    },
+    'topic-02-subtopic-05': {
+        'focus': 'exit-status and log-timestamp correlation', 'subject': 'journal records and any applicable files under /var/log',
+        'identity': 'unit, PID, boot, host clock, log writer, collector and retained file generation',
+        'control': 'wait-status interpretation, journal filtering, file rotation, access rights and collection pipeline',
+        'success': 'normal exit and signal termination are distinguished and their records align within an explicit time window',
+        'failure': 'status 137 treated as a root cause, wrong-boot logs, timezone mismatch, rotation gap or missing collector path',
+        'artifact': 'commands, raw statuses and timestamped excerpts with source and retention boundary named',
+        'tradeoff': 'central retention improves fleet correlation but local evidence remains necessary when forwarding is delayed or misconfigured'
+    }
+}
+
+_diagnostic_phases = (
+    ('Establish the observation boundary', 'Write the question so it ends at {focus}, not at an assumed business outcome. Name {subject}; capture {identity}; and record which facts were supplied, which values were observed locally, and which behavior is only predicted. This prevents a successful administrator command, manager state, or log search from being promoted into evidence about a different identity or downstream system.'),
+    ('Reconstruct the control path', 'Walk {control} in execution order and assign an owner to every transition. At each boundary record the input, the component allowed to change it, the output, and the next consumer. If one transition is not observable, mark it unknown and choose the narrowest additional probe; do not fill the gap with a product default or a result copied from another host.'),
+    ('Capture a known-good comparison', 'Create a disposable comparison using the same {subject}. The bounded success condition is {success}. Save the command or worksheet inputs, identity, timestamp and raw result before interpreting it. A comparison is useful only when its namespace, credentials, manager scope and data are stated; otherwise a difference may reflect the test harness instead of the mechanism.'),
+    ('Exercise one bounded failure', 'Change exactly one relevant condition and look for {failure}. Keep the target disposable, preserve the pre-change inventory, state the recovery command before execution, and stop if the observed identity or object differs from the plan. The purpose is to distinguish the mechanism, not to demonstrate a dramatic outage or to imply that a tabletop prediction occurred in GCP.'),
+    ('Correlate independent evidence', 'Produce {artifact}. Keep raw values beside the interpretation, use one explicit time window, and distinguish application text from kernel or manager status. Agreement between two records raises confidence only when they do not originate from the same assertion; repeated copies of one log line are not independent confirmation.'),
+    ('Test the alternative explanation', 'Ask what else could create the same symptom at {focus}. Check identity drift, namespace or scope mismatch, stale state, collection gaps and an explicit application result before selecting a cause. Disprove at least one plausible alternative with a named observation, and leave any untested explanation open instead of converting temporal correlation into causality.'),
+    ('Evaluate the architecture trade-off', 'Record this design tension: {tradeoff}. State who owns the control, who may override it, the operational cost of tighter enforcement, and the residual failure mode after the proposed change. Prefer a reversible, least-privilege adjustment and a new bounded test over a broad permission, indefinite timeout or restart loop that merely hides the symptom.'),
+    ('Close with an evidence claim', 'Acceptance for this checkpoint is limited to {success}; the primary failure signal is {failure}. Store {artifact}, the exact commands or worksheet values, exit or manager status, and timestamps. Evidence limit: this checkpoint explains {focus} for the stated disposable case; it does not prove production readiness, remote log delivery, cloud-product behavior, downstream transaction completion or one fulfillment per order unless those boundaries were separately observed.')
+)
+
+_diagnostic_phase_depth = (
+    'Boundary worksheet detail: record the host or local workspace, shell, current user, manager scope, namespace assumptions and object path before collecting evidence. For {subject}, write the expected identity as {identity}, then compare it with the observed identity rather than silently substituting the operator account. Mark unavailable values as unknown. This makes the stopping condition explicit: if the target, identity or scope differs, preserve the inventory and stop before applying a permission, signal or service change.',
+    'Control-path detail: express {control} as numbered transitions. For every transition identify the authority that accepts the input, the state it consults, the result it returns and the evidence source that can show that result. Separate configuration from runtime state: a unit file, mode string or shell command describes an intended control, while a PID-scoped record, return value or manager property describes one execution. The sequence is incomplete until both the forward action and the returned status are accounted for.',
+    'Comparison detail: repeat the comparison from a newly created disposable target and retain {artifact}. Establish {success} with a direct observation at the relevant boundary, then rerun the same observation without changing credentials or scope. Record environment-dependent output as illustrative until produced locally. A green application message is supporting context, not a replacement for the kernel, shell or manager result; likewise a manager result cannot establish a remote write or business fulfillment.',
+    'Failure-rehearsal detail: the bounded negative case should expose {failure} while leaving unrelated controls unchanged. Predict the exact return, status, missing record or timestamp difference before execution. Capture the prediction separately from the outcome, and restore only the lab-owned object after the evidence is saved. If the result contradicts the prediction, do not broaden permissions or escalate force; inspect the actual credentials, namespace, open descriptors, unit properties and log source until the mismatch is explained.',
+    'Correlation detail: build {artifact} without normalizing away raw status fields or timestamp precision. Order entries by an explicitly chosen clock and note any conversion from local time to UTC. Join records using the strongest available tuple—unit or command, PID, boot or workspace, object and bounded time window—because a repeated name alone can refer to a restarted process or rotated file. Preserve missing intervals as gaps; a missing record can indicate filtering, access, retention, routing or non-emission and does not select one cause.',
+    'Alternative-analysis detail: compare the leading explanation with at least two mechanisms that would produce similar symptoms. At {focus}, test a wrong identity or stale reference separately from a control failure, and test an evidence-collection gap separately from an absent event. Use the smallest read-only probe first. Select a root cause only when the observed transition explains both {failure} and the recovery to {success}; otherwise report the leading inference, the untested alternative and the next discriminating observation.',
+    'Decision detail: evaluate {tradeoff}. Record the blast radius, reversibility, least-privilege effect, operational ownership, detection signal and rollback trigger for the proposed control. Explain why the change addresses the failed transition rather than only suppressing its symptom. The design remains bounded: do not generalize a local systemd result to every image, a descriptor convention to a logging severity, an exit status to an out-of-memory diagnosis, or a graceful process exit to committed downstream work.',
+    'Closure detail: package {artifact} with a short claim that names the mechanism, observed identity, successful boundary and residual uncertainty. Acceptance is {success}; rejection includes {failure}. Re-run the original observation after recovery and compare it with the saved negative case. Retain exact commands, unedited output, exit or manager fields and timestamps long enough for review, then remove only disposable resources. State plainly that {tradeoff}; this residual decision belongs to the architecture owner rather than to the evidence collector.'
+)
+
+def _diagnostic_workbook(_profile):
+    _items = ''.join('<li><strong>' + _title + '.</strong> ' + _body.format(**_profile) + '<p>' + _depth.format(**_profile) + '</p></li>' for (_title, _body), _depth in zip(_diagnostic_phases, _diagnostic_phase_depth))
+    return '<section class="diagnostic-workbook"><p><strong>Architect diagnostic workbook.</strong> Use these checkpoints after the mechanism explanation. They preserve supplied facts, local observations, architectural inference and expected behavior as separate evidence classes.</p><ol>' + _items + '</ol></section>'
+
+for _topic in DATA['topics']:
+    for _anchor, _profile in _diagnostic_profiles.items():
+        if not _anchor.startswith(_topic['key'] + '-'):
+            continue
+        _pattern = r'(<h4 id="' + re.escape(_anchor) + r'">.*?)(?=<h4>|<table>|$)'
+        _topic['technical'] = re.sub(_pattern, lambda m, p=_profile: m.group(1) + _diagnostic_workbook(p), _topic['technical'], count=1, flags=re.S)
+
 from urllib.parse import quote_plus as _day006_quote
-_day006_terms = ('ACL', 'API', 'cgroups', 'chgrp', 'chmod', 'chown', 'Cloud Logging', 'Cloud Run', 'Compute Engine', 'copy-on-write', 'CPU', 'EACCES', 'Effective User ID', 'EGID', 'EUID', 'execve', 'Exit Status', 'file descriptor', 'File Descriptors', 'fork', 'FSGID', 'FSUID', 'GID', 'Group', 'I/O Redirection', 'IAM', 'idempotency', 'journalctl', 'Kernel Space', 'Linux permissions', 'Mode Bits', 'namespaces', 'Ops Agent', 'OS Login', 'Other', 'Owner', 'PID', 'pipefail', 'Pipelines', 'POSIX', 'Process', 'Process ID', 'Process supervision', 'procfs', 'SIGKILL', 'Signals', 'SIGPIPE', 'SIGTERM', 'sudo', 'Supplementary Groups', 'System Calls', 'systemd', 'systemd_journald', 'term1', 'term2', 'UID', 'Unit Files', 'User Space', 'VFS', 'Virtual File System')
+_day006_terms = ('ACL', 'API', 'cgroups', 'chgrp', 'chmod', 'chown', 'Cloud Logging', 'Cloud Run', 'Compute Engine', 'copy-on-write', 'CPU', 'EACCES', 'Effective User ID', 'EGID', 'EUID', 'execve', 'Exit Status', 'file descriptor', 'File Descriptors', 'fork', 'FSGID', 'FSUID', 'GID', 'Group', 'I/O Redirection', 'IAM', 'idempotency', 'journalctl', 'Kernel Space', 'Linux permissions', 'Mode Bits', 'namespaces', 'Ops Agent', 'OS Login', 'Other', 'Owner', 'PID', 'pipefail', 'Pipelines', 'POSIX', 'Process', 'Process ID', 'Process supervision', 'procfs', 'SIGKILL', 'Signals', 'SIGPIPE', 'SIGTERM', 'sudo', 'Supplementary Groups', 'System Calls', 'systemd', 'systemd_journald', 'UID', 'Unit Files', 'User Space', 'VFS', 'Virtual File System')
 def _day006_discovery(_content):
     _pattern = re.compile(r'(?<!\w)(?:' + '|'.join(re.escape(t) for t in sorted(_day006_terms, key=len, reverse=True)) + r')(?!\w)', re.I)
     _out, _stack, _used = [], [], set()
