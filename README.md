@@ -95,9 +95,13 @@ Follow BATCH_UPDATE_PROMPT.md as the canonical batch workflow. Read
 PAGE_AUTHORING_CONTRACT.md once as the stable rules prefix, instantiate the full
 DAY_WORKFLOW_PROMPT.md separately for every day, and author days strictly
 serially in fresh isolated contexts. Advance only after the current day passes
-all required gates. Stop at the first failed gate, contract-hash change,
-unresolved source/lab/diagram issue, my stated stop boundary, or Day END. Do not
-parallelize page authoring, combine page generation, defer per-day gates, or
+all required gates. On a failure, stop that command sequence at the first failed
+step. Within the current day, repair target-introduced validation, check, lab,
+page-rule, or gate failures, then rerun the required sequence until PASS; never
+advance while a check is failing. Stop the batch when a failure cannot be
+resolved safely, the contract hash changes, a source/lab/diagram issue remains
+unresolved, my stated stop boundary is reached, or the run reaches Day END. Do
+not parallelize page authoring, combine page generation, defer per-day gates, or
 silently skip a failed day.
 
 Commits are authorized. Commit each passing day separately.
