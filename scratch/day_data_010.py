@@ -3274,3 +3274,121 @@ for _t in DATA['topics'][1:]:
 DATA['topics'][2]['lab']['steps'][0] = DATA['topics'][2]['lab']['steps'][0].replace('command -v mkdir', 'command -v mkdir\ncommand -v sed')
 
 DATA['review_records']['source_ledger'][_SECTION_SOURCES['secret-rotation'][1]]['whole_document_reason'] = 'The Manage automatic secret rotation heading was opened and reviewed, but tested fragment variants were absent in fetched HTML. Cite the document root rather than retain an unverified section fragment.'
+
+# Replace the legacy flat topology with a true, ordered Day 10 lifecycle. The
+# compact renderer keeps every label above the 9px floor and makes the sequence
+# meaningful without relying on tier colors.
+DATA['arch_diagram'] = {
+    'flow': {
+        'title': 'Day 10 image-to-durable-runtime orchestration sequence',
+        'desc': 'A six-step sequence from an annotated Dockerfile through an OCI image and registry pull to a Pod write, fsync durability boundary, and controller replacement.',
+        'caption': 'Scope: a conceptual image, storage, and reconciliation sequence. It identifies ownership and durability boundaries but does not prove a live GKE deployment, storage latency, or application-level recovery.',
+        'nodes': [
+            {'id': 'dockerfile', 'label': 'Annotated Dockerfile', 'detail': 'Declares ordered build inputs and runtime metadata', 'icon': '../assets/icons/generic/artifact.svg'},
+            {'id': 'image', 'label': 'OCI image manifest and layers', 'detail': 'Immutable digests identify the packaged filesystem', 'icon': '../assets/icons/generic/artifact.svg'},
+            {'id': 'registry', 'label': 'Registry distribution', 'detail': 'The runtime resolves and pulls content by digest', 'icon': '../assets/icons/generic/storage.svg'},
+            {'id': 'pod', 'label': 'Pod writable layer and mount', 'detail': 'Ephemeral rootfs and mounted volume have different lifecycles', 'icon': '../assets/icons/generic/server.svg'},
+            {'id': 'flush', 'label': 'Application flush boundary', 'detail': 'flush plus fsync reports the local durability request result', 'icon': '../assets/icons/generic/decision.svg'},
+            {'id': 'replacement', 'label': 'Controller-created replacement Pod', 'detail': 'A new Pod UID can reattach durable state; the old writable layer is gone', 'icon': '../assets/icons/generic/outcome.svg'},
+        ],
+        'steps': [
+            {'from': 'dockerfile', 'to': 'image', 'label': '1. Build ordered filesystem layers'},
+            {'from': 'image', 'to': 'registry', 'label': '2. Push and address immutable content'},
+            {'from': 'registry', 'to': 'pod', 'label': '3. Pull layers and start the scheduled Pod'},
+            {'from': 'pod', 'to': 'flush', 'label': '4. Write through the mounted file descriptor'},
+            {'from': 'flush', 'to': 'replacement', 'label': '5. Confirm fsync, then replace the Pod'},
+        ],
+    }
+}
+
+# Use the compact incident-flow renderer instead of the legacy generated
+# five-node SVG. This preserves each scenario's causal sequence while avoiding
+# the renderer's 8px bracket labels.
+_INCIDENT_FLOWS = [
+    (
+        'Checkout marker durability incident sequence',
+        'A supplied rolling replacement exposes the difference between a container writable layer and a mounted, explicitly flushed file.',
+        [
+            ('trigger', 'Rolling replacement begins', 'The supplied checkout container is terminated', '../assets/icons/generic/event.svg'),
+            ('defect', 'Marker stored in ephemeral /tmp', 'The file is bound to the old container writable layer', '../assets/icons/generic/failure.svg'),
+            ('impact', 'Recovery marker disappears', 'A retry can repeat business fulfillment', '../assets/icons/generic/failure.svg'),
+            ('control', 'Mount volume and check fsync', 'The application handles flush errors before acknowledgement', '../assets/icons/generic/storage.svg'),
+            ('verify', 'Replacement reads marker', 'Verify one fulfillment per order from saved evidence', '../assets/icons/generic/outcome.svg'),
+        ],
+    ),
+    (
+        'Unschedulable replica capacity incident sequence',
+        'A supplied scale-out request exceeds allocatable requested memory; the local model predicts how a calibrated request and eligible capacity change placement.',
+        [
+            ('trigger', 'Desired replicas increase', 'The Deployment requests five replicas', '../assets/icons/generic/event.svg'),
+            ('defect', 'Requests exceed free allocatable memory', 'NodeResourcesFit rejects candidates in the model', '../assets/icons/generic/failure.svg'),
+            ('impact', 'Two replicas remain Pending', 'Existing replicas continue but desired capacity is unmet', '../assets/icons/generic/failure.svg'),
+            ('control', 'Calibrate requests and eligible nodes', 'Constraints must remain satisfiable after capacity changes', '../assets/icons/generic/decision.svg'),
+            ('verify', 'Model places all replicas', 'The result is predicted locally, not observed on GKE', '../assets/icons/generic/outcome.svg'),
+        ],
+    ),
+    (
+        'Service selector mismatch incident sequence',
+        'A supplied label mismatch produces no selected Pod endpoints; correcting the selector restores the modeled request path.',
+        [
+            ('trigger', 'Client request reaches ingress path', 'The route targets the inventory Service', '../assets/icons/generic/event.svg'),
+            ('defect', 'Service selector has a typo', 'No ready Pod label matches the selector', '../assets/icons/generic/failure.svg'),
+            ('impact', 'Endpoint set is empty', 'The request path cannot select a backend', '../assets/icons/generic/failure.svg'),
+            ('control', 'Align selector and Pod label', 'The controller can publish matching ready endpoints', '../assets/icons/generic/policy.svg'),
+            ('verify', 'Modeled request reaches one Pod', 'Local evidence does not prove a cloud load balancer path', '../assets/icons/generic/outcome.svg'),
+        ],
+    ),
+]
+for _topic, (_title, _caption, _nodes) in zip(DATA['topics'], _INCIDENT_FLOWS):
+    _topic['scenario']['flow'] = {
+        'title': _title,
+        'desc': _caption,
+        'caption': 'Supplied facts: the adjacent scenario identifies the provided inputs. Architectural inference: the middle steps explain the bounded causal model. Expected post-fix behavior: the final step states what verification should show. Evidence limit: this diagram is an explanatory sequence, not an observed production trace.',
+        'nodes': [
+            {'id': _id, 'label': _label, 'detail': _detail, 'icon': _icon}
+            for _id, _label, _detail, _icon in _nodes
+        ],
+        'steps': [
+            {'from': _nodes[_i][0], 'to': _nodes[_i + 1][0], 'label': str(_i + 1) + '. ' + _label}
+            for _i, _label in enumerate(('Trigger', 'Expose defect', 'Apply bounded control', 'Verify expected outcome'))
+        ],
+    }
+
+# Repair all instances of the three raw evidence-diagram geometry defects found
+# by the built-page checker. Nodes are widened; text remains complete.
+_evidence = DATA['topics'][0]['scenario']['evidence']
+_evidence = _evidence.replace('width="155" x="765" y="110"', 'width="200" x="760" y="110"')
+_evidence = _evidence.replace('x="849" y="138"', 'x="860" y="138"').replace('x="849" y="158"', 'x="860" y="158"').replace('x="849" y="178"', 'x="860" y="178"')
+DATA['topics'][0]['scenario']['evidence'] = _evidence
+
+_evidence = DATA['topics'][1]['scenario']['evidence']
+_evidence = _evidence.replace('width="155" x="765" y="110"', 'width="200" x="760" y="110"')
+_evidence = _evidence.replace('x="849" y="138"', 'x="860" y="138"').replace('x="849" y="158"', 'x="860" y="158"').replace('x="849" y="178"', 'x="860" y="178"')
+DATA['topics'][1]['scenario']['evidence'] = _evidence
+
+_evidence = DATA['topics'][2]['scenario']['evidence']
+_evidence = _evidence.replace('width="225" x="220" y="185"', 'width="270" x="195" y="185"')
+_evidence = _evidence.replace('x="228" y="193"', 'x="203" y="193"')
+_evidence = _evidence.replace('width="220" x="225" y="185"', 'width="270" x="195" y="185"')
+_evidence = _evidence.replace('x="233" y="193"', 'x="203" y="193"')
+_evidence = _evidence.replace('M445 227 L490 227', 'M465 227 L490 227')
+_evidence = _evidence.replace('width="155" x="765" y="110"', 'width="200" x="760" y="110"')
+_evidence = _evidence.replace('x="849" y="138"', 'x="860" y="138"').replace('x="849" y="158"', 'x="860" y="158"').replace('x="849" y="178"', 'x="860" y="178"')
+DATA['topics'][2]['scenario']['evidence'] = _evidence
+
+DATA['review_records']['visual_reasons'].update({
+    'Day 10: Container Storage Durability and Kubernetes Control Plane Topology': 'Replaced the legacy flat topology with an eligible ordered image-to-durable-runtime sequence; all explanatory boundaries remain in prose and node details.',
+    'Docker: Failure Cascade vs Corrected Control': 'Replaced the legacy generated incident SVG with a compact causal flow because its bracket labels were below the 9px minimum.',
+    'Container orchestration: Failure Cascade vs Corrected Control': 'Replaced the legacy generated incident SVG with a compact causal flow because its bracket labels were below the 9px minimum.',
+    'Kubernetes core objects: Failure Cascade vs Corrected Control': 'Replaced the legacy generated incident SVG with a compact causal flow because its bracket labels were below the 9px minimum.',
+    'Ephemeral container layer data loss and persistent-volume correction': 'Widened the verification node and recentered its complete labels to clear the node border.',
+    'Deployment scale-out failure under node memory exhaustion': 'Widened the verification node and recentered its complete labels to clear the node border.',
+    'Service selector label mismatch causing empty endpoints': 'Widened the corrected-control and verification nodes and moved the control icon to clear complete labels.',
+    'Day 10 image-to-durable-runtime orchestration sequence': 'Added as the eligible ordered replacement for the legacy flat topology; it preserves image, mount, fsync, and replacement boundaries.',
+    'Checkout marker durability incident sequence': 'Added as the readable causal replacement for the legacy generated Docker incident diagram.',
+    'Unschedulable replica capacity incident sequence': 'Added as the readable causal replacement for the legacy generated orchestration incident diagram.',
+    'Service selector mismatch incident sequence': 'Added as the readable causal replacement for the legacy generated core-object incident diagram.',
+    'Ephemeral container layer data loss and persistent volume fix': 'Widened and recentered the verification node so its complete labels clear the border.',
+    'Deployment scale-out failure under node capacity exhaustion': 'Widened and recentered the verification node so its complete labels clear the border.',
+    'Service selector label mismatch causing zero backend endpoints': 'Widened the corrected-control and verification nodes and moved the control icon so complete labels clear icons and borders.',
+})
