@@ -1,10 +1,10 @@
 """Durable data specification for Day 9: VM and container isolation."""
 
-ACCESS_DATE = '2026-10-04'
+ACCESS_DATE = '2026-11-04'
 
-SOURCES = {'topic-01': ('Linux Kernel KVM API General Description (accessed 2026-10-04)', 'https://docs.kernel.org/virt/kvm/api.html#general-description'), 'topic-02': ('namespaces(7) Linux namespaces overview description (accessed 2026-10-04)', 'https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION')}
+SOURCES = {'topic-01': ('Linux Kernel KVM API General Description (accessed 2026-11-04)', 'https://docs.kernel.org/virt/kvm/api.html#general-description'), 'topic-02': ('Linux Kernel Control Group v2 — Introduction (accessed 2026-11-04)', 'https://docs.kernel.org/admin-guide/cgroup-v2.html#introduction')}
 
-DATA = { 'access_date': '2026-10-04',
+DATA = { 'access_date': '2026-11-04',
   'arch_diagram': {
       'type': 'topology',
       'title': 'Day 9: Hardware-Assisted Hypervisor and Kernel Namespace Isolation Architecture',
@@ -88,7 +88,7 @@ DATA = { 'access_date': '2026-10-04',
                 'virtualization extensions where a hypervisor intercepts privileged CPU operations and virtualizes '
                 'physical memory through Extended Page Tables (EPT), granting each guest operating system a completely '
                 'sovereign kernel space. In contrast to containers that multiplex a single shared kernel, a virtual '
-                'machine provides an impenetrable cryptographic and architectural isolation boundary backed by '
+                'machine provides a hardware-enforced isolation boundary backed by '
                 'independent virtual hardware registers, device emulators, and guest drivers.</p>\n'
                 '<p><strong class="side-heading">Why today:</strong> Cloud architects must rigorously determine when '
                 'legacy enterprise software, custom kernel drivers, or regulatory compliance mandates require the '
@@ -138,10 +138,10 @@ DATA = { 'access_date': '2026-10-04',
   'roadmap_exit': 'An isolation worksheet distinguishing resource enforcement from security isolation.',
   'roadmap_practice': "Inspect a local container's namespaces, cgroup limits and user identity; compare its isolation "
                       'boundary with a VM diagram.',
-  'sources': { 'topic-01': ( 'Linux Kernel KVM API General Description (accessed 2026-10-04)',
+  'sources': { 'topic-01': ( 'Linux Kernel KVM API General Description (accessed 2026-11-04)',
                              'https://docs.kernel.org/virt/kvm/api.html#general-description'),
-               'topic-02': ( 'namespaces(7) Linux namespaces overview description (accessed 2026-10-04)',
-                             'https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION')},
+               'topic-02': ( 'Linux Kernel Control Group v2 — Introduction (accessed 2026-11-04)',
+                             'https://docs.kernel.org/admin-guide/cgroup-v2.html#introduction')},
   'topics': [ { 'anchors': { 'lab': 'topic-01-lab',
                              'overview': 'topic-01-overview',
                              'problem': 'topic-01-problem',
@@ -333,7 +333,7 @@ DATA = { 'access_date': '2026-10-04',
                                     'print("-" * 65)\n'
                                     'for w in workloads:\n'
                                     '    c_ram = w["memory_mb"]\n'
-                                    '    vm_ram = c_ram + 768  # 768 MB guest OS kernel + systemd overhead\n'
+                                    '    vm_ram = c_ram + 768  # worksheet assumption, not a measured platform value\n'
                                     '    ratio = vm_ram / c_ram\n'
                                     '    print(f"{w[\'id\']:<16} | {c_ram:>4} MB        | {vm_ram:>4} MB          | '
                                     '{ratio:>4.1f}x")\n'
@@ -342,8 +342,8 @@ DATA = { 'access_date': '2026-10-04',
                                     'cat scratch/day09_lab_a/stage5.log\n'
                                     '```\n'
                                     '\n'
-                                    '**Expected result:** Output displays a side-by-side memory footprint comparison '
-                                    'highlighting the 2.5x to 4x memory overhead factor of dedicated VMs.\n'
+                                    '**Expected result:** Output displays a side-by-side worksheet calculation using '
+                                    'the explicit 768 MB guest-overhead assumption; it is not a measured platform value.\n'
                                     '\n'
                                     '**Save:** `scratch/day09_lab_a/stage5.log`',
                                     '**Stage 6: Challenge the Boundary with a Privileged Container Antipattern**\n'
@@ -431,7 +431,7 @@ DATA = { 'access_date': '2026-10-04',
                                     'print("=== FINAL ARCHITECTURAL WORKLOAD PLACEMENT REPORT ===")\n'
                                     'for w in workloads:\n'
                                     '    decision = decide_placement(w)\n'
-                                    '    print(f"Workload: {w["name"]} ({w["id"]}) -> Recommendation: {decision}")\n'
+                                    '    print("Workload: {} ({}) -> Recommendation: {}".format(w["name"], w["id"], decision))\n'
                                     "' > scratch/day09_lab_a/final_report.txt\n"
                                     'cat scratch/day09_lab_a/final_report.txt\n'
                                     '```\n'
@@ -448,7 +448,7 @@ DATA = { 'access_date': '2026-10-04',
                             'hypervisor intercepts privileged CPU operations and virtualizes physical memory through '
                             'Extended Page Tables (EPT), granting each guest operating system a completely sovereign '
                             'kernel space. In contrast to containers that multiplex a single shared kernel, a virtual '
-                            'machine provides an impenetrable cryptographic and architectural isolation boundary '
+                            'machine provides a hardware-enforced isolation boundary '
                             'backed by independent virtual hardware registers, device emulators, and guest drivers.',
                 'preview': 'A third-party enterprise tax calculator requires a proprietary kernel module that fails to '
                            'load on a shared container cluster due to dropped module insertion privileges. The team '
@@ -462,7 +462,7 @@ DATA = { 'access_date': '2026-10-04',
                                'What architectural threat vectors exist when userspace device emulation (QEMU/VMM) '
                                'mediates I/O between guest kernels and physical host hardware?'],
                 'reference': 'https://docs.kernel.org/virt/kvm/api.html#general-description',
-                'reference_label': 'Linux Kernel KVM API General Description (accessed 2026-10-04)',
+                'reference_label': 'Linux Kernel KVM API General Description (accessed 2026-11-04)',
                 'scenario': { 'constraints': 'GKE worker nodes run an immutable, locked-down Linux kernel where '
                                              'arbitrary module loading is disabled; granting containers privileged '
                                              'security contexts violates company-wide security guardrails; the vendor '
@@ -930,7 +930,7 @@ DATA = { 'access_date': '2026-10-04',
                              'violating enterprise security policies. The architect correctly migrates the payment '
                              'gateway to a dedicated Compute Engine VM running Debian with a sovereign guest kernel. '
                              'The guest kernel loads <kbd>hsm_crypto.ko</kbd> into its own virtualized Ring 0 space '
-                             'without touching the host hypervisor, successfully satisfying vendor requirements while '
+                             'without requiring modification of the shared host kernel, satisfying the fixture requirements while '
                              'preserving strict cryptographic boundary separation.</p>\n'
                              '\n'
                              '<p><strong class="side-heading">Evidence limit:</strong> Observing successful execution '
@@ -1311,8 +1311,8 @@ DATA = { 'access_date': '2026-10-04',
                                'of host-level physical RAM availability?',
                                'In what ways do seccomp-BPF filters and dropped POSIX capabilities reduce kernel '
                                'attack surfaces for containerized root processes?'],
-                'reference': 'https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION',
-                'reference_label': 'namespaces(7) Linux namespaces overview description (accessed 2026-10-04)',
+                'reference': 'https://docs.kernel.org/admin-guide/cgroup-v2.html#introduction',
+                'reference_label': 'Linux Kernel Control Group v2 — Introduction (accessed 2026-11-04)',
                 'scenario': { 'constraints': 'The Kubernetes pod deployment specifies a memory limit of 512 MiB '
                                              '(resources.limits.memory: "512Mi"); the node host operating system has '
                                              'ample unallocated memory; application invoicing logic generates '
@@ -1329,7 +1329,7 @@ DATA = { 'access_date': '2026-10-04',
                                            'In-memory PDF rasterization buffers 640 MB in heap',
                                            'cgroup memory.max breached triggering SIGKILL 137 OOM termination',
                                            'Refactor to chunked stream I/O and calibrate cgroup limit to 1024 MB',
-                                           'Peak working set capped at 280 MB; zero OOM kills observed'),
+                                           'Peak working set capped at 280 MB; zero OOM kills expected in bounded replay'),
                               'diagram_enabled': True,
                               'evidence': 'Reviewing Kubernetes pod status reveals "OOMKilled: true, ExitCode: 137". '
                                           'Checking the container cgroups v2 telemetry under /sys/fs/cgroup reveals '
@@ -1549,11 +1549,11 @@ DATA = { 'access_date': '2026-10-04',
                              'Monitoring) rather than host-wide metrics to diagnose throttling and OOM terminations '
                              'accurately.</p>\n'
                              '<p><strong class="side-heading">Relevance to GCP:</strong> Modern GKE clusters running '
-                             'Container-Optimized OS (COS) with containerd utilize cgroups v2 by default. GKE '
-                             'translates Pod CPU and memory limits directly into cgroups v2 filesystem entries under '
-                             '<kbd>/sys/fs/cgroup/kubepods.slice/</kbd>. Google Cloud Monitoring integrates cgroup '
-                             'metrics directly into GKE observability dashboards, exposing container CPU throttling '
-                             'percentages and memory utilization against defined resource limits.</p>\n'
+                             'Container-Optimized OS (COS) nodes enforce Pod CPU and memory controls through the Linux '
+                             'cgroup mechanism selected by the node image and Kubernetes version. Architects must '
+                             'inspect the actual node hierarchy rather than assume a fixed cgroup mode or filesystem '
+                             'path; Google Cloud Monitoring exposes container resource metrics for comparison with '
+                             'declared requests and limits.</p>\n'
                              '\n'
                              '<h4>Seccomp (Secure Computing Mode) System Call Filtering and BPF Profiles</h4>\n'
                              '<p><strong class="side-heading">What it is in general:</strong> <strong '
@@ -1574,15 +1574,13 @@ DATA = { 'access_date': '2026-10-04',
                              'Nearly all kernel privilege escalation CVEs involve obscure, legacy, or poorly tested '
                              'system calls (e.g., <kbd>bpf()</kbd>, <kbd>userfaultfd()</kbd>, <kbd>keyctl()</kbd>). By '
                              'applying a strict seccomp profile that blocks non-essential system calls, architects '
-                             'eliminate over 80% of potential kernel attack surfaces, ensuring that even if an '
+                             'reduce the reachable kernel attack surface, so arbitrary code execution inside a '
                              'attacker achieves arbitrary code execution inside a container, they cannot trigger '
                              'vulnerabilities in dormant kernel code paths.</p>\n'
                              '<p><strong class="side-heading">Relevance to GCP:</strong> GKE deploys with the default '
-                             'Docker/containerd seccomp profile enabled across all node pools, which blocks '
-                             'approximately 60 hazardous system calls (including <kbd>sys_chroot</kbd>, '
-                             '<kbd>kcmp</kbd>, and <kbd>mount</kbd>). For workloads with elevated compliance '
-                             'requirements, GKE supports custom seccomp profiles deployed via the Kubernetes Security '
-                             'Profiles Operator (SPO) or GKE node image customization.</p>\n'
+                             'Kubernetes supports selecting runtime-default or local seccomp profiles through a Pod '
+                             'security context. Architects must inspect the effective profile on the target GKE node '
+                             'pool and test required system calls rather than assume a universal blocked-call count.</p>\n'
                              '\n'
                              '<h4>POSIX Capabilities and Least-Privilege Process Execution</h4>\n'
                              '<p><strong class="side-heading">What it is in general:</strong> Traditional UNIX '
@@ -1779,7 +1777,7 @@ DATA = { 'access_date': '2026-10-04',
                              '\n'
                              '<p><strong class="side-heading">Concrete example:</strong> Consider a production '
                              'document processing container running on GKE that generates PDF reports. The container '
-                             'is configured with a cgroups v2 memory limit of 512 MB (<kbd>memory.max = '
+                             'is configured in this worked example with a cgroups v2 memory limit of 512 MB (<kbd>memory.max = '
                              '536870912</kbd>). When an unexpected batch of 50 complex architectural diagrams is '
                              'queued, the application attempts to buffer uncompressed raster images in memory, driving '
                              'memory usage up to 513 MB. The host server possesses 64 GB of physical RAM with 48 GB '
@@ -1789,12 +1787,12 @@ DATA = { 'access_date': '2026-10-04',
                              '<kbd>/sys/fs/cgroup/memory.events</kbd>, and records exit code 137 in Kubernetes. The '
                              'architect refactors the application to stream document generation directly to Cloud '
                              'Storage via chunked byte buffers, capping active working set memory at 180 MB and '
-                             'eliminating OOM kills without requiring costly VM resizing.</p>\n'
+                             'with the expected result of avoiding cgroup OOM kills without resizing the host VM.</p>\n'
                              '\n'
                              '<p><strong class="side-heading">Evidence limit:</strong> Inspecting namespace links in '
-                             '<kbd>/proc/$$/ns/</kbd> and confirming zero dropped capabilities in '
-                             '<kbd>/proc/$$/status</kbd> proves that a container process is executing within '
-                             'restricted visibility and privilege contexts; it does not prove complete security '
+                             '<kbd>/proc/$$/ns/</kbd> and recording capability masks in '
+                             '<kbd>/proc/$$/status</kbd> documents the process context visible to this local inspection; '
+                             'it does not prove complete security '
                              'against side-channel microarchitectural attacks (such as cache timing or branch '
                              'prediction leaks) on shared CPU cores without hardware-enforced CPU core pinning and '
                              'hypervisor or sandboxed kernel boundaries.</p>\n',
@@ -1891,9 +1889,296 @@ _t1 = DATA['topics'][1]
 _t1['technical'] = _t1['technical'].replace(
     '<h4>Control Groups v2 (cgroups v2) Resource Accounting and Quota Limits</h4>',
     '<ul>\n'
-    '<li><strong class="side-heading">User namespace UID mapping and rootless container isolation:</strong> Rootless containers decouple container administration from physical host root by executing the container runtime entirely in an unprivileged user namespace. The Linux kernel remaps container UID 0 to an unallocated host UID (such as UID 100000 defined in <kbd>/etc/subuid</kbd>) using the <kbd>/proc/[pid]/uid_map</kbd> translation file. While an application inside the container possesses effective root privileges within its private namespace, any system call that escapes the container boundary arrives at the host kernel as an unprivileged process (UID 100000), blocking write operations to host filesystems and preventing host kernel compromise. In Google Cloud, Cloud Run and GKE utilize user namespace isolation to safely execute multi-tenant container workloads.</li>\n'
+    '<li><strong class="side-heading">User namespace UID mapping and rootless container isolation:</strong> Rootless containers decouple container administration from physical host root by executing the container runtime in an unprivileged user namespace. The Linux kernel can map container UID 0 to a subordinate host UID range defined in <kbd>/etc/subuid</kbd>, with the active translation recorded in <kbd>/proc/[pid]/uid_map</kbd>. The mapping reduces the host privileges attached to container UID 0, but it does not by itself prevent kernel vulnerabilities or unsafe host-resource exposure; architects must combine it with namespaces, capabilities, seccomp, and workload-specific sandboxing.</li>\n'
     '</ul>\n\n'
     '<h4>Control Groups v2 (cgroups v2) Resource Accounting and Quota Limits</h4>',
+    1
+)
+
+# 2a. Same-day Study expansions: worked VM and container mechanism traces.
+def _worked_subtopic(title, general, architect, gcp, trace_rows, example, evidence):
+    rows = ''.join(
+        '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(*row)
+        for row in trace_rows
+    )
+    return (
+        '<h4>' + title + '</h4>\n'
+        '<p><strong class="side-heading">What it is in general:</strong> ' + general + '</p>\n'
+        '<p><strong class="side-heading">Relevance to a cloud architect:</strong> ' + architect + '</p>\n'
+        '<p><strong class="side-heading">Relevance to GCP:</strong> ' + gcp + '</p>\n'
+        '<div class="topic-card"><table><caption>' + title + ' — mechanism trace</caption>'
+        '<thead><tr><th>Step or state</th><th>Owner</th><th>Observable evidence</th><th>Decision or failure signal</th></tr></thead>'
+        '<tbody>' + rows + '</tbody></table></div>\n'
+        '<p><strong class="side-heading">Concrete example:</strong> ' + example + '</p>\n'
+        '<p><strong class="side-heading">Evidence limit:</strong> ' + evidence + '</p>\n'
+    )
+
+_vm_expansions = ''.join([
+    _worked_subtopic(
+        'From /dev/kvm to a running virtual CPU',
+        'A KVM virtual machine begins as a userspace process that opens <kbd>/dev/kvm</kbd>, checks the API version, creates a virtual-machine file descriptor, registers guest memory, creates one or more virtual CPU file descriptors, initializes register state, and repeatedly enters the <kbd>KVM_RUN</kbd> ioctl. The guest does not become a second host kernel process merely because it executes privileged instructions: CPU virtualization keeps guest state in a hardware control structure and returns control to the host on configured exits. Device emulation, interrupt injection, timers, and lifecycle coordination remain responsibilities of the userspace virtual machine monitor. This sequence explains what a VM actually is operationally: host-owned process and memory objects plus hardware-managed guest execution state, not a miniature physical server hidden from the host.',
+        'The lifecycle identifies ownership boundaries. Platform teams own host scheduling, memory backing, virtual devices, and stop/start operations; guest teams own the guest kernel, services, filesystems, and application configuration. An architect should ask which failure domain produced the evidence before changing capacity: a guest panic, a virtual device timeout, a host scheduling delay, and a management-plane stop can all present as an unavailable instance but require different remediation. The sequence also clarifies why guest root is powerful inside the VM yet does not automatically control the host.',
+        'Compute Engine exposes the instance as a managed VM while keeping the physical host and hypervisor outside the customer administration boundary. Inside the instance, guest-visible evidence includes CPU topology, kernel logs, device identifiers, and service state. Outside the guest, instance state, serial-port output, monitoring, and platform operation records provide a separate view. The learner must correlate these views without claiming access to Google-managed host internals or treating a guest observation as proof of physical-host behavior.',
+        [
+            ('Open KVM subsystem', 'Host VMM process', '<kbd>open("/dev/kvm")</kbd> result', 'Failure means KVM is unavailable or access is denied'),
+            ('Create VM descriptor', 'KVM kernel API', '<kbd>KVM_CREATE_VM</kbd> return value', 'Descriptor scopes later VM-specific ioctls'),
+            ('Register guest memory', 'VMM plus host memory manager', 'Userspace address and guest-physical slot', 'Invalid mapping prevents guest memory access'),
+            ('Create vCPU', 'KVM and host scheduler', 'vCPU file descriptor and thread', 'Thread placement affects scheduling latency'),
+            ('Initialize registers', 'VMM', 'General, control, and special-register state', 'Incorrect boot state stops before guest kernel entry'),
+            ('Enter guest', 'CPU virtualization hardware', '<kbd>KVM_RUN</kbd> and guest instruction progress', 'Configured event causes VM exit'),
+            ('Handle exit', 'KVM or userspace VMM', 'Exit reason and emulated action', 'Unexpected exit rate indicates workload or device pressure'),
+            ('Resume or stop', 'VMM lifecycle controller', 'Next run-loop entry or clean shutdown', 'Preserve guest and platform evidence separately')
+        ],
+        'A local teaching VMM creates one vCPU and maps a small guest-physical region. A failed <kbd>KVM_CREATE_VM</kbd> call is host-side evidence; a guest boot message after <kbd>KVM_RUN</kbd> is guest-side evidence. The worksheet records both and refuses to infer Compute Engine host implementation details from either observation.',
+        'The KVM API trace explains a general Linux virtualization mechanism and can be observed only on a host that exposes KVM. It does not demonstrate Google Cloud host code, physical CPU allocation, tenant placement, or a production Compute Engine failure.'
+    ),
+    _worked_subtopic(
+        'Two-stage address translation and guest memory ownership',
+        'A process inside a guest produces a guest virtual address. The guest kernel page tables translate that address to a guest physical address, and the hypervisor-managed second stage translates the guest physical address to host physical memory. Intel Extended Page Tables and AMD nested page tables allow hardware to cache the combined translation in the translation lookaside buffer. A miss can therefore require walks through both page-table structures. The guest owns its first-stage mappings and permissions; the host owns the backing memory, second-stage mappings, reclamation policy, and isolation between virtual machines. A guest page marked writable cannot bypass a read-only or absent second-stage mapping.',
+        'This ownership split matters when diagnosing memory symptoms. A guest out-of-memory event is not the same as a host capacity event, and guest free-memory output cannot prove that host backing is immediately available. Architects should separate allocation promises, guest working set, page-cache behavior, ballooning or reclamation, and second-stage translation overhead. Huge pages can reduce translation pressure but introduce allocation, fragmentation, and operational trade-offs. Memory encryption or confidential-computing features add another boundary and must not be inferred from ordinary page-table observations.',
+        'Compute Engine customers size guest memory through machine types and observe the guest operating system plus Cloud Monitoring metrics available to them. They do not administer the host page tables. A sound design records guest memory pressure, application allocation behavior, and instance-level metrics, then treats host backing and physical placement as provider-owned. Claims about Confidential VM encryption, live migration, or physical NUMA placement require their own product documentation and cannot be derived from the generic KVM memory path.',
+        [
+            ('Application load/store', 'Guest process', 'Guest virtual address and application profile', 'Page fault if guest mapping is absent'),
+            ('First-stage lookup', 'Guest kernel and MMU', 'Guest page tables', 'Guest permissions may deny access'),
+            ('Guest physical address', 'Guest kernel abstraction', 'GPA visible to guest kernel tooling', 'Not a host physical address'),
+            ('Second-stage lookup', 'Hypervisor and MMU', 'EPT or nested-page-table entry', 'Missing mapping exits or faults to host'),
+            ('Host backing page', 'Host memory manager', 'Provider-owned mapping', 'Guest cannot directly identify physical placement'),
+            ('Combined TLB entry', 'Processor', 'Performance counters where exposed', 'Miss increases translation work'),
+            ('Dirty/accessed state', 'Guest and host memory subsystems', 'Layer-specific counters', 'Do not merge layer meanings'),
+            ('Reclaim or termination', 'Owning memory layer', 'Guest OOM, balloon action, or platform event', 'Diagnose the layer before resizing')
+        ],
+        'A database reports a guest page fault spike while instance-level memory remains within its configured size. The architect first checks guest working-set growth and page-table activity, then storage latency and application allocation. The team does not label the symptom a physical-host shortage because no host evidence was supplied.',
+        'Guest metrics and a conceptual EPT trace establish how translations are expected to compose. They do not reveal the provider host page tables, physical DIMM location, cache residency, or another tenant’s memory behavior.'
+    ),
+    _worked_subtopic(
+        'Virtual CPU scheduling, exits, and overcommit signals',
+        'A vCPU is execution state scheduled by the host, commonly represented by a host thread. While the thread is running in guest mode, ordinary guest instructions can execute directly. Configured privileged operations, interrupts, I/O events, or unsupported conditions cause a VM exit so KVM or the userspace VMM can handle the event. The host scheduler can deschedule the vCPU thread just like other runnable work. Guest CPU utilization measures work from the guest perspective, whereas steal time or platform scheduling metrics describe time the guest expected to run but did not. A high exit rate, lock contention, and host scheduling delay are distinct mechanisms even when application latency rises.',
+        'Architects need this model for latency-sensitive placement and capacity decisions. Adding vCPUs can reduce queueing when work is parallel, but it can also increase lock contention, cross-NUMA traffic, or licensing cost. CPU pinning and dedicated placement trade flexibility for predictability. Nested virtualization inserts another scheduling and exit boundary: an L2 guest’s privileged event may traverse L1 and L0 controls, so performance results must name the layer under test. A capacity recommendation should use measured runnable queues and service latency rather than assuming every busy vCPU requires a larger machine.',
+        'Compute Engine machine series expose documented vCPU counts and performance characteristics, but guest observations do not prove a fixed mapping to physical cores. The design should use product-specific documentation for sustained-use behavior, nested-virtualization support, and sole-tenancy or placement options. In this lesson, the GCP relevance is the diagnostic separation between guest CPU evidence, instance monitoring, and provider-owned host scheduling—not an assertion about a particular fleet scheduler.',
+        [
+            ('Guest thread becomes runnable', 'Guest scheduler', 'Guest run queue and process state', 'Application may be CPU-bound or blocked'),
+            ('vCPU thread runnable', 'Host scheduler', 'Host-side state when locally observable', 'Guest cannot normally see full host queue'),
+            ('Guest entry', 'KVM and processor', 'Run-loop transition', 'Direct execution begins'),
+            ('Timer or interrupt', 'Virtual interrupt controller', 'Guest interrupt counters', 'Delivery latency affects tail response'),
+            ('Privileged operation', 'Guest kernel and CPU', 'VM-exit reason', 'Frequent exits can add overhead'),
+            ('Exit handling', 'KVM or VMM', 'Handler duration', 'Device or emulation path may dominate'),
+            ('Host deschedule', 'Host scheduler', 'Steal or scheduling evidence where exposed', 'Do not confuse with guest idle time'),
+            ('Service completion', 'Guest application', 'Request latency and throughput', 'Correlate rather than infer causality')
+        ],
+        'A synthetic service shows 90% guest CPU and rising request latency. The worksheet compares guest run queues, application lock profiles, and any exposed scheduling indicators. It recommends a scale test and identifies which measurements would distinguish useful parallelism from host scheduling delay or VM-exit overhead.',
+        'A guest benchmark can measure application throughput and guest-visible counters. Without host or platform evidence it cannot prove overcommit, physical-core sharing, scheduler policy, or the cause of a transient latency spike.'
+    ),
+    _worked_subtopic(
+        'Virtual devices, virtio queues, and the IOMMU boundary',
+        'A virtual machine needs storage, networking, console, clock, and interrupt devices. Full emulation reproduces a hardware interface in the VMM, while paravirtualized virtio devices present an interface designed for efficient guest-host cooperation. The guest driver places descriptors in shared virtqueues, notifies the device backend, and later consumes completions. Memory used for direct device access must be constrained so a device or guest cannot DMA into unrelated host or tenant memory; an input/output memory management unit supplies that translation and protection boundary for passthrough designs. Device reset, queue ownership, interrupt routing, and completion ordering are therefore part of isolation as well as performance.',
+        'The path explains why a VM can be CPU-healthy yet I/O-stalled. Architects should identify the guest driver, queue depth, backend, storage or network service, and completion signal before blaming the hypervisor. Passthrough reduces emulation overhead but narrows mobility and management options; emulation improves compatibility but increases code and exit paths; virtio balances performance with a stable paravirtual contract. Security review must include malformed descriptors, backend privilege, DMA mapping, and reset behavior rather than treating the CPU boundary as the whole VM security story.',
+        'Compute Engine exposes supported virtual device interfaces through guest operating system drivers and documented machine or disk capabilities. Customers can inspect guest driver state and service metrics but cannot observe provider backend processes directly. The appropriate GCP decision is to select supported images and drivers, use documented device features, and preserve guest plus service evidence. This lesson does not assign a particular Google backend implementation to every device path.',
+        [
+            ('Application issues I/O', 'Guest process', 'System call and application trace', 'Request may block or queue'),
+            ('Guest kernel builds request', 'Guest driver', 'Block or network queue state', 'Driver errors remain guest-side evidence'),
+            ('Descriptor published', 'Guest virtio driver', 'Virtqueue indices', 'Malformed or full ring prevents progress'),
+            ('Backend notified', 'Virtual device transport', 'Kick or exit where observable', 'Notification batching changes latency'),
+            ('Backend performs work', 'VMM or provider service', 'Service metric or local backend trace', 'Backend is outside guest ownership'),
+            ('DMA mapping enforced', 'IOMMU and host', 'Mapping policy when locally observable', 'Prevents access outside assigned memory'),
+            ('Completion posted', 'Backend and interrupt path', 'Used-ring entry and interrupt', 'Lost completion appears as guest timeout'),
+            ('Guest wakes caller', 'Guest kernel', 'Completed system call', 'End-to-end latency spans every owner')
+        ],
+        'A VM sees storage latency with low guest CPU. The investigation records application I/O latency, guest block queue depth, driver messages, and disk-service metrics. It does not claim a hypervisor defect merely because the guest waits; the worksheet marks the backend and physical path as unknown until supported evidence exists.',
+        'Guest queue and driver observations locate delay within the guest-visible portion of the path. They do not expose provider backend code, physical device firmware, IOMMU configuration, or another tenant’s traffic.'
+    ),
+    _worked_subtopic(
+        'Type 1 and Type 2 failure ownership in a placement decision',
+        'The Type 1 and Type 2 labels describe where the virtualization layer sits relative to hardware and a general-purpose host operating system, but they do not replace a failure-domain analysis. A hosted development hypervisor depends on the host desktop kernel, drivers, power policy, and user session. A bare-metal cloud hypervisor removes that desktop ownership model, yet still has firmware, management, virtual-device, and provider-control layers. In both cases the guest retains its own kernel and userspace. The useful comparison is therefore not “secure versus insecure” but which owner configures, observes, patches, and recovers each layer.',
+        'Architects should match workload requirements to the boundary: kernel modules, operating-system choice, boot controls, licensing, recovery objectives, and untrusted-code exposure. A VM can satisfy guest-kernel autonomy while still requiring image patching and application hardening. A local Type 2 VM can reproduce guest behavior but is not performance or availability evidence for a cloud Type 1 platform. The worksheet should identify portability assumptions and name every untested provider behavior.',
+        'For Compute Engine, Google owns the physical host and virtualization platform while the customer owns the guest according to the service responsibility model. Product features such as Shielded VM, Confidential VM, live migration, sole tenancy, and nested virtualization must be evaluated from their current documentation. This subtopic uses the generic boundary model only to frame those later product decisions.',
+        [
+            ('Physical firmware', 'Device or cloud provider', 'Attestation or provider evidence if offered', 'Guest logs do not prove firmware state'),
+            ('Host or hypervisor', 'Desktop owner or cloud provider', 'Local host logs or provider operation status', 'Ownership differs by deployment model'),
+            ('Virtual hardware', 'Hypervisor/VMM owner', 'Guest device enumeration', 'Enumeration proves interface, not backend design'),
+            ('Guest boot chain', 'Guest image owner', 'Boot and integrity records', 'Unsigned or incompatible module can fail'),
+            ('Guest kernel', 'Customer or image publisher', 'Kernel logs and package state', 'Patch responsibility remains explicit'),
+            ('Guest services', 'Application team', 'Service health and configuration', 'A healthy VM is not a healthy application'),
+            ('Recovery operation', 'Layer owner', 'Snapshot, restart, rebuild, or provider event', 'Choose action at the failed layer'),
+            ('Acceptance evidence', 'Architecture team', 'Layered worksheet', 'Unknown layers remain unknown')
+        ],
+        'A vendor driver requires a specific guest kernel. The placement record selects a VM because guest-kernel control is necessary, then separately records image patching, boot validation, availability design, and the fact that the local hosted-hypervisor test did not validate Compute Engine performance.',
+        'The ownership table is an architectural model. It does not prove the security, availability, or implementation of a named hypervisor product without product-specific evidence.'
+    ),
+    _worked_subtopic(
+        'Guest boot, kernel autonomy, and boundary evidence',
+        'A virtual machine boot crosses several contracts: virtual firmware selects boot media, a bootloader loads a guest kernel and initial filesystem, the guest kernel initializes its own scheduler and drivers, and the service manager starts userspace. Kernel autonomy means the guest controls those guest-layer choices within the virtual hardware interface. It does not mean the guest controls the hypervisor, physical firmware, host scheduler, or provider management plane. A boot record must therefore name the layer that emitted it. Virtual firmware messages, bootloader output, kernel messages, system-service status, and platform operation state are complementary evidence rather than interchangeable proof.',
+        'This trace helps architects choose images, recovery methods, and patch ownership. A kernel module failure may require a compatible guest kernel, signed module, or boot-policy change; it does not justify weakening the host boundary. A service start failure belongs above the kernel even when the VM is running. Image rollback, serial-console capture, immutable image replacement, and in-place repair have different recovery and audit properties. The design should define which team owns each artifact and when a failed VM is repaired versus rebuilt.',
+        'Compute Engine exposes guest startup and serial evidence plus instance lifecycle information, while Google retains the physical host. Shielded VM and Confidential VM add documented controls, but their presence cannot be inferred from a generic KVM trace. This lesson uses guest boot evidence to demonstrate autonomy and responsibility; product eligibility, defaults, and attestation procedures remain subject to current Google Cloud documentation.',
+        [
+            ('Virtual firmware starts', 'Virtual platform', 'Firmware or serial output', 'Failure precedes guest kernel'),
+            ('Boot target selected', 'Firmware and boot policy', 'Selected disk or network target', 'Wrong target can mimic missing OS'),
+            ('Bootloader runs', 'Guest image owner', 'Bootloader output and configuration', 'Signature or configuration failure stops kernel load'),
+            ('Guest kernel loads', 'Guest OS owner', 'Kernel version and command line', 'Module and driver compatibility begin here'),
+            ('Root filesystem mounted', 'Guest kernel', 'Mount and storage-driver evidence', 'Missing device or filesystem blocks userspace'),
+            ('Service manager starts', 'Guest userspace owner', 'Unit state and dependency logs', 'VM can be healthy while service fails'),
+            ('Application accepts work', 'Application team', 'Bound port and synthetic response', 'Application success is above VM boot'),
+            ('Evidence classified', 'Architecture team', 'Layer, source, timestamp, and confidence', 'Do not infer host state from guest logs')
+        ],
+        'A VM reaches the guest login prompt but the tax-adapter service fails because its module was built for a different guest kernel. The worksheet records successful virtual firmware, bootloader, and kernel stages, then isolates the module compatibility failure. The correction installs a matching test fixture and preserves the original failure log; it does not claim a hypervisor or physical-host defect.',
+        'Guest boot and service logs demonstrate only the guest-visible sequence and bounded test outcome. They do not attest physical firmware, Google-managed hypervisor state, neighboring tenants, or production availability.'
+    )
+])
+
+_container_expansions = ''.join([
+    _worked_subtopic(
+        'PID namespace initialization, signal, and reaping semantics',
+        'A PID namespace gives processes a namespace-relative process identifier and process tree. The first process created in a new PID namespace becomes PID 1 for that namespace and has special responsibilities: it becomes the ancestor for orphaned descendants and must reap terminated children. Processes in an ancestor PID namespace can see descendants with different PID values, while a process cannot see into an ancestor namespace. Signal rules for namespace PID 1 are also special, so a container entrypoint that ignores or fails to forward termination signals can delay shutdown even when the application child is healthy.',
+        'This mechanism connects runtime configuration to reliability. An architect should distinguish visibility from security: hiding host PIDs does not prevent a kernel exploit, while correct PID 1 behavior prevents zombie accumulation and supports graceful termination. Container images should use an entrypoint that execs the application or a minimal init that forwards signals and reaps children. Shutdown budgets, queue acknowledgement, and load-balancer draining must be coordinated with the application rather than inferred from the namespace boundary.',
+        'In GKE or Cloud Run, the workload still needs correct process and signal handling inside its container execution environment. Platform termination signals and grace periods reach the container boundary, but the entrypoint determines whether application children receive them. Product-specific timeout and lifecycle values require current documentation; the general Linux rule is that namespace-relative PID 1 behavior remains part of the application image design.',
+        [
+            ('Create PID namespace', 'Runtime with required privilege', '<kbd>clone</kbd> or <kbd>unshare</kbd> result', 'Creation alone is not a security boundary'),
+            ('Start namespace init', 'Container entrypoint', 'PID 1 inside namespace', 'Must handle signals and children'),
+            ('Fork application child', 'Namespace PID 1', 'Child PID in namespace', 'Host may show a different PID'),
+            ('Child exits', 'Guest process lifecycle', 'Zombie until reaped', 'Unreaped children consume PID table entries'),
+            ('Termination requested', 'Orchestrator and runtime', 'Signal delivered to container process', 'Entrypoint may fail to forward it'),
+            ('Application drains', 'Application', 'In-flight work and exit code', 'Timeout can force termination'),
+            ('Namespace disappears', 'Kernel', 'Last process exits', 'Visibility scope ends'),
+            ('Evidence saved', 'Operator', '<kbd>/proc/[pid]/status</kbd> and logs', 'PID mapping must name the observer namespace')
+        ],
+        'A worker shell remains PID 1 and launches the real service as a child. During shutdown the shell does not forward SIGTERM, so the service cannot checkpoint its queue offset before the grace period ends. Replacing the shell form with an exec-form entrypoint makes the service PID 1 and produces a clean bounded shutdown in the local replay.',
+        'PID listings prove only the view from the observer’s namespace at that moment. They do not establish host compromise resistance, signal delivery outside the captured interval, or behavior on an untested GCP runtime.'
+    ),
+    _worked_subtopic(
+        'Mount namespace propagation and filesystem boundary composition',
+        'A mount namespace gives a process a private view of the mount table. Container runtimes assemble a root filesystem from image layers and writable storage, create bind mounts for declared inputs, and use pivot-root or an equivalent switch before executing the workload. Mount propagation controls whether later mount and unmount events cross a shared, slave, private, or unbindable relationship. The namespace changes path visibility; it does not automatically make a host path safe. A writable bind mount deliberately connects the container to an external filesystem object and can bypass assumptions made from the image alone.',
+        'Architects must review every mount as a data and privilege boundary. Read-only flags reduce mutation but do not prevent disclosure. Host paths couple workloads to node layout and can expose sockets, device files, credentials, or runtime control interfaces. Persistent volumes add an external lifecycle and access-control plane. Image immutability, writable temporary space, secret projection, and backup ownership should be recorded separately. A mount error can arise from namespace assembly, permissions, storage attachment, or application paths, so diagnostics need evidence from each owner.',
+        'GKE volumes and Cloud Run filesystem behavior are product contracts layered over Linux mount semantics. The design should use supported volume types and documented access modes rather than assuming arbitrary host mounts. The local namespace exercise can show path visibility and read-only behavior, but it cannot validate Google-managed node layout, storage attachment behavior, or multi-zone recovery.',
+        [
+            ('Resolve image layers', 'Image runtime', 'Image digest and layer metadata', 'Digest identifies content, not mounted state'),
+            ('Create mount namespace', 'Container runtime', 'Namespace inode', 'New view may inherit propagation settings'),
+            ('Assemble root filesystem', 'Runtime and storage driver', 'Mount table inside namespace', 'Layer or driver failure blocks start'),
+            ('Attach declared volume', 'Runtime or CSI path', 'Mount source, target, and flags', 'Access mode and ownership can conflict'),
+            ('Switch root', 'Runtime', 'Process root and current directory', 'Stale file descriptor may retain access'),
+            ('Application opens path', 'Container process', 'File descriptor and errno', 'ENOENT, EACCES, and EROFS mean different failures'),
+            ('Propagation event', 'Kernel mount subsystem', 'Change visible in related namespace', 'Unexpected shared propagation expands impact'),
+            ('Unmount and cleanup', 'Runtime/storage owner', 'Released mount and attachment', 'Busy references delay cleanup')
+        ],
+        'A batch worker expects <kbd>/work</kbd> to be writable but the runtime mounts its input volume read-only. The application fails with EROFS. The fix creates a separate writable scratch mount and leaves the source data read-only; the worksheet records this as a mount-policy correction, not a cgroup or seccomp failure.',
+        'A local mount table shows namespace-visible paths and flags. It does not prove storage durability, backend encryption, snapshot correctness, or the filesystem view of another container or GCP node.'
+    ),
+    _worked_subtopic(
+        'Network namespace packet path and port ownership',
+        'A network namespace owns interfaces, addresses, routing tables, neighbor tables, socket bindings, and firewall state. A runtime commonly creates a virtual Ethernet pair, leaves one endpoint in the workload namespace, attaches the peer to a host bridge or datapath, assigns routes, and configures forwarding or translation. A listening port belongs to the namespace in which the socket was created; publishing that port requires a separate host or platform routing decision. Loopback is also namespace-local, so two containers do not share localhost merely because they share a node.',
+        'The packet path prevents common diagnostic mistakes. An application can listen correctly inside its namespace while the peer interface, route, firewall, service selector, or external load balancer remains wrong. Architects should trace source address, destination, route lookup, policy decision, translation, return path, and ownership at every hop. Network namespace isolation limits visibility and binding conflicts but still relies on the shared host kernel network stack unless an additional sandbox or VM boundary exists.',
+        'GKE Pods intentionally share a network namespace among their containers, so sidecars communicate over localhost while different Pods receive distinct network identities. Services, policies, and Google Cloud load-balancing features add control planes outside the Linux namespace. The local veth trace teaches the kernel mechanism; it does not reproduce VPC, GKE dataplane, Cloud NAT, or load-balancer implementation details.',
+        [
+            ('Create network namespace', 'Runtime', 'Network namespace inode', 'Empty namespace has only local state'),
+            ('Create veth pair', 'Runtime or CNI', 'Two linked interfaces', 'Missing peer prevents external path'),
+            ('Move endpoint', 'Kernel namespace operation', 'Interface visible inside workload', 'Observer location changes interface names'),
+            ('Assign address and route', 'CNI or network owner', 'Address and route tables', 'Wrong prefix or gateway breaks reachability'),
+            ('Bind application socket', 'Workload process', 'Listening address and port', 'Binding loopback limits ingress scope'),
+            ('Apply policy/forwarding', 'Host or platform datapath', 'Rule counters and decision', 'Drop is outside application listener'),
+            ('Traverse external network', 'Cloud or physical network', 'Flow logs where available', 'Absence of logs is not proof of application failure'),
+            ('Return packet', 'All path owners', 'Bidirectional trace', 'Asymmetric route can fail only response path')
+        ],
+        'A service listens on 127.0.0.1 inside its network namespace and passes an in-container curl test, but traffic from the namespace peer fails. Binding the service to the intended namespace interface fixes the local fixture. The worksheet distinguishes that listener scope from Kubernetes Service selection or cloud firewall behavior, which remain untested.',
+        'Namespace interface and socket inspection establish the local packet path only. They do not prove VPC routing, external policy, load-balancer health, encryption, or connectivity on an untested GCP deployment.'
+    ),
+    _worked_subtopic(
+        'IPC, UTS, and user namespace relationships',
+        'IPC namespaces isolate System V IPC objects and POSIX message queues; UTS namespaces isolate hostname and domain-name values; user namespaces map user and group identifiers and scope many capability checks. These mechanisms solve different problems and can be combined independently. A process may appear as UID 0 inside a user namespace while mapping to an unprivileged identifier outside it. Capabilities gained in that namespace apply only where the kernel checks privilege relative to that namespace. The mapping therefore narrows host authority but does not convert every kernel interface or mounted object into a safe resource.',
+        'Architects should treat namespace composition as a set of explicit contracts. Sharing an IPC namespace enables fast local coordination but expands interference and disclosure between the participants. A private UTS hostname aids identity but is not service discovery or authentication. User-ID mapping reduces the consequence of container root yet still requires safe mounts, device exposure, seccomp, and capability policy. Rootless operation changes the threat model and operational constraints; it does not guarantee that every workload feature remains available.',
+        'Managed container products choose namespace and privilege configurations according to their service contracts. A local rootless-container observation can demonstrate UID mapping, but it cannot be generalized to Cloud Run or every GKE mode without product documentation. On GKE, Kubernetes security context fields express requested user and capability behavior while admission and runtime controls determine the effective result.',
+        [
+            ('Create user namespace', 'Runtime or unprivileged process', 'User namespace inode', 'Mapping files start constrained'),
+            ('Write UID/GID maps', 'Authorized parent process', '<kbd>uid_map</kbd> and <kbd>gid_map</kbd>', 'Invalid range or permission fails setup'),
+            ('Set namespaced identity', 'Kernel credentials', 'UID inside and outside namespace', 'Same numeric UID can mean different principals'),
+            ('Create IPC namespace', 'Runtime', 'IPC namespace inode', 'Objects become visibility-scoped'),
+            ('Create UTS namespace', 'Runtime', 'Namespace-local hostname', 'Hostname is not an authenticated identity'),
+            ('Perform privileged operation', 'Kernel capability check', 'Effective capability and owning namespace', 'Capability may not apply to initial namespace'),
+            ('Access mounted object', 'VFS and mount policy', 'Mapped ownership and mount permissions', 'Namespace mapping does not override all object policy'),
+            ('Record effective boundary', 'Operator', 'Maps, capabilities, mounts, and runtime policy', 'One artifact alone is insufficient')
+        ],
+        'A rootless fixture reports UID 0 inside the user namespace and a subordinate host UID outside it. A write to an owned mapped directory succeeds, while a protected host path remains denied. The result demonstrates scoped identity mapping but is recorded alongside mount and capability evidence rather than labeled complete container security.',
+        'UID maps and namespace inodes document identity translation and visibility. They do not prove absence of kernel vulnerabilities, safe host mounts, correct service authorization, or the namespace policy of an untested managed runtime.'
+    ),
+    _worked_subtopic(
+        'cgroup v2 hierarchy, delegation, and CPU control',
+        'cgroup v2 organizes processes in one hierarchy and enables controllers from parent to child. A child cannot escape a restriction imposed by an ancestor. Controllers are activated through <kbd>cgroup.subtree_control</kbd>, and process membership appears in <kbd>cgroup.procs</kbd>. CPU bandwidth control uses <kbd>cpu.max</kbd> as quota and period, while <kbd>cpu.weight</kbd> expresses proportional preference when siblings compete. A quota can throttle a busy workload even while another host CPU is idle if the cgroup has consumed its allowed bandwidth; weight matters only under contention and is not a guaranteed reservation.',
+        'This distinction is central to resource architecture. Requests, limits, reservations, weights, and quotas are not interchangeable. Architects should inspect the effective hierarchy because parent policy, runtime-created slices, and workload-level settings compose. CPU throttling can increase request latency without producing an application exception. Raising a quota may hide inefficient concurrency, while removing it can harm neighbors. The decision requires service-level latency, runnable demand, throttling counters, and cost evidence.',
+        'Kubernetes runtimes translate Pod and container resource settings into Linux controls according to the node operating system, cgroup mode, and runtime. GKE monitoring supplies container metrics, but the exact hierarchy and node configuration should be inspected or taken from current product documentation. This lesson avoids assuming one permanent path under <kbd>/sys/fs/cgroup</kbd> for every cluster version.',
+        [
+            ('Place process in leaf cgroup', 'Runtime or system manager', '<kbd>cgroup.procs</kbd>', 'Wrong membership invalidates later interpretation'),
+            ('Enable controller in parent', 'Hierarchy owner', '<kbd>cgroup.subtree_control</kbd>', 'Child interface absent if controller unavailable'),
+            ('Set CPU quota', 'Resource-policy owner', '<kbd>cpu.max</kbd>', 'Quota/period defines bounded bandwidth'),
+            ('Set CPU weight', 'Resource-policy owner', '<kbd>cpu.weight</kbd>', 'Relative share acts only during competition'),
+            ('Workload consumes quota', 'Kernel CPU controller', '<kbd>cpu.stat</kbd> usage counters', 'Execution remains normal until budget exhausted'),
+            ('Throttle interval', 'Kernel scheduler/controller', 'Throttled periods and time', 'Latency rises without OOM or permission error'),
+            ('Parent restriction applies', 'Ancestor cgroup owner', 'Effective ceiling from hierarchy', 'Child cannot override parent limit'),
+            ('Tune and verify', 'Architect/application owner', 'Latency, throughput, throttling, and cost', 'Change one control and preserve baseline')
+        ],
+        'A worker uses one runnable CPU thread but <kbd>cpu.max</kbd> permits only half a CPU. Host dashboards show spare cores while <kbd>cpu.stat</kbd> records throttling. The worksheet classifies this as cgroup resource enforcement, tests a bounded quota change, and retains application-efficiency analysis as a separate decision.',
+        'Cgroup files and a local load test show enforcement in that hierarchy. They do not prove Kubernetes translation, GKE node configuration, production traffic demand, or that CPU quota is the sole cause of an observed service incident.'
+    ),
+    _worked_subtopic(
+        'cgroup memory control, reclaim, pressure, and OOM evidence',
+        'The memory controller accounts charged memory to a cgroup and exposes current usage, events, pressure, and configured boundaries. <kbd>memory.high</kbd> is a throttling and reclaim boundary intended to apply pressure before a hard failure, while <kbd>memory.max</kbd> is a hard ceiling. When reclaim cannot satisfy an allocation under the hard boundary, the kernel can invoke cgroup-scoped out-of-memory handling and record events. Page cache, anonymous memory, kernel memory, child cgroups, and workload allocation patterns all influence the result; host free memory does not cancel a lower cgroup ceiling.',
+        'Architects need more than a single exit code. Exit 137 can result from SIGKILL for several reasons, so the diagnosis should correlate termination reason, <kbd>memory.events</kbd>, working set, allocation profile, and timestamps. Raising the limit may restore availability but increases reservation and cost; streaming, batching, backpressure, and concurrency limits can reduce working set. Pressure-stall information can reveal degradation before an OOM kill. The exit artifact must label supplied counters separately from locally observed values.',
+        'Kubernetes memory requests and limits are enforced through the node’s Linux runtime and cgroup configuration. GKE metrics can support workload-level analysis, but node paths and counter availability vary with the runtime and version. The local lab therefore discovers its cgroup membership instead of assuming the root <kbd>/sys/fs/cgroup</kbd> files always describe the current process.',
+        [
+            ('Charge allocation', 'Kernel memory controller', '<kbd>memory.current</kbd> and workload profile', 'Charge follows effective cgroup membership'),
+            ('Cross high boundary', 'Kernel reclaim path', '<kbd>memory.events</kbd> high counter', 'Workload may slow before hard failure'),
+            ('Attempt reclaim', 'Kernel VM subsystem', 'Pressure and reclaim activity', 'Reclaimable cache differs from anonymous memory'),
+            ('Cross hard boundary', 'Memory controller', '<kbd>memory.max</kbd> context', 'Allocation cannot exceed effective ceiling'),
+            ('Select victim', 'Cgroup OOM handling', 'OOM and oom_kill counters', 'Victim choice and group policy matter'),
+            ('Process exits', 'Kernel and runtime', 'SIGKILL/exit status plus termination reason', 'Exit code alone is ambiguous'),
+            ('Runtime restarts', 'Orchestrator policy', 'Restart count and new PID', 'Restart can hide recurring pressure'),
+            ('Remediate and replay', 'Application/resource owner', 'Working set, events, latency, and cost', 'Verify bounded workload, not an invented production result')
+        ],
+        'The lab locates the current process cgroup, records <kbd>memory.max</kbd> and <kbd>memory.events</kbd>, and compares them with a supplied 512 MiB failure fixture. It marks local counters as observed and the fixture’s OOM increment as supplied. The worksheet evaluates streaming and a larger limit without claiming that either was deployed to GCP.',
+        'A counter snapshot can associate an event with a cgroup only when membership and timestamps are preserved. It does not prove the application allocation site, production recurrence, host memory condition, or managed-platform configuration.'
+    ),
+    _worked_subtopic(
+        'Seccomp and capability checks in the syscall path',
+        'A container process enters the kernel through a system call. Seccomp can evaluate the syscall number, architecture, and selected arguments, then allow, reject, trap, log, or terminate according to its filter action. If the call continues, the target kernel subsystem performs ordinary credential, capability, namespace, object-permission, and Linux security module checks. Capabilities split portions of traditional root authority into bits evaluated relative to the governing user namespace and operation. Passing seccomp therefore does not grant permission, and holding a capability does not bypass a seccomp denial.',
+        'This ordered model improves both policy design and diagnosis. An EPERM may come from a seccomp action, a missing capability, an object permission, an admission rule, or a read-only mount. A SIGSYS strongly suggests a trap or kill policy but still needs profile and audit evidence. Architects should start with runtime-default profiles, drop unnecessary capabilities, run as a non-root identity, and add only narrowly justified exceptions. Broad privileges such as privileged mode or CAP_SYS_ADMIN enlarge the consequence of a compromise and must not be used merely to silence an unexplained failure.',
+        'GKE Autopilot and Standard modes have documented differences in how runtime-default seccomp profiles are applied, and GKE Sandbox changes the isolation boundary. Those product behaviors must be taken from the current GKE seccomp and security documentation. The Linux mechanism remains the same diagnostic sequence: identify the effective profile, capability sets, user namespace, target object, and returned errno or signal.',
+        [
+            ('Issue syscall', 'Container process', 'Syscall trace in a bounded test', 'Name architecture and arguments where relevant'),
+            ('Evaluate seccomp filter', 'Kernel seccomp subsystem', 'Effective mode/profile and audit event', 'Deny can return errno, trap, or kill'),
+            ('Resolve credentials', 'Kernel credential model', 'UID/GID and user namespace', 'Namespace-relative root is scoped'),
+            ('Check capability', 'Target kernel subsystem', 'Effective and bounding capability sets', 'Missing bit yields permission failure'),
+            ('Check object policy', 'VFS/network/device subsystem', 'Mode, ACL, mount, or device policy', 'Capability is not universal bypass'),
+            ('Apply security module', 'LSM policy owner', 'Audit record where available', 'Separate policy layer may deny'),
+            ('Execute operation', 'Kernel subsystem', 'Return value and side effect', 'Success proves only this invocation'),
+            ('Record decision', 'Security/architecture owner', 'Profile, capabilities, identity, errno, and scope', 'Avoid granting broad privilege without cause')
+        ],
+        'A fixture attempts a mount syscall. The runtime profile denies it and the process also lacks CAP_SYS_ADMIN. The worksheet records both controls, then tests an unrelated permitted syscall. It does not recommend privileged mode, because removing both controls would expand host impact without satisfying a justified workload requirement.',
+        'A local syscall result and process status show the effective controls for that process and invocation. They do not prove the absence of kernel vulnerabilities, the profile of another workload, or the policy applied by an untested GKE or Cloud Run environment.'
+    ),
+    _worked_subtopic(
+        'Composing a container isolation claim from independent controls',
+        'A defensible container-isolation statement is assembled from independent facts, not from the word container. Namespace evidence describes visibility and identity scopes. Cgroup evidence describes resource accounting and enforcement. Seccomp evidence describes the system-call policy. Capability and credential evidence describe privileged operations available to the process. Mount and network evidence describe intentionally exposed resources. A sandbox or virtual machine can add a separate kernel boundary. Each mechanism has a different owner, failure signal, and bypass consequence, so the final worksheet must state exactly which controls were inspected and which remain assumptions.',
+        'Architects use this composition to avoid two opposite mistakes: treating resource limits as complete security, or rejecting containers because they are not virtual machines. A trusted stateless service may be appropriately protected by a shared-kernel runtime with least privilege and strong policy. Hostile customer code may require a sandbox, dedicated node, or VM. The decision depends on attacker capability, data sensitivity, kernel exposure, operational recovery, cost, density, and product support. A single successful probe cannot replace threat modeling or acceptance criteria.',
+        'On GCP the available boundary can include standard GKE containers, GKE Sandbox, Cloud Run execution environments, or Compute Engine VMs. The architecture record must use current product documentation for the selected mode and must distinguish requested Kubernetes security context from effective runtime policy. The local lab supplies process-level observations only; it leaves managed-host controls and production behavior explicitly untested.',
+        [
+            ('Record process identity', 'Workload/runtime', 'UID, GID, user namespace, capability sets', 'Identity is scoped, not universal authority'),
+            ('Record namespace set', 'Kernel/runtime', 'Namespace inodes and membership', 'Visibility does not equal resource control'),
+            ('Record cgroup membership', 'Runtime/resource owner', 'Effective path, controllers, limits, events', 'Limits do not block kernel exploits'),
+            ('Record syscall policy', 'Runtime/security owner', 'Seccomp mode and profile evidence', 'Allowed call still faces other checks'),
+            ('Record exposed resources', 'Platform/application owner', 'Mounts, devices, sockets, and network routes', 'Exposure can bypass an assumed boundary'),
+            ('Identify kernel boundary', 'Architecture owner', 'Shared kernel, sandbox kernel, or guest kernel', 'Name the actual selected runtime'),
+            ('Test bounded failure', 'Lab operator', 'Expected denial, throttle, or termination evidence', 'Failure type identifies the enforcing control'),
+            ('State residual risk', 'Security and service owners', 'Unknowns, untested GCP behavior, and recovery plan', 'Acceptance requires explicit limits')
+        ],
+        'The completed worksheet records a private PID namespace, a finite memory limit, seccomp filter mode 2, and a capability mask that omits CAP_SYS_MODULE. It classifies the memory ceiling as resource enforcement and the syscall/capability controls as attack-surface reduction, while noting that all observed calls still enter the same local host kernel. The placement decision can now justify a VM or sandbox for untrusted code without overstating the local evidence.',
+        'The composed claim is only as strong as its captured inputs and scope. It does not prove the absence of kernel defects, the configuration of an unobserved runtime, the GCP host boundary, or production acceptance.'
+    )
+])
+
+_t0['technical'] = _t0['technical'].replace(
+    '<p><strong class="side-heading">Evidence limit:</strong>',
+    _vm_expansions + '<p><strong class="side-heading">Evidence limit:</strong>',
+    1
+)
+_t1['technical'] = _t1['technical'].replace(
+    '<p><strong class="side-heading">Evidence limit:</strong>',
+    _container_expansions + '<p><strong class="side-heading">Evidence limit:</strong>',
     1
 )
 
@@ -2044,26 +2329,26 @@ DATA['review_records'] = {
             'heading_opened': '1. General description',
             'rfc_status': 'not applicable'
         },
-        'https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION': {
-            'heading_opened': 'DESCRIPTION',
+        'https://docs.kernel.org/admin-guide/cgroup-v2.html#introduction': {
+            'heading_opened': 'Introduction',
             'rfc_status': 'not applicable'
         }
     },
     'product_claims': [
         {
-            'claim': 'Google Cloud Compute Engine uses a hardened Linux KVM hypervisor with hardware virtualization (Intel VT-x / AMD-V) to isolate VM instances.',
+            'claim': 'The KVM API is centered on file descriptors and ioctls, beginning with an open of /dev/kvm.',
             'section_url': 'https://docs.kernel.org/virt/kvm/api.html#general-description',
             'heading_opened': '1. General description'
         },
         {
-            'claim': 'Google Cloud Shielded VM verifies instance boot integrity through UEFI Secure Boot and Virtual Trusted Platform Module (vTPM).',
+            'claim': 'KVM_CREATE_VM returns a virtual-machine file descriptor used for VM-specific ioctls.',
             'section_url': 'https://docs.kernel.org/virt/kvm/api.html#general-description',
             'heading_opened': '1. General description'
         },
         {
-            'claim': 'GKE clusters isolate container workloads using Linux kernel namespaces and cgroups v2, with GKE Sandbox (gVisor) providing a second kernel boundary for untrusted code.',
-            'section_url': 'https://man7.org/linux/man-pages/man7/namespaces.7.html#DESCRIPTION',
-            'heading_opened': 'DESCRIPTION'
+            'claim': 'cgroup organizes processes hierarchically and distributes system resources through controllers whose restrictions apply down the hierarchy.',
+            'section_url': 'https://docs.kernel.org/admin-guide/cgroup-v2.html#introduction',
+            'heading_opened': 'Introduction'
         }
     ],
     'visual_reasons': {
