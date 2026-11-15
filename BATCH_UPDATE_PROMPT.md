@@ -24,7 +24,7 @@ serially. For every day:
    and that day's output from scripts/extract_day_inputs.py.
 2. Author only that day's durable specification. Do not reuse prose, source
    conclusions, examples, lab results or summaries from another day.
-3. Apply all standing R1-R9 requirements and the selected scope, diagram and
+3. Apply all standing R1-R13 requirements and the selected scope, diagram and
    topic rules. Run all PAGE_UPDATE_PROMPT.md commands required by that scope,
    repair target-introduced failures, write the handoff, and run
    scripts/batch_gate.py --day N --contract-hash when the workflow requires it.
@@ -44,7 +44,8 @@ defer per-day gates, or silently skip a failed day.
 in the range. `SCOPE=fix` retains the worker prompt's explicit confirmation
 boundary and therefore stops at the first day awaiting approval; resume at that
 day after the requested `go` selection. `SCOPE=update` is the unattended batch
-authoring mode.
+authoring mode. `SCOPE=rewrite` behaves like `SCOPE=fix` and stops at the first
+day awaiting preservation-ledger approval.
 
 Final response: report completed days, the first incomplete/failed day if any,
 handoff paths, commits when applicable, and the exact resume day. Do not recap

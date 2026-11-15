@@ -32,7 +32,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = 'main'
 STAGES = ('resolve', 'preflight', 'check', 'gate', 'commit', 'finish')
-SCOPES = ('plan', 'update', 'audit-only', 'fix')
+SCOPES = ('plan', 'update', 'audit-only', 'fix', 'rewrite')
+R10_BASELINE = 'scratch/baseline/r10-existing-repeats.json'
 SPECIAL_DAYS = {17, 35, 67, 82, 118, 174, 175, 176, 177, 178, 179}
 ANCHOR_COLUMNS = ('overview_anchor', 'technical_anchor', 'problem_anchor', 'lab_anchor')
 URL_CREDENTIAL = re.compile(r'(https?://)[^/@\s]+@', re.I)
@@ -97,6 +98,8 @@ class Day:
             f'scratch/audits/day-{self.nnn}-terms.txt',
             f'scratch/day-{self.nnn}-rules.json',
             f'scratch/day-{self.nnn}-lab-rerun.json',
+            f'scratch/audits/day-{self.nnn}-rewrite.json',
+            f'scratch/day-{self.nnn}-protected-baseline.json',
         ]
         self.owned = set(self.audit_files) | {
             f'content/day-{self.nnn}-page.html',
@@ -107,8 +110,9 @@ class Day:
             'data/coverage.csv',
         }
 
-    def owns(self, path):
-        return path in self.owned or path.startswith(f'scratch/day_data_{self.nnn}/')
+    def owns(self, path, scope=None):
+        return (path in self.owned or path.startswith(f'scratch/day_data_{self.nnn}/')
+                or (scope == 'rewrite' and path == R10_BASELINE))
 
     def spec_files(self):
         single = ROOT / 'scratch' / f'day_data_{self.nnn}.py'
@@ -118,9 +122,9 @@ class Day:
         return sorted(folder.rglob('*.py')) if folder.is_dir() else []
 
 
-def permitted_day_path(path, day):
+def permitted_day_path(path, day, scope=None):
     """Return whether a path belongs to one day's scoped commit."""
-    return Day(day).owns(path)
+    return Day(day).owns(path, scope)
 
 
 def _workflow_command(script, day, *extra):
@@ -186,6 +190,11 @@ def stage_resolve(day, args):
     for item in args.extra_topic:
         if '|' not in item:
             raise Stop(f'extra topic must be "title | one-line reason": {item!r}')
+    if args.scope == 'rewrite':
+        targets = [item.split(':', 1)[1].strip() for item in args.improvement
+                   if item.lower().startswith('rewrite:')]
+        if not targets or any(not target for target in targets):
+            raise Stop('SCOPE=rewrite needs IMPROVEMENTS containing rewrite: <named targets>')
     say(f'Day {day.n} | {day.nnn} | branch {day.branch} | SCOPE={args.scope} '
         f'DIAGRAMS={args.diagrams} TOPICS={args.topics}')
     say('EXTRA_TOPICS: ' + ('; '.join(args.extra_topic) if args.extra_topic else 'none'))
@@ -269,7 +278,7 @@ def check_merged(exclude):
 
 def stage_preflight(day, args):
     if args.scope in ('plan', 'audit-only'):
-        raise Stop(f'SCOPE={args.scope} creates no branch; preflight applies to update and fix only')
+        raise Stop(f'SCOPE={args.scope} creates no branch; preflight applies to update, fix and rewrite only')
     if not git_ok('fetch', '--all', '--prune'):
         raise Stop('git fetch --all --prune failed')
     step(True, '1 fetch --all --prune')
@@ -344,6 +353,12 @@ def run_rules(day, args):
         cmd += ['--terms-file', str(terms)]
     else:
         say('NOTE: no scratch/audits/day-%s-terms.txt; R3 only checks strong.keyword spans.' % day.nnn)
+    if args.snapshot:
+        cmd += ['--snapshot', args.snapshot]
+    if args.baseline:
+        cmd += ['--baseline', args.baseline]
+    if args.r10_baseline:
+        cmd += ['--r10-baseline', args.r10_baseline]
     rc, out = run(cmd)
     say(out.rstrip())
     return rc == 0
@@ -353,7 +368,7 @@ def stage_check(day, args):
     if not day.page.exists():
         raise Stop(f'{day.page.relative_to(ROOT)} does not exist; build the day first')
     ok = run_rules(day, args)
-    step(ok, 'page-rule checker (R1-R5, R7, R8)')
+    step(ok, 'page-rule checker (R1-R5, R7-R13)')
     return ok
 
 
@@ -366,11 +381,17 @@ def stage_gate(day, args):
 
     ok = run_rules(day, args)
     results.append(ok)
-    step(ok, 'page-rule checker (R1-R5, R7, R8)')
+    step(ok, 'page-rule checker (R1-R5, R7-R13)')
 
     cmd = [sys.executable, '-B', str(ROOT / 'scripts' / 'batch_gate.py'), '--day', str(day.n), '--contract-hash']
     if args.skip_labs:
         cmd.append('--skip-labs')
+    if args.snapshot:
+        cmd += ['--snapshot', args.snapshot]
+    if args.baseline:
+        cmd += ['--baseline', args.baseline]
+    if args.r10_baseline:
+        cmd += ['--r10-baseline', args.r10_baseline]
     rc, out = run(cmd)
     say(out.rstrip())
     results.append(rc == 0)
@@ -387,14 +408,14 @@ def stage_gate(day, args):
     results.append(ok)
     step(ok, 'coverage.csv anchors exist on built page', detail)
 
-    stray = sorted(p for p in changed_paths(args) if not day.owns(p))
+    stray = sorted(p for p in changed_paths(args) if not day.owns(p, args.scope))
     results.append(not stray)
     step(not stray, f'only Day {day.n} files changed (no shared script or template edited)',
          ', '.join(stray[:10]) if stray else '')
 
     code, svg = len(re.findall(r'<pre\b', page_html)), len(re.findall(r'<svg\b', page_html))
     depth_ok = code >= args.min_code and svg >= args.min_svg
-    say(f'{"PASS" if depth_ok else ("FAIL" if args.strict_depth else "WARN")}  depth floor: '
+    say(f'{"PASS" if depth_ok else ("FAIL" if args.strict_depth else "WARN")}  artifact-count signal: '
         f'{code} code blocks (min {args.min_code}), {svg} SVGs (min {args.min_svg})')
     if args.strict_depth:
         results.append(depth_ok)
@@ -464,7 +485,7 @@ def stage_commit(day, args):
 
     git('add', '.')
     staged = [p for p in git('diff', '--cached', '--name-only').splitlines() if p]
-    stray = [p for p in staged if not day.owns(p)]
+    stray = [p for p in staged if not day.owns(p, args.scope)]
     if stray:
         git('reset', '-q')
         raise Stop('paths outside Day %d were staged and have been unstaged:\n  %s' % (day.n, '\n  '.join(stray)))
@@ -507,14 +528,17 @@ def parse_args(argv):
     ap.add_argument('--topics', choices=('keep', 'expand', 'add'), default='keep')
     ap.add_argument('--extra-topic', action='append', default=[], metavar='"title | reason"')
     ap.add_argument('--improvement', action='append', default=[])
+    ap.add_argument('--snapshot', help='pass an R13 snapshot output path to the page-rule checker')
+    ap.add_argument('--baseline', help='pass an R13 protected-content baseline to the page-rule checker')
+    ap.add_argument('--r10-baseline', help='pass an explicit R10 repeat baseline to the page-rule checker')
     ap.add_argument('--skip-labs', action='store_true', help='gate: skip lab re-runs (no commit stamp is written)')
     ap.add_argument('--ignore-pycache', action='store_true', help='ignore __pycache__ paths in the clean-tree and scope checks')
     ap.add_argument('--check-only', action='store_true', help='preflight: checks 1-4 and 6 only; no switch, pull or branch')
     ap.add_argument('--dry-run', action='store_true', help='commit: run every check, print the stat, then unstage')
     ap.add_argument('--no-push', action='store_true')
-    ap.add_argument('--min-code', type=int, default=8, help='depth floor: minimum <pre> blocks')
-    ap.add_argument('--min-svg', type=int, default=3, help='depth floor: minimum <svg> diagrams')
-    ap.add_argument('--strict-depth', action='store_true', help='make the depth floor a gated failure (default: warning)')
+    ap.add_argument('--min-code', type=int, default=8, help='artifact-count signal: minimum <pre> blocks')
+    ap.add_argument('--min-svg', type=int, default=3, help='artifact-count signal: minimum <svg> diagrams')
+    ap.add_argument('--strict-depth', action='store_true', help='make the artifact-count signal a gated failure (default: warning)')
     args = ap.parse_args(argv)
     if args.action and args.stage and args.action != args.stage:
         ap.error('positional action and --stage select different stages')

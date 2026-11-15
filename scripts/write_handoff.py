@@ -121,12 +121,18 @@ def generate(day, path, root=ROOT):
         tracked = git('ls-files', '--', relative, root=root).strip()
         if not tracked: stat += 'UNTRACKED spec: not included in git diff HEAD; review required.\n'
         lines.append(stat.strip() or 'No spec diff against HEAD.')
-        # Report actual removed source lines; do not claim they are non-explanatory.
+        # Report actual removed source lines; preservation claims require the rewrite ledger.
         diff = git('diff', 'HEAD', '--', relative, root=root)
         removed = sum(line.startswith('-') and not line.startswith('---') for line in diff.splitlines())
-        prose = 'No source lines removed.' if removed == 0 and tracked else f'{removed} source lines removed; manual no-explanatory-prose-removal review required.'
+        rewrite_ledger = root / 'scratch/audits' / f'day-{day:03d}-rewrite.json'
+        if removed == 0 and tracked:
+            prose = 'No source lines removed. Preservation-ledger status: no removals; no protected content was removed.'
+        elif rewrite_ledger.exists():
+            prose = f'Preservation-ledger status: {rewrite_ledger.relative_to(root)}; review it to confirm no protected content was removed.'
+        else:
+            prose = f'Preservation-ledger status: UNRECORDED; {removed} source lines removed; protected-content review required.'
     except (OSError, subprocess.CalledProcessError) as exc:
-        lines.append(f'UNVERIFIED git diff: {exc}'); prose = 'UNVERIFIED prose-removal review.'
+        lines.append(f'UNVERIFIED git diff: {exc}'); prose = 'Preservation-ledger status: UNVERIFIED.'
     lines += ['```', '', prose, '']
     return '\n'.join(lines)
 

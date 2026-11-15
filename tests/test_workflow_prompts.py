@@ -30,14 +30,23 @@ class PageRuleFiveTests(unittest.TestCase):
                 self.assertEqual(rules.check_r5(parsed(html))['status'], 'FAIL')
 
 
+class PageRuleTwoTests(unittest.TestCase):
+    def test_list_item_accepts_multiple_short_paragraphs_after_direct_label(self):
+        root = parsed('''<article id="topic-01-technical"><ul><li>
+            <strong class="side-heading">What it is in general:</strong>
+            <p>First idea.</p><p>Second idea.</p>
+        </li></ul></article>''')
+        self.assertEqual(rules.check_r2(root)['status'], 'PASS')
+
+
 class WorkflowPromptTests(unittest.TestCase):
     def test_complete_worker_prompt_and_batch_reference(self):
         worker = (ROOT / 'DAY_WORKFLOW_PROMPT.md').read_text()
         batch = (ROOT / 'BATCH_UPDATE_PROMPT.md').read_text()
         for required in (
-            'SCOPE=                 (plan | update | audit-only | fix)',
+            'SCOPE=                 (plan | update | audit-only | fix | rewrite)',
             '### R1 — linked subtopics', '### R9 — deterministic checker',
-            '### SCOPE=plan', '### SCOPE=audit-only', '### SCOPE=fix', '### SCOPE=update',
+            '### SCOPE=plan', '### SCOPE=audit-only', '### SCOPE=fix', '### SCOPE=rewrite', '### SCOPE=update',
             '### DIAGRAMS=keep', '### DIAGRAMS=allow',
             '### TOPICS=keep', '### TOPICS=expand', '### TOPICS=add',
             '## Branch preflight', '## Work', '## Gate before commit',

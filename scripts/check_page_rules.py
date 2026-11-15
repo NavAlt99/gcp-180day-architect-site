@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic page-rule checks R1-R5, R7, R8 on a built day page.
+"""Deterministic page-rule checks R1-R5 and R7-R13 on a built day page.
 
 Usage:
   python3 scripts/check_page_rules.py --day 3
@@ -9,9 +9,10 @@ Usage:
 Reads days/day-NNN.html (or --page). Standard library only; Pillow with DejaVu fonts is used for
 text widths when available (otherwise an average-character-width estimate, and the method is printed).
 Exit status 1 when a gated rule fails. R4/R8 are gated only with --diagrams allow
-(default); R1/R2/R3/R5/R7 are always gated.
+(default); R12 is informational; R13 is gated only with --baseline; the remaining
+implemented rules are gated.
 """
-import argparse, collections, glob, json, os, re, sys
+import argparse, collections, glob, hashlib, json, os, re, sys
 from html.parser import HTMLParser
 
 VOID = {'br', 'hr', 'img', 'meta', 'link', 'input', 'source', 'wbr', 'col', 'area', 'base', 'embed', 'param', 'track'}
@@ -20,6 +21,13 @@ STRUCT = {'Why today:', 'Where it sits:', 'Problem preview:', 'Subtopics in this
 GOOGLE = 'http://www.google.com/search?q='
 SKIP = {'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'code', 'samp', 'kbd', 'pre', 'figcaption', 'a', 'script', 'style', 'svg', 'title'}
 STOP = {'RFC', 'NOT', 'AND', 'THE', 'FOR', 'YES', 'FALSE', 'TRUE'}
+JACCARD_STOPWORDS = {
+    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'have',
+    'in', 'is', 'it', 'its', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was',
+    'were', 'with', 'worked', 'dossier', 'starting', 'point',
+}
+SHELL_TAGS = {'nav', 'header', 'footer'}
+SHELL_CLASS_PARTS = ('sprint-rail', 'foundation-rail', 'day-selector')
 
 
 class Node:
@@ -392,7 +400,295 @@ def check_r7(html):
     return result('R7 leaked markup', 'FAIL' if total else 'PASS', True, f'{total} leaked markup marker(s)', items)
 
 
+# ---------------------------------------------------------------- R10 / R11 / R12
+def content_text(n):
+    """Visible text excluding command/code descendants."""
+    if isinstance(n, str):
+        return n
+    if n.tag in ('pre', 'code', 'samp', 'kbd'):
+        return ''
+    return ''.join(content_text(k) for k in n.kids)
+
+
+def is_shell(n):
+    classes = ' '.join(n.cls())
+    return n.tag in SHELL_TAGS or any(part in classes for part in SHELL_CLASS_PARTS)
+
+
+def main_content_roots(root):
+    mains = [n for n in nodes(root) if n.tag == 'main']
+    if mains:
+        return mains
+    bodies = [n for n in nodes(root) if n.tag == 'body']
+    return bodies or [root]
+
+
+def normalize_prose(text):
+    return re.sub(r'\s+', ' ', text).strip().lower()
+
+
+def r10_repeats(root):
+    occurrences = collections.defaultdict(list)
+
+    def walk(n, heading_id=None, shell=False):
+        if isinstance(n, str):
+            return heading_id
+        shell = shell or is_shell(n)
+        if shell or n.tag in ('pre', 'code', 'samp', 'kbd'):
+            return heading_id
+        if n.tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+            heading_id = n.attrs.get('id') or heading_id
+        if n.tag in ('p', 'li', 'td', 'th', 'dd', 'figcaption'):
+            prose = normalize_prose(content_text(n))
+            if len(prose) >= 80:
+                occurrences[prose].append({'tag': n.tag, 'heading_id': heading_id or '(no heading id)'})
+        for kid in n.kids:
+            heading_id = walk(kid, heading_id, shell)
+        return heading_id
+
+    for content_root in main_content_roots(root):
+        walk(content_root)
+    repeated = {}
+    for prose, occurrences_for_text in occurrences.items():
+        if len(occurrences_for_text) > 1:
+            repeated[hashlib.sha256(prose.encode()).hexdigest()[:16]] = {
+                'text': prose,
+                'count': len(occurrences_for_text),
+                'preview': prose[:60],
+                'occurrences': occurrences_for_text,
+            }
+    return repeated
+
+
+def r10_baseline_entry(repeated):
+    return {digest: {'count': item['count'], 'preview': item['preview']}
+            for digest, item in sorted(repeated.items())}
+
+
+def check_r10(root, baseline=None, gated=True):
+    repeated = r10_repeats(root)
+    grandfathered, failures, items = 0, 0, []
+    baseline = baseline or {}
+    for digest, item in sorted(repeated.items(), key=lambda pair: (-pair[1]['count'], pair[0])):
+        prior = baseline.get(digest)
+        allowed = prior is not None and item['count'] <= prior.get('count', -1)
+        grandfathered += int(allowed)
+        failures += int(not allowed)
+        headings = ','.join(occurrence['heading_id'] for occurrence in item['occurrences'])
+        state = f'grandfathered baseline={prior["count"]}' if allowed else 'new' if prior is None else f'increased baseline={prior["count"]}'
+        items.append(f'{digest} "{item["preview"]}" count={item["count"]} {state}; headings={headings}')
+    return result('R10 repeated paragraphs', 'FAIL' if failures else 'PASS', gated,
+                  f'{len(repeated)} total repeat(s), {grandfathered} grandfathered, {failures} new/increased', items)
+
+
+def word_set(text):
+    return {word for word in re.findall(r"[a-z0-9]+(?:'[a-z0-9]+)?", text.lower())
+            if word not in JACCARD_STOPWORDS}
+
+
+def jaccard(left, right):
+    union = left | right
+    return len(left & right) / len(union) if union else 0.0
+
+
+def dossier_block(n):
+    current = n
+    while current is not None:
+        if 'worked-example' in current.cls():
+            return current
+        current = current.parent
+    return n.parent or n
+
+
+def dossier_heading(block):
+    return next((candidate for candidate in dossier_nodes(block)
+                 if isinstance(candidate, Node)
+                 and candidate.tag in ('strong', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6')
+                 and re.match(r'^Worked dossier\s+\d+\s*:', candidate.text().strip(), re.I)), None)
+
+
+def dossier_nodes(block):
+    yield block
+    for kid in block.kids:
+        if not isinstance(kid, Node):
+            continue
+        if kid is not block and 'worked-example' in kid.cls():
+            continue
+        yield from dossier_nodes(kid)
+
+
+def check_r11(root, gated=True):
+    starts = []
+    for n in nodes(root):
+        if n.tag not in ('p', 'li', 'dd'):
+            continue
+        text = normalize_prose(content_text(n))
+        if text.startswith('worked starting point:'):
+            starts.append(n)
+    if not starts:
+        return result('R11 starting point evidence', 'N/A', gated, 'no worked dossiers found')
+    failures, items = 0, []
+    for start in starts:
+        block = dossier_block(start)
+        heading_node = dossier_heading(block)
+        heading = re.sub(r'^Worked dossier\s+\d+\s*:\s*', '', heading_node.text().strip(), flags=re.I) if heading_node else ''
+        starting = re.sub(r'^Worked starting point:\s*', '', content_text(start).strip(), flags=re.I)
+        digit = bool(re.search(r'\d', starting))
+        quoted = bool(re.search(r'(["\u201c\u201d][^"\u201c\u201d]+["\u201c\u201d]|\'[^\']+\'|[\u2018\u2019][^\u2018\u2019]+[\u2018\u2019])', starting))
+        code = any(candidate.tag in ('samp', 'code', 'kbd', 'pre') for candidate in dossier_nodes(block))
+        concrete = digit or quoted or code
+        overlap = jaccard(word_set(starting), word_set(heading))
+        failed = heading_node is None or not concrete or overlap >= 0.6
+        failures += int(failed)
+        marker = 'digit' if digit else 'quoted string' if quoted else 'code element' if code else 'none'
+        items.append(f'{heading or "(dossier heading missing)"}: concrete={marker}; jaccard={overlap:.3f}')
+    return result('R11 starting point evidence', 'FAIL' if failures else 'PASS', gated,
+                  f'{len(starts)} starting point(s), {failures} failure(s); requires concrete marker and Jaccard < 0.600', items)
+
+
+def dossier_counts(root):
+    counts = {}
+    for topic in (n for n in nodes(root)
+                  if n.tag == 'article' and re.fullmatch(r'topic-\d+-technical', n.attrs.get('id', ''))):
+        dossier_headings = [candidate for candidate in nodes(topic)
+                            if isinstance(candidate, Node)
+                            and candidate.tag in ('strong', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6')
+                            and re.match(r'^Worked dossier\s+\d+\s*:', candidate.text().strip(), re.I)]
+        counts[topic.attrs['id']] = len(dossier_headings)
+    return dict(sorted(counts.items()))
+
+
+def check_r12(root):
+    counts = dossier_counts(root)
+    items = [f'{topic}: {count}' for topic, count in counts.items()]
+    return result('R12 dossier counts', 'N/A', False,
+                  f'{len(counts)} topic(s); informational only, no maximum', items)
+
+
+# ---------------------------------------------------------------- R13
+def first_child_node(n):
+    return next((kid for kid in n.kids if not (isinstance(kid, str) and not kid.strip())), None)
+
+
+def protected_snapshot(root, page):
+    topic_ids = sorted({n.attrs['id'] for n in nodes(root)
+                        if re.fullmatch(r'topic-\d+-(?:overview|technical|problem|lab)', n.attrs.get('id', ''))})
+    subtopic_ids = sorted({n.attrs['id'] for n in nodes(root)
+                           if n.tag in ('h3', 'h4', 'h5', 'h6')
+                           and re.fullmatch(r'topic-\d+-subtopic-\d+', n.attrs.get('id', ''))})
+    bullets = {subtopic_id: 0 for subtopic_id in subtopic_ids}
+    for technical in (n for n in nodes(root)
+                      if n.tag == 'article' and re.fullmatch(r'topic-\d+-technical', n.attrs.get('id', ''))):
+        current = None
+        for candidate in nodes(technical):
+            if candidate.tag in ('h3', 'h4', 'h5', 'h6') and candidate.attrs.get('id') in bullets:
+                current = candidate.attrs['id']
+            elif current and candidate.tag == 'li':
+                first = first_child_node(candidate)
+                if isinstance(first, Node) and first.tag == 'strong' and 'side-heading' in first.cls():
+                    bullets[current] += 1
+    labs = {}
+    for lab in (n for n in nodes(root)
+                if n.tag == 'article' and re.fullmatch(r'topic-\d+-lab', n.attrs.get('id', ''))):
+        labs[lab.attrs['id']] = sum(1 for candidate in nodes(lab)
+                                     if candidate.tag == 'li'
+                                     and re.match(r'^Stage\s+[1-8]\s*:', candidate.text().strip(), re.I))
+    urls = sorted({n.attrs.get('href', '') for n in nodes(root)
+                   if n.tag == 'a' and re.match(r'https?://', n.attrs.get('href', '')) and not is_google(n)})
+    evidence_limits = sum(1 for n in nodes(root)
+                          if n.tag in ('strong', 'th') and normalize_prose(n.text()).rstrip(':') == 'evidence limit')
+    incidents = sum(1 for n in nodes(root)
+                    if n.tag == 'article' and re.fullmatch(r'topic-\d+-problem', n.attrs.get('id', '')))
+    return {
+        'schema_version': 2,
+        'page': page,
+        'topic_ids': topic_ids,
+        'subtopic_heading_ids': subtopic_ids,
+        'labelled_bullets_per_subtopic': bullets,
+        'dossiers_per_topic': dossier_counts(root),
+        'lab_stages_per_lab': dict(sorted(labs.items())),
+        'source_urls': urls,
+        'code_blocks': sum(1 for n in nodes(root) if n.tag == 'pre'),
+        'evidence_limits': evidence_limits,
+        'incidents': incidents,
+    }
+
+
+def check_r13(current, baseline):
+    if baseline is None:
+        return result('R13 preservation guard', 'N/A', False, 'no baseline supplied')
+    items = []
+    for key in ('topic_ids', 'subtopic_heading_ids', 'source_urls'):
+        missing = sorted(set(baseline.get(key, [])) - set(current.get(key, [])))
+        if missing:
+            items.append(f'{key}: missing {missing}')
+    for key in ('labelled_bullets_per_subtopic', 'dossiers_per_topic', 'lab_stages_per_lab'):
+        for identifier, old_count in baseline.get(key, {}).items():
+            if identifier not in current.get(key, {}):
+                items.append(f'{key}: missing ID {identifier}')
+            elif current[key][identifier] < old_count:
+                items.append(f'{key}: {identifier} decreased {old_count} -> {current[key][identifier]}')
+    for key in ('code_blocks', 'evidence_limits', 'incidents'):
+        if current.get(key, 0) < baseline.get(key, 0):
+            items.append(f'{key}: decreased {baseline.get(key, 0)} -> {current.get(key, 0)}')
+    return result('R13 preservation guard', 'FAIL' if items else 'PASS', True,
+                  f'{len(items)} protected decrease(s) or missing ID(s)', items)
+
+
 # ---------------------------------------------------------------- main
+def read_json(path):
+    with open(path, encoding='utf-8') as stream:
+        return json.load(stream)
+
+
+def write_json(path, value):
+    os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as stream:
+        json.dump(value, stream, indent=1, sort_keys=True)
+        stream.write('\n')
+
+
+def page_day(path, day=None):
+    if day:
+        return day
+    match = re.search(r'day-(\d{3})\.html$', path)
+    return int(match.group(1)) if match else None
+
+
+def initialize_r10_baseline(path):
+    if os.path.exists(path):
+        raise SystemExit(f'REFUSED: R10 baseline already exists: {path}')
+    baseline = {}
+    for page in sorted(glob.glob('days/day-[0-9][0-9][0-9].html')):
+        day = page_day(page)
+        html = open(page, encoding='utf-8').read()
+        builder = Builder(); builder.feed(html)
+        baseline[str(day)] = r10_baseline_entry(r10_repeats(builder.root))
+    write_json(path, baseline)
+    print(f'Initialized R10 baseline for {len(baseline)} day(s): {path} ({os.path.getsize(path)} bytes)')
+
+
+def refresh_r10_baseline(path, day, repeated):
+    if not os.path.exists(path):
+        raise SystemExit(f'REFUSED: R10 baseline does not exist: {path}')
+    baseline = read_json(path)
+    old = baseline.get(str(day))
+    if old is None:
+        raise SystemExit(f'REFUSED: R10 baseline has no Day {day} entry')
+    current = r10_baseline_entry(repeated)
+    new_or_higher = []
+    for digest, item in current.items():
+        if digest not in old:
+            new_or_higher.append(f'{digest} new: {item["preview"]}')
+        elif item['count'] > old[digest].get('count', -1):
+            new_or_higher.append(f'{digest} increased {old[digest].get("count")} -> {item["count"]}: {item["preview"]}')
+    if new_or_higher:
+        raise SystemExit('REFUSED: R10 baseline refresh may only shrink:\n  ' + '\n  '.join(new_or_higher[:25]))
+    baseline[str(day)] = current
+    write_json(path, baseline)
+    print(f'Refreshed Day {day} R10 baseline shrink-only: {len(old)} -> {len(current)} repeat(s)')
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--day', type=int)
@@ -401,7 +697,17 @@ def main():
     ap.add_argument('--terms', default='', help='comma-separated terms that must be linked (R3)')
     ap.add_argument('--terms-file')
     ap.add_argument('--json')
+    ap.add_argument('--snapshot', help='write the current R13 protected-content snapshot')
+    ap.add_argument('--baseline', help='compare R13 protected content with this snapshot')
+    ap.add_argument('--r10-baseline', help='R10 repeat baseline; defaults to scratch/baseline/r10-existing-repeats.json when present')
+    ap.add_argument('--init-r10-baseline', action='store_true', help='initialize the R10 baseline once from all built day pages')
+    ap.add_argument('--refresh-r10-baseline', action='store_true', help='refresh this day in the R10 baseline, refusing new or increased repeats')
     a = ap.parse_args()
+    default_r10 = 'scratch/baseline/r10-existing-repeats.json'
+    r10_path = a.r10_baseline or (default_r10 if os.path.exists(default_r10) else None)
+    if a.init_r10_baseline:
+        initialize_r10_baseline(a.r10_baseline or default_r10)
+        return
     if not a.page and not a.day:
         ap.error('give --day or --page')
     path = a.page or f'days/day-{a.day:03d}.html'
@@ -411,9 +717,24 @@ def main():
     terms = [t.strip() for t in a.terms.split(',') if t.strip()]
     if a.terms_file:
         terms += [l.strip() for l in open(a.terms_file) if l.strip() and not l.startswith('#')]
+    day = page_day(path, a.day)
+    repeated = r10_repeats(root)
+    if a.refresh_r10_baseline:
+        if not r10_path:
+            raise SystemExit('REFUSED: --refresh-r10-baseline needs an existing --r10-baseline')
+        if day is None:
+            raise SystemExit('REFUSED: cannot derive day for R10 baseline refresh')
+        refresh_r10_baseline(r10_path, day, repeated)
+        return
+    r10_data = read_json(r10_path) if r10_path else {}
+    r10_for_day = r10_data.get(str(day), {}) if day is not None else {}
+    protected = protected_snapshot(root, path)
+    r13_baseline = read_json(a.baseline) if a.baseline else None
     gate = a.diagrams == 'allow'
     r4, r8, diag = check_diagrams(root, gate)
-    res = [check_r1(root, ids), check_r2(root), check_r3(root, terms), r4, check_r5(root), check_r7(html), r8]
+    res = [check_r1(root, ids), check_r2(root), check_r3(root, terms), r4, check_r5(root),
+           check_r7(html), r8, check_r10(root, r10_for_day), check_r11(root), check_r12(root),
+           check_r13(protected, r13_baseline)]
     print(f'{path} ({len(html)} bytes) | diagram method: {METHOD} | DIAGRAMS={a.diagrams}')
     for r in res:
         tag = r['status'] + ('' if r['gated'] or r['status'] in ('PASS',) else ' (not gated)')
@@ -427,11 +748,16 @@ def main():
     print('\nPer-diagram measurements (evidence for R4/R8):')
     for m in diag:
         print(f'  {m["title"]}: {m["measured"]} texts measured, {m["not_measured"]} not measured, {len(m["small"])} under 9px, defects {m["defects"] or 0}, borderline {m["borderline"]}')
+    print('\nNot checked: semantic distinctness of dossiers; meaning preservation of rewritten text (manual review).')
     failed = [r['rule'] for r in res if r['gated'] and r['status'] == 'FAIL']
     print('\nGATE:', 'FAIL: ' + ', '.join(failed) if failed else 'PASS')
     if a.json:
-        os.makedirs(os.path.dirname(a.json) or '.', exist_ok=True)
-        json.dump({'page': path, 'method': METHOD, 'diagrams': a.diagrams, 'results': res, 'diagram_measurements': diag, 'gate_failed': failed}, open(a.json, 'w'), indent=1)
+        write_json(a.json, {'page': path, 'method': METHOD, 'diagrams': a.diagrams,
+                            'r10_baseline': r10_path, 'results': res,
+                            'diagram_measurements': diag, 'protected_snapshot': protected,
+                            'gate_failed': failed})
+    if a.snapshot:
+        write_json(a.snapshot, protected)
     sys.exit(1 if failed else 0)
 
 

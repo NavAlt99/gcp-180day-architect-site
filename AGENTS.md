@@ -52,19 +52,32 @@ deterministic built-page verifier; do not weaken or bypass it.
 - **R9 — verify the built page:** run `check_page_rules.py` against the actual
   rendered day with the selected diagram mode and day terms file. A passing
   source spec is not a substitute for this result.
+- **R10 — no repeated paragraphs:** repeated normalized main-content text of at
+  least 80 characters may not be new or increase above the checked-in R10
+  baseline; baseline repeats are tolerated only until that day is rewritten.
+- **R11 — evidence-bearing starting points:** every worked starting point has a
+  concrete marker and less than 0.6 word-set Jaccard overlap with its dossier heading.
+- **R12 — dossier counts:** report each topic's worked-dossier count as
+  informational output with status N/A; it is not gated.
+- **R13 — preservation guard:** when a protected-content baseline is supplied,
+  no protected count or ID, including the dossier count per topic, may decrease
+  or disappear.
 
-R1, R2, R3, R5, and R7 are always gated. R4 and R8 are gated only when diagrams
-may change.
+R1, R2, R3, R5, R7, R10 and R11 are always gated. R4 and R8 are gated only
+when diagrams may change. R12 is informational with status N/A. R13 is gated
+whenever a baseline exists.
 
 ## Day prompt switches
 
 `PROMPT_DAY.md` contains only these inputs; resolve them before authoring:
 
 - `DAY`: required integer 1–180; work on this day only.
-- `SCOPE`: `plan`, `update`, `audit-only`, or `fix`; `update` permits additive
+- `SCOPE`: `plan`, `update`, `audit-only`, `fix`, or `rewrite`; `update` permits additive
   authoring and the contract-approved R2/R7 conversions, `audit-only` writes
   only the named audit evidence, `fix` is limited to confirmed ledger findings,
-  and `plan` makes no day-content changes.
+  `rewrite` removes or merges only approved non-protected repetition on named
+  `rewrite: <targets>` IMPROVEMENTS through a preservation ledger, and `plan`
+  makes no day-content changes. Rewrite never shortens a distinct explanation.
 - `DIAGRAMS`: `keep` preserves eligible diagrams; `allow` permits contract-
   compliant additions or repairs and gates R4/R8.
 - `TOPICS`: `keep` preserves mapped topic/subtopic scope; `expand` may add only

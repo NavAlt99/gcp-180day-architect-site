@@ -40,7 +40,9 @@ No generic fallback prose/root causes/lab steps or unfilled placeholders.
 Write concise non-repetitive prose without reducing depth, retaining mechanisms,
 ownership/boundaries, limits, trade-offs and evidence.
 
-Depth floor (user decision): conceptual depth may increase but must never decrease. Scheduled study time never caps or shortens an explanation. If a topic needs more worked mechanism, examples, or lab detail than the schedule suggests, write it and note the time overrun in the handoff; do not trim it. Token savings come only from structure (shared helpers, defaults, compact diagram specs, read budget), never from shorter prose, fewer subtopics, fewer examples, or thinner labs. Existing page content may be revised only to add or correct depth, not to condense it.
+Quality floor (user decision; supersedes the earlier depth floor): Protected content is never removed, merged away, shortened or thinned: every mapped topic, listed subtopic, labelled explanation, distinct mechanism, worked example, command, lab stage, incident, source link and Evidence limit. Scheduled study time never caps a distinct explanation; if a topic needs more worked mechanism, examples or lab detail than the schedule suggests, write it in full and note the time overrun in the handoff. Text may be removed or merged only when it is (a) a verbatim or near-verbatim repeat of other text on the same page, (b) boilerplate not specific to its topic, subtopic or dossier, or (c) a restatement of its own heading or label that adds no fact, mechanism, number, command or example. Every removal or merge is made only under SCOPE=rewrite, with an approved preservation ledger recording the old text, its reason class a-c and where each distinct idea now lives; any other scope may only add or correct. Every dossier and subtopic explanation teaches at least one idea no other on the page teaches; each worked starting point states a concrete observation (command output, number, quoted log line or named scenario) and never restates its title; an abstract mechanism gets one plain-language analogy or concrete example before jargon; shared reasoning or scope text is written once per topic, not once per dossier; no paragraph appears more than once on a page. Repeats recorded in the R10 baseline are tolerated until their day is rewritten but may never increase. Existing content may be revised to add or correct depth, or under SCOPE=rewrite to remove repetition as defined above. Token savings come from structure, shared helpers, the read budget and removing repetition, never from shortening distinct explanation or dropping subtopics, examples or lab detail.
+
+Prose uses one idea per paragraph, at most three sentences; a list item may contain several short paragraphs.
 
 ### Part 1: Topics of the day
 
@@ -152,7 +154,8 @@ user. If depth and eligibility conflict, keep it and ask. Handoff Visuals list
 names every addition/removal/replacement and its reason.
 Edit durable specs with targeted `str_replace` edits or per-topic files; recreate
 only for initial skeleton fill or when over about half changes. Report spec diff
-size and confirm no explanatory prose removed. `coverage.csv` publisher_url is a
+size and preservation-ledger status (no removals, or the ledger path) confirming
+no protected content was removed. `coverage.csv` publisher_url is a
 hint; on completion set each topic's primary source and set
 publisher_section_verified only after confirming its section.
 
@@ -259,9 +262,11 @@ light and dark themes. Light cards/TOC/tables/rail retain active indicator;
 dark-canvas captions readable; scrolling contained, selector/progress keys/copies
 intact. Fix introduced errors. Audits cannot prove every text overlap/arrow/source/
 eligibility decision; rendered reads follow Read budget.
-Run `scripts/check_page_rules.py` on the built day page for R1-R5, R7 and R8.
-R1, R2, R3, R5 and R7 are always gated; R4 and R8 are gated when diagram edits
-are allowed. Record its rule counts, measurement method, per-diagram table,
+Run `scripts/check_page_rules.py` on the built day page for R1-R5, R7-R13.
+R1, R2, R3, R5, R7, R10 and R11 are always gated; R4 and R8 are gated when
+diagram edits are allowed; R12 is informational with status N/A; R13 is gated
+when a baseline is supplied. Record its
+rule counts, measurement method, per-diagram table,
 advisory terms and every not-measured item in the handoff.
 
 ## Read budget

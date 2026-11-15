@@ -1,3 +1,5 @@
+Superseded by the "Quality floor" rule in `PAGE_AUTHORING_CONTRACT.md`.
+
 # User-approved depth-floor wording changes
 
 All five live instruction files searched with case-insensitive patterns for concise, shorten, condense, proportional, efficient, trim, short, depth and scheduled time. Negative prohibitions on reduced depth remain intentional. Compact briefs/audit results and short technical terms describe structure or labels, not permission to shorten explanations. ONE_DAY_AT_A_TIME.md and RENDER_REVIEW.md contain no prose/time-depth reduction directive and continue referencing the canonical contract. No routine page-content reads or Phase B work.

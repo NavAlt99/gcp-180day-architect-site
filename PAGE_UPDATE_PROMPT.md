@@ -3,7 +3,7 @@
 This is the command and handoff component of `DAY_WORKFLOW_PROMPT.md` for one
 isolated day. Read `PAGE_AUTHORING_CONTRACT.md`, `AGENTS.md`, and
 `ONE_DAY_AT_A_TIME.md`, then fill only the six switches in `PROMPT_DAY.md`.
-Standing R1–R9 and switch semantics live in `AGENTS.md`. A multi-day run starts
+Standing R1–R13 and switch semantics live in `AGENTS.md`. A multi-day run starts
 from `BATCH_UPDATE_PROMPT.md`, which instantiates the complete workflow once per
 day without sharing authoring context between pages.
 
@@ -27,7 +27,8 @@ The generated handoff is `scratch/handoffs/day-NNN.md`. It must include clickabl
 spec/override/page paths; layout/navigation status; anchors, depth, exercises and
 diagram review; Exit-evidence status; checks actually run; source and lab limits;
 Practice-to-lab mapping; source ledger; product-claim list; visuals list; spec
-diff stat; and confirmation that explanatory prose was not removed. `UNRECORDED`
+diff stat; and preservation-ledger status (no removals, or the ledger path)
+confirming no protected content was removed. `UNRECORDED`
 review entries and inaccessible sources remain unresolved, not passes.
 
 Finish the gate and local commit before advancing an authorized batch. Start a
