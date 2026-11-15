@@ -56,6 +56,12 @@ class DayRunTests(unittest.TestCase):
         self.assertTrue(all(day_run.permitted_day_path(path, 7) for path in allowed))
         self.assertFalse(day_run.permitted_day_path("days/day-008.html", 7))
         self.assertFalse(day_run.permitted_day_path("scripts/build.py", 7))
+        self.assertTrue(day_run.permitted_day_path(
+            "scratch/baseline/r10-existing-repeats.json", 7, scope="rewrite"
+        ))
+        self.assertFalse(day_run.permitted_day_path(
+            "scratch/baseline/r10-existing-repeats.json", 7, scope="update"
+        ))
 
     def test_check_order_stops_on_first_failure_and_masks_output(self):
         seen = []

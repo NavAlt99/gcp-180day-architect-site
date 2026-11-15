@@ -2,8 +2,8 @@
 
 Contract: only structure defaults, never teaching/case/lab depth.
 `scripts/new_day_skeleton.py --day N`: coverage TODO spec, no overwrite;
-`--output`: fixture; `--directory`: create a new directory spec without overwrite. Handoff: depth/overruns separate; git diff spec, no explanatory prose removed
-(only structure/corrected facts).
+`--output`: fixture; `--directory`: create a new directory spec without overwrite. Handoff: depth/overruns separate; git diff spec, preservation-ledger status (no removals, or the ledger path) confirming no protected content was removed
+(only structure/corrected facts outside an approved rewrite).
 
 E=escaped; R=Markdown/HTML; H=raw HTML; ?=engine optional, contract still required.
 Fallbacks/geometry: SPEC_DEFAULTS.json.
@@ -117,7 +117,7 @@ Their structural checks cover resolvable title/desc IDs, figcaptions, local icon
 references and empty wrappers/headings/placeholders, as well as viewBox and role.
 This interpretation preserves the required passing Day 2 case, whose technical
 flows occur on topics with disabled incident diagrams.
-Depth WARNs use per-topic min/max ranges derived at runtime from the canonical
+Legacy per-topic length WARNs use min/max ranges derived at runtime from the canonical
 `scratch/day_data_004.py` (five topics, read-only; no rendered HTML baseline).
 Metrics are technical plain-text character length, subtopic heading count, lab
 stage count, and total stage plain-text character length per topic. The initial

@@ -48,6 +48,10 @@ def main(argv=None, *, root=ROOT, runner=subprocess.run):
     parser.add_argument('--day', type=int, required=True, choices=range(1, 181))
     parser.add_argument('--contract-hash', action='store_true', help='Pin and check canonical contract sha256')
     parser.add_argument('--skip-labs', '--no-labs', action='store_true', help='Skip lab re-runs')
+    parser.add_argument('--snapshot', help='pass an R13 snapshot output path to check_page_rules.py')
+    parser.add_argument('--baseline', help='pass an R13 protected-content baseline to check_page_rules.py')
+    parser.add_argument('--r10-baseline', help='pass an explicit R10 repeat baseline to check_page_rules.py')
+    parser.add_argument('--diagrams', choices=('keep', 'allow'), default='allow')
     args = parser.parse_args(argv)
     checks = tuple(c for c in CHECKS if not (args.skip_labs and c == 'run_labs'))
     try:
@@ -70,6 +74,19 @@ def main(argv=None, *, root=ROOT, runner=subprocess.run):
             failure = report_failure(check, result.stdout, root, args.day)
             if result.returncode or failure:
                 print(f'FAIL: {check} ({failure or "exit " + str(result.returncode)})'); return 1
+        if args.snapshot or args.baseline or args.r10_baseline:
+            command = [sys.executable, '-B', str(root / 'scripts/check_page_rules.py'),
+                       '--day', str(args.day), '--diagrams', args.diagrams]
+            terms = root / 'scratch/audits' / f'day-{args.day:03d}-terms.txt'
+            if terms.exists(): command += ['--terms-file', str(terms)]
+            if args.snapshot: command += ['--snapshot', args.snapshot]
+            if args.baseline: command += ['--baseline', args.baseline]
+            if args.r10_baseline: command += ['--r10-baseline', args.r10_baseline]
+            result = runner(command, cwd=root, env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'},
+                            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            print(result.stdout, end='' if result.stdout.endswith('\n') else '\n', flush=True)
+            if result.returncode:
+                print(f'FAIL: check_page_rules (exit {result.returncode})'); return 1
     except (OSError, ValueError, KeyError, TypeError) as exc:
         print(f'FAIL: {locals().get("check", "contract-hash")} ({type(exc).__name__}: {exc})'); return 1
     print(f'PASS: Day {args.day:03d} batch gate'); return 0

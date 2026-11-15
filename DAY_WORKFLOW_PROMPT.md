@@ -7,7 +7,7 @@ below applies unchanged.
 
 ```text
 DAY=
-SCOPE=                 (plan | update | audit-only | fix)
+SCOPE=                 (plan | update | audit-only | fix | rewrite)
 DIAGRAMS=allow         (keep | allow)
 TOPICS=expand          (keep | expand | add)
 EXTRA_TOPICS=          (only with TOPICS=add; one per line as "title | one-line reason")
@@ -27,6 +27,8 @@ Every other reference uses `DAY`, `NNN` (DAY zero-padded to three digits),
   different day, stop and report it.
 - Stop when `EXTRA_TOPICS` is nonempty without `TOPICS=add`, or `TOPICS=add` has
   no entries. Each entry must be `title | one-line reason`.
+- With `SCOPE=rewrite`, require IMPROVEMENTS to contain `rewrite: <named targets>`
+  (for example `rewrite: topic 02 dossiers 1-21`); stop when targets are empty.
 - If DAY is a roadmap gate/capstone whose entry does not fit the four-topic
   template, stop and explain why.
 - With `DIAGRAMS=allow`, if `scripts/compact_hierarchy.py` is absent, author only
@@ -104,16 +106,46 @@ node; never shrink other text to compensate.
 
 ### R9 — deterministic checker
 
-Audit, fix gate and update gate run:
+Audit, fix, rewrite and update gates run:
 
 `python3 scripts/check_page_rules.py --day DAY --diagrams <DIAGRAMS> --terms-file scratch/audits/day-NNN-terms.txt --json scratch/day-NNN-rules.json`
 
-The checker runs on the built page and checks R1–R5, R7 and R8. Exit 1 is a
+The checker runs on the built page and checks R1–R5 and R7–R13. Exit 1 is a
 gated failure. Paste every per-rule line and the per-diagram measurement table
 into the handoff. Do not reimplement it or claim a pass without its counts. If
 the script is missing or crashes, stop. Record its measurement method,
 not-measured diagrams and advisory terms. Every FAIL becomes a finding: R1, R2,
-R3 and R7 are critical; R4, R5 and R8 are major.
+R3, R7, R10 and R13 are critical; R4, R5, R8 and R11 are major. R12 is
+informational and never gates the page.
+
+### R10 — no repeated paragraphs
+
+Normalize main-content `p`, `li`, `td`, `th`, `dd` and `figcaption` text by
+lowercasing and collapsing whitespace, excluding shared shell and code text.
+Repeated text of at least 80 characters fails when it is new or its count exceeds
+the checked-in `scratch/baseline/r10-existing-repeats.json` entry. Existing
+baseline repeats are grandfathered until rewrite but may never increase. A day
+without a baseline entry is strict. After an approved rewrite, refresh only that
+day with `--refresh-r10-baseline`; the command refuses new or increased repeats.
+
+### R11 — evidence-bearing starting point
+
+Every `Worked starting point:` in its nearest dossier block has a digit, quoted
+string or `samp`/`code`/`kbd`/`pre` marker and word-set Jaccard overlap below 0.6
+with that dossier heading. Pages without dossiers report N/A.
+
+### R12 — dossier counts
+
+Report each topic's number of headings matching `Worked dossier N:` as
+informational output with status N/A. There is no maximum and R12 never gates.
+
+### R13 — preservation guard
+
+`--snapshot scratch/day-NNN-protected-baseline.json` records protected topic and
+subtopic IDs, labelled bullets, dossier counts per topic, lab stages,
+non-discovery sources, code blocks, Evidence limits and incidents. During
+approved rewrite, pass that file with `--baseline`; any decrease or missing ID
+is a critical gated failure.
 
 ## Scope rules
 
@@ -146,7 +178,7 @@ R9.
 Audit four areas:
 
 - content: facts, technical accuracy, roadmap drift, source/product support,
-  depth floor, and every validator warning;
+  quality floor, and every validator warning;
 - diagrams: R4/R8, technical accuracy, geometry, color, accessibility and
   eligibility; record an ineligible existing diagram as `decision needed`, not a
   replacement defect;
@@ -187,6 +219,30 @@ targeted `str_replace` edits, correcting each selected defect class everywhere
 on the page in the same pass. Run Work steps 4–5 and the gate, then mark applied
 findings `fixed` and commit/push. Diagram findings remain open unless
 `DIAGRAMS=allow`; `topic N` enhancements remain open unless `TOPICS=expand`.
+
+### SCOPE=rewrite
+
+Use rewrite only to remove or merge non-protected repetition and rewrite weak
+text on the named `rewrite: <targets>` IMPROVEMENTS. Never use it to shorten a
+distinct explanation.
+
+Phase A — audit: read the spec once via `extract_day_inputs.py`. Write the
+preservation ledger `scratch/audits/day-NNN-rewrite.json` and create
+`scratch/day-NNN-protected-baseline.json` with the checker's `--snapshot` option.
+Every ledger entry has ID `W1...`, location, an `old_str` matching exactly once,
+`new_str` (empty only for a pure deletion), reason class (`a verbatim repeat`,
+`b non-specific boilerplate`, or `c heading restatement`),
+`ideas_retained` mapping every distinct old idea to its retained location, and
+`protected_content_check`. Reject an entry that drops a distinct idea. Print the
+table and stop for `go`, `go W1,W3`, or no selection.
+
+Phase B — after approval: run branch preflight and apply only approved entries
+with targeted `str_replace` edits. Correct the same defect class everywhere on
+the page in the same pass. Run Work steps 4–5 and gate R10–R13 with
+`--baseline scratch/day-NNN-protected-baseline.json`. Refresh only Day NNN in
+`scratch/baseline/r10-existing-repeats.json` using the shrink-only
+`--refresh-r10-baseline` command. Mark applied entries `fixed` and commit as
+`SCOPE=fix` does. The R10 baseline is an allowed staged path only for rewrite.
 
 ### SCOPE=update
 
@@ -234,7 +290,8 @@ still apply.
 Add subtopics, worked mechanisms and `topic N` improvements only inside existing
 topics and only from Day DAY Study scope, never later days. Record every addition
 and clause under Expansions. Use targeted insertions; do not condense/reorder
-existing prose except exact-wording R2/R7 markup conversions.
+existing prose except exact-wording R2/R7 markup conversions and removals
+recorded in an approved SCOPE=rewrite preservation ledger.
 
 ### TOPICS=add
 
@@ -249,10 +306,10 @@ user-added and record that the roadmap lists fewer topics and needs updating.
 
 ## Branch preflight
 
-For update/fix only, before any edit:
+For update/fix/rewrite only, before any edit:
 
 1. `git fetch --all --prune`; main is `main`.
-2. Require a clean `git status --porcelain` except this day's four audit files.
+2. Require a clean `git status --porcelain` except this day's named audit files.
    Otherwise stop and list paths; never repair by force.
 3. Require every local branch to have an upstream and not be ahead, using
    `git for-each-ref refs/heads --format='%(refname:short) %(upstream:short)
@@ -269,7 +326,7 @@ Print one result per check and the main commit hash.
 
 ## Work
 
-For update, run all steps; fix runs steps 4–5 after approved ledger edits.
+For update, run all steps; fix and rewrite run steps 4–5 after approved ledger edits.
 
 1. Read the entire contract once.
 2. Follow `PAGE_UPDATE_PROMPT.md` within its read budget. Run
@@ -277,7 +334,7 @@ For update, run all steps; fix runs steps 4–5 after approved ledger edits.
    create the skeleton and fill every TODO. Set contract version 2 and copy
    roadmap Practice/Exit verbatim. Report legacy migration requirements before
    editing.
-3. Apply R1–R5, R7–R8 and all switches to every topic.
+3. Apply R1–R5, R7–R13 and all switches to every topic.
 4. In PAGE_UPDATE_PROMPT order run `validate_spec.py`, `author_engine.py`,
    `build.py`, `validate.py`, `check_study_links.py`, `run_labs.py`, and
    `batch_gate.py`, all scoped to DAY.
@@ -293,8 +350,9 @@ For update, run all steps; fix runs steps 4–5 after approved ledger edits.
 Continue only when preflight passed; validators and batch gate pass; no lab tool
 was skipped; every non-discovery link is verified; no TODO remains; every removed
 diagram has a handoff reason; R9 passes its gated rules; converted paragraphs
-retain normalized text; no other prose was condensed/reordered; no shared script
-or template changed; and every Day DAY coverage anchor exists in the built page.
+retain normalized text; no prose was removed, condensed or reordered except
+under an approved preservation ledger; no shared script or template changed;
+and every Day DAY coverage anchor exists in the built page.
 On any failure, do not commit or push; report the first failing check and stop.
 
 ## Commit and push
@@ -308,7 +366,7 @@ BRANCH, then `git push -u origin BRANCH`. Never push main or force-push.
 
 ## Finish
 
-Print checks/results, preflight and main hash, R1–R5/R7/R8 output, spec size,
+Print checks/results, preflight and main hash, R1–R5/R7–R13 output, spec size,
 depth overruns, expansions, added topics, visual changes, fragment versus whole-
 document sources, unresolved items, commit hash and branch. State that browser
 audits were not run unless actually used. Then stop.

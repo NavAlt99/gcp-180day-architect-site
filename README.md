@@ -31,7 +31,7 @@ instructions or new keys to that file.
 | Parameter | Allowed value | Meaning |
 | --- | --- | --- |
 | `DAY` | Integer `1`–`180` | Required. Selects the only day that may be read, audited, or changed. |
-| `SCOPE` | `plan`, `update`, `audit-only`, or `fix` | `plan` reports proposed work without changing files; `update` performs additive authoring; `audit-only` writes only the named audit evidence; `fix` applies only confirmed audit-ledger findings after the required `go` selection. |
+| `SCOPE` | `plan`, `update`, `audit-only`, `fix`, or `rewrite` | `plan` reports proposed work without changing files; `update` performs additive authoring; `audit-only` writes only the named audit evidence; `fix` applies only confirmed audit-ledger findings after the required `go` selection; `rewrite` removes or merges only approved non-protected repetition on named targets through a preservation ledger. |
 | `DIAGRAMS` | `keep` or `allow` | `keep` preserves diagrams and reports unresolved visual issues; `allow` permits eligible diagram additions or repairs and gates diagram geometry/readability checks. |
 | `TOPICS` | `keep` or `expand` | `keep` preserves mapped topic and subtopic scope; `expand` permits only additions supported by the same day's Study clauses. It never permits later-day material. |
 | `EXTRA_TOPICS` | Empty, or user-named same-day roadmap topics | Leave empty normally. This field cannot invent, import, or reorder curriculum scope. |
@@ -55,9 +55,22 @@ Common combinations:
   `go defects`, `go enhancements`, or specific IDs such as `go F1,F3` when the
   workflow asks for the selection.
 - Perform full additive authoring: `SCOPE=update`.
+- Remove approved repetition without shortening distinct explanations:
+  `SCOPE=rewrite` with `IMPROVEMENTS=rewrite: <named targets>`; empty targets stop.
 - Inspect and propose work without content changes: `SCOPE=plan`.
 - Preserve all existing diagrams: `DIAGRAMS=keep`; permit eligible repairs or
   additions: `DIAGRAMS=allow`.
+
+Rewrite example:
+
+```text
+DAY=2
+SCOPE=rewrite
+DIAGRAMS=keep
+TOPICS=keep
+EXTRA_TOPICS=
+IMPROVEMENTS=rewrite: topic 02 dossiers 1-21
+```
 
 For one day, save those switches in `PROMPT_DAY.md` and ask the agent:
 
