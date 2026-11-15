@@ -171,7 +171,11 @@ LAB_CONTEXT = {
     'verification': 'Recorded outputs are local calculations, script assertions, or fixture classifications. They are not cloud observations.',
     'cleanup': 'Stage 8 removes temporary calculation scripts and non-essential inputs while preserving durable evidence files. No processes, cloud resources, firewall rules, or kernel settings are created or changed. Copy the listed evidence to the Day 1 repository before discarding the workspace.'
 }
-lab = partial(_lab, defaults=LAB_CONTEXT)
+def lab(name, goal, expected, steps, accept, trouble, files):
+    context = dict(LAB_CONTEXT)
+    for field in ('mode', 'preflight', 'verification', 'cleanup'):
+        context[field] = f'Exercise context — {name}. {LAB_CONTEXT[field]}'
+    return _lab(name, goal, expected, steps, accept, trouble, files, defaults=context)
 case = partial(_case,
     evidence_label='Supplied synthetic records (literal fixture, not observed logs):',
     facts='Synthetic fixture: socket bytes queued=yes; application reads=no.',
@@ -234,11 +238,17 @@ PART1_HTML = f'''<p>{escape(PART1_INTRO)}</p><p class="callout"><strong>Exit evi
     for i, (key, title, intro, why, where, preview) in enumerate(OVERVIEWS, 1)
 )
 
-def worked_mechanisms(records, *, scope):
-    """Render compact, same-day mechanism records as explicit reasoning dossiers."""
+def worked_mechanisms(records, *, scope, additions=None):
+    """Render same-day mechanism records and one scope guard per topic."""
+    additions = additions or {}
     cards = []
     for number, record in enumerate(records, 1):
         title, supplied, mechanism, ownership, failure, tradeoff, verification, limit = record
+        extra = ''.join(
+            f'<li><strong class="side-heading">{escape(label)}:</strong> {escape(text)}</li>'
+            for label, text in additions.get(title, [])
+        )
+        extra_list = f'<ul class="dossier-decisions">{extra}</ul>' if extra else ''
         cards.append(f'''<article class="worked-example"><p><strong>Worked dossier {number}: {escape(title)}</strong></p>
 <p><strong class="side-heading">Worked starting point:</strong> {escape(supplied)}</p>
 <table><caption>{escape(title)}: mechanism, boundary, and evidence review</caption><tbody>
@@ -248,10 +258,72 @@ def worked_mechanisms(records, *, scope):
 <tr><th scope="row">Trade-off or limit</th><td>{escape(tradeoff)}</td></tr>
 <tr><th scope="row">Verification checkpoint</th><td>{escape(verification)}</td></tr>
 <tr><th scope="row">Evidence limit</th><td>{escape(limit)}</td></tr>
-</tbody></table>
-<p><strong class="side-heading">Architect's reasoning chain:</strong> Begin with the supplied condition, follow the stated mechanism across its named owner boundary, and stop at the first unsupported transition. The failure statement identifies what could prevent progress; it is not proof that the candidate occurred. Apply the trade-off before selecting a response, then use the verification checkpoint to collect evidence at the boundary that owns the next decision.</p>
-<p><strong class="side-heading">Scope guard:</strong> This dossier deepens {escape(scope)} only. It does not turn a tabletop prediction into an observation, infer a proprietary cloud implementation, or establish application success from a lower-layer signal.</p></article>''')
-    return link_terms(''.join(cards))
+</tbody></table>{extra_list}</article>''')
+    scope_guard = f'''<p><strong>Scope guard:</strong> These dossiers deepen {escape(scope)} only. They do not turn tabletop predictions into observations, infer proprietary cloud implementation details, or establish application success from a lower-layer signal.</p>'''
+    return link_terms(''.join(cards) + scope_guard)
+
+T1_DOSSIER_ADDITIONS = {
+    'Carrier present but no valid frame': [
+        ('Beginner reading', 'Carrier means the interface detects a physical signal; it does not mean a valid frame crossed the link.'),
+        ('Architect decision', 'Inspect frame and error counters before asking the routing or application owner to investigate.'),
+    ],
+    'Frame accepted but destination has no route': [
+        ('Beginner reading', 'Accepting a frame completes one local-link step, but the host still needs a route for the packet inside it.'),
+        ('Architect decision', 'Record the missing destination prefix and route owner before proposing a broader default route.'),
+    ],
+    'Route selected but TCP refused': [
+        ('Beginner reading', 'A refusal is an active transport response, so the path reached a host even though no intended listener accepted the port.'),
+        ('Architect decision', 'Check the expected process and listening address before changing subnet or firewall design.'),
+    ],
+    'Transport connects but HTTP returns 503': [
+        ('Beginner reading', 'The connection opened, but the application answered that it could not serve the request.'),
+        ('Architect decision', 'Keep transport reachability separate from application readiness and investigate the supplied 503 at its owner boundary.'),
+    ],
+    'HTTP success with wrong business payload': [
+        ('Beginner reading', 'HTTP 200 describes message handling, not whether the required order result exists in the response.'),
+        ('Architect decision', 'Test a safe business invariant as well as the status code when that outcome controls traffic or acceptance.'),
+    ],
+    'One observation mapped to two models': [
+        ('Beginner reading', 'OSI and TCP/IP can give different layer names to the same routing responsibility; they do not create two packet-processing steps.'),
+        ('Architect decision', 'Name the model and responsibility together so teams do not argue from layer numbers alone.'),
+    ],
+    'Encapsulation on send': [
+        ('Beginner reading', 'Encapsulation is like placing a message in nested addressed envelopes, with each boundary adding information it owns.'),
+        ('Architect decision', 'Write transport, final IP, next-hop, and frame addresses separately before reviewing an off-subnet trace.'),
+    ],
+    'Decapsulation on receive': [
+        ('Beginner reading', 'The receiver checks and removes each owned envelope before handing the remaining content to the next responsibility.'),
+        ('Architect decision', 'Seek a separate signal at frame acceptance, local IP delivery, socket delivery, and process read.'),
+    ],
+    'L4 probe choice': [
+        ('Beginner reading', 'A port accepting a connection is like a door opening; it does not show that the service behind it can complete the request.'),
+        ('Architect decision', 'Use the Layer 4 probe for endpoint reachability and add a separate application check when readiness matters.'),
+    ],
+    'L7 probe choice': [
+        ('Beginner reading', 'A Layer 7 probe asks the application a defined question and checks the answer, not just whether a port is open.'),
+        ('Architect decision', 'Choose a representative readiness condition that does not withdraw every backend because one shared dependency fails.'),
+    ],
+    'Timeout boundary': [
+        ('Beginner reading', 'A timeout says a clock expired; by itself it does not say which component consumed the time.'),
+        ('Architect decision', 'Build a timestamped boundary timeline and leave intervals without observations marked unknown.'),
+    ],
+    'Error ownership handoff': [
+        ('Beginner reading', 'An unreachable result and an HTTP error from separate attempts are two facts, not one continuous packet story.'),
+        ('Architect decision', 'Require matching attempt identifiers, endpoints, and times before linking evidence across owners.'),
+    ],
+    'Lower-layer repair verification': [
+        ('Beginner reading', 'Adding the missing route opens the next step; it does not prove that transport or the application now works.'),
+        ('Architect decision', 'Retest route selection, connection, and application result as separate checkpoints after the repair.'),
+    ],
+    'Application repair verification': [
+        ('Beginner reading', 'A recorded change says what someone altered, while a rerun shows whether the same request now meets its contract.'),
+        ('Architect decision', 'Repeat the bounded request with the same inputs and preserve the status and required payload fields.'),
+    ],
+    'Architectural layer boundary decision': [
+        ('Beginner reading', 'Traffic handling belongs at the layer that can see the attribute needed for the decision, such as a port or an HTTP path.'),
+        ('Architect decision', 'List the required attributes, protocol support, health meaning, and owner before choosing a load-balancing design.'),
+    ],
+}
 
 T1_WORKED = worked_mechanisms([
     ('Carrier present but no valid frame', 'The interface reports carrier present; no successful frame exchange is supplied.', 'A physical signal can exist while framing, VLAN membership, or link-layer delivery still fails.', 'The interface and adjacent link own signal and frame counters; the application owns no evidence at this point.', 'Treating carrier as end-to-end connectivity skips every higher responsibility.', 'A deeper probe costs more time but prevents an application team from debugging an unproved path.', 'Request a bounded frame-level observation and the interface error counters before moving upward.', 'Carrier state alone does not prove a frame, IP packet, transport exchange, or application response.'),
@@ -269,10 +341,14 @@ T1_WORKED = worked_mechanisms([
     ('Lower-layer repair verification', 'A missing route is corrected in the tabletop configuration.', 'Restoring a route permits the next forwarding decision but does not automatically exercise transport or the application.', 'The network owner repairs the route; service owners retain responsibility above it.', 'Stopping after route presence confuses configuration with end-to-end outcome.', 'Full retesting takes longer but avoids handing an unresolved higher-layer failure to users.', 'Verify the matching route, expected next hop, transport attempt, and application result as distinct checkpoints.', 'Expected post-fix behavior remains predicted until those checks are actually run.'),
     ('Application repair verification', 'A synthetic case says the service fault was repaired; no rerun output is supplied.', 'A repair must be followed by the same bounded request and by validation of the intended response contract.', 'The service owner owns the change; the test owner owns reproducible inputs and retained output.', 'A change record alone is not evidence that the operation now works.', 'Representative verification provides stronger confidence but must avoid unsafe production side effects.', 'Repeat the exact request, compare status and required payload, and record time and scope.', 'The lesson specifies expected evidence; it does not claim the repair or rerun occurred.'),
     ('Architectural layer boundary decision', 'A design must choose whether routing or application content determines traffic handling.', 'Routing-oriented handling uses network/transport attributes; application-oriented handling can inspect supported message attributes.', 'The selected load-balancing product and service owners divide policy, health, and application responsibilities.', 'Choosing only from a layer label can miss protocol support, client-address behavior, or health semantics.', 'Application awareness enables richer policy while introducing proxy behavior and additional configuration ownership.', 'List the required decision attributes, supported protocol, health invariant, and ownership before selecting a documented option.', 'This comparison does not select or deploy a Google Cloud load balancer.'),
-], scope='OSI/TCP-IP responsibilities and Layer 4 versus Layer 7 evidence')
+], scope='OSI/TCP-IP responsibilities and Layer 4 versus Layer 7 evidence', additions=T1_DOSSIER_ADDITIONS)
 
 T1_TITLES = ['OSI and TCP/IP responsibility map', 'Layer 4 versus Layer 7 evidence']
-T1_TECH = discussion(T1_TITLES, [
+DOSSIER_READING_GUIDE = link_terms('''<section class="callout"><h4>How to read a worked dossier</h4>
+<p>Each dossier begins with a supplied condition: a fact or named scenario given for analysis, not an observation made here. Its mechanism explains the steps, and its owner boundary names the component or team responsible for the next step.</p>
+<p>Read until the evidence stops. A failure statement names what could block progress, a trade-off names a cost or benefit, and a verification checkpoint names the evidence to collect before making a decision.</p></section>''')
+
+T1_TECH = DOSSIER_READING_GUIDE + discussion(T1_TITLES, [
     subtopic(T1_TITLES[0],
         f'The {keyword("OSI model")} names seven responsibilities: physical signals (1), local frames (2), network addressing/routing (3), transport (4), sessions (5), representation (6), and applications (7). The practical TCP/IP grouping is link, internet, transport, and application. A browser request depends on several of them at once; these are responsibility categories, not seven mandatory programs.',
         'Use the failing responsibility to choose the next investigation: a missing route is an IP question, whereas a valid error response is an application question. The model is a diagnostic vocabulary; implementation boundaries can differ.',
