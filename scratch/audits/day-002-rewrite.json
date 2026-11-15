@@ -1,0 +1,185 @@
+{
+  "day": 2,
+  "scope": "rewrite",
+  "stage": 1,
+  "status": "stage_2_awaiting_approval",
+  "protected_baseline": "scratch/day-002-protected-baseline.json",
+  "dossier_counts_before": {
+    "topic-01-technical": 15,
+    "topic-02-technical": 21,
+    "topic-03-technical": 8,
+    "topic-04-technical": 11
+  },
+  "r2_multiple_paragraphs_in_li": {
+    "status": "PASS",
+    "condition": "The strong.side-heading remains the first non-whitespace child of the li."
+  },
+  "entries": [
+    {
+      "id": "W1",
+      "location": "scratch/day_data_002.py: worked_mechanisms()",
+      "type": "mechanical",
+      "reason_class": "a verbatim repeat",
+      "summary": "Remove the per-dossier reading guide and emit each topic scope guard once after that topic's dossiers.",
+      "requires": ["W2"],
+      "old_str": "def worked_mechanisms(records, *, scope):\n    \"\"\"Render compact, same-day mechanism records as explicit reasoning dossiers.\"\"\"\n    cards = []\n    for number, record in enumerate(records, 1):\n        title, supplied, mechanism, ownership, failure, tradeoff, verification, limit = record\n        cards.append(f'''<article class=\"worked-example\"><p><strong>Worked dossier {number}: {escape(title)}</strong></p>\n<p><strong class=\"side-heading\">Worked starting point:</strong> {escape(supplied)}</p>\n<table><caption>{escape(title)}: mechanism, boundary, and evidence review</caption><tbody>\n<tr><th scope=\"row\">Mechanism</th><td>{escape(mechanism)}</td></tr>\n<tr><th scope=\"row\">Ownership and boundary</th><td>{escape(ownership)}</td></tr>\n<tr><th scope=\"row\">Failure reasoning</th><td>{escape(failure)}</td></tr>\n<tr><th scope=\"row\">Trade-off or limit</th><td>{escape(tradeoff)}</td></tr>\n<tr><th scope=\"row\">Verification checkpoint</th><td>{escape(verification)}</td></tr>\n<tr><th scope=\"row\">Evidence limit</th><td>{escape(limit)}</td></tr>\n</tbody></table>\n<p><strong class=\"side-heading\">Architect's reasoning chain:</strong> Begin with the supplied condition, follow the stated mechanism across its named owner boundary, and stop at the first unsupported transition. The failure statement identifies what could prevent progress; it is not proof that the candidate occurred. Apply the trade-off before selecting a response, then use the verification checkpoint to collect evidence at the boundary that owns the next decision.</p>\n<p><strong class=\"side-heading\">Scope guard:</strong> This dossier deepens {escape(scope)} only. It does not turn a tabletop prediction into an observation, infer a proprietary cloud implementation, or establish application success from a lower-layer signal.</p></article>''')\n    return link_terms(''.join(cards))",
+      "new_str": "def worked_mechanisms(records, *, scope):\n    \"\"\"Render same-day mechanism records and one scope guard per topic.\"\"\"\n    cards = []\n    for number, record in enumerate(records, 1):\n        title, supplied, mechanism, ownership, failure, tradeoff, verification, limit = record\n        cards.append(f'''<article class=\"worked-example\"><p><strong>Worked dossier {number}: {escape(title)}</strong></p>\n<p><strong class=\"side-heading\">Worked starting point:</strong> {escape(supplied)}</p>\n<table><caption>{escape(title)}: mechanism, boundary, and evidence review</caption><tbody>\n<tr><th scope=\"row\">Mechanism</th><td>{escape(mechanism)}</td></tr>\n<tr><th scope=\"row\">Ownership and boundary</th><td>{escape(ownership)}</td></tr>\n<tr><th scope=\"row\">Failure reasoning</th><td>{escape(failure)}</td></tr>\n<tr><th scope=\"row\">Trade-off or limit</th><td>{escape(tradeoff)}</td></tr>\n<tr><th scope=\"row\">Verification checkpoint</th><td>{escape(verification)}</td></tr>\n<tr><th scope=\"row\">Evidence limit</th><td>{escape(limit)}</td></tr>\n</tbody></table></article>''')\n    scope_guard = f'''<p><strong class=\"side-heading\">Scope guard:</strong> These dossiers deepen {escape(scope)} only. They do not turn tabletop predictions into observations, infer proprietary cloud implementation details, or establish application success from a lower-layer signal.</p>'''\n    return link_terms(''.join(cards) + scope_guard)",
+      "ideas_retained": [
+        "Every dossier retains its title, concrete starting point, and six required rows.",
+        "The scope restriction remains after the complete dossier group for each topic.",
+        "Predictions remain distinct from observations and lower-layer signals remain distinct from application success."
+      ],
+      "protected_content_check": "Dossier count, order, headings, rows, anchors, subtopics, diagrams, sources, incidents, and labs remain unchanged.",
+      "status": "applied"
+    },
+    {
+      "id": "W2",
+      "location": "scratch/day_data_002.py: immediately before T1_TECH",
+      "type": "mechanical",
+      "reason_class": "a verbatim repeat",
+      "summary": "Place one beginner reading guide at the top of Part 2 and define each dossier term.",
+      "requires": ["W1"],
+      "old_str": "T1_TECH = discussion(T1_TITLES, [",
+      "new_str": "DOSSIER_READING_GUIDE = link_terms('''<section class=\"callout\"><h4>How to read a worked dossier</h4>\n<p>Each dossier begins with a supplied condition: a fact or named scenario given for analysis, not an observation made here. Its mechanism explains the steps, and its owner boundary names the component or team responsible for the next step.</p>\n<p>Read until the evidence stops. A failure statement names what could block progress, a trade-off names a cost or benefit, and a verification checkpoint names the evidence to collect before making a decision.</p></section>''')\n\nT1_TECH = DOSSIER_READING_GUIDE + discussion(T1_TITLES, [",
+      "ideas_retained": [
+        "Begin with the supplied condition and follow the mechanism across the named owner boundary.",
+        "Stop at the first unsupported transition.",
+        "Treat a failure statement as a candidate rather than proof.",
+        "Apply the trade-off and collect checkpoint evidence before deciding."
+      ],
+      "protected_content_check": "Adds one explanatory guide without changing any dossier, subtopic, anchor, diagram, or source list.",
+      "status": "applied"
+    },
+    {
+      "id": "W3",
+      "location": "scratch/day_data_002.py: lab helper binding after LAB_CONTEXT",
+      "type": "mechanical",
+      "reason_class": "a verbatim repeat",
+      "summary": "Keep all four lab context fields but prefix each rendered field with its exercise name so R10 no longer sees four identical paragraphs.",
+      "old_str": "lab = partial(_lab, defaults=LAB_CONTEXT)",
+      "new_str": "def lab(name, goal, expected, steps, accept, trouble, files):\n    context = dict(LAB_CONTEXT)\n    for field in ('mode', 'preflight', 'verification', 'cleanup'):\n        context[field] = f'Exercise context — {name}. {LAB_CONTEXT[field]}'\n    return _lab(name, goal, expected, steps, accept, trouble, files, defaults=context)",
+      "ideas_retained": [
+        "Each lab retains its local/tabletop mode and observation labels.",
+        "Each lab retains its eight-stage preflight and stop conditions.",
+        "Each lab retains the distinction between local calculations and cloud observations.",
+        "Each lab retains cleanup limits and durable-evidence instructions."
+      ],
+      "protected_content_check": "All lab stages, commands, files, acceptance criteria, and lab ownership remain unchanged; only the repeated context paragraphs gain the existing exercise name.",
+      "status": "applied"
+    },
+    {
+      "id": "W4",
+      "location": "scratch/day_data_002.py: Topic 01 dossier additions and worked_mechanisms()",
+      "type": "preservation_repair",
+      "reason_class": "R13 protected-count restoration",
+      "summary": "Add two substantive beginner decision bullets to each Topic 01 dossier and make the one topic scope guard structural rather than an R2 label.",
+      "ideas_retained": [
+        "All 15 dossiers keep their original title, starting point, six rows, order, and evidence limit.",
+        "Each added pair translates the dossier observation and states a specific architect decision.",
+        "The shared reasoning guide and topic scope guard still appear exactly once."
+      ],
+      "protected_content_check": "R13 passes with topic-01-subtopic-1 labelled bullets restored to 49; dossier counts remain 15, 21, 8, 11.",
+      "status": "applied"
+    },
+    {
+      "id": "T01-W1",
+      "location": "scratch/day_data_002.py: OVERVIEWS topic-01",
+      "type": "rewrite",
+      "reason_class": null,
+      "summary": "Rewrite the Topic 01 overview for a beginner using observation-first language and separate diagnostic responsibilities.",
+      "old_str": "f'{keyword(\"Protocol layers\")} group responsibilities: links move frames, IP routes packets, transports connect endpoints, and applications interpret messages. The models help locate a failure without assuming every green lower layer proves success above it.'",
+      "new_str": "f'''A network request crosses several responsibilities. The local link moves a frame to the next device, {keyword(\"Internet Protocol (IP)\")} chooses a route between networks, a transport protocol connects software endpoints, and the application interprets the message.\n\nThink of these responsibilities as checkpoints on a delivery route. Passing one checkpoint proves only that step, so an architect starts with the first failed observation instead of assuming a working lower layer proves application success.'''",
+      "words_before": 33,
+      "words_after": 72,
+      "ideas_retained": [
+        "Links, IP, transport, and applications have different responsibilities.",
+        "A successful lower-layer signal does not prove a higher-layer outcome.",
+        "The models help locate the first failing responsibility."
+      ],
+      "protected_content_check": "Only the Topic 01 overview prose changes; anchors, linked subtopics, and preview structure remain fixed.",
+      "status": "proposed"
+    },
+    {
+      "id": "T01-C1",
+      "location": "scratch/day_data_002.py: T1_TECH subtopic relevance rows",
+      "type": "correction",
+      "reason_class": null,
+      "summary": "Replace compressed layer and load-balancer claims with beginner explanations limited to the opened primary sections.",
+      "replacements": [
+        {
+          "old_str": "Use the documented Layer 4/Layer 7 load balancer distinction when discussing future ingress designs. Do not infer a particular proprietary forwarding implementation from an OSI label.",
+          "new_str": "First decide what evidence the design must inspect. Google Cloud documents Application Load Balancers as Layer 7 products for HTTP and HTTPS traffic, while Network Load Balancers are Layer 4 products for TCP, UDP, or other IP protocol traffic.\n\nInference from that documented distinction: a layer label can narrow the product family, but it does not prove which implementation or health signal fits the workload. Record the required protocol and decision data before selecting a load balancer."
+        },
+        {
+          "old_str": "Application Load Balancers operate at Layer 7. Network Load Balancers operate at Layer 4, with proxy and passthrough variants. Health-check protocol and supported criteria must be chosen for the specific load balancer; HTTP probing is not a substitute for fixing the failing application.",
+          "new_str": "Google Cloud documents Application Load Balancers as Layer 7 and Network Load Balancers as Layer 4; Network Load Balancers include proxy and passthrough variants. The health-check documentation lists regional and global checks that can use TCP, SSL, HTTP, HTTPS, HTTP/2, or gRPC variants, depending on product compatibility.\n\nAn architect therefore chooses a supported probe that tests the intended boundary. This is a design inference: an HTTP probe can report an application response, but it does not diagnose or repair the reason that an application returned an error."
+        }
+      ],
+      "words_before": 69,
+      "words_after": 164,
+      "ideas_retained": [
+        "Application Load Balancers are Layer 7 and Network Load Balancers are Layer 4.",
+        "Network Load Balancers have proxy and passthrough variants.",
+        "Health-check protocol must be compatible with the selected product and backend.",
+        "A probe reports a boundary result but does not repair the application."
+      ],
+      "sources": [
+        {
+          "url": "https://docs.cloud.google.com/load-balancing/docs/load-balancing-overview#load-balancer-types",
+          "heading_opened": "Load balancer types; Application Load Balancers; Network Load Balancers",
+          "access_date": "2026-11-15"
+        },
+        {
+          "url": "https://docs.cloud.google.com/load-balancing/docs/health-check-concepts#categories_protocols_ports",
+          "heading_opened": "Health check categories, protocols, and ports",
+          "access_date": "2026-11-15"
+        },
+        {
+          "url": "https://www.rfc-editor.org/rfc/rfc1122.html#page-8",
+          "heading_opened": "1.1.3 Internet Protocol Suite",
+          "access_date": "2026-11-15"
+        },
+        {
+          "url": "https://www.rfc-editor.org/rfc/rfc9293.html#section-2.2",
+          "heading_opened": "2.2 Key TCP Concepts",
+          "access_date": "2026-11-15"
+        }
+      ],
+      "protected_content_check": "No source URL, subtopic, label, or product category is removed.",
+      "status": "proposed"
+    },
+    {
+      "id": "T01-W2",
+      "location": "scratch/day_data_002.py: T1_WORKED supplied starting-point fields",
+      "type": "rewrite",
+      "reason_class": null,
+      "summary": "Give every Topic 01 dossier a concrete supplied observation that does not restate its heading.",
+      "replacements": [
+        ["The interface reports carrier present; no successful frame exchange is supplied.", "Supplied interface status: \"carrier=present\"; the fixture contains no successful frame exchange."],
+        ["A local frame is accepted and the route lookup reports no matching route.", "Supplied boundary record: \"frame accepted\" followed by route result \"no matching route\"."],
+        ["A route matches and the supplied connection attempt returns connection refused.", "Supplied connection result after a matching route: \"connection refused\"."],
+        ["The supplied TCP connection succeeds and the supplied HTTP result is 503.", "Supplied results from one attempt: \"TCP connected\" and \"HTTP 503\"."],
+        ["A supplied response has HTTP 200 but the required order identifier is absent.", "Supplied response: \"HTTP 200\"; the required order identifier field is absent."],
+        ["The same IP packet is described with OSI Layer 3 and the TCP/IP Internet layer.", "Supplied model-mapping note describes one packet as \"OSI Layer 3\" and \"TCP/IP Internet layer\"."],
+        ["An application supplies bytes, a destination address, and a destination port.", "Supplied send inputs contain application bytes, destination address \"192.0.2.25\", and destination port 443."],
+        ["A frame addressed to the receiving interface contains an IP packet and transport payload.", "Supplied receive record says \"frame accepted\" and contains an IP packet with a transport payload."],
+        ["The design question asks whether a TCP port can accept a connection.", "Named scenario \"port reachability check\" asks whether TCP port 443 accepts a connection."],
+        ["The design question asks whether a defined HTTP readiness resource returns its expected result.", "Named scenario \"readiness check\" sends \"GET /ready\" and compares the returned status and body with its defined condition."],
+        ["A client reports timeout, with no supplied packet, transport, or server timing evidence.", "Supplied client record contains the result \"timeout\" and no packet, transport, or server timestamps."],
+        ["The supplied record contains an IP unreachable signal followed in a separate test by an HTTP error.", "Two supplied attempts report \"IP unreachable\" and, separately, \"HTTP error\" without a shared attempt identifier."],
+        ["A missing route is corrected in the tabletop configuration.", "Supplied change record says \"missing route added\"; no transport or application rerun is included."],
+        ["A synthetic case says the service fault was repaired; no rerun output is supplied.", "Supplied change note says \"service fault repaired\"; the fixture includes no repeated request output."],
+        ["A design must choose whether routing or application content determines traffic handling.", "Named scenario \"traffic-policy review\" must choose between the observed attributes \"network endpoint\" and \"HTTP content\"."]
+      ],
+      "words_before": 191,
+      "words_after": 199,
+      "ideas_retained": [
+        "All original supplied conditions remain represented.",
+        "Each starting point distinguishes supplied evidence from missing evidence.",
+        "No starting point claims a live observation or invents a causal result."
+      ],
+      "protected_content_check": "All 15 dossiers, their order, six rows, and limits remain unchanged.",
+      "status": "proposed"
+    }
+  ]
+}
